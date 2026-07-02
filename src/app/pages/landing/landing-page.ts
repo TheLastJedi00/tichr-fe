@@ -231,6 +231,34 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
       </div>
     </section>
 
+    <!-- ===== CTA final (reiteração da promessa) ===== -->
+    <section id="final" class="final" appReveal>
+      <div class="container">
+        <h2>Assuma o controle do seu tempo.</h2>
+        <p class="final__sub">
+          Entre na lista e seja um dos primeiros professores a deixar a agenda
+          trabalhar por você.
+        </p>
+        @if (naLista()) {
+          <p class="final__ok">
+            ✓ Você está na lista de espera. Em breve entramos em contato!
+          </p>
+        } @else {
+          <form class="wl" (submit)="$event.preventDefault(); entrar()">
+            <input
+              class="tichr-input"
+              type="email"
+              placeholder="seu@email.com"
+              [value]="email()"
+              (input)="email.set($any($event.target).value)"
+              required
+            />
+            <button class="btn-glow" type="submit">Entrar na lista</button>
+          </form>
+        }
+      </div>
+    </section>
+
     <!-- ===== Rodapé ===== -->
     <footer class="rodape">
       <div class="container rodape__inner">
@@ -238,6 +266,9 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
         <span class="muted">© 2026 — De professor para professor.</span>
       </div>
     </footer>
+
+    <!-- CTA fixo no rodapé (apenas mobile) — sempre ao alcance do polegar -->
+    <a class="sticky-cta" href="#planos">Começar grátis</a>
 
     <!-- Modal de detalhes do plano (carregado sob demanda com @defer) -->
     @defer (when planoAberto()) {
@@ -648,6 +679,56 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
       width: 100%;
     }
 
+    /* ===== CTA final ===== */
+    .final {
+      padding: 5rem 0;
+      text-align: center;
+      color: #f1f5f9;
+      background: linear-gradient(130deg, #0b1120, #1e3a8a);
+    }
+    .final h2 { color: #fff; }
+    .final__sub {
+      max-width: 34rem;
+      margin: 0 auto 2rem;
+      color: rgba(226, 232, 240, 0.85);
+    }
+    .wl {
+      display: flex;
+      gap: 0.6rem;
+      max-width: 460px;
+      margin: 0 auto;
+      flex-wrap: wrap;
+    }
+    .wl .tichr-input { flex: 1 1 220px; }
+    .final__ok {
+      font-weight: 600;
+      color: #86efac;
+    }
+
+    /* ===== Sticky CTA (mobile) ===== */
+    .sticky-cta {
+      display: none;
+    }
+    @media (max-width: 640px) {
+      .sticky-cta {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        left: 1rem;
+        right: 1rem;
+        bottom: 1rem;
+        z-index: 50;
+        padding: 0.9rem 1rem;
+        font-weight: 700;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        box-shadow: 0 10px 30px rgba(37, 99, 235, 0.5);
+      }
+    }
+
     /* ===== Rodapé ===== */
     .rodape {
       padding: 2rem 0;
@@ -658,6 +739,9 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
       display: flex;
       align-items: center;
       justify-content: space-between;
+    }
+    @media (max-width: 640px) {
+      .rodape { padding-bottom: 5.5rem; } /* espaço para o sticky CTA */
     }
     .muted {
       color: var(--text-muted);
