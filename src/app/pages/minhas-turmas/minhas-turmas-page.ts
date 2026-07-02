@@ -46,6 +46,9 @@ import { Spinner } from '../../ui/spinner/spinner';
                 }
               </div>
               <div class="turma__meta">
+                @if (t.horaInicio && t.horaFim) {
+                  <span class="muted">{{ t.horaInicio }}–{{ t.horaFim }}</span>
+                }
                 <span class="muted">Início: {{ formatarData(t.dataInicio) }}</span>
                 @if (t.tipoModalidade === 'MODULO_FECHADO' && t.dataFimPrevista) {
                   <span class="muted">Término: {{ formatarData(t.dataFimPrevista) }}</span>

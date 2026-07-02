@@ -84,6 +84,17 @@ const CORES = [
           <input class="tichr-input" type="date" formControlName="dataInicio" />
         </label>
 
+        <div class="campo horarios">
+          <label>
+            <span>Início da aula</span>
+            <input class="tichr-input" type="time" formControlName="horaInicio" />
+          </label>
+          <label>
+            <span>Fim da aula</span>
+            <input class="tichr-input" type="time" formControlName="horaFim" />
+          </label>
+        </div>
+
         <div class="campo">
           <span>Dias da semana</span>
           <div class="dias">
@@ -147,6 +158,15 @@ const CORES = [
       background: var(--primary);
       border-color: var(--primary);
     }
+    .horarios { display: flex; gap: 0.75rem; }
+    .horarios label { flex: 1; display: block; }
+    .horarios label > span {
+      display: block;
+      margin-bottom: 0.375rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
     .hint { margin: 0; font-size: 0.85rem; color: var(--text-muted); }
     .hint a { font-weight: 600; }
     .cores { display: flex; flex-wrap: wrap; gap: 0.5rem; }
@@ -188,6 +208,8 @@ export class TurmaForm {
     dataInicio: ['', Validators.required],
     totalAulas: [5],
     disciplina: [''],
+    horaInicio: [''],
+    horaFim: [''],
   });
 
   private readonly modalidade = signal<TipoModalidade>('GRADE_FIXA');
@@ -211,6 +233,8 @@ export class TurmaForm {
         dataInicio: t.dataInicio,
         totalAulas: t.totalAulas ?? 5,
         disciplina: t.disciplina ?? '',
+        horaInicio: t.horaInicio ?? '',
+        horaFim: t.horaFim ?? '',
       });
       this.modalidade.set(t.tipoModalidade);
       this.selecionados.set(new Set(t.diasSemana));
@@ -238,6 +262,8 @@ export class TurmaForm {
       diasSemana: [...this.selecionados()].sort(),
       cor: this.cor(),
       ...(raw.disciplina ? { disciplina: raw.disciplina } : {}),
+      ...(raw.horaInicio ? { horaInicio: raw.horaInicio } : {}),
+      ...(raw.horaFim ? { horaFim: raw.horaFim } : {}),
       ...(raw.tipoModalidade === 'MODULO_FECHADO'
         ? { totalAulas: Number(raw.totalAulas) }
         : {}),

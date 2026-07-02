@@ -65,6 +65,9 @@ import { ExcecaoModal } from './excecao-modal';
                 <span class="proxima__turma">
                   <span class="dot" [style.background]="t.cor || 'var(--primary)'"></span>
                   {{ t.nome }}
+                  @if (t.horaInicio && t.horaFim) {
+                    <span class="proxima__hora">· {{ t.horaInicio }}–{{ t.horaFim }}</span>
+                  }
                 </span>
               }
             </div>
@@ -134,6 +137,10 @@ import { ExcecaoModal } from './excecao-modal';
       height: 10px;
       border-radius: 999px;
       display: inline-block;
+    }
+    .proxima__hora {
+      color: var(--text-muted);
+      font-weight: 500;
     }
     .proxima__num {
       font-weight: 600;
