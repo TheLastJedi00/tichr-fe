@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { ThemeService } from '../../core/theme.service';
 import { Icon } from '../../ui/icon/icon';
 import { IconButton } from '../../ui/icon-button/icon-button';
+import { RevealDirective } from '../../ui/reveal.directive';
 
 interface AulaDemo {
   numero: number;
@@ -13,220 +14,297 @@ const BASE = ['02 mar', '09 mar', '16 mar', '23 mar', '30 mar'];
 const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
 
 /**
- * Landing page (standalone, rota /). Explica o conceito de deslizamento
- * com uma demonstracao interativa em tempo real (CSS transitions).
+ * Landing page (standalone, rota /). Vitrine de alto impacto do Tichr:
+ * hero com gradiente animado, demonstracao viva do deslizamento, diferenciais
+ * por cenario e a trilha academica de planos. Ver .specs/update/landing-page.md.
  */
 @Component({
   selector: 'app-landing-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, IconButton, RouterLink],
+  imports: [Icon, IconButton, RouterLink, RevealDirective],
   template: `
-    <header class="topbar">
-      <span class="logo">Tichr</span>
-      <div class="topbar__actions">
-        <a class="btn-outline" routerLink="/login">Entrar</a>
-        <app-icon-button
-          [name]="theme.theme() === 'dark' ? 'sun' : 'moon'"
-          variant="ghost"
-          ariaLabel="Alternar tema"
-          (clicked)="theme.toggle()"
-        />
-      </div>
-    </header>
-
-    <!-- Hero -->
+    <!-- ===== Hero (A Promessa) ===== -->
     <section class="hero">
-      <h1>A agenda que se adapta à sua aula, e não o contrário.</h1>
-      <p class="sub">
-        Feita para quem dá aulas fixas ou cursos modulares. Lance um imprevisto
-        e veja sua grade se reorganizar inteira em um segundo.
-      </p>
-      <a class="btn-primary hero__cta" href="#waitlist">Solicitar acesso beta</a>
-      <p class="hero__login">
-        Já tem acesso beta?
-        <a routerLink="/login">Entrar</a>
-      </p>
-    </section>
-
-    <!-- Demo interativa -->
-    <section class="demo">
-      <h2>Veja o deslizamento acontecer</h2>
-      <div class="demo__box">
-        @for (aula of primeiras(); track aula.numero) {
-          <div class="aula">
-            <span class="aula__n">Aula {{ aula.numero }}</span>
-            <span class="aula__d">{{ aula.data }}</span>
-          </div>
-        }
-
-        @if (imprevisto()) {
-          <div class="excecao">
-            <app-icon name="alert" [size]="16" /> Imprevisto: Sessão de RPG 🎲
-          </div>
-        }
-
-        @for (aula of ultimas(); track aula.numero) {
-          <div class="aula" [class.aula--shift]="imprevisto()">
-            <span class="aula__n">Aula {{ aula.numero }}</span>
-            <span class="aula__d">{{ aula.data }}</span>
-          </div>
-        }
-      </div>
-
-      <button class="btn-primary demo__btn" type="button" (click)="toggle()">
-        {{ imprevisto() ? 'Resetar demonstração' : 'Ops, surgiu um imprevisto!' }}
-      </button>
-      <p class="demo__msg">
-        Você foca em ensinar. O Tichr recalcula a data de término do módulo
-        automaticamente.
-      </p>
-    </section>
-
-    <!-- Dois mundos -->
-    <section class="mundos">
-      <div class="mundo">
-        <app-icon name="building" [size]="28" />
-        <h3>Escola pública / Grade contínua</h3>
-        <p>
-          Configure seus dias na semana e tenha o cronograma do ano inteiro
-          projetado. Feriados suspendem a aula sem quebrar sua grade.
-        </p>
-      </div>
-      <div class="mundo">
-        <app-icon name="rocket" [size]="28" />
-        <h3>Cursos livres / Módulos fechados</h3>
-        <p>
-          Começou uma turma de 10 aulas hoje? O Tichr calcula o dia exato do
-          fim. Precisou remarcar? O término é recalculado na hora.
-        </p>
-      </div>
-    </section>
-
-    <!-- Social proof -->
-    <section class="proof">
-      <span>Chega de planilhas engessadas.</span>
-      <span>Tema claro e escuro nativos.</span>
-      <span>De professor para professor.</span>
-    </section>
-
-    <!-- CTA final / waitlist -->
-    <section id="waitlist" class="final">
-      <h2>Assuma o controle do seu tempo.</h2>
-      @if (naLista()) {
-        <p class="ok">✓ Você está na lista de espera. Em breve entramos em contato!</p>
-      } @else {
-        <form class="wl" (submit)="$event.preventDefault(); entrar()">
-          <input
-            class="tichr-input"
-            type="email"
-            placeholder="seu@email.com"
-            [value]="email()"
-            (input)="email.set($any($event.target).value)"
-            required
+      <header class="topbar container">
+        <span class="logo">Tichr</span>
+        <div class="topbar__actions">
+          <a class="btn-ghost-light" routerLink="/login">Entrar</a>
+          <app-icon-button
+            [name]="theme.theme() === 'dark' ? 'sun' : 'moon'"
+            variant="ghost"
+            ariaLabel="Alternar tema"
+            (clicked)="theme.toggle()"
           />
-          <button class="btn-primary" type="submit">Entrar na lista</button>
-        </form>
-      }
+        </div>
+      </header>
+
+      <div class="hero__inner container">
+        <div class="hero__copy">
+          <h1>A agenda que se adapta à sua aula, e não o contrário.</h1>
+          <p class="hero__sub">
+            Para professores regulares ou conteudistas. Lance um imprevisto e
+            veja sua grade se reorganizar inteira em um segundo.
+          </p>
+          <a class="btn-glow" href="#planos">Descubra seu plano</a>
+          <p class="hero__login">
+            Já tem acesso beta? <a routerLink="/login">Entrar</a>
+          </p>
+        </div>
+
+        <!-- Mockup flutuante do Tichr recalculando datas -->
+        <div class="mockup" aria-hidden="true">
+          <div class="mockup__bar">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="mockup__row"><span>Aula 03</span><b>16 mar</b></div>
+          <div class="mockup__row mockup__row--alert">imprevisto ⚡</div>
+          <div class="mockup__row mockup__row--moved"><span>Aula 03</span><b>23 mar</b></div>
+          <div class="mockup__row mockup__row--moved"><span>Aula 04</span><b>30 mar</b></div>
+        </div>
+      </div>
     </section>
 
+    <!-- ===== A Mágica (o deslizamento na prática) ===== -->
+    <section class="magic" appReveal>
+      <div class="container">
+        <h2>Veja o deslizamento acontecer</h2>
+        <p class="magic__lead">
+          Cinco aulas na sua grade. Lance um imprevisto e veja os blocos
+          deslizarem para as próximas datas válidas — em tempo real.
+        </p>
+
+        <div class="demo">
+          @for (aula of aulas(); track aula.numero) {
+            @if (aula.numero === 3 && imprevisto()) {
+              <div class="excecao">
+                <app-icon name="alert" [size]="16" /> Imprevisto: Conselho de classe
+              </div>
+            }
+            <div class="aula" [class.aula--shift]="imprevisto() && aula.numero >= 3">
+              <span class="aula__n">Aula {{ aula.numero }}</span>
+              <span class="aula__d">{{ aula.data }}</span>
+            </div>
+          }
+        </div>
+
+        <button class="btn-primary demo__btn" type="button" (click)="toggle()">
+          {{ imprevisto() ? 'Resetar demonstração' : 'Surgiu um imprevisto!' }}
+        </button>
+        <p class="magic__msg">
+          Você foca em ensinar. O Tichr recalcula a data de término do módulo
+          automaticamente.
+        </p>
+      </div>
+    </section>
+
+    <!-- ===== Rodapé ===== -->
     <footer class="rodape">
-      <span class="logo">Tichr</span>
-      <span class="muted">© 2026 — Todos os direitos reservados.</span>
+      <div class="container rodape__inner">
+        <span class="logo">Tichr</span>
+        <span class="muted">© 2026 — De professor para professor.</span>
+      </div>
     </footer>
   `,
   styles: `
     :host {
       display: block;
-      max-width: 820px;
+    }
+    .container {
+      width: 100%;
+      max-width: 1080px;
       margin: 0 auto;
-      padding: 0 1.25rem 4rem;
-    }
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 1rem 0;
-    }
-    .topbar__actions {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .topbar__actions .btn-outline {
-      text-decoration: none;
+      padding: 0 1.25rem;
     }
     .logo {
       font-size: 1.35rem;
       font-weight: 800;
       letter-spacing: -0.02em;
     }
+
+    /* ===== Hero ===== */
     .hero {
-      text-align: center;
-      padding: 3rem 0 2.5rem;
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      color: #f1f5f9;
+      background: linear-gradient(130deg, #0b1120 0%, #1e3a8a 45%, #0f172a 100%);
+      background-size: 220% 220%;
+      animation: heroShift 20s ease-in-out infinite;
+      overflow: hidden;
     }
-    .hero h1 {
+    @keyframes heroShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .hero { animation: none; }
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 1.25rem;
+      padding-bottom: 1.25rem;
+    }
+    .btn-ghost-light {
+      font-weight: 600;
+      color: #f1f5f9;
+      padding: 0.5rem 0.9rem;
+      border: 1px solid rgba(241, 245, 249, 0.3);
+      border-radius: var(--radius);
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+    }
+    .btn-ghost-light:hover {
+      background: rgba(241, 245, 249, 0.12);
+      border-color: rgba(241, 245, 249, 0.6);
+    }
+    .hero__inner {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr;
+      align-items: center;
+      gap: 2.5rem;
+      padding-top: 2rem;
+      padding-bottom: 4rem;
+    }
+    @media (min-width: 860px) {
+      .hero__inner { grid-template-columns: 1.1fr 0.9fr; }
+    }
+    .hero__copy h1 {
       margin: 0;
-      font-size: clamp(2rem, 6vw, 3.25rem);
+      font-size: clamp(2.25rem, 6vw, 4rem);
       font-weight: 800;
-      line-height: 1.05;
+      line-height: 1.03;
       letter-spacing: -0.03em;
     }
-    .sub {
-      max-width: 520px;
-      margin: 1.25rem auto 1.75rem;
-      color: var(--text-muted);
-      font-size: 1.05rem;
+    .hero__sub {
+      max-width: 34rem;
+      margin: 1.5rem 0 2rem;
+      font-size: 1.15rem;
+      color: rgba(226, 232, 240, 0.85);
     }
-    .hero__cta {
-      text-decoration: none;
-      font-size: 1.05rem;
-      padding: 0.75rem 1.5rem;
+    .btn-glow {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: #fff;
+      padding: 0.9rem 2rem;
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      box-shadow: 0 8px 30px rgba(37, 99, 235, 0.45);
+      transition: transform 0.15s ease, box-shadow 0.2s ease;
+    }
+    .btn-glow:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(59, 130, 246, 0.65);
     }
     .hero__login {
-      margin: 1rem 0 0;
-      font-size: 0.9rem;
-      color: var(--text-muted);
+      margin: 1.25rem 0 0;
+      font-size: 0.95rem;
+      color: rgba(226, 232, 240, 0.75);
     }
     .hero__login a {
+      color: #fff;
+      font-weight: 600;
+      text-decoration: underline;
+    }
+
+    /* Mockup flutuante */
+    .mockup {
+      justify-self: center;
+      width: min(320px, 100%);
+      padding: 1rem;
+      border-radius: 16px;
+      background: rgba(15, 23, 42, 0.55);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 24px 60px rgba(2, 6, 23, 0.5);
+      animation: float 6s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-12px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .mockup { animation: none; }
+    }
+    .mockup__bar {
+      display: flex;
+      gap: 0.4rem;
+      margin-bottom: 0.9rem;
+    }
+    .mockup__bar span {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(148, 163, 184, 0.5);
+    }
+    .mockup__row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.7rem 0.9rem;
+      margin-top: 0.5rem;
+      border-radius: 10px;
+      background: rgba(148, 163, 184, 0.12);
+      font-size: 0.95rem;
+      color: #e2e8f0;
+    }
+    .mockup__row b { font-variant-numeric: tabular-nums; }
+    .mockup__row--alert {
+      justify-content: center;
+      color: #fca5a5;
+      background: rgba(239, 68, 68, 0.15);
       font-weight: 600;
     }
-    section {
-      margin-bottom: 3.5rem;
+    .mockup__row--moved {
+      background: rgba(59, 130, 246, 0.22);
+      color: #bfdbfe;
+    }
+
+    /* ===== A Mágica ===== */
+    .magic {
+      background: var(--surface-alt);
+      padding: 4.5rem 0;
+      text-align: center;
     }
     h2 {
-      text-align: center;
-      font-size: 1.6rem;
-      font-weight: 700;
-      margin: 0 0 1.5rem;
+      font-size: clamp(1.6rem, 3.5vw, 2.25rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin: 0 0 0.75rem;
     }
-    .demo__box {
+    .magic__lead {
+      max-width: 34rem;
+      margin: 0 auto 2rem;
+      color: var(--text-muted);
+    }
+    .demo {
       max-width: 380px;
-      margin: 0 auto 1.25rem;
+      margin: 0 auto 1.5rem;
       border: 1px solid var(--border);
       border-radius: var(--radius);
       background: var(--surface);
       padding: 0.5rem;
+      text-align: left;
     }
     .aula {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0.75rem 0.875rem;
+      padding: 0.8rem 0.9rem;
       border-radius: var(--radius);
-      transition:
-        background-color 0.4s ease,
-        transform 0.4s ease;
+      transition: background-color 0.45s ease, transform 0.45s ease;
     }
-    .aula + .aula {
-      margin-top: 0.25rem;
-    }
+    .aula + .aula { margin-top: 0.25rem; }
     .aula--shift {
       background: color-mix(in srgb, var(--primary) 12%, transparent);
     }
-    .aula__n {
-      font-weight: 600;
-    }
+    .aula__n { font-weight: 600; }
     .aula__d {
       color: var(--text-muted);
       font-variant-numeric: tabular-nums;
@@ -235,83 +313,35 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      margin: 0.25rem 0;
-      padding: 0.625rem 0.875rem;
+      margin: 0.5rem 0;
+      padding: 0.65rem 0.9rem;
       font-weight: 600;
       color: var(--danger);
       background: color-mix(in srgb, var(--danger) 10%, transparent);
       border-radius: var(--radius);
     }
     .demo__btn {
-      display: block;
       margin: 0 auto;
       cursor: pointer;
+      font-size: 1rem;
+      padding: 0.75rem 1.5rem;
     }
-    .demo__msg {
-      text-align: center;
-      max-width: 440px;
-      margin: 1rem auto 0;
-      color: var(--text-muted);
-      font-size: 0.95rem;
-    }
-    .mundos {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 1rem;
-    }
-    @media (min-width: 640px) {
-      .mundos {
-        grid-template-columns: 1fr 1fr;
-      }
-    }
-    .mundo {
-      padding: 1.5rem;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: var(--surface);
-      color: var(--primary);
-    }
-    .mundo h3 {
-      margin: 0.75rem 0 0.5rem;
-      color: var(--text);
-      font-size: 1.15rem;
-    }
-    .mundo p {
-      margin: 0;
+    .magic__msg {
+      max-width: 34rem;
+      margin: 1.25rem auto 0;
       color: var(--text-muted);
     }
-    .proof {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 0.75rem 2rem;
-      text-align: center;
-      font-weight: 600;
-      color: var(--text-muted);
-    }
-    .final {
-      text-align: center;
-    }
-    .wl {
-      display: flex;
-      gap: 0.5rem;
-      max-width: 420px;
-      margin: 0 auto;
-      flex-wrap: wrap;
-    }
-    .wl .tichr-input {
-      flex: 1 1 200px;
-    }
-    .ok {
-      color: var(--success);
-      font-weight: 600;
-    }
+
+    /* ===== Rodapé ===== */
     .rodape {
+      padding: 2rem 0;
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+    }
+    .rodape__inner {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding-top: 1.5rem;
-      border-top: 1px solid var(--border);
     }
     .muted {
       color: var(--text-muted);
@@ -326,13 +356,10 @@ export class LandingPage {
   protected readonly email = signal('');
   protected readonly naLista = signal(false);
 
-  private readonly aulas = computed<AulaDemo[]>(() => {
+  protected readonly aulas = computed<AulaDemo[]>(() => {
     const datas = this.imprevisto() ? DESLIZADO : BASE;
     return datas.map((data, i) => ({ numero: i + 1, data }));
   });
-
-  protected readonly primeiras = computed(() => this.aulas().slice(0, 2));
-  protected readonly ultimas = computed(() => this.aulas().slice(2));
 
   protected toggle(): void {
     this.imprevisto.update((v) => !v);
