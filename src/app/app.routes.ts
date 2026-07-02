@@ -39,6 +39,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'turmas/:id/dinamica',
+        loadComponent: () =>
+          import('./pages/nova-dinamica/nova-dinamica-page').then(
+            (m) => m.NovaDinamicaPage,
+          ),
+      },
+      {
         path: 'turmas/:id',
         loadComponent: () =>
           import('./pages/turma-detalhe/turma-detalhe-page').then(
