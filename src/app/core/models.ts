@@ -1,6 +1,7 @@
 export type TipoModalidade = 'GRADE_FIXA' | 'MODULO_FECHADO';
 export type StatusSessao = 'AGENDADA' | 'CANCELADA' | 'REALIZADA';
 export type EscopoExcecao = 'GLOBAL' | 'ESCOLA' | 'PESSOAL';
+export type PlanoAtual = 'ESTAGIARIO' | 'GRADUADO' | 'MESTRE' | 'PHD';
 
 export interface Sessao {
   id: string;
@@ -24,6 +25,7 @@ export interface Turma {
   disciplina?: string;
   horaInicio?: string;
   horaFim?: string;
+  encerradaManualmente?: boolean;
   ativo: boolean;
 }
 
@@ -51,6 +53,8 @@ export interface Profile {
   disciplina?: string;
   bio?: string;
   disciplinas?: string[];
+  planoAtual?: PlanoAtual;
+  slotsAdicionaisComprados?: number;
 }
 
 export interface UpdateProfilePayload {
