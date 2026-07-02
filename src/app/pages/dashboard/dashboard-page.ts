@@ -38,6 +38,18 @@ import { ExcecaoModal } from './excecao-modal';
       </app-icon-button>
     </div>
 
+    @if (mostrarOnboarding()) {
+      <app-card>
+        <div class="onboarding">
+          <h3>Que bom ter você por aqui! 👋</h3>
+          <p class="muted">
+            Para deixarmos a casa com a sua cara, que tal configurar seu perfil?
+          </p>
+          <a class="btn-primary" routerLink="/configuracoes">Completar meu perfil</a>
+        </div>
+      </app-card>
+    }
+
     @if (loading()) {
       <div class="loading">
         <app-spinner [size]="32" />
@@ -110,6 +122,16 @@ import { ExcecaoModal } from './excecao-modal';
       margin-top: 0.875rem;
       text-decoration: none;
     }
+    .onboarding h3 {
+      margin: 0 0 0.375rem;
+      font-size: 1.1rem;
+    }
+    .onboarding p {
+      margin: 0 0 1rem;
+    }
+    .onboarding .btn-primary {
+      text-decoration: none;
+    }
     .loading {
       display: flex;
       flex-direction: column;
@@ -130,6 +152,10 @@ export class DashboardPage {
   protected readonly saudacao = saudacaoPorHora(this.agora);
   protected readonly dataHoje = dataPorExtenso(this.agora);
   protected readonly nome = this.profileService.nome;
+  protected readonly perfilCarregado = signal(false);
+  protected readonly mostrarOnboarding = computed(
+    () => this.perfilCarregado() && !this.nome(),
+  );
 
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
@@ -151,7 +177,10 @@ export class DashboardPage {
   });
 
   constructor() {
-    this.profileService.load().subscribe({ error: () => {} });
+    this.profileService.load().subscribe({
+      next: () => this.perfilCarregado.set(true),
+      error: () => this.perfilCarregado.set(true),
+    });
     this.carregar();
   }
 
