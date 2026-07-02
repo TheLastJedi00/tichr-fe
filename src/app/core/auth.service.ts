@@ -1,46 +1,51 @@
-import { Injectable, signal } from '@angular/core';
-import { initializeApp } from 'firebase/app';
-import {
-  Auth,
-  getAuth,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signOut,
-  User,
-} from 'firebase/auth';
-import { firebaseConfig } from './firebase.config';
+import { HttpClient } from '@angular/common/http';
+import { computed, inject, Injectable, signal } from '@angular/core';
+import { Observable, tap } from 'rxjs';
+import { API_BASE_URL } from './api.config';
+
+interface LoginResponse {
+  token: string;
+  refreshToken: string;
+  expiresIn: number;
+  uid: string;
+  email: string;
+}
+
+const STORAGE_KEY = 'tichr-token';
 
 /**
- * Autenticacao no frontend via Firebase Auth (email/senha).
- * Expõe o usuario atual como signal e resgata o ID token para o interceptor.
+ * Autenticacao via backend (o backend e o intermediario do Firebase Auth).
+ * O frontend nao conhece o Firebase: envia email/senha para /auth/login,
+ * guarda o token retornado e o injeta como Bearer nas requisicoes.
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly auth: Auth = getAuth(initializeApp(firebaseConfig));
+  private readonly http = inject(HttpClient);
+  private readonly base = inject(API_BASE_URL);
 
-  /** Usuario logado (null quando deslogado). */
-  readonly user = signal<User | null>(null);
-  /** Vira true quando o Firebase resolve o estado inicial de auth. */
-  readonly ready = signal(false);
+  private readonly _token = signal<string | null>(
+    localStorage.getItem(STORAGE_KEY),
+  );
+  readonly isAuthenticated = computed(() => this._token() !== null);
 
-  constructor() {
-    onAuthStateChanged(this.auth, (user) => {
-      this.user.set(user);
-      this.ready.set(true);
-    });
+  login(email: string, password: string): Observable<LoginResponse> {
+    return this.http
+      .post<LoginResponse>(`${this.base}/auth/login`, { email, password })
+      .pipe(tap((res) => this.setToken(res.token)));
   }
 
-  login(email: string, senha: string): Promise<unknown> {
-    return signInWithEmailAndPassword(this.auth, email, senha);
+  logout(): void {
+    this._token.set(null);
+    localStorage.removeItem(STORAGE_KEY);
   }
 
-  logout(): Promise<void> {
-    return signOut(this.auth);
+  /** Token atual (sincrono) para o interceptor. */
+  getToken(): string | null {
+    return this._token();
   }
 
-  /** ID token JWT atual (ou null se deslogado) para o header Authorization. */
-  getToken(): Promise<string | null> {
-    const current = this.auth.currentUser;
-    return current ? current.getIdToken() : Promise.resolve(null);
+  private setToken(token: string): void {
+    this._token.set(token);
+    localStorage.setItem(STORAGE_KEY, token);
   }
 }

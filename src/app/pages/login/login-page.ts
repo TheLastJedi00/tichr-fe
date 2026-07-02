@@ -96,12 +96,12 @@ export class LoginPage {
     }
     this.entrando.set(true);
     this.erro.set(null);
-    this.auth
-      .login(this.email(), this.senha())
-      .then(() => this.router.navigateByUrl('/dashboard'))
-      .catch(() => {
+    this.auth.login(this.email(), this.senha()).subscribe({
+      next: () => this.router.navigateByUrl('/dashboard'),
+      error: () => {
         this.erro.set('Email ou senha inválidos.');
         this.entrando.set(false);
-      });
+      },
+    });
   }
 }
