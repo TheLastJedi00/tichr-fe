@@ -56,7 +56,10 @@ function domingo(iso: string): string {
               <div class="cell" [class.tem-aula]="dia.sessoes.length" [class.hoje]="dia.hoje">
                 <span class="cell__dia">{{ dia.dia }}</span>
                 @for (s of dia.sessoes; track s.id) {
-                  <span class="badge">Aula {{ s.numero }}</span>
+                  <span
+                    class="badge"
+                    [class.badge--cancelada]="s.status === 'CANCELADA'"
+                  >Aula {{ s.numero }}</span>
                 }
               </div>
             }
@@ -82,19 +85,36 @@ function domingo(iso: string): string {
       padding: 0.375rem 0;
     }
     .cell {
-      min-height: 64px;
+      min-height: 68px;
       padding: 0.375rem;
-      background: var(--surface);
+      background: var(--surface-alt);
       border: 1px solid var(--border);
       border-radius: var(--radius);
     }
-    .cell__dia { font-size: 0.8rem; color: var(--text-muted); }
+    .cell.tem-aula {
+      background: var(--surface);
+      border-color: var(--primary);
+    }
+    .cell.hoje {
+      outline: 2px solid var(--primary);
+      outline-offset: -1px;
+    }
+    .cell__dia { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
+    .cell.hoje .cell__dia { color: var(--primary); }
     .badge {
       display: block;
       margin-top: 0.25rem;
-      font-size: 0.7rem;
-      font-weight: 600;
-      color: var(--primary);
+      padding: 0.1rem 0.3rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--primary-contrast);
+      background: var(--primary);
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .badge--cancelada {
+      background: var(--danger);
+      text-decoration: line-through;
     }
   `,
 })
