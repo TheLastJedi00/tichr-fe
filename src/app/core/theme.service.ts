@@ -4,6 +4,12 @@ type Theme = 'light' | 'dark';
 
 const STORAGE_KEY = 'tichr-theme';
 
+/** Cor da barra do navegador mobile (meta theme-color) por tema — espelha --bg. */
+const THEME_COLOR: Record<Theme, string> = {
+  light: '#f8fafc',
+  dark: '#0f172a',
+};
+
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
   readonly theme = signal<Theme>(this.resolveInitialTheme());
@@ -25,6 +31,9 @@ export class ThemeService {
 
   private applyTheme(theme: Theme): void {
     document.documentElement.setAttribute('data-theme', theme);
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute('content', THEME_COLOR[theme]);
   }
 
   private resolveInitialTheme(): Theme {
