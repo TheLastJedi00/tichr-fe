@@ -45,6 +45,9 @@ import { Spinner } from '../../ui/spinner/spinner';
                 @if (t.totalAulas) {
                   <span class="muted">{{ t.totalAulas }} aulas</span>
                 }
+                <a class="btn-outline editar" [routerLink]="['/turmas', t.id, 'editar']">
+                  Editar
+                </a>
               </div>
             </div>
           </app-card>
@@ -83,9 +86,15 @@ import { Spinner } from '../../ui/spinner/spinner';
     .turma__meta {
       display: flex;
       flex-direction: column;
+      align-items: flex-end;
       gap: 0.2rem;
       text-align: right;
       font-size: 0.85rem;
+    }
+    .editar {
+      margin-top: 0.5rem;
+      text-decoration: none;
+      padding: 0.375rem 0.75rem;
     }
     .muted { color: var(--text-muted); }
   `,
