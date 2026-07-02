@@ -7,7 +7,7 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { formatarData } from '../../core/date-format';
-import { dataPorExtenso, saudacaoPorHora } from '../../core/greeting';
+import { dataPorExtenso, hojeISO, saudacaoPorHora } from '../../core/greeting';
 import { CriarExcecaoPayload, Sessao } from '../../core/models';
 import { ProfileService } from '../../core/profile.service';
 import { TurmaApiService } from '../../core/turma-api.service';
@@ -15,12 +15,6 @@ import { Card } from '../../ui/card/card';
 import { IconButton } from '../../ui/icon-button/icon-button';
 import { Spinner } from '../../ui/spinner/spinner';
 import { ExcecaoModal } from './excecao-modal';
-
-interface GrupoDia {
-  data: string;
-  label: string;
-  itens: Sessao[];
-}
 
 /**
  * DashboardPage (Smart Component): tela de recepção. Saudação personalizada,
@@ -49,28 +43,23 @@ interface GrupoDia {
         <app-spinner [size]="32" />
         <span class="muted">Carregando sua agenda…</span>
       </div>
-    } @else if (grupos().length === 0) {
-      <app-card>
-        <p class="muted empty">
-          Nenhuma aula agendada ainda. Crie uma turma para o Tichr projetar sua
-          grade.
-        </p>
-      </app-card>
     } @else {
-      <div class="lista">
-        @for (grupo of grupos(); track grupo.data) {
-          <app-card [title]="grupo.label">
-            @for (sessao of grupo.itens; track sessao.id) {
-              <div class="sessao" [class.cancelada]="sessao.status === 'CANCELADA'">
-                <span class="sessao__num">Aula {{ sessao.numero }}</span>
-                <span class="badge" [class]="'badge--' + sessao.status.toLowerCase()">
-                  {{ sessao.status }}
-                </span>
-              </div>
-            }
-          </app-card>
-        }
-      </div>
+      @if (proxima(); as p) {
+        <app-card title="Próxima aula">
+          <div class="proxima">
+            <span class="proxima__data">{{ formatarData(p.data) }}</span>
+            <span class="proxima__num">Aula {{ p.numero }}</span>
+          </div>
+        </app-card>
+      } @else {
+        <app-card>
+          <p class="muted empty">
+            Nenhuma aula agendada. Crie uma turma para o Tichr projetar sua grade.
+          </p>
+        </app-card>
+      }
+
+      <a class="btn-outline ver-agenda" routerLink="/agenda">Ver agenda completa</a>
     }
 
     <app-excecao-modal
@@ -101,39 +90,26 @@ interface GrupoDia {
       margin-bottom: 1.25rem;
       flex-wrap: wrap;
     }
-    .lista {
+    .proxima {
       display: flex;
-      flex-direction: column;
+      align-items: baseline;
+      justify-content: space-between;
       gap: 0.75rem;
     }
-    .sessao {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.5rem 0;
-    }
-    .sessao + .sessao {
-      border-top: 1px solid var(--border);
-    }
-    .sessao.cancelada .sessao__num {
-      text-decoration: line-through;
-      color: var(--text-muted);
-    }
-    .sessao__num {
-      font-weight: 600;
-    }
-    .badge {
-      font-size: 0.7rem;
+    .proxima__data {
+      font-size: 1.35rem;
       font-weight: 700;
-      letter-spacing: 0.03em;
-      padding: 0.2rem 0.5rem;
-      border-radius: 999px;
-      border: 1px solid var(--border);
+      color: var(--primary);
+    }
+    .proxima__num {
+      font-weight: 600;
       color: var(--text-muted);
     }
-    .badge--agendada { color: var(--primary); border-color: var(--primary); }
-    .badge--cancelada { color: var(--danger); border-color: var(--danger); }
-    .badge--realizada { color: var(--success); border-color: var(--success); }
+    .ver-agenda {
+      display: inline-flex;
+      margin-top: 0.875rem;
+      text-decoration: none;
+    }
     .loading {
       display: flex;
       flex-direction: column;
@@ -161,20 +137,17 @@ export class DashboardPage {
   protected readonly excecaoAberta = signal(false);
   protected readonly salvandoExcecao = signal(false);
 
-  protected readonly grupos = computed<GrupoDia[]>(() => {
-    const mapa = new Map<string, Sessao[]>();
-    for (const sessao of this.sessoes()) {
-      const lista = mapa.get(sessao.data) ?? [];
-      lista.push(sessao);
-      mapa.set(sessao.data, lista);
-    }
-    return [...mapa.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([data, itens]) => ({
-        data,
-        label: formatarData(data),
-        itens: itens.sort((x, y) => x.numero - y.numero),
-      }));
+  protected readonly formatarData = formatarData;
+
+  /** Próxima aula AGENDADA a partir de hoje (a mais próxima). */
+  protected readonly proxima = computed<Sessao | null>(() => {
+    const hoje = hojeISO(this.agora);
+    return (
+      this.sessoes()
+        .filter((s) => s.status === 'AGENDADA' && s.data >= hoje)
+        .sort((a, b) => a.data.localeCompare(b.data) || a.numero - b.numero)[0] ??
+      null
+    );
   });
 
   constructor() {
