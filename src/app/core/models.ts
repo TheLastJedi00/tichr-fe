@@ -36,3 +36,16 @@ export interface CriarExcecaoPayload {
   motivo: string;
   escopo: EscopoExcecao;
 }
+
+export interface Profile {
+  uid: string;
+  nomeExibicao?: string;
+  disciplina?: string;
+  bio?: string;
+}
+
+export interface UpdateProfilePayload {
+  nomeExibicao?: string;
+  disciplina?: string;
+  bio?: string;
+}
