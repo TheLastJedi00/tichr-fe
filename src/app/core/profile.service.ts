@@ -1,0 +1,30 @@
+import { HttpClient } from '@angular/common/http';
+import { computed, inject, Injectable, signal } from '@angular/core';
+import { Observable, tap } from 'rxjs';
+import { API_BASE_URL } from './api.config';
+import { Profile, UpdateProfilePayload } from './models';
+
+/**
+ * Perfil do professor: camada HTTP + estado reativo (signal) compartilhado.
+ * Ao salvar, o signal atualiza e o greeting do Dashboard reflete na hora.
+ */
+@Injectable({ providedIn: 'root' })
+export class ProfileService {
+  private readonly http = inject(HttpClient);
+  private readonly base = inject(API_BASE_URL);
+
+  readonly profile = signal<Profile | null>(null);
+  readonly nome = computed(() => this.profile()?.nomeExibicao ?? null);
+
+  load(): Observable<Profile> {
+    return this.http
+      .get<Profile>(`${this.base}/profile`)
+      .pipe(tap((p) => this.profile.set(p)));
+  }
+
+  update(payload: UpdateProfilePayload): Observable<Profile> {
+    return this.http
+      .put<Profile>(`${this.base}/profile`, payload)
+      .pipe(tap((p) => this.profile.set(p)));
+  }
+}
