@@ -69,6 +69,7 @@ interface GrupoDia {
 
     <app-excecao-modal
       [open]="excecaoAberta()"
+      [loading]="salvandoExcecao()"
       (confirmar)="salvarExcecao($event)"
       (fechar)="excecaoAberta.set(false)"
     />
@@ -152,6 +153,7 @@ export class DashboardPage {
   protected readonly error = signal<string | null>(null);
   protected readonly sessoes = signal<Sessao[]>([]);
   protected readonly excecaoAberta = signal(false);
+  protected readonly salvandoExcecao = signal(false);
 
   protected readonly grupos = computed<GrupoDia[]>(() => {
     const mapa = new Map<string, Sessao[]>();
@@ -193,14 +195,16 @@ export class DashboardPage {
   }
 
   protected salvarExcecao(payload: CriarExcecaoPayload): void {
+    this.salvandoExcecao.set(true);
     this.api.criarExcecao(payload).subscribe({
       next: () => {
+        this.salvandoExcecao.set(false);
         this.excecaoAberta.set(false);
         this.carregar();
       },
       error: () => {
+        this.salvandoExcecao.set(false);
         this.excecaoAberta.set(false);
-        this.error.set('Não foi possível registrar a exceção.');
       },
     });
   }

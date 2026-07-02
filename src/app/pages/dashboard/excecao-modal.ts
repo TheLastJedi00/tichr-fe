@@ -39,9 +39,9 @@ import { CriarExcecaoPayload, EscopoExcecao } from '../../core/models';
           </label>
 
           <div class="acoes">
-            <button class="btn-outline" type="button" (click)="fechar.emit()">Cancelar</button>
-            <button class="btn-primary" type="button" [disabled]="!podeConfirmar()" (click)="confirmar()">
-              Adicionar
+            <button class="btn-outline" type="button" [disabled]="loading()" (click)="fechar.emit()">Cancelar</button>
+            <button class="btn-primary" type="button" [disabled]="!podeConfirmar() || loading()" (click)="confirmar()">
+              {{ loading() ? 'Adicionando…' : 'Adicionar' }}
             </button>
           </div>
         </div>
@@ -97,6 +97,7 @@ import { CriarExcecaoPayload, EscopoExcecao } from '../../core/models';
 })
 export class ExcecaoModal {
   readonly open = input(false);
+  readonly loading = input(false);
   readonly confirmar_ = output<CriarExcecaoPayload>({ alias: 'confirmar' });
   readonly fechar = output<void>();
 

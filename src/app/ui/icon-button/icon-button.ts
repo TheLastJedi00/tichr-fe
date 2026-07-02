@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { Icon, IconName } from '../icon/icon';
+import { Spinner } from '../spinner/spinner';
 
 type Variant = 'primary' | 'outline' | 'ghost';
 
@@ -11,7 +12,7 @@ type Variant = 'primary' | 'outline' | 'ghost';
   selector: 'app-icon-button',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon],
+  imports: [Icon, Spinner],
   template: `
     <button
       type="button"
@@ -20,10 +21,14 @@ type Variant = 'primary' | 'outline' | 'ghost';
       [class.is-outline]="variant() === 'outline'"
       [class.is-ghost]="variant() === 'ghost'"
       [attr.aria-label]="ariaLabel()"
-      [disabled]="disabled()"
+      [disabled]="disabled() || loading()"
       (click)="clicked.emit()"
     >
-      <app-icon [name]="name()" [size]="size()" />
+      @if (loading()) {
+        <app-spinner [size]="size()" />
+      } @else {
+        <app-icon [name]="name()" [size]="size()" />
+      }
       <ng-content />
     </button>
   `,
@@ -78,5 +83,6 @@ export class IconButton {
   readonly size = input(20);
   readonly ariaLabel = input<string>();
   readonly disabled = input(false);
+  readonly loading = input(false);
   readonly clicked = output<void>();
 }
