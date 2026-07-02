@@ -4,7 +4,9 @@ import { Observable } from 'rxjs';
 import { API_BASE_URL } from './api.config';
 import {
   CriarExcecaoPayload,
+  CriarFeriasPayload,
   CriarTurmaPayload,
+  Ferias,
   Sessao,
   Turma,
 } from './models';
@@ -34,6 +36,25 @@ export class TurmaApiService {
     return this.http.put<{ turma: Turma; sessoes: Sessao[] }>(
       `${this.base}/turmas/${id}`,
       payload,
+    );
+  }
+
+  getFerias(): Observable<Ferias[]> {
+    return this.http.get<Ferias[]>(`${this.base}/ferias`);
+  }
+
+  criarFerias(
+    payload: CriarFeriasPayload,
+  ): Observable<{ ferias: Ferias; turmasRecalculadas: number }> {
+    return this.http.post<{ ferias: Ferias; turmasRecalculadas: number }>(
+      `${this.base}/ferias`,
+      payload,
+    );
+  }
+
+  removerFerias(id: string): Observable<{ turmasRecalculadas: number }> {
+    return this.http.delete<{ turmasRecalculadas: number }>(
+      `${this.base}/ferias/${id}`,
     );
   }
 

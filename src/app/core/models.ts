@@ -55,3 +55,19 @@ export interface UpdateProfilePayload {
   bio?: string;
   disciplinas?: string[];
 }
+
+export interface Ferias {
+  id: string;
+  professorId: string;
+  turmaId?: string;
+  dataInicio: string;
+  dataFim: string;
+  descricao?: string;
+}
+
+export interface CriarFeriasPayload {
+  turmaId?: string;
+  dataInicio: string;
+  dataFim: string;
+  descricao?: string;
+}

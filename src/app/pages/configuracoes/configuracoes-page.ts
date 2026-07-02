@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ProfileService } from '../../core/profile.service';
 import { Card } from '../../ui/card/card';
 import { Spinner } from '../../ui/spinner/spinner';
+import { FeriasManager } from '../ferias/ferias-manager';
 
 /**
  * ConfiguracoesPage (smart): perfil do professor. Carrega o perfil atual,
@@ -12,7 +13,7 @@ import { Spinner } from '../../ui/spinner/spinner';
   selector: 'app-configuracoes-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, Card, Spinner],
+  imports: [ReactiveFormsModule, Card, Spinner, FeriasManager],
   template: `
     <h1 class="title">Configurações</h1>
 
@@ -67,6 +68,10 @@ import { Spinner } from '../../ui/spinner/spinner';
           </button>
         </form>
       </app-card>
+
+      <div class="ferias-wrap">
+        <app-ferias-manager />
+      </div>
     }
   `,
   styles: `
@@ -134,6 +139,9 @@ import { Spinner } from '../../ui/spinner/spinner';
     }
     .full {
       width: 100%;
+    }
+    .ferias-wrap {
+      margin-top: 1rem;
     }
   `,
 })
