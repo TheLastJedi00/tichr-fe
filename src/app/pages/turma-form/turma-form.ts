@@ -8,8 +8,10 @@ import {
   output,
   signal,
 } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CriarTurmaPayload, TipoModalidade, Turma } from '../../core/models';
+import { ProfileService } from '../../core/profile.service';
 import { Card } from '../../ui/card/card';
 
 const DIAS = [
@@ -36,13 +38,30 @@ const CORES = [
   selector: 'app-turma-form',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, Card],
+  imports: [ReactiveFormsModule, RouterLink, Card],
   template: `
     <app-card>
       <form [formGroup]="form" (ngSubmit)="submeter()">
         <label class="campo">
           <span>Nome da turma</span>
           <input class="tichr-input" formControlName="nome" placeholder="Ex: Redação 9º ano" />
+        </label>
+
+        <label class="campo">
+          <span>Disciplina</span>
+          @if (disciplinasDisponiveis().length) {
+            <select class="tichr-input" formControlName="disciplina">
+              <option value="">— Nenhuma —</option>
+              @for (d of disciplinasDisponiveis(); track d) {
+                <option [value]="d">{{ d }}</option>
+              }
+            </select>
+          } @else {
+            <p class="hint">
+              Cadastre suas disciplinas em
+              <a routerLink="/configuracoes">Configurações</a> para vinculá-las.
+            </p>
+          }
         </label>
 
         <label class="campo">
@@ -128,6 +147,8 @@ const CORES = [
       background: var(--primary);
       border-color: var(--primary);
     }
+    .hint { margin: 0; font-size: 0.85rem; color: var(--text-muted); }
+    .hint a { font-weight: 600; }
     .cores { display: flex; flex-wrap: wrap; gap: 0.5rem; }
     .cor {
       width: 32px;
@@ -146,6 +167,7 @@ const CORES = [
 })
 export class TurmaForm {
   private readonly fb = inject(FormBuilder);
+  private readonly profileService = inject(ProfileService);
 
   readonly initial = input<Turma | null>(null);
   readonly submitting = input(false);
@@ -156,18 +178,26 @@ export class TurmaForm {
   protected readonly cores = CORES;
   protected readonly selecionados = signal<Set<number>>(new Set());
   protected readonly cor = signal<string>(CORES[0]);
+  protected readonly disciplinasDisponiveis = computed(
+    () => this.profileService.profile()?.disciplinas ?? [],
+  );
 
   protected readonly form = this.fb.nonNullable.group({
     nome: ['', Validators.required],
     tipoModalidade: ['GRADE_FIXA' as TipoModalidade, Validators.required],
     dataInicio: ['', Validators.required],
     totalAulas: [5],
+    disciplina: [''],
   });
 
   private readonly modalidade = signal<TipoModalidade>('GRADE_FIXA');
   protected readonly isModulo = computed(() => this.modalidade() === 'MODULO_FECHADO');
 
   constructor() {
+    // garante que a lista de disciplinas do perfil esteja carregada
+    if (!this.profileService.profile()) {
+      this.profileService.load().subscribe({ error: () => {} });
+    }
     this.form.controls.tipoModalidade.valueChanges.subscribe((v) =>
       this.modalidade.set(v),
     );
@@ -180,6 +210,7 @@ export class TurmaForm {
         tipoModalidade: t.tipoModalidade,
         dataInicio: t.dataInicio,
         totalAulas: t.totalAulas ?? 5,
+        disciplina: t.disciplina ?? '',
       });
       this.modalidade.set(t.tipoModalidade);
       this.selecionados.set(new Set(t.diasSemana));
@@ -206,6 +237,7 @@ export class TurmaForm {
       dataInicio: raw.dataInicio,
       diasSemana: [...this.selecionados()].sort(),
       cor: this.cor(),
+      ...(raw.disciplina ? { disciplina: raw.disciplina } : {}),
       ...(raw.tipoModalidade === 'MODULO_FECHADO'
         ? { totalAulas: Number(raw.totalAulas) }
         : {}),

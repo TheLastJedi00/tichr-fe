@@ -21,6 +21,7 @@ export interface Turma {
   totalAulas?: number;
   dataFimPrevista?: string;
   cor?: string;
+  disciplina?: string;
   ativo: boolean;
 }
 
@@ -31,6 +32,7 @@ export interface CriarTurmaPayload {
   dataInicio: string;
   totalAulas?: number;
   cor?: string;
+  disciplina?: string;
 }
 
 export interface CriarExcecaoPayload {
@@ -44,10 +46,12 @@ export interface Profile {
   nomeExibicao?: string;
   disciplina?: string;
   bio?: string;
+  disciplinas?: string[];
 }
 
 export interface UpdateProfilePayload {
   nomeExibicao?: string;
   disciplina?: string;
   bio?: string;
+  disciplinas?: string[];
 }

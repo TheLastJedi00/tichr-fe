@@ -32,10 +32,18 @@ import { Spinner } from '../../ui/spinner/spinner';
           <app-card>
             <div class="turma">
               <div>
-                <h3 class="turma__nome">{{ t.nome }}</h3>
+                <h3 class="turma__nome">
+                  @if (t.cor) {
+                    <span class="dot" [style.background]="t.cor"></span>
+                  }
+                  {{ t.nome }}
+                </h3>
                 <span class="badge">
                   {{ t.tipoModalidade === 'MODULO_FECHADO' ? 'Módulo fechado' : 'Grade fixa' }}
                 </span>
+                @if (t.disciplina) {
+                  <span class="disciplina">{{ t.disciplina }}</span>
+                }
               </div>
               <div class="turma__meta">
                 <span class="muted">Início: {{ formatarData(t.dataInicio) }}</span>
@@ -74,7 +82,19 @@ import { Spinner } from '../../ui/spinner/spinner';
       gap: 1rem;
       flex-wrap: wrap;
     }
-    .turma__nome { margin: 0 0 0.375rem; font-size: 1.1rem; }
+    .turma__nome {
+      margin: 0 0 0.375rem;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
     .badge {
       font-size: 0.7rem;
       font-weight: 700;
@@ -82,6 +102,11 @@ import { Spinner } from '../../ui/spinner/spinner';
       border-radius: 999px;
       border: 1px solid var(--primary);
       color: var(--primary);
+    }
+    .disciplina {
+      margin-left: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
     }
     .turma__meta {
       display: flex;

@@ -34,6 +34,30 @@ import { Spinner } from '../../ui/spinner/spinner';
             <textarea class="tichr-input" rows="3" formControlName="bio" placeholder="Um texto curto de apresentação"></textarea>
           </label>
 
+          <div class="campo">
+            <span>Minhas disciplinas / competências</span>
+            @if (disciplinas().length) {
+              <div class="chips">
+                @for (d of disciplinas(); track d) {
+                  <span class="chip">
+                    {{ d }}
+                    <button type="button" class="chip__x" (click)="removerDisciplina(d)" aria-label="Remover">×</button>
+                  </span>
+                }
+              </div>
+            }
+            <div class="add">
+              <input
+                class="tichr-input"
+                placeholder="Ex: Programação"
+                [value]="nova()"
+                (input)="nova.set($any($event.target).value)"
+                (keydown.enter)="$event.preventDefault(); adicionarDisciplina()"
+              />
+              <button type="button" class="btn-outline" (click)="adicionarDisciplina()">Adicionar</button>
+            </div>
+          </div>
+
           @if (salvo()) {
             <p class="ok">✓ Perfil atualizado!</p>
           }
@@ -71,6 +95,38 @@ import { Spinner } from '../../ui/spinner/spinner';
     textarea.tichr-input {
       resize: vertical;
     }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.3rem 0.625rem;
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--primary);
+      background: color-mix(in srgb, var(--primary) 12%, transparent);
+      border-radius: 999px;
+    }
+    .chip__x {
+      border: none;
+      background: none;
+      color: inherit;
+      font-size: 1rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0;
+    }
+    .add {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .add .tichr-input { flex: 1; }
+    .add .btn-outline { white-space: nowrap; }
     .ok {
       color: var(--success);
       font-weight: 600;
@@ -88,6 +144,8 @@ export class ConfiguracoesPage {
   protected readonly carregando = signal(true);
   protected readonly salvando = signal(false);
   protected readonly salvo = signal(false);
+  protected readonly disciplinas = signal<string[]>([]);
+  protected readonly nova = signal('');
 
   protected readonly form = this.fb.nonNullable.group({
     nomeExibicao: [''],
@@ -103,21 +161,36 @@ export class ConfiguracoesPage {
           disciplina: p.disciplina ?? '',
           bio: p.bio ?? '',
         });
+        this.disciplinas.set(p.disciplinas ?? []);
         this.carregando.set(false);
       },
       error: () => this.carregando.set(false),
     });
   }
 
+  protected adicionarDisciplina(): void {
+    const d = this.nova().trim();
+    if (d && !this.disciplinas().includes(d)) {
+      this.disciplinas.update((lista) => [...lista, d]);
+    }
+    this.nova.set('');
+  }
+
+  protected removerDisciplina(d: string): void {
+    this.disciplinas.update((lista) => lista.filter((x) => x !== d));
+  }
+
   protected salvar(): void {
     this.salvando.set(true);
     this.salvo.set(false);
-    this.profileService.update(this.form.getRawValue()).subscribe({
-      next: () => {
-        this.salvando.set(false);
-        this.salvo.set(true);
-      },
-      error: () => this.salvando.set(false),
-    });
+    this.profileService
+      .update({ ...this.form.getRawValue(), disciplinas: this.disciplinas() })
+      .subscribe({
+        next: () => {
+          this.salvando.set(false);
+          this.salvo.set(true);
+        },
+        error: () => this.salvando.set(false),
+      });
   }
 }
