@@ -127,8 +127,11 @@ export class AgendaPage {
   protected readonly semanas = computed<DiaCal[][]>(() => {
     const hoje = hojeISO(new Date());
     const datas = this.sessoes().map((s) => s.data).sort();
-    const inicio = domingo(datas[0] ?? hoje);
-    const fim = datas[datas.length - 1] ?? hoje;
+    // o grid sempre inclui hoje, para ancorar o usuário no presente
+    const inicio = domingo(datas[0] && datas[0] < hoje ? datas[0] : hoje);
+    const fim = datas[datas.length - 1] && datas[datas.length - 1] > hoje
+      ? datas[datas.length - 1]
+      : hoje;
 
     const porData = new Map<string, Sessao[]>();
     for (const s of this.sessoes()) {
