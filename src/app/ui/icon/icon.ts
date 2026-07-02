@@ -10,7 +10,8 @@ export type IconName =
   | 'building'
   | 'rocket'
   | 'settings'
-  | 'alert';
+  | 'alert'
+  | 'home';
 
 /**
  * Componente burro de icones. Centraliza os SVGs e herda a cor do texto
@@ -80,6 +81,11 @@ export type IconName =
           <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
           <line x1="12" y1="9" x2="12" y2="13" />
           <line x1="12" y1="17" x2="12.01" y2="17" />
+        }
+        @case ('home') {
+          <path d="M3 10.5 12 3l9 7.5" />
+          <path d="M5 9.5V21h14V9.5" />
+          <path d="M9 21v-6h6v6" />
         }
       }
     </svg>

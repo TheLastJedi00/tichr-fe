@@ -107,9 +107,9 @@ export class MobileMenu {
   readonly close = output<void>();
 
   protected readonly links: MenuLink[] = [
-    { label: 'Dashboard', path: '/dashboard', icon: 'building' },
+    { label: 'Dashboard', path: '/dashboard', icon: 'home' },
     { label: 'Minha Agenda', path: '/agenda', icon: 'calendar' },
-    { label: 'Turmas Modulares', path: '/turmas/nova', icon: 'rocket' },
+    { label: 'Minhas Turmas', path: '/turmas', icon: 'building' },
     { label: 'Configurações', path: '/configuracoes', icon: 'settings' },
   ];
 }
