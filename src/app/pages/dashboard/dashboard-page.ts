@@ -11,6 +11,7 @@ import { CriarExcecaoPayload, Sessao } from '../../core/models';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Card } from '../../ui/card/card';
 import { IconButton } from '../../ui/icon-button/icon-button';
+import { Spinner } from '../../ui/spinner/spinner';
 import { ExcecaoModal } from './excecao-modal';
 
 interface GrupoDia {
@@ -27,7 +28,7 @@ interface GrupoDia {
   selector: 'app-dashboard-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Card, IconButton, ExcecaoModal],
+  imports: [RouterLink, Card, IconButton, Spinner, ExcecaoModal],
   template: `
     <header class="page-head">
       <h1 class="title">Minha Agenda</h1>
@@ -40,7 +41,10 @@ interface GrupoDia {
     </header>
 
     @if (loading()) {
-      <p class="muted">Carregando sua agenda…</p>
+      <div class="loading">
+        <app-spinner [size]="32" />
+        <span class="muted">Carregando sua agenda…</span>
+      </div>
     } @else if (error()) {
       <p class="error">{{ error() }}</p>
     } @else if (grupos().length === 0) {
@@ -69,6 +73,7 @@ interface GrupoDia {
 
     <app-excecao-modal
       [open]="excecaoAberta()"
+      [loading]="salvandoExcecao()"
       (confirmar)="salvarExcecao($event)"
       (fechar)="excecaoAberta.set(false)"
     />
@@ -134,6 +139,14 @@ interface GrupoDia {
       color: var(--success);
       border-color: var(--success);
     }
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 3rem 0;
+      color: var(--primary);
+    }
     .muted {
       color: var(--text-muted);
     }
@@ -152,6 +165,7 @@ export class DashboardPage {
   protected readonly error = signal<string | null>(null);
   protected readonly sessoes = signal<Sessao[]>([]);
   protected readonly excecaoAberta = signal(false);
+  protected readonly salvandoExcecao = signal(false);
 
   protected readonly grupos = computed<GrupoDia[]>(() => {
     const mapa = new Map<string, Sessao[]>();
@@ -193,14 +207,16 @@ export class DashboardPage {
   }
 
   protected salvarExcecao(payload: CriarExcecaoPayload): void {
+    this.salvandoExcecao.set(true);
     this.api.criarExcecao(payload).subscribe({
       next: () => {
+        this.salvandoExcecao.set(false);
         this.excecaoAberta.set(false);
         this.carregar();
       },
       error: () => {
+        this.salvandoExcecao.set(false);
         this.excecaoAberta.set(false);
-        this.error.set('Não foi possível registrar a exceção.');
       },
     });
   }
