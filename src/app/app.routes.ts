@@ -39,6 +39,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'turmas/:id',
+        loadComponent: () =>
+          import('./pages/turma-detalhe/turma-detalhe-page').then(
+            (m) => m.TurmaDetalhePage,
+          ),
+      },
+      {
         path: 'turmas/:id/editar',
         loadComponent: () =>
           import('./pages/editar-turma/editar-turma-page').then(

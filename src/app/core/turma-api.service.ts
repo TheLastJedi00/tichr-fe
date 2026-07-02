@@ -3,11 +3,14 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { API_BASE_URL } from './api.config';
 import {
+  Aluno,
+  CriarAgrupamentoPayload,
   CriarExcecaoPayload,
   CriarFeriasPayload,
   CriarTurmaPayload,
   Ferias,
   Sessao,
+  Squad,
   Turma,
 } from './models';
 
@@ -72,6 +75,39 @@ export class TurmaApiService {
   ): Observable<{ turmasRecalculadas: number }> {
     return this.http.post<{ turmasRecalculadas: number }>(
       `${this.base}/excecoes`,
+      payload,
+    );
+  }
+
+  // ===== Alunos (lista de chamada) =====
+
+  getAlunos(turmaId: string): Observable<Aluno[]> {
+    return this.http.get<Aluno[]>(`${this.base}/turmas/${turmaId}/alunos`);
+  }
+
+  adicionarAlunos(turmaId: string, nomes: string[]): Observable<Aluno[]> {
+    return this.http.post<Aluno[]>(`${this.base}/turmas/${turmaId}/alunos`, {
+      nomes,
+    });
+  }
+
+  removerAluno(
+    turmaId: string,
+    alunoId: string,
+  ): Observable<{ removido: boolean }> {
+    return this.http.delete<{ removido: boolean }>(
+      `${this.base}/turmas/${turmaId}/alunos/${alunoId}`,
+    );
+  }
+
+  // ===== Agrupamento (sorteio de squads) =====
+
+  sortearAgrupamento(
+    turmaId: string,
+    payload: CriarAgrupamentoPayload,
+  ): Observable<{ squads: Squad[] }> {
+    return this.http.post<{ squads: Squad[] }>(
+      `${this.base}/turmas/${turmaId}/agrupamento`,
       payload,
     );
   }
