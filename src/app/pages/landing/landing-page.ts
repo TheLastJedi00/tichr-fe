@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { ThemeService } from '../../core/theme.service';
 import { Icon, IconName } from '../../ui/icon/icon';
 import { IconButton } from '../../ui/icon-button/icon-button';
+import { Modal } from '../../ui/modal/modal';
 import { RevealDirective } from '../../ui/reveal.directive';
 
 interface AulaDemo {
@@ -96,7 +97,7 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
   selector: 'app-landing-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, IconButton, RouterLink, RevealDirective],
+  imports: [Icon, IconButton, RouterLink, RevealDirective, Modal],
   template: `
     <!-- ===== Hero (A Promessa) ===== -->
     <section class="hero">
@@ -237,6 +238,25 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
         <span class="muted">© 2026 — De professor para professor.</span>
       </div>
     </footer>
+
+    <!-- Modal de detalhes do plano (carregado sob demanda com @defer) -->
+    @defer (when planoAberto()) {
+      @if (planoAberto(); as p) {
+        <app-modal [open]="true" [title]="p.nome" (close)="fecharPlano()">
+          <p class="modal-preco">
+            <strong>{{ p.preco }}</strong>{{ p.periodo }} · {{ p.limite }}
+          </p>
+          <ul class="feat-list">
+            @for (f of p.features; track f) {
+              <li>{{ f }}</li>
+            }
+          </ul>
+          <a modal-actions class="btn-primary modal-cta" routerLink="/login">
+            {{ p.cta }}
+          </a>
+        </app-modal>
+      }
+    }
   `,
   styles: `
     :host {
@@ -643,6 +663,35 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
       color: var(--text-muted);
       font-size: 0.85rem;
     }
+
+    /* ===== Modal de plano ===== */
+    .modal-preco {
+      margin: 0 0 1rem;
+      color: var(--text-muted);
+    }
+    .modal-preco strong {
+      color: var(--text);
+      font-size: 1.25rem;
+    }
+    .feat-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 0.6rem;
+    }
+    .feat-list li {
+      position: relative;
+      padding-left: 1.6rem;
+    }
+    .feat-list li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: var(--success);
+      font-weight: 700;
+    }
+    .modal-cta { text-decoration: none; }
   `,
 })
 export class LandingPage {
