@@ -7,10 +7,11 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { formatarData } from '../../core/date-format';
-import { Sessao } from '../../core/models';
+import { CriarExcecaoPayload, Sessao } from '../../core/models';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Card } from '../../ui/card/card';
 import { IconButton } from '../../ui/icon-button/icon-button';
+import { ExcecaoModal } from './excecao-modal';
 
 interface GrupoDia {
   data: string;
@@ -26,7 +27,7 @@ interface GrupoDia {
   selector: 'app-dashboard-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Card, IconButton],
+  imports: [RouterLink, Card, IconButton, ExcecaoModal],
   template: `
     <header class="page-head">
       <h1 class="title">Minha Agenda</h1>
@@ -65,6 +66,12 @@ interface GrupoDia {
         }
       </div>
     }
+
+    <app-excecao-modal
+      [open]="excecaoAberta()"
+      (confirmar)="salvarExcecao($event)"
+      (fechar)="excecaoAberta.set(false)"
+    />
   `,
   styles: `
     .page-head {
@@ -183,5 +190,18 @@ export class DashboardPage {
 
   protected abrirExcecao(): void {
     this.excecaoAberta.set(true);
+  }
+
+  protected salvarExcecao(payload: CriarExcecaoPayload): void {
+    this.api.criarExcecao(payload).subscribe({
+      next: () => {
+        this.excecaoAberta.set(false);
+        this.carregar();
+      },
+      error: () => {
+        this.excecaoAberta.set(false);
+        this.error.set('Não foi possível registrar a exceção.');
+      },
+    });
   }
 }
