@@ -19,6 +19,10 @@ export class TurmaApiService {
     return this.http.get<Sessao[]>(`${this.base}/sessoes`);
   }
 
+  getTurmas(): Observable<Turma[]> {
+    return this.http.get<Turma[]>(`${this.base}/turmas`);
+  }
+
   criarTurma(
     payload: CriarTurmaPayload,
   ): Observable<{ turma: Turma; sessoes: Sessao[] }> {

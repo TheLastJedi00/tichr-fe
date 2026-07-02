@@ -25,6 +25,13 @@ export const routes: Routes = [
           import('./pages/dashboard/dashboard-page').then((m) => m.DashboardPage),
       },
       {
+        path: 'turmas',
+        loadComponent: () =>
+          import('./pages/minhas-turmas/minhas-turmas-page').then(
+            (m) => m.MinhasTurmasPage,
+          ),
+      },
+      {
         path: 'turmas/nova',
         loadComponent: () =>
           import('./pages/nova-turma/nova-turma-page').then(
