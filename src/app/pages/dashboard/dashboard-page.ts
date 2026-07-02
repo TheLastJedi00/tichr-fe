@@ -8,7 +8,7 @@ import {
 import { RouterLink } from '@angular/router';
 import { formatarData } from '../../core/date-format';
 import { dataPorExtenso, hojeISO, saudacaoPorHora } from '../../core/greeting';
-import { CriarExcecaoPayload, Sessao } from '../../core/models';
+import { CriarExcecaoPayload, Sessao, Turma } from '../../core/models';
 import { ProfileService } from '../../core/profile.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Card } from '../../ui/card/card';
@@ -59,7 +59,15 @@ import { ExcecaoModal } from './excecao-modal';
       @if (proxima(); as p) {
         <app-card title="Próxima aula">
           <div class="proxima">
-            <span class="proxima__data">{{ formatarData(p.data) }}</span>
+            <div class="proxima__info">
+              <span class="proxima__data">{{ formatarData(p.data) }}</span>
+              @if (proximaTurma(); as t) {
+                <span class="proxima__turma">
+                  <span class="dot" [style.background]="t.cor || 'var(--primary)'"></span>
+                  {{ t.nome }}
+                </span>
+              }
+            </div>
             <span class="proxima__num">Aula {{ p.numero }}</span>
           </div>
         </app-card>
@@ -109,9 +117,23 @@ import { ExcecaoModal } from './excecao-modal';
       gap: 0.75rem;
     }
     .proxima__data {
+      display: block;
       font-size: 1.35rem;
       font-weight: 700;
       color: var(--primary);
+    }
+    .proxima__turma {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-top: 0.25rem;
+      font-weight: 600;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
     }
     .proxima__num {
       font-weight: 600;
@@ -160,6 +182,7 @@ export class DashboardPage {
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly sessoes = signal<Sessao[]>([]);
+  protected readonly turmas = signal<Map<string, Turma>>(new Map());
   protected readonly excecaoAberta = signal(false);
   protected readonly salvandoExcecao = signal(false);
 
@@ -176,10 +199,20 @@ export class DashboardPage {
     );
   });
 
+  /** Turma da próxima aula (para exibir nome + cor). */
+  protected readonly proximaTurma = computed<Turma | null>(() => {
+    const p = this.proxima();
+    return p ? (this.turmas().get(p.turmaId) ?? null) : null;
+  });
+
   constructor() {
     this.profileService.load().subscribe({
       next: () => this.perfilCarregado.set(true),
       error: () => this.perfilCarregado.set(true),
+    });
+    this.api.getTurmas().subscribe({
+      next: (ts) => this.turmas.set(new Map(ts.map((t) => [t.id, t]))),
+      error: () => {},
     });
     this.carregar();
   }
