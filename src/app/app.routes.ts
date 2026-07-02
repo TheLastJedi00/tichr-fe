@@ -32,6 +32,11 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'agenda',
+        loadComponent: () =>
+          import('./pages/agenda/agenda-page').then((m) => m.AgendaPage),
+      },
+      {
         path: 'configuracoes',
         loadComponent: () =>
           import('./pages/configuracoes/configuracoes-page').then(
