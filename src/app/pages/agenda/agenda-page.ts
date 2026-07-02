@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { forkJoin } from 'rxjs';
+import { formatarData } from '../../core/date-format';
 import { hojeISO } from '../../core/greeting';
 import { Sessao, Turma } from '../../core/models';
 import { TurmaApiService } from '../../core/turma-api.service';
+import { Modal } from '../../ui/modal/modal';
 import { Spinner } from '../../ui/spinner/spinner';
 
 interface DiaCal {
@@ -38,7 +40,7 @@ function domingo(iso: string): string {
   selector: 'app-agenda-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Spinner],
+  imports: [Spinner, Modal],
   template: `
     <h1 class="title">Minha Agenda</h1>
 
@@ -54,7 +56,13 @@ function domingo(iso: string): string {
         @for (semana of semanas(); track semana[0].iso) {
           <div class="grid">
             @for (dia of semana; track dia.iso) {
-              <div class="cell" [class.tem-aula]="dia.sessoes.length" [class.hoje]="dia.hoje">
+              <div
+                class="cell"
+                [class.tem-aula]="dia.sessoes.length"
+                [class.hoje]="dia.hoje"
+                [class.clicavel]="dia.sessoes.length"
+                (click)="dia.sessoes.length && diaSelecionado.set(dia)"
+              >
                 <span class="cell__dia">{{ dia.dia }}</span>
                 @for (s of dia.sessoes; track s.id) {
                   <span
@@ -70,6 +78,36 @@ function domingo(iso: string): string {
         }
       </div>
     }
+
+    <app-modal
+      [open]="!!diaSelecionado()"
+      [title]="diaSelecionado() ? formatarData(diaSelecionado()!.iso) : ''"
+      (close)="diaSelecionado.set(null)"
+    >
+      @if (diaSelecionado(); as dia) {
+        <ul class="detalhes">
+          @for (s of dia.sessoes; track s.id) {
+            <li class="det">
+              <div class="det__turma">
+                <span class="dot" [style.background]="corDaTurma(s.turmaId)"></span>
+                <strong>{{ turmaDe(s.turmaId)?.nome ?? 'Turma' }}</strong>
+              </div>
+              <div class="det__meta">
+                <span>Aula {{ s.numero }}</span>
+                <span class="badge-status" [class]="'st--' + s.status.toLowerCase()">{{ s.status }}</span>
+                @if (turmaDe(s.turmaId)?.disciplina) {
+                  <span>{{ turmaDe(s.turmaId)?.disciplina }}</span>
+                }
+                @if (turmaDe(s.turmaId)?.horaInicio && turmaDe(s.turmaId)?.horaFim) {
+                  <span>{{ turmaDe(s.turmaId)?.horaInicio }}–{{ turmaDe(s.turmaId)?.horaFim }}</span>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+      }
+      <button modal-actions class="btn-primary" type="button" (click)="diaSelecionado.set(null)">Fechar</button>
+    </app-modal>
   `,
   styles: `
     .title { margin: 0 0 1rem; font-size: 1.5rem; font-weight: 700; }
@@ -119,17 +157,46 @@ function domingo(iso: string): string {
       background: var(--danger);
       text-decoration: line-through;
     }
+    .cell.clicavel { cursor: pointer; }
+    .detalhes { list-style: none; margin: 0; padding: 0; }
+    .det { padding: 0.625rem 0; }
+    .det + .det { border-top: 1px solid var(--border); }
+    .det__turma { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.25rem; }
+    .dot { width: 10px; height: 10px; border-radius: 999px; display: inline-block; }
+    .det__meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 0.75rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    .badge-status {
+      font-weight: 700;
+      font-size: 0.7rem;
+      padding: 0.1rem 0.4rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+    }
+    .st--agendada { color: var(--primary); border-color: var(--primary); }
+    .st--cancelada { color: var(--danger); border-color: var(--danger); }
+    .st--realizada { color: var(--success); border-color: var(--success); }
   `,
 })
 export class AgendaPage {
   private readonly api = inject(TurmaApiService);
   protected readonly cabecalhos = CABECALHOS;
+  protected readonly formatarData = formatarData;
   protected readonly loading = signal(true);
   protected readonly sessoes = signal<Sessao[]>([]);
-  private readonly corPorTurma = signal<Map<string, string>>(new Map());
+  protected readonly diaSelecionado = signal<DiaCal | null>(null);
+  private readonly turmasMap = signal<Map<string, Turma>>(new Map());
+
+  protected turmaDe(turmaId: string): Turma | undefined {
+    return this.turmasMap().get(turmaId);
+  }
 
   protected corDaTurma(turmaId: string): string {
-    return this.corPorTurma().get(turmaId) ?? 'var(--primary)';
+    return this.turmasMap().get(turmaId)?.cor ?? 'var(--primary)';
   }
 
   protected readonly semanas = computed<DiaCal[][]>(() => {
@@ -172,13 +239,7 @@ export class AgendaPage {
       turmas: this.api.getTurmas(),
     }).subscribe({
       next: ({ sessoes, turmas }) => {
-        this.corPorTurma.set(
-          new Map(
-            turmas
-              .filter((t: Turma) => t.cor)
-              .map((t: Turma) => [t.id, t.cor as string]),
-          ),
-        );
+        this.turmasMap.set(new Map(turmas.map((t: Turma) => [t.id, t])));
         this.sessoes.set(sessoes);
         this.loading.set(false);
       },
