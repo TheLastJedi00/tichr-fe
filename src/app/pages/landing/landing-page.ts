@@ -10,6 +10,80 @@ interface AulaDemo {
   data: string;
 }
 
+interface Plano {
+  nome: string;
+  preco: string;
+  periodo?: string;
+  limite: string;
+  pitch: string;
+  cta: string;
+  destaque?: boolean;
+  features: string[];
+}
+
+const PLANOS: readonly Plano[] = [
+  {
+    nome: 'Tichr Estagiário',
+    preco: 'Grátis',
+    limite: 'Até 2 turmas simultâneas',
+    pitch: 'O test-drive de entrada. Resolva sua agenda agora mesmo.',
+    cta: 'Começar grátis',
+    features: [
+      'Motor de deslizamento completo',
+      'Projeção de grade fixa e módulo fechado',
+      'Até 2 turmas simultâneas',
+      'Tema claro e escuro nativos',
+      'Compra avulsa de slots extras (microtransação)',
+    ],
+  },
+  {
+    nome: 'Tichr Graduado',
+    preco: 'R$ 19,90',
+    periodo: '/mês',
+    limite: 'Até 5 turmas simultâneas',
+    pitch: 'O titular da sala. Controle absoluto sobre projeções e deslizamentos.',
+    cta: 'Quero o Graduado',
+    features: [
+      'Tudo do Estagiário',
+      'Até 5 turmas simultâneas',
+      'Gestão de férias globais e por turma',
+      'Disciplinas e cores de destaque',
+      'Recálculo ilimitado da grade',
+    ],
+  },
+  {
+    nome: 'Tichr Mestre',
+    preco: 'R$ 39,90',
+    periodo: '/mês',
+    limite: 'Turmas ilimitadas',
+    pitch: 'A orquestração pedagógica. Squads, sorteios e papéis em sala.',
+    cta: 'Quero o Mestre',
+    destaque: true,
+    features: [
+      'Tudo do Graduado',
+      'Turmas ilimitadas',
+      'Gestão de squads e grupos dinâmicos',
+      'Sorteio automático de temas',
+      'Distribuição de papéis (Tech Lead, Pesquisador…)',
+    ],
+  },
+  {
+    nome: 'Tichr PhD',
+    preco: 'R$ 59,90',
+    periodo: '/mês',
+    limite: 'Turmas ilimitadas + portal',
+    pitch: 'O ecossistema multiplayer. Alunos acompanham a grade e ganham XP.',
+    cta: 'Quero o PhD',
+    features: [
+      'Tudo do Mestre',
+      'Portal do aluno com acesso via PIN',
+      'Ranking e acúmulo de XP',
+      'Barras de progresso e evolução da turma',
+      'Engajamento gamificado multiplayer',
+    ],
+  },
+];
+
 const BASE = ['02 mar', '09 mar', '16 mar', '23 mar', '30 mar'];
 const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
 
@@ -111,6 +185,45 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
               <span class="dif__icon"><app-icon [name]="d.icone" [size]="30" /></span>
               <h3>{{ d.titulo }}</h3>
               <p>{{ d.texto }}</p>
+            </article>
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Vitrine de Planos (a trilha acadêmica) ===== -->
+    <section id="planos" class="planos" appReveal>
+      <div class="container">
+        <h2>Suba de nível na docência</h2>
+        <p class="planos__lead">
+          Uma trilha que acompanha você — do test-drive ao ecossistema
+          multiplayer com seus alunos.
+        </p>
+
+        <div class="planos__track">
+          @for (p of planos; track p.nome) {
+            <article class="plano" [class.plano--destaque]="p.destaque">
+              @if (p.destaque) {
+                <span class="plano__badge">Mais popular</span>
+              }
+              <h3 class="plano__nome">{{ p.nome }}</h3>
+              <p class="plano__preco">
+                <strong>{{ p.preco }}</strong>
+                @if (p.periodo) { <span>{{ p.periodo }}</span> }
+              </p>
+              <p class="plano__limite">{{ p.limite }}</p>
+              <p class="plano__pitch">{{ p.pitch }}</p>
+              <button class="plano__features" type="button" (click)="abrirPlano(p)">
+                + Ver todas as features
+              </button>
+              <a
+                class="plano__cta"
+                [class.btn-primary]="p.destaque"
+                [class.btn-outline]="!p.destaque"
+                routerLink="/login"
+              >
+                {{ p.cta }}
+              </a>
             </article>
           }
         </div>
@@ -405,6 +518,116 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
       font-size: 0.95rem;
     }
 
+    /* ===== Vitrine de Planos ===== */
+    .planos {
+      padding: 4.5rem 0 5rem;
+      text-align: center;
+      background: var(--surface-alt);
+    }
+    .planos__lead {
+      max-width: 36rem;
+      margin: 0 auto 2.5rem;
+      color: var(--text-muted);
+    }
+    /* Mobile: carrossel horizontal com scroll snap */
+    .planos__track {
+      display: flex;
+      gap: 1rem;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      padding: 0.5rem 0.25rem 1rem;
+      margin: 0 -0.25rem;
+      scrollbar-width: thin;
+    }
+    .plano {
+      position: relative;
+      flex: 0 0 82%;
+      max-width: 320px;
+      scroll-snap-align: center;
+      display: flex;
+      flex-direction: column;
+      text-align: left;
+      padding: 1.75rem 1.5rem;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--surface);
+    }
+    /* Desktop: grid dos 4 planos lado a lado */
+    @media (min-width: 960px) {
+      .planos__track {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        overflow: visible;
+        align-items: stretch;
+        margin: 0;
+      }
+      .plano { flex: initial; max-width: none; }
+    }
+    .plano--destaque {
+      border-color: var(--primary);
+      box-shadow: 0 16px 44px color-mix(in srgb, var(--primary) 28%, transparent);
+    }
+    @media (min-width: 960px) {
+      .plano--destaque { transform: scale(1.04); }
+    }
+    .plano__badge {
+      position: absolute;
+      top: -0.7rem;
+      left: 1.5rem;
+      padding: 0.25rem 0.7rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--primary-contrast);
+      background: var(--primary);
+      border-radius: 999px;
+    }
+    .plano__nome {
+      margin: 0 0 0.75rem;
+      font-size: 1.25rem;
+    }
+    .plano__preco {
+      margin: 0;
+      display: flex;
+      align-items: baseline;
+      gap: 0.3rem;
+    }
+    .plano__preco strong {
+      font-size: 1.75rem;
+      letter-spacing: -0.02em;
+    }
+    .plano__preco span { color: var(--text-muted); font-size: 0.9rem; }
+    .plano__limite {
+      margin: 0.75rem 0 0;
+      font-weight: 600;
+      color: var(--primary);
+    }
+    .plano__pitch {
+      margin: 0.5rem 0 1.25rem;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+    .plano__features {
+      align-self: flex-start;
+      margin-bottom: 1.25rem;
+      padding: 0;
+      font: inherit;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--primary);
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    .plano__features:hover { text-decoration: underline; }
+    .plano__cta {
+      margin-top: auto;
+      text-decoration: none;
+      width: 100%;
+    }
+
     /* ===== Rodapé ===== */
     .rodape {
       padding: 2rem 0;
@@ -456,9 +679,20 @@ export class LandingPage {
     },
   ];
 
+  protected readonly planos = PLANOS;
+  protected readonly planoAberto = signal<Plano | null>(null);
+
   protected readonly imprevisto = signal(false);
   protected readonly email = signal('');
   protected readonly naLista = signal(false);
+
+  protected abrirPlano(plano: Plano): void {
+    this.planoAberto.set(plano);
+  }
+
+  protected fecharPlano(): void {
+    this.planoAberto.set(null);
+  }
 
   protected readonly aulas = computed<AulaDemo[]>(() => {
     const datas = this.imprevisto() ? DESLIZADO : BASE;
