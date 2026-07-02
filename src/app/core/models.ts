@@ -64,6 +64,31 @@ export interface UpdateProfilePayload {
   disciplinas?: string[];
 }
 
+export interface Aluno {
+  id: string;
+  turmaId: string;
+  nome: string;
+  tagsPerfil?: string[];
+}
+
+export interface MembroSquad {
+  alunoId: string;
+  nome: string;
+  papel?: string;
+}
+
+export interface Squad {
+  numero: number;
+  tema?: string;
+  membros: MembroSquad[];
+}
+
+export interface CriarAgrupamentoPayload {
+  numeroEquipes: number;
+  papeis?: string[];
+  temas?: string[];
+}
+
 export interface Ferias {
   id: string;
   professorId: string;
