@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ThemeService } from '../../core/theme.service';
-import { Icon } from '../../ui/icon/icon';
+import { Icon, IconName } from '../../ui/icon/icon';
 import { IconButton } from '../../ui/icon-button/icon-button';
 import { RevealDirective } from '../../ui/reveal.directive';
 
@@ -95,6 +95,25 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
           Você foca em ensinar. O Tichr recalcula a data de término do módulo
           automaticamente.
         </p>
+      </div>
+    </section>
+
+    <!-- ===== Diferenciais (soluções por cenário) ===== -->
+    <section class="diferenciais" appReveal>
+      <div class="container">
+        <h2>Uma ferramenta, quatro cenários</h2>
+        <p class="dif__lead">
+          Do professor da rede pública ao portal gamificado da sua turma.
+        </p>
+        <div class="dif__grid">
+          @for (d of diferenciais; track d.titulo) {
+            <article class="dif__card">
+              <span class="dif__icon"><app-icon [name]="d.icone" [size]="30" /></span>
+              <h3>{{ d.titulo }}</h3>
+              <p>{{ d.texto }}</p>
+            </article>
+          }
+        </div>
       </div>
     </section>
 
@@ -332,6 +351,60 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
       color: var(--text-muted);
     }
 
+    /* ===== Diferenciais ===== */
+    .diferenciais {
+      padding: 4.5rem 0;
+      text-align: center;
+    }
+    .dif__lead {
+      max-width: 34rem;
+      margin: 0 auto 2.5rem;
+      color: var(--text-muted);
+    }
+    .dif__grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.25rem;
+      text-align: left;
+    }
+    @media (min-width: 560px) {
+      .dif__grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (min-width: 960px) {
+      .dif__grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    .dif__card {
+      padding: 1.75rem 1.5rem;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--surface);
+      box-shadow: 0 10px 30px rgba(2, 6, 23, 0.08);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .dif__card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 18px 44px rgba(2, 6, 23, 0.14);
+    }
+    .dif__icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      color: var(--primary);
+      background: color-mix(in srgb, var(--primary) 12%, transparent);
+    }
+    .dif__card h3 {
+      margin: 1rem 0 0.5rem;
+      font-size: 1.15rem;
+    }
+    .dif__card p {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
     /* ===== Rodapé ===== */
     .rodape {
       padding: 2rem 0;
@@ -351,6 +424,37 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
 })
 export class LandingPage {
   protected readonly theme = inject(ThemeService);
+
+  protected readonly diferenciais: ReadonlyArray<{
+    icone: IconName;
+    titulo: string;
+    texto: string;
+  }> = [
+    {
+      icone: 'building',
+      titulo: 'Escola pública (grade fixa)',
+      texto:
+        'Projeção infinita do calendário. Feriados bloqueiam a aula sem quebrar o cronograma do ano.',
+    },
+    {
+      icone: 'rocket',
+      titulo: 'Cursos livres (módulo fechado)',
+      texto:
+        'Cálculo e recálculo automático da data de término do curso a cada imprevisto lançado.',
+    },
+    {
+      icone: 'users',
+      titulo: 'Orquestração de grupos',
+      texto:
+        'Divisão inteligente de alunos, sorteio de temas e distribuição de papéis (Tech Lead, Pesquisador…).',
+    },
+    {
+      icone: 'trophy',
+      titulo: 'Portal gamificado',
+      texto:
+        'Painel do aluno com barras de progresso, acúmulo de XP e engajamento da turma inteira.',
+    },
+  ];
 
   protected readonly imprevisto = signal(false);
   protected readonly email = signal('');
