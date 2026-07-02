@@ -22,6 +22,12 @@ const DIAS = [
   { value: 0, label: 'Dom' },
 ];
 
+/** Paleta de cores de destaque (sólidas, sem gradiente). */
+const CORES = [
+  '#2563eb', '#0891b2', '#059669', '#65a30d',
+  '#d97706', '#dc2626', '#db2777', '#7c3aed',
+];
+
 /**
  * Formulário reativo de turma, reutilizado em criar e editar.
  * Recebe os valores iniciais e emite o payload pronto no submit.
@@ -75,6 +81,22 @@ const DIAS = [
           </div>
         </div>
 
+        <div class="campo">
+          <span>Cor de destaque</span>
+          <div class="cores">
+            @for (c of cores; track c) {
+              <button
+                type="button"
+                class="cor"
+                [class.is-on]="cor() === c"
+                [style.background]="c"
+                [attr.aria-label]="'Cor ' + c"
+                (click)="cor.set(c)"
+              ></button>
+            }
+          </div>
+        </div>
+
         <button class="btn-primary submit" type="submit" [disabled]="!podeSalvar() || submitting()">
           {{ submitting() ? 'Salvando…' : submitLabel() }}
         </button>
@@ -106,6 +128,19 @@ const DIAS = [
       background: var(--primary);
       border-color: var(--primary);
     }
+    .cores { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .cor {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      border: 2px solid var(--border);
+      cursor: pointer;
+      padding: 0;
+    }
+    .cor.is-on {
+      border-color: var(--text);
+      box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text);
+    }
     .submit { width: 100%; margin-top: 0.5rem; }
   `,
 })
@@ -118,7 +153,9 @@ export class TurmaForm {
   readonly save = output<CriarTurmaPayload>();
 
   protected readonly dias = DIAS;
+  protected readonly cores = CORES;
   protected readonly selecionados = signal<Set<number>>(new Set());
+  protected readonly cor = signal<string>(CORES[0]);
 
   protected readonly form = this.fb.nonNullable.group({
     nome: ['', Validators.required],
@@ -146,6 +183,7 @@ export class TurmaForm {
       });
       this.modalidade.set(t.tipoModalidade);
       this.selecionados.set(new Set(t.diasSemana));
+      if (t.cor) this.cor.set(t.cor);
     });
   }
 
@@ -167,6 +205,7 @@ export class TurmaForm {
       tipoModalidade: raw.tipoModalidade,
       dataInicio: raw.dataInicio,
       diasSemana: [...this.selecionados()].sort(),
+      cor: this.cor(),
       ...(raw.tipoModalidade === 'MODULO_FECHADO'
         ? { totalAulas: Number(raw.totalAulas) }
         : {}),

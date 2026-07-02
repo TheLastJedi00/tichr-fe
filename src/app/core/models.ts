@@ -20,6 +20,7 @@ export interface Turma {
   dataInicio: string;
   totalAulas?: number;
   dataFimPrevista?: string;
+  cor?: string;
   ativo: boolean;
 }
 
@@ -29,6 +30,7 @@ export interface CriarTurmaPayload {
   diasSemana: number[];
   dataInicio: string;
   totalAulas?: number;
+  cor?: string;
 }
 
 export interface CriarExcecaoPayload {

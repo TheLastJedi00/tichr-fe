@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { forkJoin } from 'rxjs';
 import { hojeISO } from '../../core/greeting';
-import { Sessao } from '../../core/models';
+import { Sessao, Turma } from '../../core/models';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Spinner } from '../../ui/spinner/spinner';
 
@@ -59,6 +60,8 @@ function domingo(iso: string): string {
                   <span
                     class="badge"
                     [class.badge--cancelada]="s.status === 'CANCELADA'"
+                    [style.background]="s.status === 'CANCELADA' ? null : corDaTurma(s.turmaId)"
+                    [style.border-color]="s.status === 'CANCELADA' ? null : corDaTurma(s.turmaId)"
                   >Aula {{ s.numero }}</span>
                 }
               </div>
@@ -123,6 +126,11 @@ export class AgendaPage {
   protected readonly cabecalhos = CABECALHOS;
   protected readonly loading = signal(true);
   protected readonly sessoes = signal<Sessao[]>([]);
+  private readonly corPorTurma = signal<Map<string, string>>(new Map());
+
+  protected corDaTurma(turmaId: string): string {
+    return this.corPorTurma().get(turmaId) ?? 'var(--primary)';
+  }
 
   protected readonly semanas = computed<DiaCal[][]>(() => {
     const hoje = hojeISO(new Date());
@@ -159,9 +167,19 @@ export class AgendaPage {
   });
 
   constructor() {
-    this.api.getSessoesSemana().subscribe({
-      next: (s) => {
-        this.sessoes.set(s);
+    forkJoin({
+      sessoes: this.api.getSessoesSemana(),
+      turmas: this.api.getTurmas(),
+    }).subscribe({
+      next: ({ sessoes, turmas }) => {
+        this.corPorTurma.set(
+          new Map(
+            turmas
+              .filter((t: Turma) => t.cor)
+              .map((t: Turma) => [t.id, t.cor as string]),
+          ),
+        );
+        this.sessoes.set(sessoes);
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
