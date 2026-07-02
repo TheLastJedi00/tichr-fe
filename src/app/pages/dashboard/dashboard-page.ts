@@ -7,7 +7,9 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { formatarData } from '../../core/date-format';
+import { dataPorExtenso, saudacaoPorHora } from '../../core/greeting';
 import { CriarExcecaoPayload, Sessao } from '../../core/models';
+import { ProfileService } from '../../core/profile.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Card } from '../../ui/card/card';
 import { IconButton } from '../../ui/icon-button/icon-button';
@@ -21,8 +23,8 @@ interface GrupoDia {
 }
 
 /**
- * DashboardPage (Smart Component): busca as sessoes da agenda,
- * gerencia loading/erro e detem o estado para a UI.
+ * DashboardPage (Smart Component): tela de recepção. Saudação personalizada,
+ * contexto de tempo e foco na próxima aula.
  */
 @Component({
   selector: 'app-dashboard-page',
@@ -30,23 +32,23 @@ interface GrupoDia {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, Card, IconButton, Spinner, ExcecaoModal],
   template: `
-    <header class="page-head">
-      <h1 class="title">Minha Agenda</h1>
-      <div class="actions">
-        <a class="btn-outline" routerLink="/turmas/nova">Nova turma</a>
-        <app-icon-button name="alert" variant="primary" (clicked)="abrirExcecao()">
-          Exceção
-        </app-icon-button>
-      </div>
+    <header class="greeting">
+      <h1>Olá, {{ saudacao }}{{ nome() ? ', ' + nome() : '' }}!</h1>
+      <p class="data">Hoje é {{ dataHoje }}.</p>
     </header>
+
+    <div class="actions">
+      <a class="btn-outline" routerLink="/turmas/nova">Nova turma</a>
+      <app-icon-button name="alert" variant="primary" (clicked)="abrirExcecao()">
+        Exceção
+      </app-icon-button>
+    </div>
 
     @if (loading()) {
       <div class="loading">
         <app-spinner [size]="32" />
         <span class="muted">Carregando sua agenda…</span>
       </div>
-    } @else if (error()) {
-      <p class="error">{{ error() }}</p>
     } @else if (grupos().length === 0) {
       <app-card>
         <p class="muted empty">
@@ -79,23 +81,25 @@ interface GrupoDia {
     />
   `,
   styles: `
-    .page-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.75rem;
+    .greeting {
       margin-bottom: 1.25rem;
-      flex-wrap: wrap;
     }
-    .title {
+    .greeting h1 {
       margin: 0;
-      font-size: 1.5rem;
-      font-weight: 700;
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .greeting .data {
+      margin: 0.25rem 0 0;
+      color: var(--text-muted);
     }
     .actions {
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
     }
     .lista {
       display: flex;
@@ -127,18 +131,9 @@ interface GrupoDia {
       border: 1px solid var(--border);
       color: var(--text-muted);
     }
-    .badge--agendada {
-      color: var(--primary);
-      border-color: var(--primary);
-    }
-    .badge--cancelada {
-      color: var(--danger);
-      border-color: var(--danger);
-    }
-    .badge--realizada {
-      color: var(--success);
-      border-color: var(--success);
-    }
+    .badge--agendada { color: var(--primary); border-color: var(--primary); }
+    .badge--cancelada { color: var(--danger); border-color: var(--danger); }
+    .badge--realizada { color: var(--success); border-color: var(--success); }
     .loading {
       display: flex;
       flex-direction: column;
@@ -147,19 +142,18 @@ interface GrupoDia {
       padding: 3rem 0;
       color: var(--primary);
     }
-    .muted {
-      color: var(--text-muted);
-    }
-    .empty {
-      margin: 0;
-    }
-    .error {
-      color: var(--danger);
-    }
+    .muted { color: var(--text-muted); }
+    .empty { margin: 0; }
   `,
 })
 export class DashboardPage {
   private readonly api = inject(TurmaApiService);
+  private readonly profileService = inject(ProfileService);
+
+  private readonly agora = new Date();
+  protected readonly saudacao = saudacaoPorHora(this.agora);
+  protected readonly dataHoje = dataPorExtenso(this.agora);
+  protected readonly nome = this.profileService.nome;
 
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
@@ -184,6 +178,7 @@ export class DashboardPage {
   });
 
   constructor() {
+    this.profileService.load().subscribe({ error: () => {} });
     this.carregar();
   }
 
@@ -195,10 +190,7 @@ export class DashboardPage {
         this.sessoes.set(sessoes);
         this.loading.set(false);
       },
-      error: () => {
-        this.error.set('Não foi possível carregar sua agenda.');
-        this.loading.set(false);
-      },
+      error: () => this.loading.set(false),
     });
   }
 
