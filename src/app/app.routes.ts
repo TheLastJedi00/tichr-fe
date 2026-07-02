@@ -31,6 +31,13 @@ export const routes: Routes = [
             (m) => m.NovaTurmaPage,
           ),
       },
+      {
+        path: 'configuracoes',
+        loadComponent: () =>
+          import('./pages/configuracoes/configuracoes-page').then(
+            (m) => m.ConfiguracoesPage,
+          ),
+      },
     ],
   },
   { path: '**', redirectTo: '' },
