@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { Icon, IconName } from '../icon/icon';
 import { IconButton } from '../icon-button/icon-button';
+import { QuotaTracker } from '../quota-tracker/quota-tracker';
 
 interface MenuLink {
   label: string;
@@ -17,7 +18,7 @@ interface MenuLink {
   selector: 'app-mobile-menu',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, RouterLinkActive, Icon, IconButton],
+  imports: [RouterLink, RouterLinkActive, Icon, IconButton, QuotaTracker],
   template: `
     @if (open()) {
       <div class="overlay" (click)="close.emit()">
@@ -47,6 +48,8 @@ interface MenuLink {
               </li>
             }
           </ul>
+
+          <app-quota-tracker class="drawer__quota" />
         </nav>
       </div>
     }
@@ -83,6 +86,9 @@ interface MenuLink {
       list-style: none;
       margin: 0;
       padding: 0.5rem;
+    }
+    .drawer__quota {
+      margin-top: auto;
     }
     .drawer__link {
       display: flex;
