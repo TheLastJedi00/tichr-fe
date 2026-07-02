@@ -7,22 +7,18 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { formatarData } from '../../core/date-format';
+import { dataPorExtenso, hojeISO, saudacaoPorHora } from '../../core/greeting';
 import { CriarExcecaoPayload, Sessao } from '../../core/models';
+import { ProfileService } from '../../core/profile.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Card } from '../../ui/card/card';
 import { IconButton } from '../../ui/icon-button/icon-button';
 import { Spinner } from '../../ui/spinner/spinner';
 import { ExcecaoModal } from './excecao-modal';
 
-interface GrupoDia {
-  data: string;
-  label: string;
-  itens: Sessao[];
-}
-
 /**
- * DashboardPage (Smart Component): busca as sessoes da agenda,
- * gerencia loading/erro e detem o estado para a UI.
+ * DashboardPage (Smart Component): tela de recepção. Saudação personalizada,
+ * contexto de tempo e foco na próxima aula.
  */
 @Component({
   selector: 'app-dashboard-page',
@@ -30,45 +26,52 @@ interface GrupoDia {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, Card, IconButton, Spinner, ExcecaoModal],
   template: `
-    <header class="page-head">
-      <h1 class="title">Minha Agenda</h1>
-      <div class="actions">
-        <a class="btn-outline" routerLink="/turmas/nova">Nova turma</a>
-        <app-icon-button name="alert" variant="primary" (clicked)="abrirExcecao()">
-          Exceção
-        </app-icon-button>
-      </div>
+    <header class="greeting">
+      <h1>Olá, {{ saudacao }}{{ nome() ? ', ' + nome() : '' }}!</h1>
+      <p class="data">Hoje é {{ dataHoje }}.</p>
     </header>
+
+    <div class="actions">
+      <a class="btn-outline" routerLink="/turmas/nova">Nova turma</a>
+      <app-icon-button name="alert" variant="primary" (clicked)="abrirExcecao()">
+        Exceção
+      </app-icon-button>
+    </div>
+
+    @if (mostrarOnboarding()) {
+      <app-card>
+        <div class="onboarding">
+          <h3>Que bom ter você por aqui! 👋</h3>
+          <p class="muted">
+            Para deixarmos a casa com a sua cara, que tal configurar seu perfil?
+          </p>
+          <a class="btn-primary" routerLink="/configuracoes">Completar meu perfil</a>
+        </div>
+      </app-card>
+    }
 
     @if (loading()) {
       <div class="loading">
         <app-spinner [size]="32" />
         <span class="muted">Carregando sua agenda…</span>
       </div>
-    } @else if (error()) {
-      <p class="error">{{ error() }}</p>
-    } @else if (grupos().length === 0) {
-      <app-card>
-        <p class="muted empty">
-          Nenhuma aula agendada ainda. Crie uma turma para o Tichr projetar sua
-          grade.
-        </p>
-      </app-card>
     } @else {
-      <div class="lista">
-        @for (grupo of grupos(); track grupo.data) {
-          <app-card [title]="grupo.label">
-            @for (sessao of grupo.itens; track sessao.id) {
-              <div class="sessao" [class.cancelada]="sessao.status === 'CANCELADA'">
-                <span class="sessao__num">Aula {{ sessao.numero }}</span>
-                <span class="badge" [class]="'badge--' + sessao.status.toLowerCase()">
-                  {{ sessao.status }}
-                </span>
-              </div>
-            }
-          </app-card>
-        }
-      </div>
+      @if (proxima(); as p) {
+        <app-card title="Próxima aula">
+          <div class="proxima">
+            <span class="proxima__data">{{ formatarData(p.data) }}</span>
+            <span class="proxima__num">Aula {{ p.numero }}</span>
+          </div>
+        </app-card>
+      } @else {
+        <app-card>
+          <p class="muted empty">
+            Nenhuma aula agendada. Crie uma turma para o Tichr projetar sua grade.
+          </p>
+        </app-card>
+      }
+
+      <a class="btn-outline ver-agenda" routerLink="/agenda">Ver agenda completa</a>
     }
 
     <app-excecao-modal
@@ -79,65 +82,55 @@ interface GrupoDia {
     />
   `,
   styles: `
-    .page-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.75rem;
+    .greeting {
       margin-bottom: 1.25rem;
-      flex-wrap: wrap;
     }
-    .title {
+    .greeting h1 {
       margin: 0;
-      font-size: 1.5rem;
-      font-weight: 700;
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .greeting .data {
+      margin: 0.25rem 0 0;
+      color: var(--text-muted);
     }
     .actions {
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
     }
-    .lista {
+    .proxima {
       display: flex;
-      flex-direction: column;
+      align-items: baseline;
+      justify-content: space-between;
       gap: 0.75rem;
     }
-    .sessao {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.5rem 0;
-    }
-    .sessao + .sessao {
-      border-top: 1px solid var(--border);
-    }
-    .sessao.cancelada .sessao__num {
-      text-decoration: line-through;
-      color: var(--text-muted);
-    }
-    .sessao__num {
-      font-weight: 600;
-    }
-    .badge {
-      font-size: 0.7rem;
+    .proxima__data {
+      font-size: 1.35rem;
       font-weight: 700;
-      letter-spacing: 0.03em;
-      padding: 0.2rem 0.5rem;
-      border-radius: 999px;
-      border: 1px solid var(--border);
+      color: var(--primary);
+    }
+    .proxima__num {
+      font-weight: 600;
       color: var(--text-muted);
     }
-    .badge--agendada {
-      color: var(--primary);
-      border-color: var(--primary);
+    .ver-agenda {
+      display: inline-flex;
+      margin-top: 0.875rem;
+      text-decoration: none;
     }
-    .badge--cancelada {
-      color: var(--danger);
-      border-color: var(--danger);
+    .onboarding h3 {
+      margin: 0 0 0.375rem;
+      font-size: 1.1rem;
     }
-    .badge--realizada {
-      color: var(--success);
-      border-color: var(--success);
+    .onboarding p {
+      margin: 0 0 1rem;
+    }
+    .onboarding .btn-primary {
+      text-decoration: none;
     }
     .loading {
       display: flex;
@@ -147,19 +140,22 @@ interface GrupoDia {
       padding: 3rem 0;
       color: var(--primary);
     }
-    .muted {
-      color: var(--text-muted);
-    }
-    .empty {
-      margin: 0;
-    }
-    .error {
-      color: var(--danger);
-    }
+    .muted { color: var(--text-muted); }
+    .empty { margin: 0; }
   `,
 })
 export class DashboardPage {
   private readonly api = inject(TurmaApiService);
+  private readonly profileService = inject(ProfileService);
+
+  private readonly agora = new Date();
+  protected readonly saudacao = saudacaoPorHora(this.agora);
+  protected readonly dataHoje = dataPorExtenso(this.agora);
+  protected readonly nome = this.profileService.nome;
+  protected readonly perfilCarregado = signal(false);
+  protected readonly mostrarOnboarding = computed(
+    () => this.perfilCarregado() && !this.nome(),
+  );
 
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
@@ -167,23 +163,24 @@ export class DashboardPage {
   protected readonly excecaoAberta = signal(false);
   protected readonly salvandoExcecao = signal(false);
 
-  protected readonly grupos = computed<GrupoDia[]>(() => {
-    const mapa = new Map<string, Sessao[]>();
-    for (const sessao of this.sessoes()) {
-      const lista = mapa.get(sessao.data) ?? [];
-      lista.push(sessao);
-      mapa.set(sessao.data, lista);
-    }
-    return [...mapa.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([data, itens]) => ({
-        data,
-        label: formatarData(data),
-        itens: itens.sort((x, y) => x.numero - y.numero),
-      }));
+  protected readonly formatarData = formatarData;
+
+  /** Próxima aula AGENDADA a partir de hoje (a mais próxima). */
+  protected readonly proxima = computed<Sessao | null>(() => {
+    const hoje = hojeISO(this.agora);
+    return (
+      this.sessoes()
+        .filter((s) => s.status === 'AGENDADA' && s.data >= hoje)
+        .sort((a, b) => a.data.localeCompare(b.data) || a.numero - b.numero)[0] ??
+      null
+    );
   });
 
   constructor() {
+    this.profileService.load().subscribe({
+      next: () => this.perfilCarregado.set(true),
+      error: () => this.perfilCarregado.set(true),
+    });
     this.carregar();
   }
 
@@ -195,10 +192,7 @@ export class DashboardPage {
         this.sessoes.set(sessoes);
         this.loading.set(false);
       },
-      error: () => {
-        this.error.set('Não foi possível carregar sua agenda.');
-        this.loading.set(false);
-      },
+      error: () => this.loading.set(false),
     });
   }
 
