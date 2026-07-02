@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { ThemeService } from '../../core/theme.service';
 import { Icon } from '../../ui/icon/icon';
 import { IconButton } from '../../ui/icon-button/icon-button';
@@ -19,16 +20,19 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
   selector: 'app-landing-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, IconButton],
+  imports: [Icon, IconButton, RouterLink],
   template: `
     <header class="topbar">
       <span class="logo">Tichr</span>
-      <app-icon-button
-        [name]="theme.theme() === 'dark' ? 'sun' : 'moon'"
-        variant="ghost"
-        ariaLabel="Alternar tema"
-        (clicked)="theme.toggle()"
-      />
+      <div class="topbar__actions">
+        <a class="btn-outline" routerLink="/login">Entrar</a>
+        <app-icon-button
+          [name]="theme.theme() === 'dark' ? 'sun' : 'moon'"
+          variant="ghost"
+          ariaLabel="Alternar tema"
+          (clicked)="theme.toggle()"
+        />
+      </div>
     </header>
 
     <!-- Hero -->
@@ -39,6 +43,10 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
         e veja sua grade se reorganizar inteira em um segundo.
       </p>
       <a class="btn-primary hero__cta" href="#waitlist">Solicitar acesso beta</a>
+      <p class="hero__login">
+        Já tem acesso beta?
+        <a routerLink="/login">Entrar</a>
+      </p>
     </section>
 
     <!-- Demo interativa -->
@@ -140,6 +148,14 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
       justify-content: space-between;
       padding: 1rem 0;
     }
+    .topbar__actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .topbar__actions .btn-outline {
+      text-decoration: none;
+    }
     .logo {
       font-size: 1.35rem;
       font-weight: 800;
@@ -166,6 +182,14 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
       text-decoration: none;
       font-size: 1.05rem;
       padding: 0.75rem 1.5rem;
+    }
+    .hero__login {
+      margin: 1rem 0 0;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .hero__login a {
+      font-weight: 600;
     }
     section {
       margin-bottom: 3.5rem;
