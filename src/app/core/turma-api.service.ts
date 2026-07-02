@@ -23,6 +23,20 @@ export class TurmaApiService {
     return this.http.get<Turma[]>(`${this.base}/turmas`);
   }
 
+  getTurma(id: string): Observable<Turma> {
+    return this.http.get<Turma>(`${this.base}/turmas/${id}`);
+  }
+
+  atualizarTurma(
+    id: string,
+    payload: CriarTurmaPayload,
+  ): Observable<{ turma: Turma; sessoes: Sessao[] }> {
+    return this.http.put<{ turma: Turma; sessoes: Sessao[] }>(
+      `${this.base}/turmas/${id}`,
+      payload,
+    );
+  }
+
   criarTurma(
     payload: CriarTurmaPayload,
   ): Observable<{ turma: Turma; sessoes: Sessao[] }> {
