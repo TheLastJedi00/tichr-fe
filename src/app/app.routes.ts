@@ -1,3 +1,30 @@
 import { Routes } from '@angular/router';
+import { DashboardLayout } from './layout/dashboard-layout';
 
-export const routes: Routes = [];
+export const routes: Routes = [
+  {
+    path: '',
+    pathMatch: 'full',
+    loadComponent: () =>
+      import('./pages/landing/landing-page').then((m) => m.LandingPage),
+  },
+  {
+    path: '',
+    component: DashboardLayout,
+    children: [
+      {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./pages/dashboard/dashboard-page').then((m) => m.DashboardPage),
+      },
+      {
+        path: 'turmas/nova',
+        loadComponent: () =>
+          import('./pages/nova-turma/nova-turma-page').then(
+            (m) => m.NovaTurmaPage,
+          ),
+      },
+    ],
+  },
+  { path: '**', redirectTo: '' },
+];
