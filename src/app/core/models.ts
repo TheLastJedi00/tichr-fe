@@ -22,6 +22,8 @@ export interface Turma {
   dataFimPrevista?: string;
   cor?: string;
   disciplina?: string;
+  horaInicio?: string;
+  horaFim?: string;
   ativo: boolean;
 }
 
@@ -33,6 +35,8 @@ export interface CriarTurmaPayload {
   totalAulas?: number;
   cor?: string;
   disciplina?: string;
+  horaInicio?: string;
+  horaFim?: string;
 }
 
 export interface CriarExcecaoPayload {
