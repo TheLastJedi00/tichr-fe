@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { API_BASE_URL } from './api.config';
-import { Profile, UpdateProfilePayload } from './models';
+import { PlanoAtual, Profile, UpdateProfilePayload } from './models';
 
 /**
  * Perfil do professor: camada HTTP + estado reativo (signal) compartilhado.
@@ -25,6 +25,20 @@ export class ProfileService {
   update(payload: UpdateProfilePayload): Observable<Profile> {
     return this.http
       .put<Profile>(`${this.base}/profile`, payload)
+      .pipe(tap((p) => this.profile.set(p)));
+  }
+
+  /** Compra uma vaga avulsa (+1 slot); atualiza o perfil reativo. */
+  comprarSlotAvulso(): Observable<Profile> {
+    return this.http
+      .post<Profile>(`${this.base}/checkout/slot-avulso`, {})
+      .pipe(tap((p) => this.profile.set(p)));
+  }
+
+  /** Faz upgrade do plano; atualiza o perfil reativo. */
+  upgradePlano(plano: PlanoAtual): Observable<Profile> {
+    return this.http
+      .post<Profile>(`${this.base}/checkout/upgrade`, { plano })
       .pipe(tap((p) => this.profile.set(p)));
   }
 }

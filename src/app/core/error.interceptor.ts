@@ -20,15 +20,22 @@ function extrairMensagem(err: HttpErrorResponse): string {
   return err.message || 'Erro inesperado. Tente novamente.';
 }
 
+/** Erro de cota do plano — tratado inline (upsell), sem modal global. */
+function isLimitReached(err: HttpErrorResponse): boolean {
+  const corpo = err.error as { code?: string } | null;
+  return err.status === 403 && corpo?.code === 'LIMIT_REACHED';
+}
+
 /**
- * Dispara o modal global de erro para qualquer falha HTTP, exceto 401
- * (tratado pelo authInterceptor: redireciona para /login).
+ * Dispara o modal global de erro para qualquer falha HTTP, exceto:
+ * - 401 (tratado pelo authInterceptor: redireciona para /login);
+ * - 403 LIMIT_REACHED (tratado inline pela tela com o card de upsell).
  */
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const errorService = inject(ErrorService);
   return next(req).pipe(
     catchError((err: HttpErrorResponse) => {
-      if (err.status !== 401) {
+      if (err.status !== 401 && !isLimitReached(err)) {
         errorService.show(extrairMensagem(err));
       }
       return throwError(() => err);
