@@ -3,6 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CriarTurmaPayload, Turma } from '../../core/models';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Spinner } from '../../ui/spinner/spinner';
+import { FeriasManager } from '../ferias/ferias-manager';
 import { TurmaForm } from '../turma-form/turma-form';
 
 /** EditarTurmaPage: carrega a turma e reusa o <app-turma-form> pré-preenchido. */
@@ -10,7 +11,7 @@ import { TurmaForm } from '../turma-form/turma-form';
   selector: 'app-editar-turma-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TurmaForm, Spinner],
+  imports: [TurmaForm, Spinner, FeriasManager],
   template: `
     <h1 class="title">Editar turma</h1>
 
@@ -23,18 +24,22 @@ import { TurmaForm } from '../turma-form/turma-form';
         [submitting]="salvando()"
         (save)="salvar($event)"
       />
+      <div class="ferias-wrap">
+        <app-ferias-manager [turmaId]="id" />
+      </div>
     }
   `,
   styles: `
     .title { margin: 0 0 1rem; font-size: 1.5rem; font-weight: 700; }
     .loading { display: flex; justify-content: center; padding: 3rem 0; color: var(--primary); }
+    .ferias-wrap { margin-top: 1rem; }
   `,
 })
 export class EditarTurmaPage {
   private readonly api = inject(TurmaApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly id = this.route.snapshot.paramMap.get('id')!;
+  protected readonly id = this.route.snapshot.paramMap.get('id')!;
 
   protected readonly carregando = signal(true);
   protected readonly salvando = signal(false);
