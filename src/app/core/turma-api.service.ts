@@ -4,10 +4,13 @@ import { Observable } from 'rxjs';
 import { API_BASE_URL } from './api.config';
 import {
   Aluno,
+  AtualizarEquipePayload,
   CriarAgrupamentoPayload,
+  CriarEquipePayload,
   CriarExcecaoPayload,
   CriarFeriasPayload,
   CriarTurmaPayload,
+  Equipe,
   Ferias,
   RankingItem,
   Sessao,
@@ -98,6 +101,62 @@ export class TurmaApiService {
   ): Observable<{ removido: boolean }> {
     return this.http.delete<{ removido: boolean }>(
       `${this.base}/turmas/${turmaId}/alunos/${alunoId}`,
+    );
+  }
+
+  // ===== Equipes (agrupamento persistente com drag & drop) =====
+
+  getEquipes(turmaId: string): Observable<Equipe[]> {
+    return this.http.get<Equipe[]>(`${this.base}/turmas/${turmaId}/equipes`);
+  }
+
+  criarEquipe(
+    turmaId: string,
+    payload: CriarEquipePayload,
+  ): Observable<Equipe> {
+    return this.http.post<Equipe>(
+      `${this.base}/turmas/${turmaId}/equipes`,
+      payload,
+    );
+  }
+
+  atualizarEquipe(
+    turmaId: string,
+    equipeId: string,
+    payload: AtualizarEquipePayload,
+  ): Observable<Equipe> {
+    return this.http.put<Equipe>(
+      `${this.base}/turmas/${turmaId}/equipes/${equipeId}`,
+      payload,
+    );
+  }
+
+  removerEquipe(
+    turmaId: string,
+    equipeId: string,
+  ): Observable<{ removido: boolean }> {
+    return this.http.delete<{ removido: boolean }>(
+      `${this.base}/turmas/${turmaId}/equipes/${equipeId}`,
+    );
+  }
+
+  /** Move o aluno para uma equipe (drop) ou de volta ao pool (equipeId=null). */
+  definirEquipeDoAluno(
+    turmaId: string,
+    alunoId: string,
+    equipeId: string | null,
+  ): Observable<Aluno> {
+    return this.http.patch<Aluno>(
+      `${this.base}/turmas/${turmaId}/alunos/${alunoId}/equipe`,
+      { equipeId },
+    );
+  }
+
+  /** Distribui os alunos pelas equipes de forma balanceada. */
+  distribuirEquipes(turmaId: string): Observable<Aluno[]> {
+    return this.http.post<Aluno[]>(
+      `${this.base}/turmas/${turmaId}/equipes/distribuir`,
+      {},
     );
   }
 

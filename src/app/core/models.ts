@@ -71,6 +71,29 @@ export interface Aluno {
   tagsPerfil?: string[];
   pinAcesso?: string;
   xpTotal?: number;
+  /** Equipe persistente do aluno; null/ausente = sem equipe (pool). */
+  equipeId?: string | null;
+}
+
+export interface Equipe {
+  id: string;
+  turmaId: string;
+  titulo: string;
+  descricao?: string;
+  cor: string;
+  criadoEm: string;
+}
+
+export interface CriarEquipePayload {
+  titulo: string;
+  descricao?: string;
+  cor: string;
+}
+
+export interface AtualizarEquipePayload {
+  titulo?: string;
+  descricao?: string;
+  cor?: string;
 }
 
 export interface RankingItem {
