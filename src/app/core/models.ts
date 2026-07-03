@@ -111,6 +111,11 @@ export interface Alocacao {
   topicoId: string;
 }
 
+export interface TopicoAula {
+  numeroAula: number;
+  topico: string;
+}
+
 export interface ProgressoTurma {
   concluidas: number;
   total: number;

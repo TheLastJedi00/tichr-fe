@@ -20,6 +20,7 @@ import {
   Sessao,
   Squad,
   Topico,
+  TopicoAula,
   Turma,
 } from './models';
 
@@ -260,6 +261,11 @@ export class TurmaApiService {
 
   getMeuProgresso(): Observable<ProgressoTurma> {
     return this.http.get<ProgressoTurma>(`${this.base}/aluno/progresso`);
+  }
+
+  /** Tópicos do plano de aula alocados às minhas aulas (portal PhD). */
+  getMeuPlano(): Observable<{ topicos: TopicoAula[] }> {
+    return this.http.get<{ topicos: TopicoAula[] }>(`${this.base}/aluno/plano`);
   }
 
   // ===== Plano de Aula (escopo geral por disciplina) =====
