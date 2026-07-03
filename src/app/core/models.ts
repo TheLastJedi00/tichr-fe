@@ -84,6 +84,14 @@ export interface Aluno {
   xpTotal?: number;
   /** Equipe persistente do aluno; null/ausente = sem equipe (pool). */
   equipeId?: string | null;
+  /** Cargos atribuídos ao aluno (relação N↔N com Cargo). */
+  cargoIds?: string[];
+}
+
+export interface Cargo {
+  id: string;
+  turmaId: string;
+  nome: string;
 }
 
 export interface Equipe {

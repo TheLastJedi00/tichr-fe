@@ -5,6 +5,7 @@ import { API_BASE_URL } from './api.config';
 import {
   Aluno,
   AtualizarEquipePayload,
+  Cargo,
   CriarAgrupamentoPayload,
   CriarEquipePayload,
   CriarExcecaoPayload,
@@ -157,6 +158,39 @@ export class TurmaApiService {
     return this.http.post<Aluno[]>(
       `${this.base}/turmas/${turmaId}/equipes/distribuir`,
       {},
+    );
+  }
+
+  // ===== Cargos (tarefas atribuíveis a membros) =====
+
+  getCargos(turmaId: string): Observable<Cargo[]> {
+    return this.http.get<Cargo[]>(`${this.base}/turmas/${turmaId}/cargos`);
+  }
+
+  adicionarCargos(turmaId: string, nomes: string[]): Observable<Cargo[]> {
+    return this.http.post<Cargo[]>(`${this.base}/turmas/${turmaId}/cargos`, {
+      nomes,
+    });
+  }
+
+  removerCargo(
+    turmaId: string,
+    cargoId: string,
+  ): Observable<{ removido: boolean }> {
+    return this.http.delete<{ removido: boolean }>(
+      `${this.base}/turmas/${turmaId}/cargos/${cargoId}`,
+    );
+  }
+
+  /** Define o conjunto final de membros responsáveis por um cargo (N↔N). */
+  atribuirCargo(
+    turmaId: string,
+    cargoId: string,
+    alunoIds: string[],
+  ): Observable<Aluno[]> {
+    return this.http.put<Aluno[]>(
+      `${this.base}/turmas/${turmaId}/cargos/${cargoId}/membros`,
+      { alunoIds },
     );
   }
 
