@@ -18,6 +18,11 @@ export const routes: Routes = [
       import('./pages/login/login-page').then((m) => m.LoginPage),
   },
   {
+    path: 'novidades',
+    loadComponent: () =>
+      import('./pages/novidades/novidades-page').then((m) => m.NovidadesPage),
+  },
+  {
     path: 'entrar',
     loadComponent: () =>
       import('./pages/student-entrar/student-entrar-page').then(
