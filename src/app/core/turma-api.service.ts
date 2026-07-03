@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { API_BASE_URL } from './api.config';
 import {
+  Alocacao,
   Aluno,
   AtualizarEquipePayload,
   Cargo,
@@ -18,6 +19,7 @@ import {
   RankingItem,
   Sessao,
   Squad,
+  Topico,
   Turma,
 } from './models';
 
@@ -274,5 +276,40 @@ export class TurmaApiService {
       disciplina,
       contextoGeral,
     });
+  }
+
+  // ===== Tópicos (backlog por disciplina) e alocação (Mestre) =====
+
+  getTopicos(disciplina: string): Observable<Topico[]> {
+    return this.http.get<Topico[]>(`${this.base}/topicos`, {
+      params: { disciplina },
+    });
+  }
+
+  adicionarTopicos(disciplina: string, nomes: string[]): Observable<Topico[]> {
+    return this.http.post<Topico[]>(`${this.base}/topicos`, {
+      disciplina,
+      nomes,
+    });
+  }
+
+  removerTopico(id: string): Observable<{ removido: boolean }> {
+    return this.http.delete<{ removido: boolean }>(`${this.base}/topicos/${id}`);
+  }
+
+  getAlocacoes(turmaId: string): Observable<Alocacao[]> {
+    return this.http.get<Alocacao[]>(`${this.base}/turmas/${turmaId}/alocacoes`);
+  }
+
+  /** Aloca (topicoId) ou desaloca (null) um tópico à aula `numero`. */
+  definirAlocacao(
+    turmaId: string,
+    numero: number,
+    topicoId: string | null,
+  ): Observable<Alocacao | { removido: true }> {
+    return this.http.put<Alocacao | { removido: true }>(
+      `${this.base}/turmas/${turmaId}/alocacoes/${numero}`,
+      { topicoId },
+    );
   }
 }
