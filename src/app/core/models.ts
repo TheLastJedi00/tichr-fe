@@ -27,6 +27,12 @@ export interface Turma {
   horaFim?: string;
   encerradaManualmente?: boolean;
   ativo: boolean;
+  // Configuração de pontuação/gamificação (defaults aplicados no backend).
+  pontuacaoAtiva?: boolean;
+  nomePontuacao?: string;
+  rankingAtivo?: boolean;
+  rotuloAdicionar?: string;
+  rotuloRemover?: string;
 }
 
 export interface CriarTurmaPayload {
@@ -39,6 +45,11 @@ export interface CriarTurmaPayload {
   disciplina?: string;
   horaInicio?: string;
   horaFim?: string;
+  pontuacaoAtiva?: boolean;
+  nomePontuacao?: string;
+  rankingAtivo?: boolean;
+  rotuloAdicionar?: string;
+  rotuloRemover?: string;
 }
 
 export interface CriarExcecaoPayload {
