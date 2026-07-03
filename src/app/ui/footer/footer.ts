@@ -46,7 +46,6 @@ import { ProfileService } from '../../core/profile.service';
           <span class="footer__sep">·</span>
           <a class="footer__link" routerLink="/novidades">O que há de novo?</a>
         </div>
-        <span class="footer__repo">Tichr · Angular + NestJS/Firebase</span>
       }
     </footer>
   `,
@@ -84,7 +83,6 @@ import { ProfileService } from '../../core/profile.service';
     }
     .footer__link { color: var(--primary); font-weight: 600; }
     .footer__sep { opacity: 0.5; }
-    .footer__repo { opacity: 0.75; }
   `,
 })
 export class Footer {
