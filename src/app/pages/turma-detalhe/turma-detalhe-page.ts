@@ -11,9 +11,11 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { formatarData } from '../../core/date-format';
 import { Aluno, CriarEquipePayload, Equipe, Sessao, Turma } from '../../core/models';
+import { planoAtendeMinimo } from '../../core/plano.util';
+import { ProfileService } from '../../core/profile.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { AlunoCard } from '../../ui/aluno-card/aluno-card';
 import { Card } from '../../ui/card/card';
@@ -21,6 +23,7 @@ import { EquipeColuna } from '../../ui/equipe-coluna/equipe-coluna';
 import { EquipeForm } from '../../ui/equipe-form/equipe-form';
 import { Icon } from '../../ui/icon/icon';
 import { Modal } from '../../ui/modal/modal';
+import { RecursoBloqueado } from '../../ui/recurso-bloqueado/recurso-bloqueado';
 import { Spinner } from '../../ui/spinner/spinner';
 
 type Aba = 'agenda' | 'alunos';
@@ -45,6 +48,7 @@ type Aba = 'agenda' | 'alunos';
     EquipeColuna,
     EquipeForm,
     Modal,
+    RecursoBloqueado,
   ],
   template: `
     @if (carregando()) {
@@ -97,7 +101,7 @@ type Aba = 'agenda' | 'alunos';
             }
           </div>
         }
-      } @else {
+      } @else if (podeGerenciar()) {
         <app-card>
           <form class="add" (submit)="$event.preventDefault(); adicionar()">
             <input
@@ -197,6 +201,12 @@ type Aba = 'agenda' | 'alunos';
             Nenhum aluno ainda. Adicione nomes acima para montar as equipes.
           </p>
         }
+      } @else {
+        <app-recurso-bloqueado
+          recurso="Gestão de equipes"
+          planoNecessario="Mestre"
+          (upgrade)="irParaPlanos()"
+        />
       }
 
       <app-equipe-form
@@ -333,7 +343,14 @@ type Aba = 'agenda' | 'alunos';
 export class TurmaDetalhePage {
   private readonly api = inject(TurmaApiService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly profileService = inject(ProfileService);
   protected readonly formatarData = formatarData;
+
+  /** Gestão de equipes exige o plano Mestre (gating inline da aba). */
+  protected readonly podeGerenciar = computed(() =>
+    planoAtendeMinimo(this.profileService.profile()?.planoAtual, 'MESTRE'),
+  );
 
   protected readonly turmaId = this.route.snapshot.paramMap.get('id')!;
   protected readonly aba = signal<Aba>('agenda');
@@ -378,6 +395,16 @@ export class TurmaDetalhePage {
     this.api.getSessoesSemana().subscribe((s) => this.todasSessoes.set(s));
     this.api.getAlunos(this.turmaId).subscribe((a) => this.alunos.set(a));
     this.api.getEquipes(this.turmaId).subscribe((e) => this.equipes.set(e));
+    if (!this.profileService.profile()) {
+      this.profileService.load().subscribe({ error: () => {} });
+    }
+  }
+
+  /** Do bloqueio da aba, conduz ao painel de planos com o contexto do recurso. */
+  protected irParaPlanos(): void {
+    this.router.navigate(['/planos'], {
+      queryParams: { recurso: 'GESTAO_EQUIPES' },
+    });
   }
 
   protected adicionar(): void {

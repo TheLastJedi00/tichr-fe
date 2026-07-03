@@ -16,6 +16,24 @@ export const NOME_PLANO: Record<PlanoAtual, string> = {
   PHD: 'PhD',
 };
 
+/** Ordem hierarquica dos planos (indice = nivel; maior = mais recursos). */
+export const ORDEM_PLANO: PlanoAtual[] = [
+  'ESTAGIARIO',
+  'GRADUADO',
+  'MESTRE',
+  'PHD',
+];
+
+/** Verdadeiro se `atual` tem nivel >= `minimo` na hierarquia de planos. */
+export function planoAtendeMinimo(
+  atual: PlanoAtual | undefined,
+  minimo: PlanoAtual,
+): boolean {
+  return (
+    ORDEM_PLANO.indexOf(atual ?? 'ESTAGIARIO') >= ORDEM_PLANO.indexOf(minimo)
+  );
+}
+
 /** Limite efetivo do professor: base do plano + slots avulsos comprados. */
 export function limiteDoPlano(profile: Profile | null): number {
   const plano = profile?.planoAtual ?? 'ESTAGIARIO';

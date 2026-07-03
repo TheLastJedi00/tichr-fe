@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth.guard';
+import { exigePlano } from './core/plano.guard';
 import { studentGuard } from './core/student-auth.guard';
 import { DashboardLayout } from './layout/dashboard-layout';
 import { StudentLayout } from './layout/student-layout';
@@ -78,10 +79,16 @@ export const routes: Routes = [
       },
       {
         path: 'turmas/:id/dinamica',
+        canActivate: [exigePlano('DINAMICAS')],
         loadComponent: () =>
           import('./pages/nova-dinamica/nova-dinamica-page').then(
             (m) => m.NovaDinamicaPage,
           ),
+      },
+      {
+        path: 'planos',
+        loadComponent: () =>
+          import('./pages/planos/planos-page').then((m) => m.PlanosPage),
       },
       {
         path: 'turmas/:id',

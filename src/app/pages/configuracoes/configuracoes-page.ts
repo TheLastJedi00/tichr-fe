@@ -1,5 +1,13 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { NOME_PLANO } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { Card } from '../../ui/card/card';
 import { Spinner } from '../../ui/spinner/spinner';
@@ -13,13 +21,23 @@ import { FeriasManager } from '../ferias/ferias-manager';
   selector: 'app-configuracoes-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, Card, Spinner, FeriasManager],
+  imports: [ReactiveFormsModule, RouterLink, Card, Spinner, FeriasManager],
   template: `
     <h1 class="title">Configurações</h1>
 
     @if (carregando()) {
       <div class="loading"><app-spinner [size]="32" /></div>
     } @else {
+      <app-card title="Assinatura">
+        <div class="assinatura">
+          <div>
+            <span class="assinatura__label">Plano atual</span>
+            <strong class="assinatura__plano">{{ planoLabel() }}</strong>
+          </div>
+          <a class="btn-primary" routerLink="/planos">Gerenciar plano</a>
+        </div>
+      </app-card>
+
       <app-card title="Meu perfil">
         <form [formGroup]="form" (submit)="$event.preventDefault(); salvar()">
           <label class="campo">
@@ -143,6 +161,25 @@ import { FeriasManager } from '../ferias/ferias-manager';
     .ferias-wrap {
       margin-top: 1rem;
     }
+    app-card + app-card {
+      display: block;
+      margin-top: 1rem;
+    }
+    .assinatura {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .assinatura__label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .assinatura__plano { font-size: 1.15rem; font-weight: 800; }
+    .assinatura .btn-primary { text-decoration: none; }
   `,
 })
 export class ConfiguracoesPage {
@@ -154,6 +191,11 @@ export class ConfiguracoesPage {
   protected readonly salvo = signal(false);
   protected readonly disciplinas = signal<string[]>([]);
   protected readonly nova = signal('');
+
+  /** Rótulo do plano atual do professor (para o atalho de assinatura). */
+  protected readonly planoLabel = computed(
+    () => NOME_PLANO[this.profileService.profile()?.planoAtual ?? 'ESTAGIARIO'],
+  );
 
   protected readonly form = this.fb.nonNullable.group({
     nomeExibicao: [''],
