@@ -97,7 +97,24 @@ type Aba = 'agenda' | 'alunos';
             <ul class="roster">
               @for (a of alunos(); track a.id) {
                 <li class="roster__item">
-                  <span>{{ a.nome }}</span>
+                  <span class="roster__nome">{{ a.nome }}</span>
+                  <span class="roster__xp">{{ a.xpTotal ?? 0 }} XP</span>
+                  <div class="roster__xpacts">
+                    <button
+                      class="xpbtn xpbtn--add"
+                      type="button"
+                      (click)="darXp(a, 50)"
+                    >
+                      +50
+                    </button>
+                    <button
+                      class="xpbtn xpbtn--sub"
+                      type="button"
+                      (click)="darXp(a, -20)"
+                    >
+                      -20
+                    </button>
+                  </div>
                   <button
                     class="remover"
                     type="button"
@@ -163,11 +180,33 @@ type Aba = 'agenda' | 'alunos';
     .roster__item {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      gap: 0.6rem;
       padding: 0.6rem 0.75rem;
       border-radius: var(--radius);
       background: var(--surface-alt);
     }
+    .roster__nome { flex: 1; }
+    .roster__xp {
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      font-size: 0.85rem;
+      color: var(--primary);
+      min-width: 3.5rem;
+      text-align: right;
+    }
+    .roster__xpacts { display: flex; gap: 0.3rem; }
+    .xpbtn {
+      font: inherit;
+      font-weight: 700;
+      font-size: 0.8rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+    }
+    .xpbtn--add { color: var(--success); border-color: var(--success); }
+    .xpbtn--sub { color: var(--danger); border-color: var(--danger); }
     .remover {
       display: inline-flex;
       color: var(--text-muted);
@@ -235,6 +274,17 @@ export class TurmaDetalhePage {
   protected remover(aluno: Aluno): void {
     this.api.removerAluno(this.turmaId, aluno.id).subscribe(() => {
       this.alunos.update((atual) => atual.filter((a) => a.id !== aluno.id));
+    });
+  }
+
+  /** Ferramenta rápida de XP: pontua o aluno com um clique. */
+  protected darXp(aluno: Aluno, pontos: number): void {
+    this.api.darXp(this.turmaId, aluno.id, pontos).subscribe((res) => {
+      this.alunos.update((atual) =>
+        atual.map((a) =>
+          a.id === aluno.id ? { ...a, xpTotal: res.xpTotal } : a,
+        ),
+      );
     });
   }
 }
