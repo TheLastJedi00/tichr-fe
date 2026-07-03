@@ -140,6 +140,18 @@ export const routes: Routes = [
           import('./pages/jogos/qlick-intro-page').then((m) => m.QlickIntroPage),
       },
       {
+        path: 'jogos/qlick/novo',
+        canActivate: [exigePlano('QLICK')],
+        loadComponent: () =>
+          import('./pages/jogos/qlick-studio-page').then((m) => m.QlickStudioPage),
+      },
+      {
+        path: 'jogos/qlick/editar/:id',
+        canActivate: [exigePlano('QLICK')],
+        loadComponent: () =>
+          import('./pages/jogos/qlick-studio-page').then((m) => m.QlickStudioPage),
+      },
+      {
         path: 'configuracoes',
         loadComponent: () =>
           import('./pages/configuracoes/configuracoes-page').then(
