@@ -115,7 +115,22 @@ type Aba = 'agenda' | 'alunos';
             <button class="btn-outline" type="button" (click)="abrirNova()">
               <app-icon name="plus" [size]="16" /> Nova equipe
             </button>
+            <button
+              class="btn-primary"
+              type="button"
+              [disabled]="equipes().length === 0 || distribuindo()"
+              [title]="
+                equipes().length === 0 ? 'Crie ao menos uma equipe' : ''
+              "
+              (click)="distribuir()"
+            >
+              <app-icon name="users" [size]="16" />
+              {{ distribuindo() ? 'Distribuindo…' : 'Distribuir' }}
+            </button>
           </div>
+          @if (equipes().length === 0) {
+            <p class="hint">Crie ao menos uma equipe para distribuir os alunos.</p>
+          }
         </app-card>
 
         <div class="board" cdkDropListGroup>
@@ -330,6 +345,7 @@ export class TurmaDetalhePage {
   protected readonly editando = signal<Equipe | null>(null);
   protected readonly salvandoEquipe = signal(false);
   protected readonly infoEquipe = signal<Equipe | null>(null);
+  protected readonly distribuindo = signal(false);
 
   private readonly todasSessoes = signal<Sessao[]>([]);
   protected readonly sessoes = computed(() =>
@@ -451,6 +467,28 @@ export class TurmaDetalhePage {
       this.alunos.update((atual) =>
         atual.map((a) => (a.equipeId === equipe.id ? { ...a, equipeId: null } : a)),
       );
+    });
+  }
+
+  /** Distribui os alunos pelas equipes de forma balanceada (backend). */
+  protected distribuir(): void {
+    if (this.equipes().length === 0) {
+      return;
+    }
+    const jaPosicionados = this.alunos().some((a) => a.equipeId);
+    if (
+      jaPosicionados &&
+      !confirm('Redistribuir vai reorganizar todos os alunos. Continuar?')
+    ) {
+      return;
+    }
+    this.distribuindo.set(true);
+    this.api.distribuirEquipes(this.turmaId).subscribe({
+      next: (alunos) => {
+        this.alunos.set(alunos);
+        this.distribuindo.set(false);
+      },
+      error: () => this.distribuindo.set(false),
     });
   }
 
