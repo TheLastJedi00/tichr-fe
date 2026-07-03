@@ -16,7 +16,7 @@ import { MobileMenu } from '../ui/mobile-menu/mobile-menu';
     <main class="content">
       <router-outlet />
     </main>
-    <app-footer />
+    <app-footer [painel]="true" />
   `,
   styles: `
     .content {

@@ -7,19 +7,11 @@ import {
   output,
 } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { planoAtendeMinimo } from '../../core/plano.util';
+import { linksPainel } from '../../core/nav-links';
 import { ProfileService } from '../../core/profile.service';
-import { Icon, IconName } from '../icon/icon';
+import { Icon } from '../icon/icon';
 import { IconButton } from '../icon-button/icon-button';
 import { QuotaTracker } from '../quota-tracker/quota-tracker';
-
-interface MenuLink {
-  label: string;
-  path: string;
-  icon: IconName;
-  locked?: boolean;
-  query?: Record<string, string>;
-}
 
 /**
  * Menu de navegacao (drawer/overlay) acionado pelo header.
@@ -129,26 +121,7 @@ export class MobileMenu {
   readonly open = input(false);
   readonly close = output<void>();
 
-  /** Plano de Aula exige Graduado; Estagiário vê cadeado e vai ao upsell. */
-  protected readonly links = computed<MenuLink[]>(() => {
-    const podePlano = planoAtendeMinimo(
-      this.profileService.profile()?.planoAtual,
-      'GRADUADO',
-    );
-    return [
-      { label: 'Dashboard', path: '/dashboard', icon: 'home' },
-      { label: 'Minha Agenda', path: '/agenda', icon: 'calendar' },
-      { label: 'Minhas Turmas', path: '/turmas', icon: 'building' },
-      podePlano
-        ? { label: 'Plano de Aula', path: '/plano-aula', icon: 'book' }
-        : {
-            label: 'Plano de Aula',
-            path: '/planos',
-            icon: 'book',
-            locked: true,
-            query: { recurso: 'PLANO_AULA' },
-          },
-      { label: 'Configurações', path: '/configuracoes', icon: 'settings' },
-    ];
-  });
+  protected readonly links = computed(() =>
+    linksPainel(this.profileService.profile()?.planoAtual),
+  );
 }

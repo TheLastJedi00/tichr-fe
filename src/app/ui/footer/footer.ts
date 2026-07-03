@@ -1,9 +1,18 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { linksPainel } from '../../core/nav-links';
+import { ProfileService } from '../../core/profile.service';
 
 /**
- * Rodapé global (dumb): autoria, link de código e âncora para as Novidades.
- * Flat, sem lógica de estado.
+ * Rodapé global (dumb-ish): autoria, link de código e âncora para as Novidades.
+ * Com `[painel]="true"` (páginas de usuário) também lista as âncoras de navegação
+ * — as mesmas do menu lateral. Na landing (`painel` falso) fica só o essencial.
  */
 @Component({
   selector: 'app-footer',
@@ -12,10 +21,23 @@ import { RouterLink } from '@angular/router';
   imports: [RouterLink],
   template: `
     <footer class="footer">
-      <span class="footer__autor">
-        Feito por <strong>Jediael Borges</strong>
-      </span>
-      <nav class="footer__links">
+      @if (painel()) {
+        <nav class="footer__nav">
+          @for (l of links(); track l.label) {
+            <a
+              class="footer__navlink"
+              [routerLink]="l.path"
+              [queryParams]="l.query ?? null"
+            >
+              {{ l.label }}@if (l.locked) { 🔒 }
+            </a>
+          }
+        </nav>
+      }
+
+      <div class="footer__base">
+        <span class="footer__autor">Feito por <strong>Leno Borges</strong></span>
+        <span class="footer__sep">·</span>
         <a
           class="footer__link"
           href="https://github.com/TheLastJedi00"
@@ -24,7 +46,7 @@ import { RouterLink } from '@angular/router';
         >GitHub</a>
         <span class="footer__sep">·</span>
         <a class="footer__link" routerLink="/novidades">O que há de novo?</a>
-      </nav>
+      </div>
       <span class="footer__repo">Tichr · Angular + NestJS/Firebase</span>
     </footer>
   `,
@@ -34,17 +56,40 @@ import { RouterLink } from '@angular/router';
       padding: 1.25rem 1rem;
       border-top: 1px solid var(--border);
       display: flex;
-      flex-wrap: wrap;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
-      gap: 0.4rem 1rem;
+      gap: 0.5rem;
       text-align: center;
       color: var(--text-muted);
       font-size: 0.85rem;
     }
+    .footer__nav {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.4rem 1rem;
+      padding-bottom: 0.5rem;
+    }
+    .footer__navlink { color: var(--text); font-weight: 600; }
+    .footer__navlink:hover { color: var(--primary); }
+    .footer__base {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem 0.6rem;
+    }
     .footer__link { color: var(--primary); font-weight: 600; }
     .footer__sep { opacity: 0.5; }
-    .footer__repo { flex-basis: 100%; opacity: 0.75; }
+    .footer__repo { opacity: 0.75; }
   `,
 })
-export class Footer {}
+export class Footer {
+  private readonly profileService = inject(ProfileService);
+  /** Ativa a barra de navegação (páginas do painel do usuário). */
+  readonly painel = input(false);
+
+  protected readonly links = computed(() =>
+    this.painel() ? linksPainel(this.profileService.profile()?.planoAtual) : [],
+  );
+}
