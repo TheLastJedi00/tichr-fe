@@ -7,6 +7,7 @@ import {
 } from '@angular/core';
 import { formatarData } from '../../core/date-format';
 import { Sessao } from '../../core/models';
+import { statusVisual, StatusVisual } from '../../core/status-sessao';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Card } from '../../ui/card/card';
 import { Spinner } from '../../ui/spinner/spinner';
@@ -35,8 +36,8 @@ import { Spinner } from '../../ui/spinner/spinner';
               <span class="aula__n">Aula {{ s.numero }}</span>
               <span class="aula__d">{{ formatarData(s.data) }}</span>
             </div>
-            <span class="status status--{{ s.status.toLowerCase() }}">
-              {{ s.status === 'CANCELADA' ? 'Sem aula' : 'Aula' }}
+            <span class="status status--{{ statusAula(s).toLowerCase() }}">
+              {{ rotulo(statusAula(s)) }}
             </span>
           </div>
         }
@@ -61,7 +62,18 @@ import { Spinner } from '../../ui/spinner/spinner';
     .aula__n { font-weight: 700; }
     .aula__d { color: var(--text-muted); font-size: 0.9rem; }
     .status { font-size: 0.72rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999px; }
-    .status--agendada, .status--realizada { color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); }
+    .status--agendada { color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); }
+    .status--concluida { color: var(--text-muted); background: var(--surface-alt); }
+    .status--em_andamento {
+      color: var(--success);
+      background: color-mix(in srgb, var(--success) 15%, transparent);
+      animation: pulso 1.4s ease-in-out infinite;
+    }
+    @keyframes pulso {
+      0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--success) 0%, transparent); }
+      50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--success) 30%, transparent); }
+    }
+    @media (prefers-reduced-motion: reduce) { .status--em_andamento { animation: none; } }
     .status--cancelada { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
     .muted { color: var(--text-muted); margin: 0; }
   `,
@@ -81,6 +93,20 @@ export class StudentAgendaPage {
       .filter((s) => s.data >= this.hoje)
       .sort((a, b) => a.data.localeCompare(b.data)),
   );
+
+  protected statusAula(s: Sessao): StatusVisual {
+    return statusVisual(s);
+  }
+
+  /** Rótulo amigável para o aluno (cancelada vira "Sem aula"). */
+  protected rotulo(status: StatusVisual): string {
+    return {
+      CONCLUIDA: 'Concluída',
+      EM_ANDAMENTO: 'Em andamento',
+      AGENDADA: 'Aula',
+      CANCELADA: 'Sem aula',
+    }[status];
+  }
 
   constructor() {
     this.api.getMinhaAgenda().subscribe({
