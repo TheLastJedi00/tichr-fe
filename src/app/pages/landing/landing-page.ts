@@ -189,7 +189,7 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
               <div class="conx__node">
                 <span class="conx__av"><app-icon name="user" [size]="20" /></span>
                 <span class="conx__lbl">professor</span>
-                <strong>&#64;prof.jediael</strong>
+                <strong>&#64;prof.marina</strong>
               </div>
               <div class="conx__link" [class.conx__link--on]="conectado()">
                 <span class="conx__dot"></span>
