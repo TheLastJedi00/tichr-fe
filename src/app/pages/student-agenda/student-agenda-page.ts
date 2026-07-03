@@ -35,6 +35,9 @@ import { Spinner } from '../../ui/spinner/spinner';
             <div class="aula__esq">
               <span class="aula__n">Aula {{ s.numero }}</span>
               <span class="aula__d">{{ formatarData(s.data) }}</span>
+              @if (topicoDe(s.numero); as t) {
+                <span class="aula__topico">{{ t }}</span>
+              }
             </div>
             <span class="status status--{{ statusAula(s).toLowerCase() }}">
               {{ rotulo(statusAula(s)) }}
@@ -58,9 +61,15 @@ import { Spinner } from '../../ui/spinner/spinner';
       background: var(--surface);
     }
     .aula--cancelada { opacity: 0.7; }
-    .aula__esq { display: flex; flex-direction: column; }
+    .aula__esq { display: flex; flex-direction: column; gap: 0.15rem; }
     .aula__n { font-weight: 700; }
     .aula__d { color: var(--text-muted); font-size: 0.9rem; }
+    .aula__topico {
+      margin-top: 0.15rem; align-self: flex-start;
+      font-size: 0.78rem; font-weight: 700;
+      color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent);
+      padding: 0.12rem 0.5rem; border-radius: 999px;
+    }
     .status { font-size: 0.72rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999px; }
     .status--agendada { color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); }
     .status--concluida { color: var(--text-muted); background: var(--surface-alt); }
@@ -84,15 +93,21 @@ export class StudentAgendaPage {
 
   protected readonly carregando = signal(true);
   private readonly sessoes = signal<Sessao[]>([]);
+  private readonly topicos = signal<Map<number, string>>(new Map());
 
   private readonly hoje = new Date().toISOString().slice(0, 10);
 
-  /** Aulas de hoje em diante, ordenadas por data. */
+  /** Aulas de hoje em diante + aulas passadas que têm tópico ("já vimos"). */
   protected readonly proximas = computed(() =>
     this.sessoes()
-      .filter((s) => s.data >= this.hoje)
+      .filter((s) => s.data >= this.hoje || this.topicos().has(s.numero))
       .sort((a, b) => a.data.localeCompare(b.data)),
   );
+
+  /** Tópico alocado a uma aula (por número), se houver. */
+  protected topicoDe(numero: number): string | undefined {
+    return this.topicos().get(numero);
+  }
 
   protected statusAula(s: Sessao): StatusVisual {
     return statusVisual(s);
@@ -115,6 +130,12 @@ export class StudentAgendaPage {
         this.carregando.set(false);
       },
       error: () => this.carregando.set(false),
+    });
+    // Tópicos do plano de aula (só vêm preenchidos se o professor for PhD).
+    this.api.getMeuPlano().subscribe({
+      next: (r) =>
+        this.topicos.set(new Map(r.topicos.map((t) => [t.numeroAula, t.topico]))),
+      error: () => {},
     });
   }
 }

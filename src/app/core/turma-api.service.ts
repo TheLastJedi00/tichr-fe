@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { API_BASE_URL } from './api.config';
 import {
+  Alocacao,
   Aluno,
   AtualizarEquipePayload,
   Cargo,
@@ -13,10 +14,13 @@ import {
   CriarTurmaPayload,
   Equipe,
   Ferias,
+  PlanoAula,
   ProgressoTurma,
   RankingItem,
   Sessao,
   Squad,
+  Topico,
+  TopicoAula,
   Turma,
 } from './models';
 
@@ -257,5 +261,61 @@ export class TurmaApiService {
 
   getMeuProgresso(): Observable<ProgressoTurma> {
     return this.http.get<ProgressoTurma>(`${this.base}/aluno/progresso`);
+  }
+
+  /** Tópicos do plano de aula alocados às minhas aulas (portal PhD). */
+  getMeuPlano(): Observable<{ topicos: TopicoAula[] }> {
+    return this.http.get<{ topicos: TopicoAula[] }>(`${this.base}/aluno/plano`);
+  }
+
+  // ===== Plano de Aula (escopo geral por disciplina) =====
+
+  getPlanosAula(): Observable<PlanoAula[]> {
+    return this.http.get<PlanoAula[]>(`${this.base}/planos-aula`);
+  }
+
+  salvarPlanoAula(
+    disciplina: string,
+    contextoGeral: string,
+  ): Observable<PlanoAula> {
+    return this.http.put<PlanoAula>(`${this.base}/planos-aula`, {
+      disciplina,
+      contextoGeral,
+    });
+  }
+
+  // ===== Tópicos (backlog por disciplina) e alocação (Mestre) =====
+
+  getTopicos(disciplina: string): Observable<Topico[]> {
+    return this.http.get<Topico[]>(`${this.base}/topicos`, {
+      params: { disciplina },
+    });
+  }
+
+  adicionarTopicos(disciplina: string, nomes: string[]): Observable<Topico[]> {
+    return this.http.post<Topico[]>(`${this.base}/topicos`, {
+      disciplina,
+      nomes,
+    });
+  }
+
+  removerTopico(id: string): Observable<{ removido: boolean }> {
+    return this.http.delete<{ removido: boolean }>(`${this.base}/topicos/${id}`);
+  }
+
+  getAlocacoes(turmaId: string): Observable<Alocacao[]> {
+    return this.http.get<Alocacao[]>(`${this.base}/turmas/${turmaId}/alocacoes`);
+  }
+
+  /** Aloca (topicoId) ou desaloca (null) um tópico à aula `numero`. */
+  definirAlocacao(
+    turmaId: string,
+    numero: number,
+    topicoId: string | null,
+  ): Observable<Alocacao | { removido: true }> {
+    return this.http.put<Alocacao | { removido: true }>(
+      `${this.base}/turmas/${turmaId}/alocacoes/${numero}`,
+      { topicoId },
+    );
   }
 }

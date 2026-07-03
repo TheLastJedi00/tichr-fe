@@ -18,6 +18,11 @@ export const routes: Routes = [
       import('./pages/login/login-page').then((m) => m.LoginPage),
   },
   {
+    path: 'novidades',
+    loadComponent: () =>
+      import('./pages/novidades/novidades-page').then((m) => m.NovidadesPage),
+  },
+  {
     path: 'entrar',
     loadComponent: () =>
       import('./pages/student-entrar/student-entrar-page').then(
@@ -115,6 +120,14 @@ export const routes: Routes = [
         path: 'agenda',
         loadComponent: () =>
           import('./pages/agenda/agenda-page').then((m) => m.AgendaPage),
+      },
+      {
+        path: 'plano-aula',
+        canActivate: [exigePlano('PLANO_AULA')],
+        loadComponent: () =>
+          import('./pages/plano-aula/plano-aula-page').then(
+            (m) => m.PlanoAulaPage,
+          ),
       },
       {
         path: 'configuracoes',

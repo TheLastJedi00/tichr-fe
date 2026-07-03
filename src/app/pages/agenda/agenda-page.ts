@@ -7,14 +7,31 @@ import { TurmaApiService } from '../../core/turma-api.service';
 import { Modal } from '../../ui/modal/modal';
 import { Spinner } from '../../ui/spinner/spinner';
 
+type Modo = 'calendario' | 'detalhado';
+
 interface DiaCal {
   iso: string;
   dia: number;
   sessoes: Sessao[];
   hoje: boolean;
 }
+interface AulaDet {
+  sessao: Sessao;
+  turma?: Turma;
+}
+interface Turno {
+  nome: string;
+  aulas: AulaDet[];
+}
+interface DiaDet {
+  iso: string;
+  label: string;
+  turnos: Turno[];
+}
 
 const CABECALHOS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+const DIAS_SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+const MODO_KEY = 'tichr-agenda-modo';
 
 function parse(iso: string): Date {
   const [y, m, d] = iso.split('-').map(Number);
@@ -34,7 +51,8 @@ function domingo(iso: string): string {
 }
 
 /**
- * AgendaPage (smart): visão em grid semanal/mensal das aulas.
+ * AgendaPage (smart): duas visões — Calendário (grade de 5 semanas) e Detalhado
+ * (próximos 15 dias por turnos). A escolha é memorizada no localStorage.
  */
 @Component({
   selector: 'app-agenda-page',
@@ -42,11 +60,31 @@ function domingo(iso: string): string {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [Spinner, Modal],
   template: `
-    <h1 class="title">Minha Agenda</h1>
+    <header class="head">
+      <h1 class="title">Minha Agenda</h1>
+      <div class="toggle" role="tablist">
+        <button
+          class="toggle__btn"
+          [class.is-on]="modo() === 'calendario'"
+          type="button"
+          (click)="setModo('calendario')"
+        >
+          Calendário
+        </button>
+        <button
+          class="toggle__btn"
+          [class.is-on]="modo() === 'detalhado'"
+          type="button"
+          (click)="setModo('detalhado')"
+        >
+          Detalhado
+        </button>
+      </div>
+    </header>
 
     @if (loading()) {
       <div class="loading"><app-spinner [size]="32" /></div>
-    } @else {
+    } @else if (modo() === 'calendario') {
       <div class="grid-wrap">
         <div class="grid cabecalho">
           @for (c of cabecalhos; track $index) {
@@ -77,6 +115,36 @@ function domingo(iso: string): string {
           </div>
         }
       </div>
+    } @else {
+      @if (dias().length === 0) {
+        <p class="muted">Nenhuma aula nos próximos 15 dias.</p>
+      } @else {
+        <div class="dias">
+          @for (dia of dias(); track dia.iso) {
+            <article class="cartao">
+              <header class="cartao__head">{{ dia.label }}</header>
+              @for (turno of dia.turnos; track turno.nome) {
+                <div class="turno">
+                  <span class="turno__nome">{{ turno.nome }}</span>
+                  @for (a of turno.aulas; track a.sessao.id) {
+                    <div class="det" [class.det--cancelada]="a.sessao.status === 'CANCELADA'">
+                      <span class="dot" [style.background]="corDaTurma(a.sessao.turmaId)"></span>
+                      <div class="det__txt">
+                        <strong>{{ a.turma?.nome ?? 'Turma' }}</strong>
+                        <span class="det__meta">
+                          @if (a.turma?.disciplina) { {{ a.turma?.disciplina }} · }
+                          @if (a.turma?.horaInicio) { {{ a.turma?.horaInicio }}–{{ a.turma?.horaFim }} }
+                          @else { Aula {{ a.sessao.numero }} }
+                        </span>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </article>
+          }
+        </div>
+      }
     }
 
     <app-modal
@@ -87,7 +155,7 @@ function domingo(iso: string): string {
       @if (diaSelecionado(); as dia) {
         <ul class="detalhes">
           @for (s of dia.sessoes; track s.id) {
-            <li class="det">
+            <li class="detli">
               <div class="det__turma">
                 <span class="dot" [style.background]="corDaTurma(s.turmaId)"></span>
                 <strong>{{ turmaDe(s.turmaId)?.nome ?? 'Turma' }}</strong>
@@ -110,73 +178,45 @@ function domingo(iso: string): string {
     </app-modal>
   `,
   styles: `
-    .title { margin: 0 0 1rem; font-size: 1.5rem; font-weight: 700; }
+    .head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .title { margin: 0; font-size: 1.5rem; font-weight: 700; }
+    .toggle { display: inline-flex; gap: 0.25rem; padding: 0.2rem; border-radius: 999px; background: var(--surface-alt); }
+    .toggle__btn { font: inherit; font-size: 0.85rem; font-weight: 600; padding: 0.35rem 0.8rem; border: none; border-radius: 999px; background: none; color: var(--text-muted); cursor: pointer; }
+    .toggle__btn.is-on { background: var(--surface); color: var(--primary); }
     .loading { display: flex; justify-content: center; padding: 3rem 0; color: var(--primary); }
+    .muted { color: var(--text-muted); }
     .grid-wrap { overflow-x: auto; }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(7, minmax(44px, 1fr));
-      gap: 4px;
-    }
+    .grid { display: grid; grid-template-columns: repeat(7, minmax(44px, 1fr)); gap: 4px; }
     .grid + .grid { margin-top: 4px; }
-    .col-head {
-      text-align: center;
-      font-weight: 700;
-      color: var(--text-muted);
-      padding: 0.375rem 0;
-    }
-    .cell {
-      min-height: 68px;
-      padding: 0.375rem;
-      background: var(--surface-alt);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-    }
-    .cell.tem-aula {
-      background: var(--surface);
-      border-color: var(--primary);
-    }
-    .cell.hoje {
-      outline: 2px solid var(--primary);
-      outline-offset: -1px;
-    }
+    .col-head { text-align: center; font-weight: 700; color: var(--text-muted); padding: 0.375rem 0; }
+    .cell { min-height: 68px; padding: 0.375rem; background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius); }
+    .cell.tem-aula { background: var(--surface); border-color: var(--primary); }
+    .cell.hoje { outline: 2px solid var(--primary); outline-offset: -1px; }
     .cell__dia { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
     .cell.hoje .cell__dia { color: var(--primary); }
-    .badge {
-      display: block;
-      margin-top: 0.25rem;
-      padding: 0.1rem 0.3rem;
-      font-size: 0.68rem;
-      font-weight: 700;
-      color: var(--primary-contrast);
-      background: var(--primary);
-      border-radius: 4px;
-      white-space: nowrap;
-    }
-    .badge--cancelada {
-      background: var(--danger);
-      text-decoration: line-through;
-    }
+    .badge { display: block; margin-top: 0.25rem; padding: 0.1rem 0.3rem; font-size: 0.68rem; font-weight: 700; color: var(--primary-contrast); background: var(--primary); border-radius: 4px; white-space: nowrap; }
+    .badge--cancelada { background: var(--danger); text-decoration: line-through; }
     .cell.clicavel { cursor: pointer; }
+
+    /* ===== Modo detalhado ===== */
+    .dias { display: grid; grid-template-columns: 1fr; gap: 0.75rem; }
+    @media (min-width: 720px) { .dias { grid-template-columns: 1fr 1fr; } }
+    .cartao { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: 0.85rem 1rem; }
+    .cartao__head { font-weight: 800; margin-bottom: 0.5rem; }
+    .turno { margin-bottom: 0.5rem; }
+    .turno:last-child { margin-bottom: 0; }
+    .turno__nome { display: block; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 0.3rem; }
+    .det { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0; }
+    .det--cancelada { opacity: 0.55; text-decoration: line-through; }
+    .det__txt { display: flex; flex-direction: column; }
+    .det__meta { font-size: 0.82rem; color: var(--text-muted); }
+    .dot { width: 10px; height: 10px; border-radius: 999px; display: inline-block; flex: 0 0 auto; }
+
     .detalhes { list-style: none; margin: 0; padding: 0; }
-    .det { padding: 0.625rem 0; }
-    .det + .det { border-top: 1px solid var(--border); }
+    .detli { padding: 0.625rem 0; }
+    .detli + .detli { border-top: 1px solid var(--border); }
     .det__turma { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.25rem; }
-    .dot { width: 10px; height: 10px; border-radius: 999px; display: inline-block; }
-    .det__meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem 0.75rem;
-      font-size: 0.85rem;
-      color: var(--text-muted);
-    }
-    .badge-status {
-      font-weight: 700;
-      font-size: 0.7rem;
-      padding: 0.1rem 0.4rem;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-    }
+    .badge-status { font-weight: 700; font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 999px; border: 1px solid var(--border); }
     .st--agendada { color: var(--primary); border-color: var(--primary); }
     .st--cancelada { color: var(--danger); border-color: var(--danger); }
     .st--realizada { color: var(--success); border-color: var(--success); }
@@ -191,33 +231,32 @@ export class AgendaPage {
   protected readonly diaSelecionado = signal<DiaCal | null>(null);
   private readonly turmasMap = signal<Map<string, Turma>>(new Map());
 
+  protected readonly modo = signal<Modo>(
+    (localStorage.getItem(MODO_KEY) as Modo) || 'calendario',
+  );
+
+  protected setModo(m: Modo): void {
+    this.modo.set(m);
+    localStorage.setItem(MODO_KEY, m);
+  }
+
   protected turmaDe(turmaId: string): Turma | undefined {
     return this.turmasMap().get(turmaId);
   }
-
   protected corDaTurma(turmaId: string): string {
     return this.turmasMap().get(turmaId)?.cor ?? 'var(--primary)';
   }
 
+  /** Calendário: semana atual + 4 seguintes (5 semanas). */
   protected readonly semanas = computed<DiaCal[][]>(() => {
     const hoje = hojeISO(new Date());
-    const datas = this.sessoes().map((s) => s.data).sort();
-    // o grid sempre inclui hoje, para ancorar o usuário no presente
-    const inicio = domingo(datas[0] && datas[0] < hoje ? datas[0] : hoje);
-    const fim = datas[datas.length - 1] && datas[datas.length - 1] > hoje
-      ? datas[datas.length - 1]
-      : hoje;
-
     const porData = new Map<string, Sessao[]>();
     for (const s of this.sessoes()) {
       porData.set(s.data, [...(porData.get(s.data) ?? []), s]);
     }
-
     const semanas: DiaCal[][] = [];
-    let cursor = inicio;
-    // vai ate cobrir a semana da ultima aula (ou 6 semanas se vazio)
-    const limite = addDays(fim, 6);
-    while (cursor <= limite && semanas.length < 12) {
+    let cursor = domingo(hoje);
+    for (let w = 0; w < 5; w++) {
       const semana: DiaCal[] = [];
       for (let i = 0; i < 7; i++) {
         semana.push({
@@ -232,6 +271,48 @@ export class AgendaPage {
     }
     return semanas;
   });
+
+  /** Detalhado: hoje + 14 dias (com aulas), por turnos. */
+  protected readonly dias = computed<DiaDet[]>(() => {
+    const hoje = hojeISO(new Date());
+    const fim = addDays(hoje, 14);
+    const porData = new Map<string, Sessao[]>();
+    for (const s of this.sessoes()) {
+      if (s.data >= hoje && s.data <= fim) {
+        porData.set(s.data, [...(porData.get(s.data) ?? []), s]);
+      }
+    }
+    const dias: DiaDet[] = [];
+    for (let iso = hoje; iso <= fim; iso = addDays(iso, 1)) {
+      const doDia = porData.get(iso);
+      if (!doDia?.length) continue;
+      const turnos = this.montarTurnos(doDia);
+      if (turnos.length) {
+        dias.push({
+          iso,
+          label: `${DIAS_SEMANA[parse(iso).getUTCDay()]} · ${formatarData(iso)}`,
+          turnos,
+        });
+      }
+    }
+    return dias;
+  });
+
+  /** Agrupa aulas em Manhã/Tarde/Noite pelo horaInicio da turma. */
+  private montarTurnos(sessoes: Sessao[]): Turno[] {
+    const baldes: Record<string, AulaDet[]> = { Manhã: [], Tarde: [], Noite: [] };
+    for (const s of sessoes) {
+      const turma = this.turmasMap().get(s.turmaId);
+      const h = Number((turma?.horaInicio ?? '08:00').slice(0, 2));
+      const turno = h < 12 ? 'Manhã' : h < 18 ? 'Tarde' : 'Noite';
+      baldes[turno].push({ sessao: s, turma });
+    }
+    const ordenar = (a: AulaDet, b: AulaDet) =>
+      (a.turma?.horaInicio ?? '').localeCompare(b.turma?.horaInicio ?? '');
+    return ['Manhã', 'Tarde', 'Noite']
+      .map((nome) => ({ nome, aulas: baldes[nome].sort(ordenar) }))
+      .filter((t) => t.aulas.length > 0);
+  }
 
   constructor() {
     forkJoin({

@@ -1,5 +1,14 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+} from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { planoAtendeMinimo } from '../../core/plano.util';
+import { ProfileService } from '../../core/profile.service';
 import { Icon, IconName } from '../icon/icon';
 import { IconButton } from '../icon-button/icon-button';
 import { QuotaTracker } from '../quota-tracker/quota-tracker';
@@ -8,6 +17,8 @@ interface MenuLink {
   label: string;
   path: string;
   icon: IconName;
+  locked?: boolean;
+  query?: Record<string, string>;
 }
 
 /**
@@ -34,16 +45,20 @@ interface MenuLink {
           </div>
 
           <ul class="drawer__list">
-            @for (link of links; track link.path) {
+            @for (link of links(); track link.label) {
               <li>
                 <a
                   class="drawer__link"
                   [routerLink]="link.path"
+                  [queryParams]="link.query ?? null"
                   routerLinkActive="is-active"
                   (click)="close.emit()"
                 >
                   <app-icon [name]="link.icon" [size]="18" />
                   {{ link.label }}
+                  @if (link.locked) {
+                    <app-icon class="drawer__lock" name="lock" [size]="15" />
+                  }
                 </a>
               </li>
             }
@@ -106,16 +121,34 @@ interface MenuLink {
       color: var(--primary);
       background: var(--surface-alt);
     }
+    .drawer__lock { margin-left: auto; color: var(--text-muted); }
   `,
 })
 export class MobileMenu {
+  private readonly profileService = inject(ProfileService);
   readonly open = input(false);
   readonly close = output<void>();
 
-  protected readonly links: MenuLink[] = [
-    { label: 'Dashboard', path: '/dashboard', icon: 'home' },
-    { label: 'Minha Agenda', path: '/agenda', icon: 'calendar' },
-    { label: 'Minhas Turmas', path: '/turmas', icon: 'building' },
-    { label: 'Configurações', path: '/configuracoes', icon: 'settings' },
-  ];
+  /** Plano de Aula exige Graduado; Estagiário vê cadeado e vai ao upsell. */
+  protected readonly links = computed<MenuLink[]>(() => {
+    const podePlano = planoAtendeMinimo(
+      this.profileService.profile()?.planoAtual,
+      'GRADUADO',
+    );
+    return [
+      { label: 'Dashboard', path: '/dashboard', icon: 'home' },
+      { label: 'Minha Agenda', path: '/agenda', icon: 'calendar' },
+      { label: 'Minhas Turmas', path: '/turmas', icon: 'building' },
+      podePlano
+        ? { label: 'Plano de Aula', path: '/plano-aula', icon: 'book' }
+        : {
+            label: 'Plano de Aula',
+            path: '/planos',
+            icon: 'book',
+            locked: true,
+            query: { recurso: 'PLANO_AULA' },
+          },
+      { label: 'Configurações', path: '/configuracoes', icon: 'settings' },
+    ];
+  });
 }
