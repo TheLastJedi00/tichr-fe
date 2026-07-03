@@ -21,7 +21,7 @@ import {
   Sessao,
   Turma,
 } from '../../core/models';
-import { planoAtendeMinimo } from '../../core/plano.util';
+import { planoAtendeMinimo, podeGamificar } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { AlunoCard } from '../../ui/aluno-card/aluno-card';
@@ -164,14 +164,18 @@ type Ordenacao = 'nome' | 'pontuacao';
                   <li class="lista__item">
                     <button
                       class="lista__click"
+                      [class.lista__click--lock]="!podePontuar()"
                       type="button"
-                      (click)="abrirPontuar(a)"
+                      (click)="pontuarOuUpsell(a)"
                     >
                       <span class="lista__nome">{{ a.nome }}</span>
                       @if (cfg().pontuacaoAtiva) {
                         <span class="lista__xp">
                           {{ a.xpTotal ?? 0 }} {{ cfg().nomePontuacao }}
                         </span>
+                      }
+                      @if (!podePontuar()) {
+                        <app-icon name="lock" [size]="15" />
                       }
                     </button>
                     <button
@@ -410,6 +414,26 @@ type Ordenacao = 'nome' | 'pontuacao';
       </app-modal>
 
       <app-modal
+        [open]="upsellGamificacao()"
+        title="Recurso do plano PhD"
+        (close)="upsellGamificacao.set(false)"
+      >
+        <p class="muted">
+          A <strong>pontuação e o Portal do Aluno</strong> (XP, ranking e
+          gamificação) fazem parte do plano <strong>PhD</strong>. Faça upgrade
+          para engajar sua turma.
+        </p>
+        <div modal-actions>
+          <button class="btn-outline" type="button" (click)="upsellGamificacao.set(false)">
+            Agora não
+          </button>
+          <button class="btn-primary" type="button" (click)="irParaPlanosGamificacao()">
+            Fazer upgrade
+          </button>
+        </div>
+      </app-modal>
+
+      <app-modal
         [open]="modalCargos()"
         title="Atribuir cargo"
         (close)="modalCargos.set(false)"
@@ -533,6 +557,8 @@ type Ordenacao = 'nome' | 'pontuacao';
       cursor: pointer;
       color: inherit;
     }
+    .lista__click--lock { opacity: 0.6; cursor: not-allowed; }
+    .lista__click--lock .lista__xp { color: var(--text-muted); }
     .lista__nome { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .lista__xp {
       flex: 0 0 auto;
@@ -711,6 +737,12 @@ export class TurmaDetalhePage {
     planoAtendeMinimo(this.profileService.profile()?.planoAtual, 'MESTRE'),
   );
 
+  /** Pontuação/gamificação é exclusiva do plano PhD. */
+  protected readonly podePontuar = computed(() =>
+    podeGamificar(this.profileService.profile()?.planoAtual),
+  );
+  protected readonly upsellGamificacao = signal(false);
+
   /** Config de pontuação da turma com defaults aplicados. */
   protected readonly cfg = computed(() => {
     const t = this.turma();
@@ -803,8 +835,24 @@ export class TurmaDetalhePage {
 
   // ===== Pontuação =====
 
+  /** Clique num aluno: pontua (PhD) ou dispara o upsell da gamificação. */
+  protected pontuarOuUpsell(aluno: Aluno): void {
+    if (this.podePontuar()) {
+      this.pontuando.set(aluno);
+    } else {
+      this.upsellGamificacao.set(true);
+    }
+  }
+
   protected abrirPontuar(aluno: Aluno): void {
     this.pontuando.set(aluno);
+  }
+
+  protected irParaPlanosGamificacao(): void {
+    this.upsellGamificacao.set(false);
+    this.router.navigate(['/planos'], {
+      queryParams: { recurso: 'GAMIFICACAO' },
+    });
   }
 
   /** Aplica +/- a quantidade ao aluno em foco e mantém o modal aberto. */
