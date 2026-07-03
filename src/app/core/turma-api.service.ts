@@ -106,6 +106,18 @@ export class TurmaApiService {
     );
   }
 
+  /** Renomeia um aluno da turma. */
+  editarAluno(
+    turmaId: string,
+    alunoId: string,
+    nome: string,
+  ): Observable<Aluno> {
+    return this.http.patch<Aluno>(
+      `${this.base}/turmas/${turmaId}/alunos/${alunoId}`,
+      { nome },
+    );
+  }
+
   // ===== Equipes (agrupamento persistente com drag & drop) =====
 
   getEquipes(turmaId: string): Observable<Equipe[]> {

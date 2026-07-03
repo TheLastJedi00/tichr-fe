@@ -73,6 +73,13 @@ type Ordenacao = 'nome' | 'pontuacao';
         <a class="btn-outline" [routerLink]="['/turmas', t.id, 'editar']">Editar</a>
       </header>
 
+      @if (t.pinTurma) {
+        <p class="pinturma">
+          PIN da turma: <strong>{{ t.pinTurma }}</strong>
+          <span class="pinturma__hint">— os alunos usam para entrar no portal</span>
+        </p>
+      }
+
       <nav class="tabs">
         <button
           class="tab"
@@ -165,27 +172,16 @@ type Ordenacao = 'nome' | 'pontuacao';
                   <li class="lista__item">
                     <button
                       class="lista__click"
-                      [class.lista__click--lock]="!podePontuar()"
                       type="button"
-                      (click)="pontuarOuUpsell(a)"
+                      (click)="abrirDetalhe(a)"
                     >
+                      <span class="lista__avatar"><app-icon name="user" [size]="18" /></span>
                       <span class="lista__nome">{{ a.nome }}</span>
                       @if (cfg().pontuacaoAtiva) {
                         <span class="lista__xp">
                           {{ a.xpTotal ?? 0 }} {{ cfg().nomePontuacao }}
                         </span>
                       }
-                      @if (!podePontuar()) {
-                        <app-icon name="lock" [size]="15" />
-                      }
-                    </button>
-                    <button
-                      class="remover"
-                      type="button"
-                      aria-label="Remover aluno"
-                      (click)="remover(a)"
-                    >
-                      <app-icon name="close" [size]="16" />
                     </button>
                   </li>
                 }
@@ -365,52 +361,74 @@ type Ordenacao = 'nome' | 'pontuacao';
       </app-modal>
 
       <app-modal
-        [open]="!!pontuando()"
-        [title]="pontuando()?.nome ?? ''"
-        (close)="pontuando.set(null)"
+        [open]="!!detalhe()"
+        [title]="detalhe()?.nome ?? 'Aluno'"
+        (close)="fecharDetalhe()"
       >
-        @if (pontuando(); as a) {
-          @if (cfg().pontuacaoAtiva) {
-            <p class="pontos">
-              <strong>{{ a.xpTotal ?? 0 }}</strong> {{ cfg().nomePontuacao }}
-            </p>
-            <label class="campo">
-              <span>Quantidade</span>
+        @if (detalhe(); as a) {
+          @if (a.pinAcesso) {
+            <div class="pinbox">
+              <span class="pinbox__lbl">PIN do aluno</span>
+              <strong class="pinbox__val">{{ a.pinAcesso }}</strong>
+            </div>
+          }
+
+          <label class="campo">
+            <span>Nome</span>
+            <div class="linha">
               <input
                 class="tichr-input"
-                type="number"
-                min="1"
-                [value]="qtd()"
-                (input)="qtd.set(+$any($event.target).value)"
+                [value]="nomeEdit()"
+                (input)="nomeEdit.set($any($event.target).value)"
               />
-            </label>
-          } @else {
-            <p class="muted">A pontuação está desativada nesta turma.</p>
+              <button
+                class="btn-outline"
+                type="button"
+                [disabled]="salvandoNome() || !nomeEdit().trim()"
+                (click)="salvarNome()"
+              >
+                Salvar
+              </button>
+            </div>
+          </label>
+
+          @if (cfg().pontuacaoAtiva) {
+            <div class="secao">
+              <div class="secao__top">
+                <span>{{ cfg().nomePontuacao }}: <strong>{{ a.xpTotal ?? 0 }}</strong></span>
+                @if (!podePontuar()) { <app-icon name="lock" [size]="15" /> }
+              </div>
+              @if (podePontuar()) {
+                <div class="linha">
+                  <input
+                    class="tichr-input qtd"
+                    type="number"
+                    min="1"
+                    [value]="qtd()"
+                    (input)="qtd.set(+$any($event.target).value)"
+                  />
+                  <button class="btn-outline" type="button" [disabled]="pontuandoBusy()" (click)="aplicarPontos(-1)">
+                    {{ cfg().rotuloRemover }}
+                  </button>
+                  <button class="btn-primary" type="button" [disabled]="pontuandoBusy()" (click)="aplicarPontos(1)">
+                    {{ cfg().rotuloAdicionar }}
+                  </button>
+                </div>
+              } @else {
+                <button class="btn-primary" type="button" (click)="upsellGamificacao.set(true)">
+                  Desbloquear com o plano PhD
+                </button>
+              }
+            </div>
           }
         }
         <div modal-actions>
-          @if (cfg().pontuacaoAtiva) {
-            <button
-              class="btn-outline"
-              type="button"
-              [disabled]="pontuandoBusy()"
-              (click)="aplicarPontos(-1)"
-            >
-              {{ cfg().rotuloRemover }}
-            </button>
-            <button
-              class="btn-primary"
-              type="button"
-              [disabled]="pontuandoBusy()"
-              (click)="aplicarPontos(1)"
-            >
-              {{ cfg().rotuloAdicionar }}
-            </button>
-          } @else {
-            <button class="btn-primary" type="button" (click)="pontuando.set(null)">
-              Fechar
-            </button>
-          }
+          <button class="btn-outline danger" type="button" (click)="excluirDoDetalhe()">
+            Excluir aluno
+          </button>
+          <button class="btn-primary" type="button" (click)="fecharDetalhe()">
+            Fechar
+          </button>
         </div>
       </app-modal>
 
@@ -593,6 +611,24 @@ type Ordenacao = 'nome' | 'pontuacao';
     .campo { display: block; }
     .campo > span { display: block; margin-bottom: 0.35rem; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
 
+    .lista__avatar { display: inline-flex; flex: 0 0 auto; color: var(--text-muted); }
+    .pinturma { margin: -0.25rem 0 1rem; font-size: 0.9rem; }
+    .pinturma strong { font-variant-numeric: tabular-nums; letter-spacing: 0.08em; }
+    .pinturma__hint { color: var(--text-muted); }
+    .pinbox {
+      display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+      padding: 0.6rem 0.8rem; border-radius: var(--radius);
+      background: var(--surface-alt); margin-bottom: 0.9rem;
+    }
+    .pinbox__lbl { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; }
+    .pinbox__val { font-size: 1.3rem; font-variant-numeric: tabular-nums; letter-spacing: 0.12em; }
+    .linha { display: flex; gap: 0.5rem; }
+    .linha .tichr-input { flex: 1; }
+    .linha .qtd { max-width: 92px; flex: 0 0 auto; }
+    .secao { margin-top: 1rem; padding-top: 0.9rem; border-top: 1px solid var(--border); }
+    .secao__top { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.5rem; }
+    .danger { color: var(--danger); border-color: var(--danger); }
+
     /* ===== Aba Equipes ===== */
     .pool {
       margin-bottom: 0.75rem;
@@ -732,8 +768,10 @@ export class TurmaDetalhePage {
   protected readonly infoEquipe = signal<Equipe | null>(null);
   protected readonly distribuindo = signal(false);
 
-  // Modal de pontuação.
-  protected readonly pontuando = signal<Aluno | null>(null);
+  // Modal de detalhe do aluno.
+  protected readonly detalhe = signal<Aluno | null>(null);
+  protected readonly nomeEdit = signal('');
+  protected readonly salvandoNome = signal(false);
   protected readonly qtd = signal(10);
   protected readonly pontuandoBusy = signal(false);
 
@@ -855,17 +893,44 @@ export class TurmaDetalhePage {
 
   // ===== Pontuação =====
 
-  /** Clique num aluno: pontua (PhD) ou dispara o upsell da gamificação. */
-  protected pontuarOuUpsell(aluno: Aluno): void {
-    if (this.podePontuar()) {
-      this.pontuando.set(aluno);
-    } else {
-      this.upsellGamificacao.set(true);
-    }
+  /** Abre o modal de detalhe do aluno (PIN, editar nome, excluir, pontuar). */
+  protected abrirDetalhe(aluno: Aluno): void {
+    this.detalhe.set(aluno);
+    this.nomeEdit.set(aluno.nome);
   }
 
-  protected abrirPontuar(aluno: Aluno): void {
-    this.pontuando.set(aluno);
+  protected fecharDetalhe(): void {
+    this.detalhe.set(null);
+  }
+
+  /** Salva o novo nome do aluno em foco. */
+  protected salvarNome(): void {
+    const alvo = this.detalhe();
+    const nome = this.nomeEdit().trim();
+    if (!alvo || !nome || nome === alvo.nome) {
+      return;
+    }
+    this.salvandoNome.set(true);
+    this.api.editarAluno(this.turmaId, alvo.id, nome).subscribe({
+      next: (atualizado) => {
+        this.alunos.update((atual) =>
+          atual.map((a) => (a.id === alvo.id ? { ...a, nome: atualizado.nome } : a)),
+        );
+        this.detalhe.update((a) => (a ? { ...a, nome: atualizado.nome } : a));
+        this.salvandoNome.set(false);
+      },
+      error: () => this.salvandoNome.set(false),
+    });
+  }
+
+  /** Exclui o aluno em foco (com confirmação) e fecha o modal. */
+  protected excluirDoDetalhe(): void {
+    const alvo = this.detalhe();
+    if (!alvo || !confirm(`Excluir o aluno "${alvo.nome}"?`)) {
+      return;
+    }
+    this.remover(alvo);
+    this.fecharDetalhe();
   }
 
   protected irParaPlanosGamificacao(): void {
@@ -877,7 +942,7 @@ export class TurmaDetalhePage {
 
   /** Aplica +/- a quantidade ao aluno em foco e mantém o modal aberto. */
   protected aplicarPontos(sinal: 1 | -1): void {
-    const alvo = this.pontuando();
+    const alvo = this.detalhe();
     const qtd = Math.abs(Math.trunc(this.qtd()));
     if (!alvo || qtd <= 0) {
       return;
@@ -890,9 +955,7 @@ export class TurmaDetalhePage {
             a.id === alvo.id ? { ...a, xpTotal: res.xpTotal } : a,
           ),
         );
-        this.pontuando.update((a) =>
-          a ? { ...a, xpTotal: res.xpTotal } : a,
-        );
+        this.detalhe.update((a) => (a ? { ...a, xpTotal: res.xpTotal } : a));
         this.pontuandoBusy.set(false);
       },
       error: () => this.pontuandoBusy.set(false),
