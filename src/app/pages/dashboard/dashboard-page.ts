@@ -9,6 +9,7 @@ import { RouterLink } from '@angular/router';
 import { formatarData } from '../../core/date-format';
 import { dataPorExtenso, hojeISO, saudacaoPorHora } from '../../core/greeting';
 import { CriarExcecaoPayload, Sessao, Turma } from '../../core/models';
+import { planoAtendeMinimo } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Card } from '../../ui/card/card';
@@ -65,6 +66,9 @@ import { ExcecaoModal } from './excecao-modal';
                 <span class="proxima__turma">
                   <span class="dot" [style.background]="t.cor || 'var(--primary)'"></span>
                   {{ t.nome }}
+                  @if (t.disciplina) {
+                    <span class="proxima__disc">· {{ t.disciplina }}</span>
+                  }
                   @if (t.horaInicio && t.horaFim) {
                     <span class="proxima__hora">· {{ t.horaInicio }}–{{ t.horaFim }}</span>
                   }
@@ -73,6 +77,18 @@ import { ExcecaoModal } from './excecao-modal';
             </div>
             <span class="proxima__num">Aula {{ p.numero }}</span>
           </div>
+
+          @if (topicoProximo(); as topico) {
+            <div class="assunto" [style.--cor]="proximaTurma()?.cor || 'var(--primary)'">
+              Assunto de hoje: <strong>{{ topico }}</strong>
+            </div>
+          }
+          @if (contextoProximo(); as ctx) {
+            <details class="plano" [open]="!topicoProximo()">
+              <summary>Plano de aula da disciplina</summary>
+              <p class="plano__txt">{{ ctx }}</p>
+            </details>
+          }
         </app-card>
       } @else {
         <app-card>
@@ -138,10 +154,22 @@ import { ExcecaoModal } from './excecao-modal';
       border-radius: 999px;
       display: inline-block;
     }
-    .proxima__hora {
+    .proxima__hora, .proxima__disc {
       color: var(--text-muted);
       font-weight: 500;
     }
+    .assunto {
+      margin-top: 0.9rem;
+      padding: 0.7rem 0.9rem;
+      border-radius: var(--radius);
+      border-left: 4px solid var(--cor, var(--primary));
+      background: color-mix(in srgb, var(--cor, var(--primary)) 10%, transparent);
+      font-size: 1.05rem;
+    }
+    .assunto strong { color: var(--cor, var(--primary)); }
+    .plano { margin-top: 0.75rem; }
+    .plano summary { cursor: pointer; font-weight: 600; color: var(--text-muted); font-size: 0.9rem; }
+    .plano__txt { margin: 0.5rem 0 0; white-space: pre-wrap; color: var(--text); }
     .proxima__num {
       font-weight: 600;
       color: var(--text-muted);
@@ -193,7 +221,24 @@ export class DashboardPage {
   protected readonly excecaoAberta = signal(false);
   protected readonly salvandoExcecao = signal(false);
 
+  // Plano de aula: contexto geral por disciplina (Graduado+) e tópico da próxima aula (Mestre+).
+  private readonly planos = signal<Map<string, string>>(new Map());
+  protected readonly topicoProximo = signal<string | null>(null);
+  private topicoCarregadoPara = '';
+
   protected readonly formatarData = formatarData;
+
+  /** Contexto geral do plano da disciplina da próxima aula (Graduado+). */
+  protected readonly contextoProximo = computed<string | null>(() => {
+    const t = this.proximaTurma();
+    if (
+      !t?.disciplina ||
+      !planoAtendeMinimo(this.profileService.profile()?.planoAtual, 'GRADUADO')
+    ) {
+      return null;
+    }
+    return this.planos().get(t.disciplina) ?? null;
+  });
 
   /** Próxima aula AGENDADA a partir de hoje (a mais próxima). */
   protected readonly proxima = computed<Sessao | null>(() => {
@@ -214,11 +259,24 @@ export class DashboardPage {
 
   constructor() {
     this.profileService.load().subscribe({
-      next: () => this.perfilCarregado.set(true),
+      next: () => {
+        this.perfilCarregado.set(true);
+        if (
+          planoAtendeMinimo(this.profileService.profile()?.planoAtual, 'GRADUADO')
+        ) {
+          this.api.getPlanosAula().subscribe((ps) =>
+            this.planos.set(new Map(ps.map((p) => [p.disciplina, p.contextoGeral]))),
+          );
+        }
+        this.enriquecerProxima();
+      },
       error: () => this.perfilCarregado.set(true),
     });
     this.api.getTurmas().subscribe({
-      next: (ts) => this.turmas.set(new Map(ts.map((t) => [t.id, t]))),
+      next: (ts) => {
+        this.turmas.set(new Map(ts.map((t) => [t.id, t])));
+        this.enriquecerProxima();
+      },
       error: () => {},
     });
     this.carregar();
@@ -231,8 +289,36 @@ export class DashboardPage {
       next: (sessoes) => {
         this.sessoes.set(sessoes);
         this.loading.set(false);
+        this.enriquecerProxima();
       },
       error: () => this.loading.set(false),
+    });
+  }
+
+  /** Carrega o tópico alocado à próxima aula (Mestre+), quando há dados. */
+  private enriquecerProxima(): void {
+    const p = this.proxima();
+    const t = this.proximaTurma();
+    const plano = this.profileService.profile()?.planoAtual;
+    if (!p || !t?.disciplina || !planoAtendeMinimo(plano, 'MESTRE')) {
+      return;
+    }
+    const chave = `${t.id}:${p.numero}`;
+    if (this.topicoCarregadoPara === chave) {
+      return;
+    }
+    this.topicoCarregadoPara = chave;
+    this.api.getAlocacoes(t.id).subscribe((alocs) => {
+      const aloc = alocs.find((a) => a.numeroAula === p.numero);
+      if (!aloc) {
+        this.topicoProximo.set(null);
+        return;
+      }
+      this.api.getTopicos(t.disciplina!).subscribe((tops) =>
+        this.topicoProximo.set(
+          tops.find((x) => x.id === aloc.topicoId)?.nome ?? null,
+        ),
+      );
     });
   }
 
