@@ -34,6 +34,11 @@ export function planoAtendeMinimo(
   );
 }
 
+/** Gamificação (pontuação/portal) é exclusiva do plano PhD. */
+export function podeGamificar(atual: PlanoAtual | undefined): boolean {
+  return planoAtendeMinimo(atual, 'PHD');
+}
+
 /** Limite efetivo do professor: base do plano + slots avulsos comprados. */
 export function limiteDoPlano(profile: Profile | null): number {
   const plano = profile?.planoAtual ?? 'ESTAGIARIO';

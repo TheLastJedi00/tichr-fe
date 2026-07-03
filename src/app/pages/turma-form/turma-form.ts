@@ -8,11 +8,14 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CriarTurmaPayload, TipoModalidade, Turma } from '../../core/models';
+import { podeGamificar } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { Card } from '../../ui/card/card';
+import { Icon } from '../../ui/icon/icon';
+import { Modal } from '../../ui/modal/modal';
 
 const DIAS = [
   { value: 1, label: 'Seg' },
@@ -38,7 +41,7 @@ const CORES = [
   selector: 'app-turma-form',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, Card],
+  imports: [ReactiveFormsModule, RouterLink, Card, Icon, Modal],
   template: `
     <app-card>
       <form [formGroup]="form" (ngSubmit)="submeter()">
@@ -130,12 +133,19 @@ const CORES = [
         <fieldset class="grupo">
           <legend>Pontuação & Gamificação</legend>
 
-          <label class="toggle">
-            <input type="checkbox" formControlName="pontuacaoAtiva" />
-            <span>Pontuação ativa</span>
-          </label>
+          @if (podeGamif()) {
+            <label class="toggle">
+              <input type="checkbox" formControlName="pontuacaoAtiva" />
+              <span>Habilitar Portal Gamificado</span>
+            </label>
+          } @else {
+            <button type="button" class="toggle toggle--lock" (click)="abrirUpsell()">
+              <app-icon name="lock" [size]="16" />
+              <span>Habilitar Portal Gamificado — exclusivo do plano PhD</span>
+            </button>
+          }
 
-          @if (pontuacaoAtiva()) {
+          @if (podeGamif() && pontuacaoAtiva()) {
             <label class="campo">
               <span>Nome da pontuação</span>
               <input
@@ -179,9 +189,30 @@ const CORES = [
         </button>
       </form>
     </app-card>
+
+    <app-modal
+      [open]="upsell()"
+      title="Recurso do plano PhD"
+      (close)="upsell.set(false)"
+    >
+      <p class="upsell-txt">
+        O <strong>Portal do Aluno com gamificação</strong> (pontuação, níveis e
+        ranking) é exclusivo do plano <strong>PhD</strong>.
+      </p>
+      <div modal-actions>
+        <button class="btn-outline" type="button" (click)="upsell.set(false)">
+          Agora não
+        </button>
+        <button class="btn-primary" type="button" (click)="irParaPlanos()">
+          Fazer upgrade
+        </button>
+      </div>
+    </app-modal>
   `,
   styles: `
     .campo { display: block; margin-bottom: 1rem; }
+    .toggle--lock { width: 100%; justify-content: flex-start; opacity: 0.7; cursor: not-allowed; text-align: left; border: 1px dashed var(--border); border-radius: var(--radius); padding: 0.6rem 0.75rem; background: var(--surface); color: var(--text); }
+    .upsell-txt { margin: 0; color: var(--text); }
     .campo > span {
       display: block;
       margin-bottom: 0.375rem;
@@ -299,6 +330,24 @@ export class TurmaForm {
   private readonly pontuacaoAtivaSig = signal(true);
   protected readonly pontuacaoAtiva = computed(() => this.pontuacaoAtivaSig());
 
+  private readonly router = inject(Router);
+  protected readonly upsell = signal(false);
+  /** Gamificação só no PhD — trava o toggle e a config nos planos inferiores. */
+  protected readonly podeGamif = computed(() =>
+    podeGamificar(this.profileService.profile()?.planoAtual),
+  );
+
+  protected abrirUpsell(): void {
+    this.upsell.set(true);
+  }
+
+  protected irParaPlanos(): void {
+    this.upsell.set(false);
+    this.router.navigate(['/planos'], {
+      queryParams: { recurso: 'GAMIFICACAO' },
+    });
+  }
+
   constructor() {
     // garante que a lista de disciplinas do perfil esteja carregada
     if (!this.profileService.profile()) {
@@ -354,9 +403,9 @@ export class TurmaForm {
       dataInicio: raw.dataInicio,
       diasSemana: [...this.selecionados()].sort(),
       cor: this.cor(),
-      pontuacaoAtiva: raw.pontuacaoAtiva,
+      pontuacaoAtiva: this.podeGamif() && raw.pontuacaoAtiva,
       nomePontuacao: raw.nomePontuacao.trim() || 'XP',
-      rankingAtivo: raw.rankingAtivo,
+      rankingAtivo: this.podeGamif() && raw.rankingAtivo,
       rotuloAdicionar: raw.rotuloAdicionar.trim() || 'Adicionar',
       rotuloRemover: raw.rotuloRemover.trim() || 'Remover',
       ...(raw.disciplina ? { disciplina: raw.disciplina } : {}),
