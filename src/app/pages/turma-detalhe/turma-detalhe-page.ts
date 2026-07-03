@@ -13,7 +13,14 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { formatarData } from '../../core/date-format';
-import { Aluno, CriarEquipePayload, Equipe, Sessao, Turma } from '../../core/models';
+import {
+  Aluno,
+  Cargo,
+  CriarEquipePayload,
+  Equipe,
+  Sessao,
+  Turma,
+} from '../../core/models';
 import { planoAtendeMinimo } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { TurmaApiService } from '../../core/turma-api.service';
@@ -204,6 +211,45 @@ type Ordenacao = 'nome' | 'pontuacao';
               }
             </app-card>
 
+            <app-card>
+              <form class="add" (submit)="$event.preventDefault(); adicionarCargo()">
+                <input
+                  class="tichr-input"
+                  placeholder="Cargos separados por vírgula (ex: Líder, Redator)"
+                  [value]="entradaCargo()"
+                  (input)="entradaCargo.set($any($event.target).value)"
+                />
+                <button class="btn-outline" type="submit" [disabled]="salvandoCargo()">
+                  Adicionar
+                </button>
+              </form>
+              @if (cargos().length) {
+                <div class="cargos-chips">
+                  @for (c of cargos(); track c.id) {
+                    <span class="chip">
+                      {{ c.nome }}
+                      <button
+                        type="button"
+                        class="chip__x"
+                        aria-label="Remover cargo"
+                        (click)="removerCargo(c)"
+                      >×</button>
+                    </span>
+                  }
+                </div>
+                <button
+                  class="btn-primary"
+                  type="button"
+                  [disabled]="!!atribuindo()"
+                  (click)="abrirAtribuicao()"
+                >
+                  Atribuir cargos
+                </button>
+              } @else {
+                <p class="hint">Cadastre cargos para atribuí-los aos membros das equipes.</p>
+              }
+            </app-card>
+
             <div cdkDropListGroup>
               <section class="pool">
                 <header class="pool__head">
@@ -220,7 +266,12 @@ type Ordenacao = 'nome' | 'pontuacao';
                   (cdkDropListDropped)="soltar($event, null)"
                 >
                   @for (a of semEquipe(); track a.id) {
-                    <app-aluno-card cdkDrag [aluno]="a" [mostrarPontuacao]="false" />
+                    <app-aluno-card
+                      cdkDrag
+                      [aluno]="a"
+                      [mostrarPontuacao]="false"
+                      [cargos]="cargosDoAluno(a)"
+                    />
                   } @empty {
                     <p class="hint">Todos os alunos estão em equipes.</p>
                   }
@@ -232,6 +283,7 @@ type Ordenacao = 'nome' | 'pontuacao';
                   <app-equipe-coluna
                     [equipe]="e"
                     [total]="daEquipe(e.id).length"
+                    [balancando]="!!atribuindo()"
                     (info)="abrirInfo(e)"
                     (excluir)="excluir(e)"
                   >
@@ -242,10 +294,19 @@ type Ordenacao = 'nome' | 'pontuacao';
                       [id]="e.id"
                       [attr.aria-label]="'Equipe ' + e.titulo"
                       [cdkDropListData]="daEquipe(e.id)"
+                      [cdkDropListDisabled]="!!atribuindo()"
                       (cdkDropListDropped)="soltar($event, e.id)"
                     >
                       @for (a of daEquipe(e.id); track a.id) {
-                        <app-aluno-card cdkDrag [aluno]="a" [mostrarPontuacao]="false" />
+                        <app-aluno-card
+                          cdkDrag
+                          [aluno]="a"
+                          [mostrarPontuacao]="false"
+                          [cargos]="cargosDoAluno(a)"
+                          [modoAtribuicao]="!!atribuindo()"
+                          [selecionado]="selecionados().has(a.id)"
+                          (toggle)="toggleMembro(a)"
+                        />
                       } @empty {
                         <p class="hint">Solte alunos aqui.</p>
                       }
@@ -347,6 +408,47 @@ type Ordenacao = 'nome' | 'pontuacao';
           }
         </div>
       </app-modal>
+
+      <app-modal
+        [open]="modalCargos()"
+        title="Atribuir cargo"
+        (close)="modalCargos.set(false)"
+      >
+        <p class="muted">Escolha o cargo que você quer atribuir aos membros:</p>
+        <div class="cargos-escolha">
+          @for (c of cargos(); track c.id) {
+            <button class="cargo-op" type="button" (click)="escolherCargo(c)">
+              {{ c.nome }}
+            </button>
+          }
+        </div>
+        <div modal-actions>
+          <button class="btn-outline" type="button" (click)="modalCargos.set(false)">
+            Cancelar
+          </button>
+        </div>
+      </app-modal>
+
+      @if (atribuindo(); as cargo) {
+        <div class="toast" role="status">
+          <span class="toast__msg">
+            Selecione os membros responsáveis por <strong>{{ cargo.nome }}</strong>
+          </span>
+          <div class="toast__acoes">
+            <button class="btn-outline" type="button" (click)="cancelarAtribuicao()">
+              Cancelar
+            </button>
+            <button
+              class="btn-primary"
+              type="button"
+              [disabled]="finalizando()"
+              (click)="finalizarAtribuicao()"
+            >
+              {{ finalizando() ? 'Salvando…' : 'Finalizar atribuição' }}
+            </button>
+          </div>
+        </div>
+      }
     } @else {
       <app-card><p class="muted">Turma não encontrada.</p></app-card>
     }
@@ -503,6 +605,56 @@ type Ordenacao = 'nome' | 'pontuacao';
     .info__cortxt { font-variant-numeric: tabular-nums; color: var(--text-muted); font-size: 0.85rem; }
     .info__desc { margin: 0; color: var(--text); white-space: pre-wrap; }
 
+    /* ===== Cargos ===== */
+    .cargos-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.3rem 0.625rem;
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--primary);
+      background: color-mix(in srgb, var(--primary) 12%, transparent);
+      border-radius: 999px;
+    }
+    .chip__x { border: none; background: none; color: inherit; font-size: 1rem; line-height: 1; cursor: pointer; padding: 0; }
+    .cargos-escolha { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+    .cargo-op {
+      font: inherit;
+      font-weight: 600;
+      padding: 0.5rem 0.9rem;
+      border-radius: 999px;
+      border: 1px solid var(--primary);
+      color: var(--primary);
+      background: var(--surface);
+      cursor: pointer;
+    }
+    .cargo-op:hover { color: var(--primary-contrast); background: var(--primary); }
+
+    /* ===== Toast flutuante acima do header ===== */
+    .toast {
+      position: fixed;
+      top: 0.75rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: calc(100vw - 1.5rem);
+      padding: 0.6rem 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface);
+      box-shadow: 4px 4px 0 var(--border);
+    }
+    .toast__msg { font-size: 0.9rem; }
+    .toast__acoes { display: flex; gap: 0.5rem; }
+    .toast .btn-primary, .toast .btn-outline { padding: 0.35rem 0.8rem; }
+
     /* ===== Drag & drop ===== */
     .cdk-drag-preview {
       box-sizing: border-box;
@@ -544,6 +696,15 @@ export class TurmaDetalhePage {
   protected readonly pontuando = signal<Aluno | null>(null);
   protected readonly qtd = signal(10);
   protected readonly pontuandoBusy = signal(false);
+
+  // Cargos e modo de atribuição.
+  protected readonly cargos = signal<Cargo[]>([]);
+  protected readonly entradaCargo = signal('');
+  protected readonly salvandoCargo = signal(false);
+  protected readonly modalCargos = signal(false);
+  protected readonly atribuindo = signal<Cargo | null>(null);
+  protected readonly selecionados = signal<Set<string>>(new Set());
+  protected readonly finalizando = signal(false);
 
   /** Gestão de equipes exige o plano Mestre (gate da aba Equipes). */
   protected readonly podeGerenciar = computed(() =>
@@ -596,9 +757,16 @@ export class TurmaDetalhePage {
     this.api.getSessoesSemana().subscribe((s) => this.todasSessoes.set(s));
     this.api.getAlunos(this.turmaId).subscribe((a) => this.alunos.set(a));
     this.api.getEquipes(this.turmaId).subscribe((e) => this.equipes.set(e));
+    this.api.getCargos(this.turmaId).subscribe((c) => this.cargos.set(c));
     if (!this.profileService.profile()) {
       this.profileService.load().subscribe({ error: () => {} });
     }
+  }
+
+  /** Cargos atribuídos a um aluno (para os bullets do card). */
+  protected cargosDoAluno(aluno: Aluno): Cargo[] {
+    const ids = aluno.cargoIds ?? [];
+    return ids.length ? this.cargos().filter((c) => ids.includes(c.id)) : [];
   }
 
   /** Do bloqueio da aba, conduz ao painel de planos com o contexto do recurso. */
@@ -681,6 +849,90 @@ export class TurmaDetalhePage {
     this.alunos.update((atual) =>
       atual.map((a) => (a.id === alunoId ? { ...a, equipeId } : a)),
     );
+  }
+
+  // ===== Cargos e atribuição =====
+
+  protected adicionarCargo(): void {
+    const nomes = this.entradaCargo()
+      .split(/[,\n]/)
+      .map((n) => n.trim())
+      .filter((n) => n.length > 0);
+    if (nomes.length === 0) {
+      return;
+    }
+    this.salvandoCargo.set(true);
+    this.api.adicionarCargos(this.turmaId, nomes).subscribe({
+      next: (novos) => {
+        this.cargos.update((atual) => [...atual, ...novos]);
+        this.entradaCargo.set('');
+        this.salvandoCargo.set(false);
+      },
+      error: () => this.salvandoCargo.set(false),
+    });
+  }
+
+  protected removerCargo(cargo: Cargo): void {
+    this.api.removerCargo(this.turmaId, cargo.id).subscribe(() => {
+      this.cargos.update((atual) => atual.filter((c) => c.id !== cargo.id));
+      this.alunos.update((atual) =>
+        atual.map((a) =>
+          a.cargoIds?.includes(cargo.id)
+            ? { ...a, cargoIds: a.cargoIds.filter((id) => id !== cargo.id) }
+            : a,
+        ),
+      );
+    });
+  }
+
+  /** Abre o modal para o professor escolher qual cargo vai atribuir. */
+  protected abrirAtribuicao(): void {
+    if (this.cargos().length > 0) {
+      this.modalCargos.set(true);
+    }
+  }
+
+  /** Escolhe um cargo e entra no modo de atribuição (colunas balançam). */
+  protected escolherCargo(cargo: Cargo): void {
+    this.modalCargos.set(false);
+    this.atribuindo.set(cargo);
+    this.selecionados.set(
+      new Set(
+        this.alunos()
+          .filter((a) => a.cargoIds?.includes(cargo.id))
+          .map((a) => a.id),
+      ),
+    );
+  }
+
+  /** (Des)marca um membro para o cargo em foco. */
+  protected toggleMembro(aluno: Aluno): void {
+    const set = new Set(this.selecionados());
+    set.has(aluno.id) ? set.delete(aluno.id) : set.add(aluno.id);
+    this.selecionados.set(set);
+  }
+
+  protected cancelarAtribuicao(): void {
+    this.atribuindo.set(null);
+    this.selecionados.set(new Set());
+  }
+
+  protected finalizarAtribuicao(): void {
+    const cargo = this.atribuindo();
+    if (!cargo) {
+      return;
+    }
+    this.finalizando.set(true);
+    this.api
+      .atribuirCargo(this.turmaId, cargo.id, [...this.selecionados()])
+      .subscribe({
+        next: (alunos) => {
+          this.alunos.set(alunos);
+          this.finalizando.set(false);
+          this.cancelarAtribuicao();
+        },
+        error: () => this.finalizando.set(false),
+      });
   }
 
   // ===== CRUD de equipes =====
