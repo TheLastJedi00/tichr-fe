@@ -47,10 +47,26 @@ O diferencial visível está na **demonstração interativa da landing page** e 
 | `/dashboard` | **Dashboard** | Recepção: saudação por horário, **próxima aula** em destaque (com turma, cor e horário), onboarding no primeiro acesso, e o gatilho de "Exceção". |
 | `/agenda` | **Minha Agenda** | Calendário em **grid de 7 colunas**; cada aula é um *badge* na cor da turma. Clicar num dia abre os detalhes. |
 | `/turmas` | **Minhas Turmas** | Lista das turmas (nome, cor, disciplina, modalidade, horário, término). |
-| `/turmas/nova` · `/turmas/:id/editar` | **Nova / Editar turma** | Formulário reativo com dias, modalidade, cor, disciplina, horários. Editar **reprojeta** a agenda. Criar respeita a **cota do plano** (com *upsell* ao estourar). |
-| `/turmas/:id` | **Detalhe da turma** | Abas **Agenda** (sessões) e **Alunos** (lista de chamada + *Quick XP* + porta de entrada das dinâmicas). |
-| `/turmas/:id/dinamica` | **Nova dinâmica** | Sorteio de **squads**: nº de equipes, papéis/temas em *chips*, e a **roleta** que renderiza os grupos. |
-| `/configuracoes` | **Configurações** | Perfil (nome, disciplina, bio, competências) + **períodos de férias globais**. |
+| `/turmas/nova` · `/turmas/:id/editar` | **Nova / Editar turma** | Formulário reativo com dias, modalidade, cor, disciplina, horários e a config de **Pontuação & Gamificação** (liga/desliga, nome da pontuação, rótulos dos botões, ranking on/off). Editar **reprojeta** a agenda. Criar respeita a **cota do plano** (com *upsell* ao estourar). |
+| `/turmas/:id` | **Detalhe da turma** | Três abas independentes: **Agenda** (sessões), **Alunos** (lista ordenável por nome/pontuação; clicar num aluno abre o modal de **pontuar**, com rótulos personalizados) e **Equipes** (quadro *kanban* com **arrastar-e-soltar** + **cargos**). |
+| `/turmas/:id/dinamica` | **Nova dinâmica** | Sorteio de **squads**: nº de equipes, papéis/temas em *chips*, e a **roleta** que renderiza os grupos. Recurso do **plano Mestre**. |
+| `/planos` | **Assinatura** | Vitrine dos 4 planos com o **plano atual em destaque** e troca de plano (mock). Destino do botão "Fazer upgrade" quando um recurso exige um plano superior. |
+| `/configuracoes` | **Configurações** | Perfil (nome, disciplina, bio, competências) + **períodos de férias globais** + atalho de **assinatura** com o plano atual. |
+
+### Equipes, cargos e gating (aba Equipes)
+
+A aba **Equipes** é um quadro visual, recurso do **plano Mestre** (planos inferiores veem
+uma tela de bloqueio que leva a `/planos`):
+
+- **Arrastar-e-soltar:** cada aluno é um card arrastável; o professor cria **equipes**
+  (título, descrição e cor de destaque, com um modal de informações no botão "i") e move os
+  alunos entre o *pool* "Sem equipe" e as colunas. Um botão **Distribuir** reparte todos de
+  forma equilibrada num clique.
+- **Cargos (papéis):** o professor cadastra cargos em lote (ex.: "Líder", "Redator") e entra
+  no **modo de atribuição** — escolhe um cargo, as colunas **balançam**, os cards dos membros
+  **brilham** e um aviso flutuante pede para selecionar os responsáveis. Ao finalizar, cada
+  membro exibe os cargos como *bullets* abaixo do nome. Um membro pode ter vários cargos e um
+  cargo pode ser dividido entre vários membros.
 
 ### Portal do aluno (Plano PhD)
 
@@ -60,14 +76,15 @@ estilo app), autenticada por **PIN** e com token próprio.
 | Rota | Tela | Papel |
 |---|---|---|
 | `/t/:turmaId` | **Login do aluno** *(pública)* | Saudação da turma, seleção do próprio nome e **teclado numérico** para os 4 dígitos do PIN. |
-| `/aluno/dashboard` | **Início** | Saudação + **barra de XP/nível** animada (Prata → Diamante). |
+| `/aluno/dashboard` | **Início** | Saudação + **barra de nível** animada (Prata → Diamante); o rótulo da pontuação segue o **nome definido na turma** (ex.: "Aura"). |
 | `/aluno/agenda` | **Agenda** | Próximos dias letivos e feriados, **já recalculados**, somente leitura. |
-| `/aluno/ranking` | **Ranking** | Pódio (🥇🥈🥉) da turma, com o **card do próprio aluno destacado**. |
+| `/aluno/ranking` | **Ranking** | Pódio (🥇🥈🥉) da turma, com o **card do próprio aluno destacado**. A aba **some** quando a turma desativa o ranking. |
 
 Recursos transversais: **modal global de erro** (toda falha de rede vira um aviso
 claro — exceto a cota, tratada *inline*), **estados de carregamento** consistentes,
 **tema claro/escuro** nativo, **cores por turma**, o **indicador de cota** no menu
-lateral e o **card de upsell** ao atingir o limite do plano.
+lateral, o **card de upsell** ao atingir o limite do plano e o selo **Beta** no header
+(aviso de que recursos experimentais podem conter bugs e perder dados).
 
 ---
 
@@ -84,17 +101,26 @@ lateral e o **card de upsell** ao atingir o limite do plano.
 5. Ao **criar turmas além do limite do plano**, o backend responde `403 LIMIT_REACHED` e a
    tela troca o formulário pelo **card de upsell** — comprar vaga avulsa ou subir de nível
    — e **retenta o cadastro** automaticamente. O consumo aparece no **indicador de cota**.
-6. Na turma, cadastra a **lista de chamada** (nomes em lote) e monta **dinâmicas de
-   grupos**: define equipes, papéis e temas e roda a **roleta** que sorteia os squads.
-7. No **Plano PhD**, distribui **XP** com um clique (*Quick XP*) e os alunos entram no
-   **portal** por PIN para acompanhar a agenda, o próprio nível e o **ranking** da turma.
+6. Na turma, cadastra a **lista de chamada** (nomes em lote) e pontua cada aluno com os
+   **rótulos que ele mesmo escolheu** (ex.: "Moggar" / "Punir"). A pontuação e o ranking
+   podem ser **ligados ou desligados** por turma.
+7. Na aba **Equipes** (plano Mestre), monta as equipes **arrastando** os alunos ou pelo
+   botão **Distribuir**, e atribui **cargos** aos membros no modo de atribuição animado.
+   Para dinâmicas rápidas, ainda pode usar a **roleta** de sorteio de squads.
+8. Ao tentar um recurso de um plano superior, é levado ao **painel de planos** (`/planos`)
+   para **fazer upgrade** — a troca de plano reflete na hora (mock de checkout).
+9. No **Plano PhD**, os alunos entram no **portal** por PIN para acompanhar a agenda, o
+   próprio nível (com o nome de pontuação da turma) e o **ranking**.
 
 ---
 
 ## Arquitetura & stack
 
 - **Angular 20** *standalone* + **Signals** (estado reativo, sem NgRx). Componentes
-  *OnPush*.
+  *OnPush*. **Angular CDK** (`@angular/cdk/drag-drop`) sustenta o quadro de equipes.
+- **Gating por plano:** um mapa único (`core/recursos.ts` + `planoAtendeMinimo`) liga cada
+  recurso ao plano mínimo; um `planoGuard` redireciona rotas premium para `/planos` e a aba
+  Equipes mostra `app-recurso-bloqueado` *inline* quando o plano não alcança.
 - **Smart vs. Dumb:** as *Pages* detêm estado e chamam os serviços; os componentes de UI
   (`app-card`, `app-icon`, `app-modal`, `app-spinner`, `app-turma-form`, …) só recebem
   `@Input` e emitem `@Output`.
@@ -116,15 +142,17 @@ lateral e o **card de upsell** ao atingir o limite do plano.
 
 ```
 src/app/
-  core/        # serviços (api, auth, student-auth, profile, quota, tema), interceptors, models, helpers
-  ui/          # componentes burros (card, icon, modal, spinner, quota-tracker, upsell-card, chips-input, xp-bar…)
-  pages/       # telas smart do painel + portal do aluno (student-login, student-dashboard, -agenda, -ranking…)
+  core/        # serviços (api, auth, student-auth, profile, quota, tema), guards (auth, plano), interceptors, models, dados de planos/recursos
+  ui/          # componentes burros (card, icon, modal, spinner, quota-tracker, upsell-card, chips-input, xp-bar, aluno-card, equipe-coluna, equipe-form, recurso-bloqueado, beta-badge…)
+  pages/       # telas smart do painel (turma-detalhe, planos…) + portal do aluno (student-login, -dashboard, -agenda, -ranking…)
   layout/      # molduras: dashboard-layout (painel) e student-layout (portal do aluno)
 ```
 
 O design de UI também reúne peças reutilizáveis dessas features: `app-quota-tracker`
-(consumo de cota), `app-upsell-card`, `app-chips-input` (entradas em *chips* via Enter) e
-`app-xp-bar` (nível + progresso animado).
+(consumo de cota), `app-upsell-card`, `app-recurso-bloqueado` (bloqueio de plano),
+`app-chips-input` (entradas em *chips* via Enter), `app-xp-bar` (nível + progresso
+animado), `app-aluno-card` (card arrastável com cargos), `app-equipe-coluna`,
+`app-equipe-form` e `app-beta-badge`.
 
 ---
 
