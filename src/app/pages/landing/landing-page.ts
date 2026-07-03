@@ -51,7 +51,7 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
             A agenda que se reorganiza a cada imprevisto é só o começo. Some
             <strong>planejamento de aulas</strong>,
             <strong>gestão de turmas e equipes</strong> e um
-            <strong>portal gamificado</strong> — num só lugar, feito de professor
+            <strong>portal gamificado</strong>, num só lugar, feito de professor
             para professor.
           </p>
           <div class="hero__chips">
@@ -85,7 +85,7 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
       <div class="container">
         <h2>Feriado, reunião, conselho de classe…</h2>
         <p class="problema__lead">
-          E lá vai você remexer a grade inteira à mão — reposicionar cada aula,
+          E lá vai você remexer a grade inteira à mão: reposicionar cada aula,
           recalcular quando o curso termina, avisar os alunos. Planejamento numa
           planilha, chamada num caderno, notas em outro lugar. É trabalho demais
           para <em>ainda não ter dado aula nenhuma</em>.
@@ -175,7 +175,7 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
       <div class="container">
         <h2>Comece grátis e mergulhe quando quiser</h2>
         <p class="planos__lead">
-          Cada plano abre mais da plataforma — do test-drive da agenda ao
+          Cada plano abre mais da plataforma: do test-drive da agenda ao
           ecossistema multiplayer com seus alunos. Sem cartão para começar.
         </p>
 
@@ -395,8 +395,8 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
     .faq__item { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: 0.9rem 1.1rem; }
     .faq__item summary { cursor: pointer; font-weight: 700; list-style: none; }
     .faq__item summary::-webkit-details-marker { display: none; }
-    .faq__item summary::after { content: '+'; float: right; color: var(--primary); font-weight: 800; }
-    .faq__item[open] summary::after { content: '–'; }
+    .faq__item summary::after { content: '▸'; float: right; color: var(--primary); font-weight: 800; }
+    .faq__item[open] summary::after { content: '▾'; }
     .faq__item p { margin: 0.7rem 0 0; color: var(--text-muted); }
 
     /* ===== CTA final ===== */
@@ -439,7 +439,7 @@ export class LandingPage {
     {
       n: 3,
       titulo: 'Planeje, gerencie e engaje',
-      texto: 'Plano de aula, turmas, equipes e portal do aluno — tudo conectado à mesma grade.',
+      texto: 'Plano de aula, turmas, equipes e portal do aluno: tudo conectado à mesma grade.',
     },
   ];
 
@@ -452,7 +452,7 @@ export class LandingPage {
       icone: 'calendar',
       titulo: 'Agenda que se reorganiza sozinha',
       texto:
-        'Grade fixa ou módulo fechado. Um imprevisto desliza a aula e recalcula o término do curso — sem retrabalho.',
+        'Grade fixa ou módulo fechado. Um imprevisto desliza a aula e recalcula o término do curso, sem retrabalho.',
     },
     {
       icone: 'book',
@@ -484,7 +484,7 @@ export class LandingPage {
   protected readonly faqs: ReadonlyArray<{ q: string; a: string }> = [
     {
       q: 'Preciso cadastrar cada aula na mão?',
-      a: 'Não. Você descreve as regras da turma (dias, modalidade, início) e o Tichr projeta toda a grade — e a reorganiza sozinho quando surge um imprevisto.',
+      a: 'Não. Você descreve as regras da turma (dias, modalidade, início) e o Tichr projeta toda a grade e a reorganiza sozinho quando surge um imprevisto.',
     },
     {
       q: 'Serve para escola pública e para curso livre?',
@@ -500,7 +500,7 @@ export class LandingPage {
     },
     {
       q: 'Meu planejamento fica salvo?',
-      a: 'Sim. Plano de aula, tópicos e alocações ficam guardados e acompanham a grade — inclusive quando as aulas deslizam.',
+      a: 'Sim. Plano de aula, tópicos e alocações ficam guardados e acompanham a grade, inclusive quando as aulas deslizam.',
     },
   ];
 
