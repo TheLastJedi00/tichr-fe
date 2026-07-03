@@ -88,6 +88,12 @@ export interface PortalTurma {
   cor?: string;
 }
 
+export interface ProgressoTurma {
+  concluidas: number;
+  total: number;
+  pct: number;
+}
+
 export interface Aluno {
   id: string;
   turmaId: string;
