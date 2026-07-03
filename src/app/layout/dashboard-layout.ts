@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { Footer } from '../ui/footer/footer';
 import { Header } from '../ui/header/header';
 import { MobileMenu } from '../ui/mobile-menu/mobile-menu';
 
@@ -8,20 +9,24 @@ import { MobileMenu } from '../ui/mobile-menu/mobile-menu';
   selector: 'app-dashboard-layout',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, Header, MobileMenu],
+  imports: [RouterOutlet, Header, MobileMenu, Footer],
   template: `
     <app-header (toggleMenu)="menuOpen.set(true)" />
     <app-mobile-menu [open]="menuOpen()" (close)="menuOpen.set(false)" />
     <main class="content">
       <router-outlet />
     </main>
+    <app-footer />
   `,
   styles: `
     .content {
       max-width: 720px;
       margin: 0 auto;
-      padding: 1.25rem 1rem 3rem;
+      padding: 1.25rem 1rem 1rem;
     }
+    :host { display: flex; flex-direction: column; min-height: 100vh; }
+    .content { flex: 1; width: 100%; }
+    app-footer { max-width: 720px; margin: 0 auto; width: 100%; }
   `,
 })
 export class DashboardLayout {
