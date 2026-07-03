@@ -1,4 +1,9 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+} from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { StudentAuthService } from '../core/student-auth.service';
 import { Icon, IconName } from '../ui/icon/icon';
@@ -29,7 +34,7 @@ interface NavItem {
     </main>
 
     <nav class="tabbar">
-      @for (item of nav; track item.path) {
+      @for (item of nav(); track item.path) {
         <a
           class="tabbar__item"
           [routerLink]="item.path"
@@ -101,11 +106,14 @@ export class StudentLayout {
   private readonly studentAuth = inject(StudentAuthService);
   private readonly router = inject(Router);
 
-  protected readonly nav: NavItem[] = [
+  /** Ranking some da barra quando a turma o desativa. */
+  protected readonly nav = computed<NavItem[]>(() => [
     { label: 'Início', path: '/aluno/dashboard', icon: 'home' },
     { label: 'Agenda', path: '/aluno/agenda', icon: 'calendar' },
-    { label: 'Ranking', path: '/aluno/ranking', icon: 'trophy' },
-  ];
+    ...(this.studentAuth.rankingAtivo()
+      ? [{ label: 'Ranking', path: '/aluno/ranking', icon: 'trophy' as IconName }]
+      : []),
+  ]);
 
   protected sair(): void {
     const turmaId = this.studentAuth.turmaId();

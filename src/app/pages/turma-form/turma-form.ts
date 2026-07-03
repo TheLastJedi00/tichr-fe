@@ -127,6 +127,53 @@ const CORES = [
           </div>
         </div>
 
+        <fieldset class="grupo">
+          <legend>Pontuação & Gamificação</legend>
+
+          <label class="toggle">
+            <input type="checkbox" formControlName="pontuacaoAtiva" />
+            <span>Pontuação ativa</span>
+          </label>
+
+          @if (pontuacaoAtiva()) {
+            <label class="campo">
+              <span>Nome da pontuação</span>
+              <input
+                class="tichr-input"
+                formControlName="nomePontuacao"
+                placeholder="Ex: XP, Aura…"
+                maxlength="24"
+              />
+            </label>
+
+            <div class="campo rotulos">
+              <label>
+                <span>Rótulo de adicionar</span>
+                <input
+                  class="tichr-input"
+                  formControlName="rotuloAdicionar"
+                  placeholder="Ex: Moggar"
+                  maxlength="24"
+                />
+              </label>
+              <label>
+                <span>Rótulo de remover</span>
+                <input
+                  class="tichr-input"
+                  formControlName="rotuloRemover"
+                  placeholder="Ex: Punir"
+                  maxlength="24"
+                />
+              </label>
+            </div>
+
+            <label class="toggle">
+              <input type="checkbox" formControlName="rankingAtivo" />
+              <span>Ranking ativo</span>
+            </label>
+          }
+        </fieldset>
+
         <button class="btn-primary submit" type="submit" [disabled]="!podeSalvar() || submitting()">
           {{ submitting() ? 'Salvando…' : submitLabel() }}
         </button>
@@ -183,6 +230,36 @@ const CORES = [
       box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text);
     }
     .submit { width: 100%; margin-top: 0.5rem; }
+    .grupo {
+      margin: 0 0 1rem;
+      padding: 0.75rem 1rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .grupo legend {
+      padding: 0 0.4rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+    .toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .toggle input { width: 18px; height: 18px; }
+    .rotulos { display: flex; gap: 0.75rem; }
+    .rotulos label { flex: 1; display: block; }
+    .rotulos label > span {
+      display: block;
+      margin-bottom: 0.375rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
   `,
 })
 export class TurmaForm {
@@ -210,10 +287,17 @@ export class TurmaForm {
     disciplina: [''],
     horaInicio: [''],
     horaFim: [''],
+    pontuacaoAtiva: [true],
+    nomePontuacao: ['XP'],
+    rankingAtivo: [true],
+    rotuloAdicionar: ['Adicionar'],
+    rotuloRemover: ['Remover'],
   });
 
   private readonly modalidade = signal<TipoModalidade>('GRADE_FIXA');
   protected readonly isModulo = computed(() => this.modalidade() === 'MODULO_FECHADO');
+  private readonly pontuacaoAtivaSig = signal(true);
+  protected readonly pontuacaoAtiva = computed(() => this.pontuacaoAtivaSig());
 
   constructor() {
     // garante que a lista de disciplinas do perfil esteja carregada
@@ -222,6 +306,9 @@ export class TurmaForm {
     }
     this.form.controls.tipoModalidade.valueChanges.subscribe((v) =>
       this.modalidade.set(v),
+    );
+    this.form.controls.pontuacaoAtiva.valueChanges.subscribe((v) =>
+      this.pontuacaoAtivaSig.set(v),
     );
     // preenche o form quando recebe os valores iniciais (edição)
     effect(() => {
@@ -235,8 +322,14 @@ export class TurmaForm {
         disciplina: t.disciplina ?? '',
         horaInicio: t.horaInicio ?? '',
         horaFim: t.horaFim ?? '',
+        pontuacaoAtiva: t.pontuacaoAtiva ?? true,
+        nomePontuacao: t.nomePontuacao ?? 'XP',
+        rankingAtivo: t.rankingAtivo ?? true,
+        rotuloAdicionar: t.rotuloAdicionar ?? 'Adicionar',
+        rotuloRemover: t.rotuloRemover ?? 'Remover',
       });
       this.modalidade.set(t.tipoModalidade);
+      this.pontuacaoAtivaSig.set(t.pontuacaoAtiva ?? true);
       this.selecionados.set(new Set(t.diasSemana));
       if (t.cor) this.cor.set(t.cor);
     });
@@ -261,6 +354,11 @@ export class TurmaForm {
       dataInicio: raw.dataInicio,
       diasSemana: [...this.selecionados()].sort(),
       cor: this.cor(),
+      pontuacaoAtiva: raw.pontuacaoAtiva,
+      nomePontuacao: raw.nomePontuacao.trim() || 'XP',
+      rankingAtivo: raw.rankingAtivo,
+      rotuloAdicionar: raw.rotuloAdicionar.trim() || 'Adicionar',
+      rotuloRemover: raw.rotuloRemover.trim() || 'Remover',
       ...(raw.disciplina ? { disciplina: raw.disciplina } : {}),
       ...(raw.horaInicio ? { horaInicio: raw.horaInicio } : {}),
       ...(raw.horaFim ? { horaFim: raw.horaFim } : {}),

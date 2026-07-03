@@ -38,7 +38,7 @@ import { Spinner } from '../../ui/spinner/spinner';
               {{ item.nome }}
               @if (item.alunoId === meuId) { <span class="voce">você</span> }
             </span>
-            <span class="xp">{{ item.xpTotal }} XP</span>
+            <span class="xp">{{ item.xpTotal }} {{ nomePontuacao() }}</span>
           </li>
         }
       </ol>
@@ -85,6 +85,7 @@ export class StudentRankingPage {
   private readonly studentAuth = inject(StudentAuthService);
 
   protected readonly meuId = this.studentAuth.aluno()?.id ?? '';
+  protected readonly nomePontuacao = this.studentAuth.nomePontuacao;
   protected readonly carregando = signal(true);
   protected readonly ranking = signal<RankingItem[]>([]);
 
