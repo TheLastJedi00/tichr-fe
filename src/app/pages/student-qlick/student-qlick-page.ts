@@ -137,6 +137,9 @@ import { Spinner } from '../../ui/spinner/spinner';
                 </li>
               }
             </ol>
+            @if (meusPontosFinais(p); as pts) {
+              <p class="portal">+{{ pts }} pontos somados ao seu XP do portal 🎉</p>
+            }
           </app-card>
         }
       }
@@ -196,6 +199,7 @@ import { Spinner } from '../../ui/spinner/spinner';
     .podio__row--3 { background: color-mix(in srgb, #b45309 16%, transparent); }
     .podio__row--eu { outline: 2px solid var(--primary); }
     .podio__medal { font-size: 1.3rem; }
+    .portal { margin: 1rem 0 0; text-align: center; font-weight: 700; color: #16a34a; }
   `,
 })
 export class StudentQlickPage {
@@ -292,6 +296,11 @@ export class StudentQlickPage {
 
   protected minhaPosFinal(p: Partida): number | null {
     return p.rankingFinal?.find((r) => r.alunoId === this.meuId)?.posicao ?? null;
+  }
+
+  protected meusPontosFinais(p: Partida): number | null {
+    const pts = p.rankingFinal?.find((r) => r.alunoId === this.meuId)?.pontos;
+    return pts && pts > 0 ? pts : null;
   }
 
   protected letra(i: number): string {
