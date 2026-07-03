@@ -152,7 +152,7 @@ export class QlickIntroPage {
 
   protected criar(): void {
     if (this.ehPhd()) {
-      this.router.navigate(['/jogos/qlick/novo']);
+      this.router.navigate(['/jogos/qlick/meus']);
     } else {
       this.upsell.set(true);
     }
