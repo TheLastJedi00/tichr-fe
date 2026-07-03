@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { Card } from '../../ui/card/card';
 
@@ -8,7 +8,7 @@ import { Card } from '../../ui/card/card';
   selector: 'app-login-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Card],
+  imports: [Card, RouterLink],
   template: `
     <div class="wrap">
       <span class="logo">Tichr</span>
@@ -44,6 +44,8 @@ import { Card } from '../../ui/card/card';
           </button>
         </form>
       </app-card>
+
+      <a class="aluno" routerLink="/entrar">Entrar como aluno</a>
     </div>
   `,
   styles: `
@@ -77,6 +79,13 @@ import { Card } from '../../ui/card/card';
     .error {
       color: var(--danger);
       margin: 0 0 0.75rem;
+    }
+    .aluno {
+      display: block;
+      text-align: center;
+      margin-top: 1rem;
+      font-weight: 600;
+      color: var(--primary);
     }
   `,
 })

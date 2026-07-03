@@ -2,7 +2,12 @@ import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { API_BASE_URL } from './api.config';
-import { PlanoAtual, Profile, UpdateProfilePayload } from './models';
+import {
+  CheckUsernameResponse,
+  PlanoAtual,
+  Profile,
+  UpdateProfilePayload,
+} from './models';
 
 /**
  * Perfil do professor: camada HTTP + estado reativo (signal) compartilhado.
@@ -26,6 +31,14 @@ export class ProfileService {
     return this.http
       .put<Profile>(`${this.base}/profile`, payload)
       .pipe(tap((p) => this.profile.set(p)));
+  }
+
+  /** Disponibilidade de um @username (debounce na tela de Configurações). */
+  checkUsername(u: string): Observable<CheckUsernameResponse> {
+    return this.http.get<CheckUsernameResponse>(
+      `${this.base}/profile/check-username`,
+      { params: { u } },
+    );
   }
 
   /** Compra uma vaga avulsa (+1 slot); atualiza o perfil reativo. */
