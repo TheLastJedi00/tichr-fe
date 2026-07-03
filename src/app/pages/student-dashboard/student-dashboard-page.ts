@@ -26,7 +26,7 @@ import { XpBar } from '../../ui/xp-bar/xp-bar';
       <h1 class="ola">Olá, {{ nome() }} 👋</h1>
 
       <app-card>
-        <app-xp-bar [xp]="xp()" />
+        <app-xp-bar [xp]="xp()" [unidade]="nomePontuacao()" />
       </app-card>
 
       <div class="atalhos">
@@ -73,6 +73,7 @@ export class StudentDashboardPage {
   protected readonly carregando = signal(true);
   protected readonly nome = signal(this.studentAuth.aluno()?.nome ?? '');
   protected readonly xp = signal(this.studentAuth.aluno()?.xpTotal ?? 0);
+  protected readonly nomePontuacao = this.studentAuth.nomePontuacao;
 
   constructor() {
     // Recarrega o perfil para refletir o XP mais recente.

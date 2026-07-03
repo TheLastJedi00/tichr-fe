@@ -114,15 +114,22 @@ export interface RankingItem {
   xpTotal: number;
 }
 
+export interface TurmaConfigPublica {
+  nomePontuacao: string;
+  rankingAtivo: boolean;
+}
+
 export interface LoginInfoTurma {
   turmaId: string;
   turmaNome: string;
   alunos: Array<{ id: string; nome: string }>;
+  config: TurmaConfigPublica;
 }
 
 export interface LoginAlunoResponse {
   token: string;
   aluno: { id: string; nome: string; turmaId: string; xpTotal: number };
+  turma: TurmaConfigPublica;
 }
 
 export interface MembroSquad {

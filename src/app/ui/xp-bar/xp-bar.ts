@@ -31,7 +31,7 @@ const NIVEIS: Nivel[] = [
     <div class="xp">
       <div class="xp__top">
         <span class="xp__nivel">{{ nivel().nome }}</span>
-        <span class="xp__pontos">{{ xp() }} XP</span>
+        <span class="xp__pontos">{{ xp() }} {{ unidade() }}</span>
       </div>
       <div class="xp__trilho">
         <div class="xp__preenchimento" [style.width.%]="pct()"></div>
@@ -71,6 +71,7 @@ const NIVEIS: Nivel[] = [
 })
 export class XpBar {
   readonly xp = input(0);
+  readonly unidade = input('XP');
 
   protected readonly nivel = computed<Nivel>(
     () => NIVEIS.find((n) => this.xp() <= n.max) ?? NIVEIS[NIVEIS.length - 1],
@@ -90,6 +91,6 @@ export class XpBar {
     if (!isFinite(n.max)) {
       return 'Nível máximo alcançado! 🏆';
     }
-    return `Faltam ${n.max - this.xp() + 1} XP para o próximo nível`;
+    return `Faltam ${n.max - this.xp() + 1} ${this.unidade()} para o próximo nível`;
   });
 }

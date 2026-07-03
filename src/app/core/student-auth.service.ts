@@ -2,12 +2,22 @@ import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { API_BASE_URL } from './api.config';
-import { LoginAlunoResponse, LoginInfoTurma } from './models';
+import {
+  LoginAlunoResponse,
+  LoginInfoTurma,
+  TurmaConfigPublica,
+} from './models';
 
 const TOKEN_KEY = 'tichr-aluno-token';
 const ALUNO_KEY = 'tichr-aluno';
+const CONFIG_KEY = 'tichr-aluno-config';
 
 type AlunoSessao = LoginAlunoResponse['aluno'];
+
+const CONFIG_PADRAO: TurmaConfigPublica = {
+  nomePontuacao: 'XP',
+  rankingAtivo: true,
+};
 
 /**
  * Autenticacao do portal do aluno (Plano PhD). Token e sessao separados dos
@@ -22,8 +32,11 @@ export class StudentAuthService {
     localStorage.getItem(TOKEN_KEY),
   );
   readonly aluno = signal<AlunoSessao | null>(this.lerAluno());
+  readonly config = signal<TurmaConfigPublica>(this.lerConfig());
   readonly isAuthenticated = computed(() => this._token() !== null);
   readonly turmaId = computed(() => this.aluno()?.turmaId ?? null);
+  readonly nomePontuacao = computed(() => this.config().nomePontuacao);
+  readonly rankingAtivo = computed(() => this.config().rankingAtivo);
 
   /** Info publica da turma (nome + nomes) para a tela de login. */
   infoTurma(turmaId: string): Observable<LoginInfoTurma> {
@@ -39,8 +52,10 @@ export class StudentAuthService {
   logout(): void {
     this._token.set(null);
     this.aluno.set(null);
+    this.config.set(CONFIG_PADRAO);
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(ALUNO_KEY);
+    localStorage.removeItem(CONFIG_KEY);
   }
 
   getToken(): string | null {
@@ -50,12 +65,19 @@ export class StudentAuthService {
   private salvarSessao(res: LoginAlunoResponse): void {
     this._token.set(res.token);
     this.aluno.set(res.aluno);
+    this.config.set(res.turma ?? CONFIG_PADRAO);
     localStorage.setItem(TOKEN_KEY, res.token);
     localStorage.setItem(ALUNO_KEY, JSON.stringify(res.aluno));
+    localStorage.setItem(CONFIG_KEY, JSON.stringify(res.turma ?? CONFIG_PADRAO));
   }
 
   private lerAluno(): AlunoSessao | null {
     const raw = localStorage.getItem(ALUNO_KEY);
     return raw ? (JSON.parse(raw) as AlunoSessao) : null;
+  }
+
+  private lerConfig(): TurmaConfigPublica {
+    const raw = localStorage.getItem(CONFIG_KEY);
+    return raw ? (JSON.parse(raw) as TurmaConfigPublica) : CONFIG_PADRAO;
   }
 }
