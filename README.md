@@ -45,14 +45,16 @@ O diferencial visível está na **demonstração interativa da landing page** e 
 | `/` | **Landing** | Explica o conceito com uma demo interativa do deslizamento; CTA de acesso beta e login. |
 | `/login` | **Login** | Entrada (email/senha) — MVP *invite-only*. Traz o atalho **"Entrar como aluno"** → `/entrar`. |
 | `/entrar` | **Entrar como aluno** *(pública)* | Jornada em etapas: busca do **@usuário do professor** → escolha da turma → **PIN da turma** (6 díg) → nome → **PIN do aluno** (4 díg). |
-| `/dashboard` | **Dashboard** | Recepção: saudação por horário, **próxima aula** em destaque (com turma, cor e horário), onboarding no primeiro acesso, e o gatilho de "Exceção". |
-| `/agenda` | **Minha Agenda** | Calendário em **grid de 7 colunas**; cada aula é um *badge* na cor da turma. Clicar num dia abre os detalhes. |
+| `/dashboard` | **Dashboard** | Recepção: saudação por horário, **próxima aula** em destaque (turma, cor, horário) enriquecida com o **plano de aula** — contexto geral (Graduado) ou **"Assunto de hoje"** (tópico, Mestre/PhD); onboarding no primeiro acesso e o gatilho de "Exceção". |
+| `/agenda` | **Minha Agenda** | Alternância **Calendário** (grade de 7 colunas, semana atual + 4) e **Detalhado** (próximos 15 dias por turnos Manhã/Tarde/Noite); a escolha é memorizada. |
+| `/plano-aula` | **Plano de Aula** | Escopo geral por disciplina (Graduado) e, no plano Mestre, **backlog de tópicos** + **quadro de alocação drag-and-drop** na grade da turma. Recurso do **plano Graduado+** (Estagiário vê cadeado). |
 | `/turmas` | **Minhas Turmas** | Lista das turmas (nome, cor, disciplina, modalidade, horário, término). |
 | `/turmas/nova` · `/turmas/:id/editar` | **Nova / Editar turma** | Formulário reativo com dias, modalidade, cor, disciplina, horários e a config de **Pontuação & Gamificação** (liga/desliga, nome da pontuação, rótulos dos botões, ranking on/off). Editar **reprojeta** a agenda. Criar respeita a **cota do plano** (com *upsell* ao estourar). |
 | `/turmas/:id` | **Detalhe da turma** | Exibe o **PIN da turma** e uma **barra de progresso** do curso (que segue o nome da pontuação como base coletiva quando ativa). Três abas: **Agenda** (status dinâmico Concluída/Em andamento/Agendada), **Alunos** (cartas com ícone + nome + pontuação; clicar abre o **modal do aluno**: PIN, editar nome, excluir, pontuar) e **Equipes** (*kanban* drag-and-drop + **cargos**). |
 | `/turmas/:id/dinamica` | **Nova dinâmica** | Sorteio de **squads**: nº de equipes, papéis/temas em *chips*, e a **roleta** que renderiza os grupos. Recurso do **plano Mestre**. |
 | `/planos` | **Assinatura** | Vitrine dos 4 planos com o **plano atual em destaque** e troca de plano (mock). Destino do botão "Fazer upgrade" quando um recurso exige um plano superior. |
 | `/configuracoes` | **Configurações** | Perfil (nome, disciplina, bio, competências), **@username** do portal (com verificação de disponibilidade em tempo real), **períodos de férias globais** e atalho de **assinatura**. |
+| `/novidades` | **Novidades (Changelog)** *(pública)* | Timeline das versões (Nova feature / Melhoria / Correção), alimentada por `changelog.data.ts` e espelhando o README. Linkada no **rodapé global**. |
 
 ### Equipes, cargos e gating (aba Equipes)
 
@@ -85,15 +87,17 @@ estilo app), autenticada por **PIN** e com token próprio. O aluno entra pela jo
 | Rota | Tela | Papel |
 |---|---|---|
 | `/entrar` · `/t/:turmaId` | **Login do aluno** *(pública)* | Jornada por `@username` + PIN da turma; `/t/:turmaId` é o atalho legado direto. |
-| `/aluno/dashboard` | **Início** | **Barra de nível** animada (Prata → Diamante) + **barra de evolução da turma** (aulas concluídas); o rótulo da pontuação segue o **nome definido na turma** (ex.: "Aura"). |
-| `/aluno/agenda` | **Agenda** | Próximos dias letivos e feriados, **já recalculados**, com status dinâmico (Concluída / Em andamento / Agendada), somente leitura. |
+| `/aluno/dashboard` | **Início** | Card **"O que vem por aí"** com o **tópico da próxima aula**; **barra de nível** (Prata → Diamante) + **barra de evolução da turma**; o rótulo da pontuação segue o **nome definido na turma** (ex.: "Aura"). |
+| `/aluno/agenda` | **Agenda** | Dias letivos com status dinâmico (Concluída / Em andamento / Agendada) e o **tópico** de cada aula ("o que já vimos") — sincronizados do Plano de Aula quando o professor é PhD. |
 | `/aluno/ranking` | **Ranking** | Pódio (🥇🥈🥉) da turma, com o **card do próprio aluno destacado**. A aba **some** quando a turma desativa o ranking. |
 
 Recursos transversais: **modal global de erro** (toda falha de rede vira um aviso
 claro — exceto a cota, tratada *inline*), **estados de carregamento** consistentes,
 **tema claro/escuro** nativo, **cores por turma**, o **indicador de cota** no menu
-lateral, o **card de upsell** ao atingir o limite do plano e o selo **Beta** no header
-(aviso de que recursos experimentais podem conter bugs e perder dados).
+lateral, o **card de upsell** ao atingir o limite do plano, o selo **Beta** no header
+(aviso de que recursos experimentais podem conter bugs e perder dados) e o **rodapé global**
+(autoria, GitHub e âncora para as Novidades). O menu lateral inclui **"Plano de Aula"**
+(com cadeado + upsell para o Estagiário).
 
 ---
 
