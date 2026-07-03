@@ -16,7 +16,8 @@ export type IconName =
   | 'trophy'
   | 'lock'
   | 'info'
-  | 'grip';
+  | 'grip'
+  | 'user';
 
 /**
  * Componente burro de icones. Centraliza os SVGs e herda a cor do texto
@@ -118,6 +119,10 @@ export type IconName =
           <circle cx="15" cy="6" r="1" />
           <circle cx="15" cy="12" r="1" />
           <circle cx="15" cy="18" r="1" />
+        }
+        @case ('user') {
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
         }
       }
     </svg>

@@ -33,6 +33,8 @@ export interface Turma {
   rankingAtivo?: boolean;
   rotuloAdicionar?: string;
   rotuloRemover?: string;
+  /** PIN de 6 dígitos da turma (portal do aluno). */
+  pinTurma?: string;
 }
 
 export interface CriarTurmaPayload {
