@@ -64,6 +64,7 @@ export interface Profile {
   disciplina?: string;
   bio?: string;
   disciplinas?: string[];
+  username?: string;
   planoAtual?: PlanoAtual;
   slotsAdicionaisComprados?: number;
 }
@@ -73,6 +74,18 @@ export interface UpdateProfilePayload {
   disciplina?: string;
   bio?: string;
   disciplinas?: string[];
+  username?: string;
+}
+
+export interface CheckUsernameResponse {
+  username: string;
+  disponivel: boolean;
+}
+
+export interface PortalTurma {
+  turmaId: string;
+  nome: string;
+  cor?: string;
 }
 
 export interface Aluno {

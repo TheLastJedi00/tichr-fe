@@ -5,8 +5,10 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 import { NOME_PLANO } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { Card } from '../../ui/card/card';
@@ -40,6 +42,28 @@ import { FeriasManager } from '../ferias/ferias-manager';
 
       <app-card title="Meu perfil">
         <form [formGroup]="form" (submit)="$event.preventDefault(); salvar()">
+          <label class="campo">
+            <span>Usuário do portal (@username)</span>
+            <div class="user">
+              <span class="user__at">&#64;</span>
+              <input
+                class="tichr-input"
+                formControlName="username"
+                placeholder="prof.jediael"
+                autocapitalize="none"
+                autocomplete="off"
+              />
+            </div>
+            @switch (usernameStatus()) {
+              @case ('checando') { <span class="dica">Verificando…</span> }
+              @case ('ok') { <span class="dica dica--ok">✓ Disponível</span> }
+              @case ('tomado') { <span class="dica dica--erro">Já está em uso</span> }
+              @default {
+                <span class="dica">Escolha um termo simples — é a chave que seus alunos vão buscar.</span>
+              }
+            }
+          </label>
+
           <label class="campo">
             <span>Nome de exibição</span>
             <input class="tichr-input" formControlName="nomeExibicao" placeholder="Como quer ser chamado?" />
@@ -81,7 +105,11 @@ import { FeriasManager } from '../ferias/ferias-manager';
             <p class="ok">✓ Perfil atualizado!</p>
           }
 
-          <button class="btn-primary full" type="submit" [disabled]="salvando()">
+          <button
+            class="btn-primary full"
+            type="submit"
+            [disabled]="salvando() || usernameStatus() === 'tomado'"
+          >
             {{ salvando() ? 'Salvando…' : 'Salvar' }}
           </button>
         </form>
@@ -118,6 +146,12 @@ import { FeriasManager } from '../ferias/ferias-manager';
     textarea.tichr-input {
       resize: vertical;
     }
+    .user { display: flex; align-items: center; gap: 0.4rem; }
+    .user__at { font-weight: 700; color: var(--text-muted); }
+    .user .tichr-input { flex: 1; }
+    .dica { display: block; margin-top: 0.35rem; font-size: 0.8rem; color: var(--text-muted); }
+    .dica--ok { color: var(--success); font-weight: 600; }
+    .dica--erro { color: var(--danger); font-weight: 600; }
     .chips {
       display: flex;
       flex-wrap: wrap;
@@ -191,6 +225,9 @@ export class ConfiguracoesPage {
   protected readonly salvo = signal(false);
   protected readonly disciplinas = signal<string[]>([]);
   protected readonly nova = signal('');
+  protected readonly usernameStatus = signal<'vazio' | 'checando' | 'ok' | 'tomado'>(
+    'vazio',
+  );
 
   /** Rótulo do plano atual do professor (para o atalho de assinatura). */
   protected readonly planoLabel = computed(
@@ -199,6 +236,7 @@ export class ConfiguracoesPage {
 
   protected readonly form = this.fb.nonNullable.group({
     nomeExibicao: [''],
+    username: [''],
     disciplina: [''],
     bio: [''],
   });
@@ -208,6 +246,7 @@ export class ConfiguracoesPage {
       next: (p) => {
         this.form.patchValue({
           nomeExibicao: p.nomeExibicao ?? '',
+          username: p.username ?? '',
           disciplina: p.disciplina ?? '',
           bio: p.bio ?? '',
         });
@@ -216,6 +255,26 @@ export class ConfiguracoesPage {
       },
       error: () => this.carregando.set(false),
     });
+
+    // Verifica disponibilidade do @username com debounce.
+    this.form.controls.username.valueChanges
+      .pipe(
+        debounceTime(400),
+        distinctUntilChanged(),
+        switchMap((raw) => {
+          const u = raw.trim().replace(/^@/, '');
+          if (u.length < 3) {
+            this.usernameStatus.set('vazio');
+            return [];
+          }
+          this.usernameStatus.set('checando');
+          return this.profileService.checkUsername(u);
+        }),
+        takeUntilDestroyed(),
+      )
+      .subscribe((res) =>
+        this.usernameStatus.set(res.disponivel ? 'ok' : 'tomado'),
+      );
   }
 
   protected adicionarDisciplina(): void {
@@ -233,8 +292,16 @@ export class ConfiguracoesPage {
   protected salvar(): void {
     this.salvando.set(true);
     this.salvo.set(false);
+    const raw = this.form.getRawValue();
+    const username = raw.username.trim().replace(/^@/, '');
     this.profileService
-      .update({ ...this.form.getRawValue(), disciplinas: this.disciplinas() })
+      .update({
+        nomeExibicao: raw.nomeExibicao,
+        disciplina: raw.disciplina,
+        bio: raw.bio,
+        disciplinas: this.disciplinas(),
+        ...(username ? { username } : {}),
+      })
       .subscribe({
         next: () => {
           this.salvando.set(false);
