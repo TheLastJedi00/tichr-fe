@@ -23,6 +23,7 @@ import {
 } from '../../core/models';
 import { planoAtendeMinimo, podeGamificar } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
+import { ROTULO_STATUS, statusVisual } from '../../core/status-sessao';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { AlunoCard } from '../../ui/aluno-card/aluno-card';
 import { Card } from '../../ui/card/card';
@@ -110,8 +111,8 @@ type Ordenacao = 'nome' | 'pontuacao';
                   <div class="sessao">
                     <span class="sessao__n">Aula {{ s.numero }}</span>
                     <span class="sessao__d">{{ formatarData(s.data) }}</span>
-                    <span class="status status--{{ s.status.toLowerCase() }}">
-                      {{ s.status }}
+                    <span class="status status--{{ statusAula(s).toLowerCase() }}">
+                      {{ rotuloStatus[statusAula(s)] }}
                     </span>
                   </div>
                 </app-card>
@@ -512,7 +513,19 @@ type Ordenacao = 'nome' | 'pontuacao';
     .status { font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 999px; }
     .status--agendada { color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); }
     .status--cancelada { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
-    .status--realizada { color: var(--success); background: color-mix(in srgb, var(--success) 12%, transparent); }
+    .status--concluida { color: var(--text-muted); background: var(--surface-alt); }
+    .status--em_andamento {
+      color: var(--success);
+      background: color-mix(in srgb, var(--success) 15%, transparent);
+      animation: pulso 1.4s ease-in-out infinite;
+    }
+    @keyframes pulso {
+      0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--success) 0%, transparent); }
+      50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--success) 30%, transparent); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .status--em_andamento { animation: none; }
+    }
     .add { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
     .add .tichr-input { flex: 1 1 240px; }
     .acoes { display: flex; gap: 0.5rem; flex-wrap: wrap; }
@@ -701,6 +714,7 @@ export class TurmaDetalhePage {
   private readonly profileService = inject(ProfileService);
   protected readonly formatarData = formatarData;
 
+  protected readonly rotuloStatus = ROTULO_STATUS;
   protected readonly turmaId = this.route.snapshot.paramMap.get('id')!;
   protected readonly aba = signal<Aba>('agenda');
   protected readonly carregando = signal(true);
@@ -772,6 +786,12 @@ export class TurmaDetalhePage {
       ? lista.sort((a, b) => (b.xpTotal ?? 0) - (a.xpTotal ?? 0))
       : lista.sort((a, b) => a.nome.localeCompare(b.nome));
   });
+
+  /** Status visual (derivado) de uma sessão, usando os horários da turma. */
+  protected statusAula(s: Sessao) {
+    const t = this.turma();
+    return statusVisual(s, t?.horaInicio, t?.horaFim);
+  }
 
   /** Alunos de uma equipe (recalculado a partir do signal de alunos). */
   protected daEquipe(equipeId: string): Aluno[] {
