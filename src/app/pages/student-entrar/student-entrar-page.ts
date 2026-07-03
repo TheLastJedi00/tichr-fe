@@ -35,7 +35,7 @@ type Etapa = 'busca' | 'turmas' | 'pinTurma' | 'nome' | 'pinAluno';
               <span>Usuário do professor</span>
               <input
                 class="tichr-input"
-                placeholder="@prof.jediael"
+                placeholder="@prof.marina"
                 [value]="username()"
                 (input)="username.set($any($event.target).value)"
                 (keydown.enter)="buscar()"

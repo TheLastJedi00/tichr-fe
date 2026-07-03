@@ -18,7 +18,8 @@ export type IconName =
   | 'info'
   | 'grip'
   | 'user'
-  | 'book';
+  | 'book'
+  | 'chevron-down';
 
 /**
  * Componente burro de icones. Centraliza os SVGs e herda a cor do texto
@@ -128,6 +129,9 @@ export type IconName =
         @case ('book') {
           <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
           <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+        }
+        @case ('chevron-down') {
+          <path d="M6 9l6 6 6-6" />
         }
       }
     </svg>

@@ -49,7 +49,7 @@ import { FeriasManager } from '../ferias/ferias-manager';
               <input
                 class="tichr-input"
                 formControlName="username"
-                placeholder="prof.jediael"
+                placeholder="prof.marina"
                 autocapitalize="none"
                 autocomplete="off"
               />
