@@ -1,4 +1,10 @@
 import {
+  CdkDrag,
+  CdkDragDrop,
+  CdkDropList,
+  CdkDropListGroup,
+} from '@angular/cdk/drag-drop';
+import {
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -7,23 +13,37 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { formatarData } from '../../core/date-format';
-import { Aluno, Sessao, Turma } from '../../core/models';
+import { Aluno, CriarEquipePayload, Equipe, Sessao, Turma } from '../../core/models';
 import { TurmaApiService } from '../../core/turma-api.service';
+import { AlunoCard } from '../../ui/aluno-card/aluno-card';
 import { Card } from '../../ui/card/card';
+import { EquipeColuna } from '../../ui/equipe-coluna/equipe-coluna';
+import { EquipeForm } from '../../ui/equipe-form/equipe-form';
 import { Icon } from '../../ui/icon/icon';
 import { Spinner } from '../../ui/spinner/spinner';
 
 type Aba = 'agenda' | 'alunos';
 
 /**
- * Detalhe da turma com navegacao em abas: "Agenda" (sessoes projetadas) e
- * "Alunos" (lista de chamada + porta de entrada para as dinamicas).
+ * Detalhe da turma com abas "Agenda" e "Alunos". A aba de alunos e um quadro
+ * de equipes com arrastar-e-soltar: pool "Sem equipe" + uma coluna por equipe.
  */
 @Component({
   selector: 'app-turma-detalhe-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Card, Icon, Spinner],
+  imports: [
+    RouterLink,
+    Card,
+    Icon,
+    Spinner,
+    CdkDropListGroup,
+    CdkDropList,
+    CdkDrag,
+    AlunoCard,
+    EquipeColuna,
+    EquipeForm,
+  ],
   template: `
     @if (carregando()) {
       <div class="loading"><app-spinner [size]="32" /></div>
@@ -89,50 +109,82 @@ type Aba = 'agenda' | 'alunos';
             </button>
           </form>
 
-          @if (alunos().length === 0) {
-            <p class="muted vazio">
-              Nenhum aluno ainda. Cadastre a turma para montar dinâmicas.
-            </p>
-          } @else {
-            <ul class="roster">
-              @for (a of alunos(); track a.id) {
-                <li class="roster__item">
-                  <span class="roster__nome">{{ a.nome }}</span>
-                  <span class="roster__xp">{{ a.xpTotal ?? 0 }} XP</span>
-                  <div class="roster__xpacts">
-                    <button
-                      class="xpbtn xpbtn--add"
-                      type="button"
-                      (click)="darXp(a, 50)"
-                    >
-                      +50
-                    </button>
-                    <button
-                      class="xpbtn xpbtn--sub"
-                      type="button"
-                      (click)="darXp(a, -20)"
-                    >
-                      -20
-                    </button>
-                  </div>
-                  <button
-                    class="remover"
-                    type="button"
-                    aria-label="Remover aluno"
-                    (click)="remover(a)"
-                  >
-                    <app-icon name="close" [size]="16" />
-                  </button>
-                </li>
-              }
-            </ul>
-
-            <a class="btn-primary sortear" [routerLink]="['/turmas', t.id, 'dinamica']">
-              <app-icon name="users" [size]="18" /> Sortear grupos
-            </a>
-          }
+          <div class="acoes">
+            <button class="btn-outline" type="button" (click)="abrirNova()">
+              <app-icon name="plus" [size]="16" /> Nova equipe
+            </button>
+          </div>
         </app-card>
+
+        <div class="board" cdkDropListGroup>
+          <section class="pool">
+            <header class="pool__head">
+              <h3 class="pool__titulo">Sem equipe</h3>
+              <span class="pool__contagem">{{ semEquipe().length }}</span>
+            </header>
+            <div
+              class="dropzone"
+              cdkDropList
+              id="pool"
+              [cdkDropListData]="semEquipe()"
+              (cdkDropListDropped)="soltar($event, null)"
+            >
+              @for (a of semEquipe(); track a.id) {
+                <app-aluno-card
+                  cdkDrag
+                  [aluno]="a"
+                  (darXp)="darXp(a, $event)"
+                  (remover)="remover(a)"
+                />
+              } @empty {
+                <p class="hint">Todos os alunos estão em equipes.</p>
+              }
+            </div>
+          </section>
+
+          @for (e of equipes(); track e.id) {
+            <app-equipe-coluna
+              [equipe]="e"
+              [total]="daEquipe(e.id).length"
+              (info)="abrirInfo(e)"
+              (excluir)="excluir(e)"
+            >
+              <div
+                class="dropzone"
+                cdkDropList
+                [id]="e.id"
+                [cdkDropListData]="daEquipe(e.id)"
+                (cdkDropListDropped)="soltar($event, e.id)"
+              >
+                @for (a of daEquipe(e.id); track a.id) {
+                  <app-aluno-card
+                    cdkDrag
+                    [aluno]="a"
+                    (darXp)="darXp(a, $event)"
+                    (remover)="remover(a)"
+                  />
+                } @empty {
+                  <p class="hint">Solte alunos aqui.</p>
+                }
+              </div>
+            </app-equipe-coluna>
+          }
+        </div>
+
+        @if (alunos().length === 0) {
+          <p class="muted vazio">
+            Nenhum aluno ainda. Adicione nomes acima para montar as equipes.
+          </p>
+        }
       }
+
+      <app-equipe-form
+        [open]="formOpen()"
+        [initial]="editando()"
+        [submitting]="salvandoEquipe()"
+        (save)="salvarEquipe($event)"
+        (close)="formOpen.set(false)"
+      />
     } @else {
       <app-card><p class="muted">Turma não encontrada.</p></app-card>
     }
@@ -173,51 +225,59 @@ type Aba = 'agenda' | 'alunos';
     .status--agendada { color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); }
     .status--cancelada { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
     .status--realizada { color: var(--success); background: color-mix(in srgb, var(--success) 12%, transparent); }
-    .add { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .add { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
     .add .tichr-input { flex: 1 1 240px; }
-    .vazio { margin: 0; }
-    .roster { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.25rem; }
-    .roster__item {
+    .acoes { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .vazio { margin: 1rem 0 0; }
+    .muted { color: var(--text-muted); }
+    .hint { color: var(--text-muted); font-size: 0.85rem; margin: 0.25rem 0; }
+
+    .board {
+      margin-top: 1rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 0.75rem;
+      align-items: start;
+    }
+    .pool {
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+    .pool__head {
       display: flex;
       align-items: center;
-      gap: 0.6rem;
-      padding: 0.6rem 0.75rem;
-      border-radius: var(--radius);
-      background: var(--surface-alt);
+      gap: 0.4rem;
+      padding: 0.6rem 0.6rem 0.4rem;
     }
-    .roster__nome { flex: 1; }
-    .roster__xp {
+    .pool__titulo { margin: 0; font-size: 1rem; font-weight: 700; flex: 1; }
+    .pool__contagem {
+      font-size: 0.75rem;
       font-weight: 700;
-      font-variant-numeric: tabular-nums;
-      font-size: 0.85rem;
-      color: var(--primary);
-      min-width: 3.5rem;
-      text-align: right;
-    }
-    .roster__xpacts { display: flex; gap: 0.3rem; }
-    .xpbtn {
-      font: inherit;
-      font-weight: 700;
-      font-size: 0.8rem;
-      padding: 0.25rem 0.5rem;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      cursor: pointer;
-    }
-    .xpbtn--add { color: var(--success); border-color: var(--success); }
-    .xpbtn--sub { color: var(--danger); border-color: var(--danger); }
-    .remover {
-      display: inline-flex;
       color: var(--text-muted);
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 0.15rem;
+      background: var(--surface-alt);
+      padding: 0.1rem 0.45rem;
+      border-radius: 999px;
     }
-    .remover:hover { color: var(--danger); }
-    .sortear { margin-top: 1rem; text-decoration: none; }
-    .muted { color: var(--text-muted); }
+    .dropzone {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      padding: 0.5rem 0.6rem 0.7rem;
+      min-height: 3rem;
+    }
+    .pool .dropzone { padding-top: 0; }
+
+    .cdk-drag-preview {
+      box-sizing: border-box;
+      border-radius: var(--radius);
+      box-shadow: 4px 4px 0 var(--border);
+    }
+    .cdk-drag-placeholder { opacity: 0.4; }
+    .cdk-drop-list-dragging .cdk-drag { transition: transform 150ms ease; }
+    @media (prefers-reduced-motion: reduce) {
+      .cdk-drag, .cdk-drag-animating { transition: none !important; }
+    }
   `,
 })
 export class TurmaDetalhePage {
@@ -230,8 +290,14 @@ export class TurmaDetalhePage {
   protected readonly carregando = signal(true);
   protected readonly turma = signal<Turma | null>(null);
   protected readonly alunos = signal<Aluno[]>([]);
+  protected readonly equipes = signal<Equipe[]>([]);
   protected readonly entrada = signal('');
   protected readonly salvando = signal(false);
+
+  // Estado do modal de equipe.
+  protected readonly formOpen = signal(false);
+  protected readonly editando = signal<Equipe | null>(null);
+  protected readonly salvandoEquipe = signal(false);
 
   private readonly todasSessoes = signal<Sessao[]>([]);
   protected readonly sessoes = computed(() =>
@@ -239,6 +305,15 @@ export class TurmaDetalhePage {
       .filter((s) => s.turmaId === this.turmaId)
       .sort((a, b) => a.numero - b.numero),
   );
+
+  protected readonly semEquipe = computed(() =>
+    this.alunos().filter((a) => !a.equipeId),
+  );
+
+  /** Alunos de uma equipe (recalculado a partir do signal de alunos). */
+  protected daEquipe(equipeId: string): Aluno[] {
+    return this.alunos().filter((a) => a.equipeId === equipeId);
+  }
 
   constructor() {
     this.api.getTurma(this.turmaId).subscribe({
@@ -250,6 +325,7 @@ export class TurmaDetalhePage {
     });
     this.api.getSessoesSemana().subscribe((s) => this.todasSessoes.set(s));
     this.api.getAlunos(this.turmaId).subscribe((a) => this.alunos.set(a));
+    this.api.getEquipes(this.turmaId).subscribe((e) => this.equipes.set(e));
   }
 
   protected adicionar(): void {
@@ -281,10 +357,74 @@ export class TurmaDetalhePage {
   protected darXp(aluno: Aluno, pontos: number): void {
     this.api.darXp(this.turmaId, aluno.id, pontos).subscribe((res) => {
       this.alunos.update((atual) =>
-        atual.map((a) =>
-          a.id === aluno.id ? { ...a, xpTotal: res.xpTotal } : a,
-        ),
+        atual.map((a) => (a.id === aluno.id ? { ...a, xpTotal: res.xpTotal } : a)),
       );
     });
+  }
+
+  // ===== Drag & drop =====
+
+  /** Persiste o movimento de um card entre pool/equipes (otimista + rollback). */
+  protected soltar(event: CdkDragDrop<Aluno[]>, equipeId: string | null): void {
+    if (event.previousContainer === event.container) {
+      return;
+    }
+    const aluno = event.previousContainer.data[event.previousIndex];
+    const anterior = aluno.equipeId ?? null;
+    this.aplicarEquipe(aluno.id, equipeId);
+    this.api.definirEquipeDoAluno(this.turmaId, aluno.id, equipeId).subscribe({
+      error: () => this.aplicarEquipe(aluno.id, anterior),
+    });
+  }
+
+  private aplicarEquipe(alunoId: string, equipeId: string | null): void {
+    this.alunos.update((atual) =>
+      atual.map((a) => (a.id === alunoId ? { ...a, equipeId } : a)),
+    );
+  }
+
+  // ===== CRUD de equipes =====
+
+  protected abrirNova(): void {
+    this.editando.set(null);
+    this.formOpen.set(true);
+  }
+
+  protected salvarEquipe(payload: CriarEquipePayload): void {
+    this.salvandoEquipe.set(true);
+    const alvo = this.editando();
+    const req = alvo
+      ? this.api.atualizarEquipe(this.turmaId, alvo.id, payload)
+      : this.api.criarEquipe(this.turmaId, payload);
+    req.subscribe({
+      next: (equipe) => {
+        this.equipes.update((atual) =>
+          alvo
+            ? atual.map((e) => (e.id === equipe.id ? equipe : e))
+            : [...atual, equipe],
+        );
+        this.salvandoEquipe.set(false);
+        this.formOpen.set(false);
+      },
+      error: () => this.salvandoEquipe.set(false),
+    });
+  }
+
+  protected excluir(equipe: Equipe): void {
+    if (!confirm(`Excluir a equipe "${equipe.titulo}"? Os alunos voltam ao pool.`)) {
+      return;
+    }
+    this.api.removerEquipe(this.turmaId, equipe.id).subscribe(() => {
+      this.equipes.update((atual) => atual.filter((e) => e.id !== equipe.id));
+      this.alunos.update((atual) =>
+        atual.map((a) => (a.equipeId === equipe.id ? { ...a, equipeId: null } : a)),
+      );
+    });
+  }
+
+  protected abrirInfo(equipe: Equipe): void {
+    // Placeholder — modal de informações entra na Task 15.
+    this.editando.set(equipe);
+    this.formOpen.set(true);
   }
 }
