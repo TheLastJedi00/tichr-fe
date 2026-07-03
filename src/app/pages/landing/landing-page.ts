@@ -55,10 +55,10 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
             para professor.
           </p>
           <div class="hero__chips">
-            <span>📅 Agenda inteligente</span>
-            <span>📚 Plano de aula</span>
-            <span>👥 Turmas &amp; equipes</span>
-            <span>🏆 Portal do aluno</span>
+            <span><app-icon name="calendar" [size]="15" /> Agenda inteligente</span>
+            <span><app-icon name="book" [size]="15" /> Plano de aula</span>
+            <span><app-icon name="users" [size]="15" /> Turmas &amp; equipes</span>
+            <span><app-icon name="trophy" [size]="15" /> Portal do aluno</span>
           </div>
           <div class="hero__cta">
             <a class="btn-glow" href="#planos">Começar grátis</a>
@@ -71,7 +71,9 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
         <div class="mockup" aria-hidden="true">
           <div class="mockup__bar"><span></span><span></span><span></span></div>
           <div class="mockup__row"><span>Aula 03</span><b>16 mar</b></div>
-          <div class="mockup__row mockup__row--alert">imprevisto ⚡</div>
+          <div class="mockup__row mockup__row--alert">
+            <app-icon name="alert" [size]="14" /> imprevisto
+          </div>
           <div class="mockup__row mockup__row--moved"><span>Aula 03</span><b>23 mar</b></div>
           <div class="mockup__row mockup__row--moved"><span>Aula 04</span><b>30 mar</b></div>
         </div>
@@ -107,7 +109,9 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
         </div>
 
         <div class="demo-wrap">
-          <p class="demo-wrap__tit">Veja o deslizamento acontecer 👇</p>
+          <p class="demo-wrap__tit">
+            Veja o deslizamento acontecer <app-icon name="chevron-down" [size]="16" />
+          </p>
           <div class="demo">
             @for (aula of aulas(); track aula.numero) {
               @if (aula.numero === 3 && imprevisto()) {
@@ -288,18 +292,19 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
     }
     @keyframes heroShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
     @media (prefers-reduced-motion: reduce) { .hero { animation: none; } }
-    .topbar { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 0; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; padding-block: 1.25rem; }
     .topbar__actions { display: flex; align-items: center; gap: 0.5rem; }
     .btn-ghost-light { font-weight: 600; color: #f1f5f9; padding: 0.5rem 0.9rem; border: 1px solid rgba(241, 245, 249, 0.3); border-radius: var(--radius); }
     .btn-ghost-light:hover { background: rgba(241, 245, 249, 0.12); border-color: rgba(241, 245, 249, 0.6); }
-    .hero__inner { flex: 1; display: grid; grid-template-columns: 1fr; align-items: center; gap: 2.5rem; padding: 2rem 0 4rem; }
+    .hero__inner { flex: 1; display: grid; grid-template-columns: 1fr; align-items: center; gap: 2.5rem; padding-block: 2rem 4rem; }
     @media (min-width: 860px) { .hero__inner { grid-template-columns: 1.1fr 0.9fr; } }
     .hero__eyebrow { display: inline-block; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #93c5fd; margin-bottom: 0.9rem; }
     .hero__copy h1 { margin: 0; font-size: clamp(2.25rem, 6vw, 4rem); font-weight: 800; line-height: 1.03; letter-spacing: -0.03em; }
     .grad { background: linear-gradient(120deg, #60a5fa, #a78bfa); -webkit-background-clip: text; background-clip: text; color: transparent; }
     .hero__sub { max-width: 34rem; margin: 1.4rem 0 1.5rem; font-size: 1.15rem; color: rgba(226, 232, 240, 0.88); }
     .hero__chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 2rem; }
-    .hero__chips span { font-size: 0.85rem; font-weight: 600; padding: 0.35rem 0.7rem; border-radius: 999px; background: rgba(148, 163, 184, 0.16); border: 1px solid rgba(148, 163, 184, 0.25); }
+    .hero__chips span { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; font-weight: 600; padding: 0.35rem 0.7rem; border-radius: 999px; background: rgba(148, 163, 184, 0.16); border: 1px solid rgba(148, 163, 184, 0.25); }
+    .hero__chips app-icon { color: #93c5fd; }
     .hero__cta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
     .btn-glow { display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; color: #fff; padding: 0.9rem 2rem; border-radius: var(--radius); background: linear-gradient(135deg, #3b82f6, #2563eb); box-shadow: 0 8px 30px rgba(37, 99, 235, 0.45); transition: transform 0.15s ease, box-shadow 0.2s ease; }
     .btn-glow:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(59, 130, 246, 0.65); }
@@ -316,7 +321,7 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
     .mockup__bar span { width: 10px; height: 10px; border-radius: 50%; background: rgba(148, 163, 184, 0.5); }
     .mockup__row { display: flex; justify-content: space-between; padding: 0.7rem 0.9rem; margin-top: 0.5rem; border-radius: 10px; background: rgba(148, 163, 184, 0.12); font-size: 0.95rem; color: #e2e8f0; }
     .mockup__row b { font-variant-numeric: tabular-nums; }
-    .mockup__row--alert { justify-content: center; color: #fca5a5; background: rgba(239, 68, 68, 0.15); font-weight: 600; }
+    .mockup__row--alert { justify-content: center; align-items: center; gap: 0.4rem; color: #fca5a5; background: rgba(239, 68, 68, 0.15); font-weight: 600; }
     .mockup__row--moved { background: rgba(59, 130, 246, 0.22); color: #bfdbfe; }
 
     /* ===== Problema ===== */
@@ -333,7 +338,8 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
     .passo h3 { margin: 0.75rem 0 0.4rem; font-size: 1.1rem; }
     .passo p { margin: 0; color: var(--text-muted); font-size: 0.95rem; }
     .demo-wrap { margin-top: 2.5rem; }
-    .demo-wrap__tit { font-weight: 700; margin: 0 0 0.75rem; }
+    .demo-wrap__tit { display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 700; margin: 0 0 0.75rem; }
+    .demo-wrap__tit app-icon { color: var(--primary); }
     .demo { max-width: 380px; margin: 0 auto 1.25rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: 0.5rem; text-align: left; }
     .aula { display: flex; align-items: center; justify-content: space-between; padding: 0.8rem 0.9rem; border-radius: var(--radius); transition: background-color 0.45s ease, transform 0.45s ease; }
     .aula + .aula { margin-top: 0.25rem; }
