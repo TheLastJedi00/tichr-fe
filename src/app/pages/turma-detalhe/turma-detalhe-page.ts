@@ -143,6 +143,8 @@ type Aba = 'agenda' | 'alunos';
               class="dropzone"
               cdkDropList
               id="pool"
+              role="list"
+              aria-label="Alunos sem equipe"
               [cdkDropListData]="semEquipe()"
               (cdkDropListDropped)="soltar($event, null)"
             >
@@ -169,7 +171,9 @@ type Aba = 'agenda' | 'alunos';
               <div
                 class="dropzone"
                 cdkDropList
+                role="list"
                 [id]="e.id"
+                [attr.aria-label]="'Equipe ' + e.titulo"
                 [cdkDropListData]="daEquipe(e.id)"
                 (cdkDropListDropped)="soltar($event, e.id)"
               >
