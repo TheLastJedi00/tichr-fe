@@ -20,6 +20,7 @@ import { Card } from '../../ui/card/card';
 import { EquipeColuna } from '../../ui/equipe-coluna/equipe-coluna';
 import { EquipeForm } from '../../ui/equipe-form/equipe-form';
 import { Icon } from '../../ui/icon/icon';
+import { Modal } from '../../ui/modal/modal';
 import { Spinner } from '../../ui/spinner/spinner';
 
 type Aba = 'agenda' | 'alunos';
@@ -43,6 +44,7 @@ type Aba = 'agenda' | 'alunos';
     AlunoCard,
     EquipeColuna,
     EquipeForm,
+    Modal,
   ],
   template: `
     @if (carregando()) {
@@ -185,6 +187,30 @@ type Aba = 'agenda' | 'alunos';
         (save)="salvarEquipe($event)"
         (close)="formOpen.set(false)"
       />
+
+      <app-modal
+        [open]="!!infoEquipe()"
+        [title]="infoEquipe()?.titulo ?? ''"
+        (close)="infoEquipe.set(null)"
+      >
+        @if (infoEquipe(); as e) {
+          <div class="info">
+            <span class="info__cor" [style.background]="e.cor"></span>
+            <span class="info__cortxt">{{ e.cor }}</span>
+          </div>
+          <p class="info__desc">
+            {{ e.descricao || 'Sem descrição.' }}
+          </p>
+        }
+        <div modal-actions>
+          <button class="btn-outline" type="button" (click)="infoEquipe.set(null)">
+            Fechar
+          </button>
+          <button class="btn-primary" type="button" (click)="editarDaInfo()">
+            Editar
+          </button>
+        </div>
+      </app-modal>
     } @else {
       <app-card><p class="muted">Turma não encontrada.</p></app-card>
     }
@@ -231,6 +257,11 @@ type Aba = 'agenda' | 'alunos';
     .vazio { margin: 1rem 0 0; }
     .muted { color: var(--text-muted); }
     .hint { color: var(--text-muted); font-size: 0.85rem; margin: 0.25rem 0; }
+
+    .info { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .info__cor { width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); }
+    .info__cortxt { font-variant-numeric: tabular-nums; color: var(--text-muted); font-size: 0.85rem; }
+    .info__desc { margin: 0; color: var(--text); white-space: pre-wrap; }
 
     .board {
       margin-top: 1rem;
@@ -298,6 +329,7 @@ export class TurmaDetalhePage {
   protected readonly formOpen = signal(false);
   protected readonly editando = signal<Equipe | null>(null);
   protected readonly salvandoEquipe = signal(false);
+  protected readonly infoEquipe = signal<Equipe | null>(null);
 
   private readonly todasSessoes = signal<Sessao[]>([]);
   protected readonly sessoes = computed(() =>
@@ -423,8 +455,13 @@ export class TurmaDetalhePage {
   }
 
   protected abrirInfo(equipe: Equipe): void {
-    // Placeholder — modal de informações entra na Task 15.
-    this.editando.set(equipe);
+    this.infoEquipe.set(equipe);
+  }
+
+  /** Do modal de informações, salta para a edição da equipe. */
+  protected editarDaInfo(): void {
+    this.editando.set(this.infoEquipe());
+    this.infoEquipe.set(null);
     this.formOpen.set(true);
   }
 }
