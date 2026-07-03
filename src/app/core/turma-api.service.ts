@@ -13,6 +13,7 @@ import {
   CriarTurmaPayload,
   Equipe,
   Ferias,
+  ProgressoTurma,
   RankingItem,
   Sessao,
   Squad,
@@ -235,5 +236,9 @@ export class TurmaApiService {
 
   getMinhaAgenda(): Observable<Sessao[]> {
     return this.http.get<Sessao[]>(`${this.base}/aluno/agenda`);
+  }
+
+  getMeuProgresso(): Observable<ProgressoTurma> {
+    return this.http.get<ProgressoTurma>(`${this.base}/aluno/progresso`);
   }
 }
