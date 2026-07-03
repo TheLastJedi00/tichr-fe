@@ -231,17 +231,34 @@ export class StudentQlickPage {
   });
 
   constructor() {
+    this.buscar();
+
+    const tick = setInterval(() => this.agora.set(Date.now()), 500);
+    // Sonda o "Qlick do dia": quando o professor roda a partida, o card aparece
+    // em segundos sem o aluno precisar recarregar. Para ao descobrir a partida.
+    const sonda = setInterval(() => {
+      if (!this.qlick()) this.buscar();
+    }, 4000);
+    this.destroyRef.onDestroy(() => {
+      clearInterval(tick);
+      clearInterval(sonda);
+    });
+  }
+
+  /** Busca a partida do dia; ao encontrar, passa a escutar em tempo real. */
+  private buscar(): void {
     this.api.getQlickDoDia().subscribe({
       next: (q) => {
-        this.qlick.set(q);
         this.carregando.set(false);
-        if (q) this.escutar(q.partidaId);
+        if (q && q.partidaId !== this.qlick()?.partidaId) {
+          this.qlick.set(q);
+          this.escutar(q.partidaId);
+        } else if (!q) {
+          this.qlick.set(null);
+        }
       },
       error: () => this.carregando.set(false),
     });
-
-    const tick = setInterval(() => this.agora.set(Date.now()), 500);
-    this.destroyRef.onDestroy(() => clearInterval(tick));
   }
 
   private escutar(partidaId: string): void {

@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   inject,
   signal,
 } from '@angular/core';
@@ -123,6 +124,7 @@ import { XpBar } from '../../ui/xp-bar/xp-bar';
 export class StudentDashboardPage {
   private readonly api = inject(TurmaApiService);
   private readonly studentAuth = inject(StudentAuthService);
+  private readonly destroyRef = inject(DestroyRef);
   protected readonly formatarData = formatarData;
 
   protected readonly carregando = signal(true);
@@ -170,6 +172,16 @@ export class StudentDashboardPage {
         this.topicos.set(new Map(r.topicos.map((t) => [t.numeroAula, t.topico]))),
       error: () => {},
     });
+    // Sonda o "Qlick do dia": o card surge assim que o professor roda a partida,
+    // sem o aluno recarregar o painel. Para quando a partida já apareceu.
+    this.buscarQlick();
+    const sonda = setInterval(() => {
+      if (!this.qlickDoDia()) this.buscarQlick();
+    }, 5000);
+    this.destroyRef.onDestroy(() => clearInterval(sonda));
+  }
+
+  private buscarQlick(): void {
     this.api.getQlickDoDia().subscribe({
       next: (q) => this.qlickDoDia.set(q),
       error: () => {},
