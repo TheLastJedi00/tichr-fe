@@ -130,6 +130,16 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'jogos',
+        loadComponent: () =>
+          import('./pages/jogos/jogos-page').then((m) => m.JogosPage),
+      },
+      {
+        path: 'jogos/qlick',
+        loadComponent: () =>
+          import('./pages/jogos/qlick-intro-page').then((m) => m.QlickIntroPage),
+      },
+      {
         path: 'configuracoes',
         loadComponent: () =>
           import('./pages/configuracoes/configuracoes-page').then(
