@@ -158,6 +158,69 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
       </div>
     </section>
 
+    <!-- ===== Demos interativas: ranking + conexão ===== -->
+    <section id="experimente" class="demos" appReveal>
+      <div class="container">
+        <h2>Toque e veja funcionando</h2>
+        <p class="demos__lead">A gamificação e o acesso do aluno, ao vivo.</p>
+        <div class="demos__grid">
+          <!-- Ranking ao vivo -->
+          <article class="democ">
+            <h3>Ranking da turma</h3>
+            <ul class="rank">
+              @for (a of alunosRank(); track a.id) {
+                <li class="rank__row" [class.rank__row--eu]="a.id === 'duda'">
+                  <span class="rank__pos rank__pos--{{ $index + 1 }}">{{ $index + 1 }}</span>
+                  <span class="rank__nome">{{ a.nome }}</span>
+                  <span class="rank__bar"><span [style.width.%]="pctXp(a.xp)"></span></span>
+                  <span class="rank__xp">{{ a.xp }}</span>
+                </li>
+              }
+            </ul>
+            <button class="btn-primary democ__btn" type="button" (click)="recompensar()">
+              {{ recompensado() ? 'Resetar demonstração' : 'Recompensar Duda (+190)' }}
+            </button>
+          </article>
+
+          <!-- Conexão aluno e professor -->
+          <article class="democ">
+            <h3>Conexão aluno e professor</h3>
+            <div class="conx">
+              <div class="conx__node">
+                <span class="conx__av"><app-icon name="user" [size]="20" /></span>
+                <span class="conx__lbl">professor</span>
+                <strong>&#64;prof.jediael</strong>
+              </div>
+              <div class="conx__link" [class.conx__link--on]="conectado()">
+                <span class="conx__dot"></span>
+              </div>
+              <div class="conx__node">
+                <span class="conx__av conx__av--aluno"><app-icon name="user" [size]="20" /></span>
+                <span class="conx__lbl">aluno</span>
+                <strong>Duda</strong>
+              </div>
+            </div>
+
+            @if (conectado()) {
+              <div class="conx__portal">
+                <span class="conx__ptit">Portal da Duda · Nível Ouro</span>
+                <div class="conx__xp"><span></span></div>
+                <span class="conx__meta">410 pts · vê a agenda, o plano e o ranking</span>
+              </div>
+            } @else {
+              <p class="conx__hint">
+                Sem e-mail: busca o &#64;professor, escolhe a turma e entra pelo PIN.
+              </p>
+            }
+
+            <button class="btn-primary democ__btn" type="button" (click)="conectar()">
+              {{ conectado() ? 'Desconectar' : 'Conectar aluno' }}
+            </button>
+          </article>
+        </div>
+      </div>
+    </section>
+
     <!-- ===== Prova / Garantias (risk reversal) ===== -->
     <section class="prova" appReveal>
       <div class="container prova__grid">
@@ -362,6 +425,47 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
     .pilar h3 { margin: 0 0 0.4rem; font-size: 1.15rem; }
     .pilar p { margin: 0; color: var(--text-muted); font-size: 0.95rem; }
 
+    /* ===== Demos interativas ===== */
+    .demos { padding: 4.5rem 0; background: var(--surface-alt); text-align: center; }
+    .demos__lead { max-width: 34rem; margin: 0 auto 2.5rem; color: var(--text-muted); }
+    .demos__grid { display: grid; grid-template-columns: 1fr; gap: 1.25rem; text-align: left; }
+    @media (min-width: 800px) { .demos__grid { grid-template-columns: 1fr 1fr; } }
+    .democ { display: flex; flex-direction: column; padding: 1.5rem; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
+    .democ h3 { margin: 0 0 1rem; font-size: 1.15rem; }
+    .democ__btn { margin-top: 1.25rem; align-self: flex-start; cursor: pointer; }
+
+    /* Ranking */
+    .rank { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+    .rank__row { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.5rem; border-radius: var(--radius); transition: background-color 0.4s ease; }
+    .rank__row--eu { background: color-mix(in srgb, var(--primary) 10%, transparent); }
+    .rank__pos { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 999px; font-size: 0.78rem; font-weight: 800; color: #fff; background: var(--text-muted); }
+    .rank__pos--1 { background: #f59e0b; }
+    .rank__pos--2 { background: #94a3b8; }
+    .rank__pos--3 { background: #b45309; }
+    .rank__nome { flex: 0 0 3.5rem; font-weight: 600; font-size: 0.9rem; }
+    .rank__bar { flex: 1; height: 8px; border-radius: 999px; background: var(--surface-alt); overflow: hidden; }
+    .rank__bar span { display: block; height: 100%; border-radius: 999px; background: var(--primary); transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+    .rank__xp { flex: 0 0 auto; font-weight: 700; font-size: 0.82rem; font-variant-numeric: tabular-nums; color: var(--primary); min-width: 2.5rem; text-align: right; }
+
+    /* Conexão */
+    .conx { display: flex; align-items: center; gap: 0.5rem; }
+    .conx__node { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.15rem; text-align: center; }
+    .conx__av { display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 999px; color: var(--primary); background: color-mix(in srgb, var(--primary) 14%, transparent); }
+    .conx__av--aluno { color: var(--success); background: color-mix(in srgb, var(--success) 16%, transparent); }
+    .conx__lbl { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700; }
+    .conx__node strong { font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+    .conx__link { flex: 0 0 56px; height: 2px; position: relative; background: repeating-linear-gradient(90deg, var(--border) 0 6px, transparent 6px 12px); }
+    .conx__link--on { background: var(--primary); }
+    .conx__dot { position: absolute; top: 50%; left: 0; width: 8px; height: 8px; border-radius: 999px; background: var(--primary); transform: translate(-2px, -50%); opacity: 0; transition: left 0.6s ease, opacity 0.3s ease; }
+    .conx__link--on .conx__dot { left: 100%; opacity: 1; }
+    @media (prefers-reduced-motion: reduce) { .conx__dot { transition: none; } }
+    .conx__hint { margin: 1rem 0 0; color: var(--text-muted); font-size: 0.9rem; }
+    .conx__portal { margin-top: 1rem; padding: 0.8rem 0.9rem; border-radius: var(--radius); background: color-mix(in srgb, var(--success) 8%, transparent); border: 1px solid color-mix(in srgb, var(--success) 30%, transparent); }
+    .conx__ptit { font-weight: 700; font-size: 0.9rem; }
+    .conx__xp { height: 10px; border-radius: 999px; background: var(--surface-alt); overflow: hidden; margin: 0.4rem 0; }
+    .conx__xp span { display: block; height: 100%; width: 82%; border-radius: 999px; background: linear-gradient(90deg, #3b82f6, #22c55e); }
+    .conx__meta { font-size: 0.82rem; color: var(--text-muted); }
+
     /* ===== Prova / garantias ===== */
     .prova { padding: 2.5rem 0; background: var(--surface-alt); }
     .prova__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; text-align: center; }
@@ -510,6 +614,35 @@ export class LandingPage {
   protected readonly imprevisto = signal(false);
   protected readonly email = signal('');
   protected readonly naLista = signal(false);
+
+  // Demo: ranking ao vivo (recompensar a Duda a faz subir ao topo).
+  private readonly rankBase: ReadonlyArray<{ id: string; nome: string; xp: number }> = [
+    { id: 'carla', nome: 'Carla', xp: 410 },
+    { id: 'ana', nome: 'Ana', xp: 320 },
+    { id: 'bruno', nome: 'Bruno', xp: 290 },
+    { id: 'duda', nome: 'Duda', xp: 250 },
+  ];
+  protected readonly recompensado = signal(false);
+  protected readonly alunosRank = computed(() =>
+    this.rankBase
+      .map((a) => ({
+        ...a,
+        xp: a.xp + (this.recompensado() && a.id === 'duda' ? 190 : 0),
+      }))
+      .sort((a, b) => b.xp - a.xp),
+  );
+  protected recompensar(): void {
+    this.recompensado.update((v) => !v);
+  }
+  protected pctXp(xp: number): number {
+    return Math.min(100, Math.round((xp / 460) * 100));
+  }
+
+  // Demo: conexão aluno e professor (portal sem e-mail).
+  protected readonly conectado = signal(false);
+  protected conectar(): void {
+    this.conectado.update((v) => !v);
+  }
 
   protected abrirPlano(plano: Plano): void {
     this.planoAberto.set(plano);
