@@ -20,7 +20,7 @@ import { ProfileService } from '../../core/profile.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink],
   template: `
-    <footer class="footer">
+    <footer class="footer" [class.footer--landing]="!painel()">
       @if (painel()) {
         <nav class="footer__nav">
           @for (l of links(); track l.label) {
@@ -33,21 +33,21 @@ import { ProfileService } from '../../core/profile.service';
             </a>
           }
         </nav>
+      } @else {
+        <div class="footer__base">
+          <span class="footer__autor">Feito por <strong>Leno Borges</strong></span>
+          <span class="footer__sep">·</span>
+          <a
+            class="footer__link"
+            href="https://github.com/TheLastJedi00"
+            target="_blank"
+            rel="noopener"
+          >GitHub</a>
+          <span class="footer__sep">·</span>
+          <a class="footer__link" routerLink="/novidades">O que há de novo?</a>
+        </div>
+        <span class="footer__repo">Tichr · Angular + NestJS/Firebase</span>
       }
-
-      <div class="footer__base">
-        <span class="footer__autor">Feito por <strong>Leno Borges</strong></span>
-        <span class="footer__sep">·</span>
-        <a
-          class="footer__link"
-          href="https://github.com/TheLastJedi00"
-          target="_blank"
-          rel="noopener"
-        >GitHub</a>
-        <span class="footer__sep">·</span>
-        <a class="footer__link" routerLink="/novidades">O que há de novo?</a>
-      </div>
-      <span class="footer__repo">Tichr · Angular + NestJS/Firebase</span>
     </footer>
   `,
   styles: `
@@ -63,12 +63,15 @@ import { ProfileService } from '../../core/profile.service';
       color: var(--text-muted);
       font-size: 0.85rem;
     }
+    /* Na landing, o CTA fixo (mobile) ocupa o rodapé — folga para não sobrepor. */
+    @media (max-width: 640px) {
+      .footer--landing { padding-bottom: 5.5rem; }
+    }
     .footer__nav {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
       gap: 0.4rem 1rem;
-      padding-bottom: 0.5rem;
     }
     .footer__navlink { color: var(--text); font-weight: 600; }
     .footer__navlink:hover { color: var(--primary); }
