@@ -17,9 +17,10 @@ const BASE = ['02 mar', '09 mar', '16 mar', '23 mar', '30 mar'];
 const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
 
 /**
- * Landing page (standalone, rota /). Vitrine de alto impacto do Tichr:
- * hero com gradiente animado, demonstracao viva do deslizamento, diferenciais
- * por cenario e a trilha academica de planos. Ver .specs/update/landing-page.md.
+ * Landing page (rota /). Estrutura orientada a conversão: value proposition
+ * clara no hero → problema/agitação (PAS) → como funciona (3 passos) → o
+ * ecossistema (a agenda é só a ponta) → prova/garantias → planos com risk
+ * reversal → objeções (FAQ) → CTA final. Ver .specs/update/landing-page.md.
  */
 @Component({
   selector: 'app-landing-page',
@@ -27,7 +28,7 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [Icon, IconButton, RouterLink, RevealDirective, Modal, Footer],
   template: `
-    <!-- ===== Hero (A Promessa) ===== -->
+    <!-- ===== Hero (Atenção + Value Proposition) ===== -->
     <section class="hero">
       <header class="topbar container">
         <span class="logo">Tichr</span>
@@ -44,22 +45,31 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
 
       <div class="hero__inner container">
         <div class="hero__copy">
-          <h1>A agenda que se adapta à sua aula, e não o contrário.</h1>
+          <span class="hero__eyebrow">A plataforma completa do professor</span>
+          <h1>Toda a sua docência, <span class="grad">organizada sozinha</span>.</h1>
           <p class="hero__sub">
-            Para professores regulares ou conteudistas. Lance um imprevisto e
-            veja sua grade se reorganizar inteira em um segundo.
+            A agenda que se reorganiza a cada imprevisto é só o começo. Some
+            <strong>planejamento de aulas</strong>,
+            <strong>gestão de turmas e equipes</strong> e um
+            <strong>portal gamificado</strong> — num só lugar, feito de professor
+            para professor.
           </p>
-          <a class="btn-glow" href="#planos">Descubra seu plano</a>
-          <p class="hero__login">
-            Já tem acesso beta? <a routerLink="/login">Entrar</a>
-          </p>
+          <div class="hero__chips">
+            <span>📅 Agenda inteligente</span>
+            <span>📚 Plano de aula</span>
+            <span>👥 Turmas &amp; equipes</span>
+            <span>🏆 Portal do aluno</span>
+          </div>
+          <div class="hero__cta">
+            <a class="btn-glow" href="#planos">Começar grátis</a>
+            <a class="btn-hero-sec" href="#como">Ver como funciona</a>
+          </div>
+          <p class="hero__reforco">Sem cartão de crédito · Grátis para começar</p>
         </div>
 
         <!-- Mockup flutuante do Tichr recalculando datas -->
         <div class="mockup" aria-hidden="true">
-          <div class="mockup__bar">
-            <span></span><span></span><span></span>
-          </div>
+          <div class="mockup__bar"><span></span><span></span><span></span></div>
           <div class="mockup__row"><span>Aula 03</span><b>16 mar</b></div>
           <div class="mockup__row mockup__row--alert">imprevisto ⚡</div>
           <div class="mockup__row mockup__row--moved"><span>Aula 03</span><b>23 mar</b></div>
@@ -68,65 +78,101 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
       </div>
     </section>
 
-    <!-- ===== A Mágica (o deslizamento na prática) ===== -->
-    <section class="magic" appReveal>
+    <!-- ===== Problema + Agitação (PAS) ===== -->
+    <section class="problema" appReveal>
       <div class="container">
-        <h2>Veja o deslizamento acontecer</h2>
-        <p class="magic__lead">
-          Cinco aulas na sua grade. Lance um imprevisto e veja os blocos
-          deslizarem para as próximas datas válidas — em tempo real.
-        </p>
-
-        <div class="demo">
-          @for (aula of aulas(); track aula.numero) {
-            @if (aula.numero === 3 && imprevisto()) {
-              <div class="excecao">
-                <app-icon name="alert" [size]="16" /> Imprevisto: Conselho de classe
-              </div>
-            }
-            <div class="aula" [class.aula--shift]="imprevisto() && aula.numero >= 3">
-              <span class="aula__n">Aula {{ aula.numero }}</span>
-              <span class="aula__d">{{ aula.data }}</span>
-            </div>
-          }
-        </div>
-
-        <button class="btn-primary demo__btn" type="button" (click)="toggle()">
-          {{ imprevisto() ? 'Resetar demonstração' : 'Surgiu um imprevisto!' }}
-        </button>
-        <p class="magic__msg">
-          Você foca em ensinar. O Tichr recalcula a data de término do módulo
-          automaticamente.
+        <h2>Feriado, reunião, conselho de classe…</h2>
+        <p class="problema__lead">
+          E lá vai você remexer a grade inteira à mão — reposicionar cada aula,
+          recalcular quando o curso termina, avisar os alunos. Planejamento numa
+          planilha, chamada num caderno, notas em outro lugar. É trabalho demais
+          para <em>ainda não ter dado aula nenhuma</em>.
         </p>
       </div>
     </section>
 
-    <!-- ===== Diferenciais (soluções por cenário) ===== -->
-    <section class="diferenciais" appReveal>
+    <!-- ===== Como funciona (3 passos) + demo ===== -->
+    <section id="como" class="como" appReveal>
       <div class="container">
-        <h2>Uma ferramenta, quatro cenários</h2>
-        <p class="dif__lead">
-          Do professor da rede pública ao portal gamificado da sua turma.
-        </p>
-        <div class="dif__grid">
-          @for (d of diferenciais; track d.titulo) {
-            <article class="dif__card">
-              <span class="dif__icon"><app-icon [name]="d.icone" [size]="30" /></span>
-              <h3>{{ d.titulo }}</h3>
-              <p>{{ d.texto }}</p>
+        <h2>Como funciona</h2>
+        <p class="como__lead">Em 3 passos, do caos ao controle.</p>
+        <div class="passos">
+          @for (p of passos; track p.n) {
+            <article class="passo">
+              <span class="passo__n">{{ p.n }}</span>
+              <h3>{{ p.titulo }}</h3>
+              <p>{{ p.texto }}</p>
+            </article>
+          }
+        </div>
+
+        <div class="demo-wrap">
+          <p class="demo-wrap__tit">Veja o deslizamento acontecer 👇</p>
+          <div class="demo">
+            @for (aula of aulas(); track aula.numero) {
+              @if (aula.numero === 3 && imprevisto()) {
+                <div class="excecao">
+                  <app-icon name="alert" [size]="16" /> Imprevisto: Conselho de classe
+                </div>
+              }
+              <div class="aula" [class.aula--shift]="imprevisto() && aula.numero >= 3">
+                <span class="aula__n">Aula {{ aula.numero }}</span>
+                <span class="aula__d">{{ aula.data }}</span>
+              </div>
+            }
+          </div>
+          <button class="btn-primary demo__btn" type="button" (click)="toggle()">
+            {{ imprevisto() ? 'Resetar demonstração' : 'Surgiu um imprevisto!' }}
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== O ecossistema (a agenda é só a ponta) ===== -->
+    <section id="ecossistema" class="eco" appReveal>
+      <div class="container">
+        <div class="eco__intro">
+          <span class="eco__eyebrow">A agenda é só a ponta do iceberg</span>
+          <h2>Uma plataforma inteira sob a superfície</h2>
+          <p class="eco__lead">
+            O que te traz é a agenda que se resolve sozinha. O que te faz ficar é
+            tudo o que vem por baixo dela.
+          </p>
+        </div>
+
+        <div class="pilares">
+          @for (p of pilares; track p.titulo) {
+            <article class="pilar">
+              <span class="pilar__icon"><app-icon [name]="p.icone" [size]="28" /></span>
+              <div>
+                <h3>{{ p.titulo }}</h3>
+                <p>{{ p.texto }}</p>
+              </div>
             </article>
           }
         </div>
       </div>
     </section>
 
-    <!-- ===== Vitrine de Planos (a trilha acadêmica) ===== -->
+    <!-- ===== Prova / Garantias (risk reversal) ===== -->
+    <section class="prova" appReveal>
+      <div class="container prova__grid">
+        @for (g of garantias; track g.titulo) {
+          <div class="garantia">
+            <strong>{{ g.titulo }}</strong>
+            <span>{{ g.texto }}</span>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- ===== Vitrine de Planos (progressão + risk reversal) ===== -->
     <section id="planos" class="planos" appReveal>
       <div class="container">
-        <h2>Suba de nível na docência</h2>
+        <h2>Comece grátis e mergulhe quando quiser</h2>
         <p class="planos__lead">
-          Uma trilha que acompanha você — do test-drive ao ecossistema
-          multiplayer com seus alunos.
+          Cada plano abre mais da plataforma — do test-drive da agenda ao
+          ecossistema multiplayer com seus alunos. Sem cartão para começar.
         </p>
 
         <div class="planos__track">
@@ -159,13 +205,28 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
       </div>
     </section>
 
-    <!-- ===== CTA final (reiteração da promessa) ===== -->
+    <!-- ===== Objeções (FAQ) ===== -->
+    <section class="faq" appReveal>
+      <div class="container container--estreito">
+        <h2>Perguntas rápidas</h2>
+        <div class="faq__lista">
+          @for (f of faqs; track f.q) {
+            <details class="faq__item">
+              <summary>{{ f.q }}</summary>
+              <p>{{ f.a }}</p>
+            </details>
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CTA final ===== -->
     <section id="final" class="final" appReveal>
       <div class="container">
-        <h2>Assuma o controle do seu tempo.</h2>
+        <h2>Sua próxima aula começa organizada.</h2>
         <p class="final__sub">
-          Entre na lista e seja um dos primeiros professores a deixar a agenda
-          trabalhar por você.
+          Entre na lista e seja um dos primeiros professores a ter agenda,
+          planejamento, turmas e portal do aluno num lugar só.
         </p>
         @if (naLista()) {
           <p class="final__ok">
@@ -187,10 +248,9 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
       </div>
     </section>
 
-    <!-- ===== Rodapé ===== -->
     <app-footer />
 
-    <!-- CTA fixo no rodapé (apenas mobile) — sempre ao alcance do polegar -->
+    <!-- CTA fixo no rodapé (apenas mobile) -->
     <a class="sticky-cta" href="#planos">Começar grátis</a>
 
     <!-- Modal de detalhes do plano (carregado sob demanda com @defer) -->
@@ -213,525 +273,228 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
     }
   `,
   styles: `
-    :host {
-      display: block;
-    }
-    .container {
-      width: 100%;
-      max-width: 1080px;
-      margin: 0 auto;
-      padding: 0 1.25rem;
-    }
-    .logo {
-      font-size: 1.35rem;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-    }
+    :host { display: block; }
+    .container { width: 100%; max-width: 1080px; margin: 0 auto; padding: 0 1.25rem; }
+    .container--estreito { max-width: 760px; }
+    .logo { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; }
+    h2 { font-size: clamp(1.6rem, 3.5vw, 2.25rem); font-weight: 800; letter-spacing: -0.02em; margin: 0 0 0.75rem; }
 
     /* ===== Hero ===== */
     .hero {
-      position: relative;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
+      position: relative; min-height: 100vh; display: flex; flex-direction: column;
       color: #f1f5f9;
       background: linear-gradient(130deg, #0b1120 0%, #1e3a8a 45%, #0f172a 100%);
-      background-size: 220% 220%;
-      animation: heroShift 20s ease-in-out infinite;
-      overflow: hidden;
+      background-size: 220% 220%; animation: heroShift 20s ease-in-out infinite; overflow: hidden;
     }
-    @keyframes heroShift {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .hero { animation: none; }
-    }
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding-top: 1.25rem;
-      padding-bottom: 1.25rem;
-    }
-    .btn-ghost-light {
-      font-weight: 600;
-      color: #f1f5f9;
-      padding: 0.5rem 0.9rem;
-      border: 1px solid rgba(241, 245, 249, 0.3);
-      border-radius: var(--radius);
-      transition: background-color 0.15s ease, border-color 0.15s ease;
-    }
-    .btn-ghost-light:hover {
-      background: rgba(241, 245, 249, 0.12);
-      border-color: rgba(241, 245, 249, 0.6);
-    }
-    .hero__inner {
-      flex: 1;
-      display: grid;
-      grid-template-columns: 1fr;
-      align-items: center;
-      gap: 2.5rem;
-      padding-top: 2rem;
-      padding-bottom: 4rem;
-    }
-    @media (min-width: 860px) {
-      .hero__inner { grid-template-columns: 1.1fr 0.9fr; }
-    }
-    .hero__copy h1 {
-      margin: 0;
-      font-size: clamp(2.25rem, 6vw, 4rem);
-      font-weight: 800;
-      line-height: 1.03;
-      letter-spacing: -0.03em;
-    }
-    .hero__sub {
-      max-width: 34rem;
-      margin: 1.5rem 0 2rem;
-      font-size: 1.15rem;
-      color: rgba(226, 232, 240, 0.85);
-    }
-    .btn-glow {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 1.1rem;
-      color: #fff;
-      padding: 0.9rem 2rem;
-      border-radius: var(--radius);
-      background: linear-gradient(135deg, #3b82f6, #2563eb);
-      box-shadow: 0 8px 30px rgba(37, 99, 235, 0.45);
-      transition: transform 0.15s ease, box-shadow 0.2s ease;
-    }
-    .btn-glow:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 40px rgba(59, 130, 246, 0.65);
-    }
-    .hero__login {
-      margin: 1.25rem 0 0;
-      font-size: 0.95rem;
-      color: rgba(226, 232, 240, 0.75);
-    }
-    .hero__login a {
-      color: #fff;
-      font-weight: 600;
-      text-decoration: underline;
-    }
+    @keyframes heroShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+    @media (prefers-reduced-motion: reduce) { .hero { animation: none; } }
+    .topbar { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 0; }
+    .topbar__actions { display: flex; align-items: center; gap: 0.5rem; }
+    .btn-ghost-light { font-weight: 600; color: #f1f5f9; padding: 0.5rem 0.9rem; border: 1px solid rgba(241, 245, 249, 0.3); border-radius: var(--radius); }
+    .btn-ghost-light:hover { background: rgba(241, 245, 249, 0.12); border-color: rgba(241, 245, 249, 0.6); }
+    .hero__inner { flex: 1; display: grid; grid-template-columns: 1fr; align-items: center; gap: 2.5rem; padding: 2rem 0 4rem; }
+    @media (min-width: 860px) { .hero__inner { grid-template-columns: 1.1fr 0.9fr; } }
+    .hero__eyebrow { display: inline-block; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #93c5fd; margin-bottom: 0.9rem; }
+    .hero__copy h1 { margin: 0; font-size: clamp(2.25rem, 6vw, 4rem); font-weight: 800; line-height: 1.03; letter-spacing: -0.03em; }
+    .grad { background: linear-gradient(120deg, #60a5fa, #a78bfa); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .hero__sub { max-width: 34rem; margin: 1.4rem 0 1.5rem; font-size: 1.15rem; color: rgba(226, 232, 240, 0.88); }
+    .hero__chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 2rem; }
+    .hero__chips span { font-size: 0.85rem; font-weight: 600; padding: 0.35rem 0.7rem; border-radius: 999px; background: rgba(148, 163, 184, 0.16); border: 1px solid rgba(148, 163, 184, 0.25); }
+    .hero__cta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+    .btn-glow { display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; color: #fff; padding: 0.9rem 2rem; border-radius: var(--radius); background: linear-gradient(135deg, #3b82f6, #2563eb); box-shadow: 0 8px 30px rgba(37, 99, 235, 0.45); transition: transform 0.15s ease, box-shadow 0.2s ease; }
+    .btn-glow:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(59, 130, 246, 0.65); }
+    .btn-hero-sec { font-weight: 600; color: #e2e8f0; padding: 0.9rem 1rem; }
+    .btn-hero-sec:hover { color: #fff; text-decoration: underline; }
+    .hero__reforco { margin: 1rem 0 0; font-size: 0.85rem; color: rgba(226, 232, 240, 0.7); }
+    .hero__login { margin: 0.5rem 0 0; font-size: 0.95rem; color: rgba(226, 232, 240, 0.75); }
+    .hero__login a { color: #fff; font-weight: 600; text-decoration: underline; }
 
-    /* Mockup flutuante */
-    .mockup {
-      justify-self: center;
-      width: min(320px, 100%);
-      padding: 1rem;
-      border-radius: 16px;
-      background: rgba(15, 23, 42, 0.55);
-      border: 1px solid rgba(148, 163, 184, 0.25);
-      backdrop-filter: blur(8px);
-      box-shadow: 0 24px 60px rgba(2, 6, 23, 0.5);
-      animation: float 6s ease-in-out infinite;
-    }
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-12px); }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .mockup { animation: none; }
-    }
-    .mockup__bar {
-      display: flex;
-      gap: 0.4rem;
-      margin-bottom: 0.9rem;
-    }
-    .mockup__bar span {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: rgba(148, 163, 184, 0.5);
-    }
-    .mockup__row {
-      display: flex;
-      justify-content: space-between;
-      padding: 0.7rem 0.9rem;
-      margin-top: 0.5rem;
-      border-radius: 10px;
-      background: rgba(148, 163, 184, 0.12);
-      font-size: 0.95rem;
-      color: #e2e8f0;
-    }
+    .mockup { justify-self: center; width: min(320px, 100%); padding: 1rem; border-radius: 16px; background: rgba(15, 23, 42, 0.55); border: 1px solid rgba(148, 163, 184, 0.25); box-shadow: 0 24px 60px rgba(2, 6, 23, 0.5); animation: float 6s ease-in-out infinite; }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+    @media (prefers-reduced-motion: reduce) { .mockup { animation: none; } }
+    .mockup__bar { display: flex; gap: 0.4rem; margin-bottom: 0.9rem; }
+    .mockup__bar span { width: 10px; height: 10px; border-radius: 50%; background: rgba(148, 163, 184, 0.5); }
+    .mockup__row { display: flex; justify-content: space-between; padding: 0.7rem 0.9rem; margin-top: 0.5rem; border-radius: 10px; background: rgba(148, 163, 184, 0.12); font-size: 0.95rem; color: #e2e8f0; }
     .mockup__row b { font-variant-numeric: tabular-nums; }
-    .mockup__row--alert {
-      justify-content: center;
-      color: #fca5a5;
-      background: rgba(239, 68, 68, 0.15);
-      font-weight: 600;
-    }
-    .mockup__row--moved {
-      background: rgba(59, 130, 246, 0.22);
-      color: #bfdbfe;
-    }
+    .mockup__row--alert { justify-content: center; color: #fca5a5; background: rgba(239, 68, 68, 0.15); font-weight: 600; }
+    .mockup__row--moved { background: rgba(59, 130, 246, 0.22); color: #bfdbfe; }
 
-    /* ===== A Mágica ===== */
-    .magic {
-      background: var(--surface-alt);
-      padding: 4.5rem 0;
-      text-align: center;
-    }
-    h2 {
-      font-size: clamp(1.6rem, 3.5vw, 2.25rem);
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      margin: 0 0 0.75rem;
-    }
-    .magic__lead {
-      max-width: 34rem;
-      margin: 0 auto 2rem;
-      color: var(--text-muted);
-    }
-    .demo {
-      max-width: 380px;
-      margin: 0 auto 1.5rem;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: var(--surface);
-      padding: 0.5rem;
-      text-align: left;
-    }
-    .aula {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.8rem 0.9rem;
-      border-radius: var(--radius);
-      transition: background-color 0.45s ease, transform 0.45s ease;
-    }
+    /* ===== Problema ===== */
+    .problema { padding: 4rem 0 3rem; text-align: center; }
+    .problema__lead { max-width: 42rem; margin: 0 auto; color: var(--text-muted); font-size: 1.1rem; }
+
+    /* ===== Como funciona ===== */
+    .como { padding: 3rem 0 4.5rem; text-align: center; background: var(--surface-alt); }
+    .como__lead { max-width: 34rem; margin: 0 auto 2.5rem; color: var(--text-muted); }
+    .passos { display: grid; grid-template-columns: 1fr; gap: 1.25rem; text-align: left; }
+    @media (min-width: 720px) { .passos { grid-template-columns: repeat(3, 1fr); } }
+    .passo { padding: 1.5rem; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
+    .passo__n { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 999px; font-weight: 800; color: var(--primary-contrast); background: var(--primary); }
+    .passo h3 { margin: 0.75rem 0 0.4rem; font-size: 1.1rem; }
+    .passo p { margin: 0; color: var(--text-muted); font-size: 0.95rem; }
+    .demo-wrap { margin-top: 2.5rem; }
+    .demo-wrap__tit { font-weight: 700; margin: 0 0 0.75rem; }
+    .demo { max-width: 380px; margin: 0 auto 1.25rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: 0.5rem; text-align: left; }
+    .aula { display: flex; align-items: center; justify-content: space-between; padding: 0.8rem 0.9rem; border-radius: var(--radius); transition: background-color 0.45s ease, transform 0.45s ease; }
     .aula + .aula { margin-top: 0.25rem; }
-    .aula--shift {
-      background: color-mix(in srgb, var(--primary) 12%, transparent);
-    }
+    .aula--shift { background: color-mix(in srgb, var(--primary) 12%, transparent); }
     .aula__n { font-weight: 600; }
-    .aula__d {
-      color: var(--text-muted);
-      font-variant-numeric: tabular-nums;
-    }
-    .excecao {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin: 0.5rem 0;
-      padding: 0.65rem 0.9rem;
-      font-weight: 600;
-      color: var(--danger);
-      background: color-mix(in srgb, var(--danger) 10%, transparent);
-      border-radius: var(--radius);
-    }
-    .demo__btn {
-      margin: 0 auto;
-      cursor: pointer;
-      font-size: 1rem;
-      padding: 0.75rem 1.5rem;
-    }
-    .magic__msg {
-      max-width: 34rem;
-      margin: 1.25rem auto 0;
-      color: var(--text-muted);
-    }
+    .aula__d { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+    .excecao { display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; padding: 0.65rem 0.9rem; font-weight: 600; color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); border-radius: var(--radius); }
+    .demo__btn { margin: 0 auto; cursor: pointer; font-size: 1rem; padding: 0.75rem 1.5rem; }
 
-    /* ===== Diferenciais ===== */
-    .diferenciais {
-      padding: 4.5rem 0;
-      text-align: center;
-    }
-    .dif__lead {
-      max-width: 34rem;
-      margin: 0 auto 2.5rem;
-      color: var(--text-muted);
-    }
-    .dif__grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 1.25rem;
-      text-align: left;
-    }
-    @media (min-width: 560px) {
-      .dif__grid { grid-template-columns: 1fr 1fr; }
-    }
-    @media (min-width: 960px) {
-      .dif__grid { grid-template-columns: repeat(4, 1fr); }
-    }
-    .dif__card {
-      padding: 1.75rem 1.5rem;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      background: var(--surface);
-      box-shadow: 0 10px 30px rgba(2, 6, 23, 0.08);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .dif__card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 18px 44px rgba(2, 6, 23, 0.14);
-    }
-    .dif__icon {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 56px;
-      height: 56px;
-      border-radius: 14px;
-      color: var(--primary);
-      background: color-mix(in srgb, var(--primary) 12%, transparent);
-    }
-    .dif__card h3 {
-      margin: 1rem 0 0.5rem;
-      font-size: 1.15rem;
-    }
-    .dif__card p {
-      margin: 0;
-      color: var(--text-muted);
-      font-size: 0.95rem;
-    }
+    /* ===== Ecossistema ===== */
+    .eco { padding: 4.5rem 0; }
+    .eco__intro { text-align: center; }
+    .eco__eyebrow { display: inline-block; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--primary); margin-bottom: 0.5rem; }
+    .eco__lead { max-width: 36rem; margin: 0 auto 2.5rem; color: var(--text-muted); }
+    .pilares { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+    @media (min-width: 720px) { .pilares { grid-template-columns: 1fr 1fr; } }
+    .pilar { display: flex; gap: 1rem; padding: 1.5rem; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); transition: transform 0.2s ease, border-color 0.2s ease; }
+    .pilar:hover { transform: translateY(-3px); border-color: var(--primary); }
+    .pilar__icon { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 14px; color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); }
+    .pilar h3 { margin: 0 0 0.4rem; font-size: 1.15rem; }
+    .pilar p { margin: 0; color: var(--text-muted); font-size: 0.95rem; }
 
-    /* ===== Vitrine de Planos ===== */
-    .planos {
-      padding: 4.5rem 0 5rem;
-      text-align: center;
-      background: var(--surface-alt);
-    }
-    .planos__lead {
-      max-width: 36rem;
-      margin: 0 auto 2.5rem;
-      color: var(--text-muted);
-    }
-    /* Mobile: carrossel horizontal com scroll snap */
-    .planos__track {
-      display: flex;
-      gap: 1rem;
-      overflow-x: auto;
-      scroll-snap-type: x mandatory;
-      -webkit-overflow-scrolling: touch;
-      padding: 0.5rem 0.25rem 1rem;
-      margin: 0 -0.25rem;
-      scrollbar-width: thin;
-    }
-    .plano {
-      position: relative;
-      flex: 0 0 82%;
-      max-width: 320px;
-      scroll-snap-align: center;
-      display: flex;
-      flex-direction: column;
-      text-align: left;
-      padding: 1.75rem 1.5rem;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      background: var(--surface);
-    }
-    /* Desktop: grid dos 4 planos lado a lado */
-    @media (min-width: 960px) {
-      .planos__track {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        overflow: visible;
-        align-items: stretch;
-        margin: 0;
-      }
-      .plano { flex: initial; max-width: none; }
-    }
-    .plano--destaque {
-      border-color: var(--primary);
-      box-shadow: 0 16px 44px color-mix(in srgb, var(--primary) 28%, transparent);
-    }
-    @media (min-width: 960px) {
-      .plano--destaque { transform: scale(1.04); }
-    }
-    .plano__badge {
-      position: absolute;
-      top: -0.7rem;
-      left: 1.5rem;
-      padding: 0.25rem 0.7rem;
-      font-size: 0.72rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-      color: var(--primary-contrast);
-      background: var(--primary);
-      border-radius: 999px;
-    }
-    .plano__nome {
-      margin: 0 0 0.75rem;
-      font-size: 1.25rem;
-    }
-    .plano__preco {
-      margin: 0;
-      display: flex;
-      align-items: baseline;
-      gap: 0.3rem;
-    }
-    .plano__preco strong {
-      font-size: 1.75rem;
-      letter-spacing: -0.02em;
-    }
+    /* ===== Prova / garantias ===== */
+    .prova { padding: 2.5rem 0; background: var(--surface-alt); }
+    .prova__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; text-align: center; }
+    @media (min-width: 720px) { .prova__grid { grid-template-columns: repeat(4, 1fr); } }
+    .garantia { display: flex; flex-direction: column; gap: 0.2rem; }
+    .garantia strong { font-size: 1.05rem; color: var(--primary); }
+    .garantia span { font-size: 0.85rem; color: var(--text-muted); }
+
+    /* ===== Planos ===== */
+    .planos { padding: 4.5rem 0 5rem; text-align: center; }
+    .planos__lead { max-width: 38rem; margin: 0 auto 2.5rem; color: var(--text-muted); }
+    .planos__track { display: flex; gap: 1rem; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; padding: 0.5rem 0.25rem 1rem; margin: 0 -0.25rem; scrollbar-width: thin; }
+    .plano { position: relative; flex: 0 0 82%; max-width: 320px; scroll-snap-align: center; display: flex; flex-direction: column; text-align: left; padding: 1.75rem 1.5rem; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
+    @media (min-width: 960px) { .planos__track { display: grid; grid-template-columns: repeat(4, 1fr); overflow: visible; align-items: stretch; margin: 0; } .plano { flex: initial; max-width: none; } }
+    .plano--destaque { border-color: var(--primary); box-shadow: 0 16px 44px color-mix(in srgb, var(--primary) 28%, transparent); }
+    @media (min-width: 960px) { .plano--destaque { transform: scale(1.04); } }
+    .plano__badge { position: absolute; top: -0.7rem; left: 1.5rem; padding: 0.25rem 0.7rem; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--primary-contrast); background: var(--primary); border-radius: 999px; }
+    .plano__nome { margin: 0 0 0.75rem; font-size: 1.25rem; }
+    .plano__preco { margin: 0; display: flex; align-items: baseline; gap: 0.3rem; }
+    .plano__preco strong { font-size: 1.75rem; letter-spacing: -0.02em; }
     .plano__preco span { color: var(--text-muted); font-size: 0.9rem; }
-    .plano__limite {
-      margin: 0.75rem 0 0;
-      font-weight: 600;
-      color: var(--primary);
-    }
-    .plano__pitch {
-      margin: 0.5rem 0 1.25rem;
-      color: var(--text-muted);
-      font-size: 0.95rem;
-    }
-    .plano__features {
-      align-self: flex-start;
-      margin-bottom: 1.25rem;
-      padding: 0;
-      font: inherit;
-      font-weight: 600;
-      font-size: 0.9rem;
-      color: var(--primary);
-      background: none;
-      border: none;
-      cursor: pointer;
-    }
+    .plano__limite { margin: 0.75rem 0 0; font-weight: 600; color: var(--primary); }
+    .plano__pitch { margin: 0.5rem 0 1.25rem; color: var(--text-muted); font-size: 0.95rem; }
+    .plano__features { align-self: flex-start; margin-bottom: 1.25rem; padding: 0; font: inherit; font-weight: 600; font-size: 0.9rem; color: var(--primary); background: none; border: none; cursor: pointer; }
     .plano__features:hover { text-decoration: underline; }
-    .plano__cta {
-      margin-top: auto;
-      text-decoration: none;
-      width: 100%;
-    }
+    .plano__cta { margin-top: auto; text-decoration: none; width: 100%; }
+
+    /* ===== FAQ ===== */
+    .faq { padding: 4rem 0; background: var(--surface-alt); text-align: center; }
+    .faq__lista { text-align: left; display: flex; flex-direction: column; gap: 0.6rem; margin-top: 1.5rem; }
+    .faq__item { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: 0.9rem 1.1rem; }
+    .faq__item summary { cursor: pointer; font-weight: 700; list-style: none; }
+    .faq__item summary::-webkit-details-marker { display: none; }
+    .faq__item summary::after { content: '+'; float: right; color: var(--primary); font-weight: 800; }
+    .faq__item[open] summary::after { content: '–'; }
+    .faq__item p { margin: 0.7rem 0 0; color: var(--text-muted); }
 
     /* ===== CTA final ===== */
-    .final {
-      padding: 5rem 0;
-      text-align: center;
-      color: #f1f5f9;
-      background: linear-gradient(130deg, #0b1120, #1e3a8a);
-    }
+    .final { padding: 5rem 0; text-align: center; color: #f1f5f9; background: linear-gradient(130deg, #0b1120, #1e3a8a); }
     .final h2 { color: #fff; }
-    .final__sub {
-      max-width: 34rem;
-      margin: 0 auto 2rem;
-      color: rgba(226, 232, 240, 0.85);
-    }
-    .wl {
-      display: flex;
-      gap: 0.6rem;
-      max-width: 460px;
-      margin: 0 auto;
-      flex-wrap: wrap;
-    }
+    .final__sub { max-width: 34rem; margin: 0 auto 2rem; color: rgba(226, 232, 240, 0.85); }
+    .wl { display: flex; gap: 0.6rem; max-width: 460px; margin: 0 auto; flex-wrap: wrap; }
     .wl .tichr-input { flex: 1 1 220px; }
-    .final__ok {
-      font-weight: 600;
-      color: #86efac;
-    }
+    .final__ok { font-weight: 600; color: #86efac; }
 
     /* ===== Sticky CTA (mobile) ===== */
-    .sticky-cta {
-      display: none;
-    }
+    .sticky-cta { display: none; }
     @media (max-width: 640px) {
-      .sticky-cta {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: fixed;
-        left: 1rem;
-        right: 1rem;
-        bottom: 1rem;
-        z-index: 50;
-        padding: 0.9rem 1rem;
-        font-weight: 700;
-        color: #fff;
-        text-decoration: none;
-        border-radius: 999px;
-        background: linear-gradient(135deg, #3b82f6, #2563eb);
-        box-shadow: 0 10px 30px rgba(37, 99, 235, 0.5);
-      }
-    }
-
-    /* ===== Rodapé ===== */
-    .rodape {
-      padding: 2rem 0;
-      background: var(--bg);
-      border-top: 1px solid var(--border);
-    }
-    .rodape__inner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    @media (max-width: 640px) {
-      .rodape { padding-bottom: 5.5rem; } /* espaço para o sticky CTA */
-    }
-    .muted {
-      color: var(--text-muted);
-      font-size: 0.85rem;
+      .sticky-cta { display: flex; align-items: center; justify-content: center; position: fixed; left: 1rem; right: 1rem; bottom: 1rem; z-index: 50; padding: 0.9rem 1rem; font-weight: 700; color: #fff; text-decoration: none; border-radius: 999px; background: linear-gradient(135deg, #3b82f6, #2563eb); box-shadow: 0 10px 30px rgba(37, 99, 235, 0.5); }
     }
 
     /* ===== Modal de plano ===== */
-    .modal-preco {
-      margin: 0 0 1rem;
-      color: var(--text-muted);
-    }
-    .modal-preco strong {
-      color: var(--text);
-      font-size: 1.25rem;
-    }
-    .feat-list {
-      margin: 0;
-      padding: 0;
-      list-style: none;
-      display: grid;
-      gap: 0.6rem;
-    }
-    .feat-list li {
-      position: relative;
-      padding-left: 1.6rem;
-    }
-    .feat-list li::before {
-      content: '✓';
-      position: absolute;
-      left: 0;
-      color: var(--success);
-      font-weight: 700;
-    }
+    .modal-preco { margin: 0 0 1rem; color: var(--text-muted); }
+    .modal-preco strong { color: var(--text); font-size: 1.25rem; }
+    .feat-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.6rem; }
+    .feat-list li { position: relative; padding-left: 1.6rem; }
+    .feat-list li::before { content: '✓'; position: absolute; left: 0; color: var(--success); font-weight: 700; }
     .modal-cta { text-decoration: none; }
   `,
 })
 export class LandingPage {
   protected readonly theme = inject(ThemeService);
 
-  protected readonly diferenciais: ReadonlyArray<{
+  protected readonly passos: ReadonlyArray<{ n: number; titulo: string; texto: string }> = [
+    {
+      n: 1,
+      titulo: 'Descreva a turma',
+      texto: 'Dias da semana, modalidade e início. Nada de cadastrar aula por aula.',
+    },
+    {
+      n: 2,
+      titulo: 'O Tichr projeta e reorganiza',
+      texto: 'A grade nasce pronta e se recalcula sozinha a cada feriado, reunião ou férias.',
+    },
+    {
+      n: 3,
+      titulo: 'Planeje, gerencie e engaje',
+      texto: 'Plano de aula, turmas, equipes e portal do aluno — tudo conectado à mesma grade.',
+    },
+  ];
+
+  protected readonly pilares: ReadonlyArray<{
     icone: IconName;
     titulo: string;
     texto: string;
   }> = [
     {
-      icone: 'building',
-      titulo: 'Escola pública (grade fixa)',
+      icone: 'calendar',
+      titulo: 'Agenda que se reorganiza sozinha',
       texto:
-        'Projeção infinita do calendário. Feriados bloqueiam a aula sem quebrar o cronograma do ano.',
+        'Grade fixa ou módulo fechado. Um imprevisto desliza a aula e recalcula o término do curso — sem retrabalho.',
     },
     {
-      icone: 'rocket',
-      titulo: 'Cursos livres (módulo fechado)',
+      icone: 'book',
+      titulo: 'Do plano macro ao tópico do dia',
       texto:
-        'Cálculo e recálculo automático da data de término do curso a cada imprevisto lançado.',
+        'Escreva o syllabus da disciplina e arraste tópicos direto na grade. O tópico desliza junto com a aula quando ela se move.',
     },
     {
       icone: 'users',
-      titulo: 'Orquestração de grupos',
+      titulo: 'Sua turma, orquestrada',
       texto:
-        'Divisão inteligente de alunos, sorteio de temas e distribuição de papéis (Tech Lead, Pesquisador…).',
+        'Lista de chamada, equipes montadas arrastando alunos, cargos por membro e sorteio de dinâmicas em segundos.',
     },
     {
       icone: 'trophy',
-      titulo: 'Portal gamificado',
+      titulo: 'Portal gamificado do aluno',
       texto:
-        'Painel do aluno com barras de progresso, acúmulo de XP e engajamento da turma inteira.',
+        'Alunos entram por PIN, acompanham a grade, veem "o que já vimos / o que vem por aí" e sobem de nível com XP e ranking.',
+    },
+  ];
+
+  protected readonly garantias: ReadonlyArray<{ titulo: string; texto: string }> = [
+    { titulo: 'Grátis para começar', texto: 'Plano Estagiário sem custo' },
+    { titulo: 'Sem cartão', texto: 'Nada de pagamento para testar' },
+    { titulo: 'Aluno sem e-mail', texto: 'Acesso ao portal só com PIN' },
+    { titulo: 'De professor p/ professor', texto: 'Feito para a rotina real da sala' },
+  ];
+
+  protected readonly faqs: ReadonlyArray<{ q: string; a: string }> = [
+    {
+      q: 'Preciso cadastrar cada aula na mão?',
+      a: 'Não. Você descreve as regras da turma (dias, modalidade, início) e o Tichr projeta toda a grade — e a reorganiza sozinho quando surge um imprevisto.',
+    },
+    {
+      q: 'Serve para escola pública e para curso livre?',
+      a: 'Sim. Grade fixa mantém o cronograma do ano; módulo fechado recalcula a data de término a cada bloqueio. As duas lógicas convivem.',
+    },
+    {
+      q: 'Meus alunos precisam de conta ou e-mail?',
+      a: 'Não. Eles entram no portal buscando o seu @usuário e digitando o PIN da turma e o PIN pessoal. Simples e sem senhas.',
+    },
+    {
+      q: 'Tem custo para começar?',
+      a: 'Não. O plano Estagiário é grátis e sem cartão. Você só sobe de plano quando quiser desbloquear planejamento, equipes ou gamificação.',
+    },
+    {
+      q: 'Meu planejamento fica salvo?',
+      a: 'Sim. Plano de aula, tópicos e alocações ficam guardados e acompanham a grade — inclusive quando as aulas deslizam.',
     },
   ];
 
