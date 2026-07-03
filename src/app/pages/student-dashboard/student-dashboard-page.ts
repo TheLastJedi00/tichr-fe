@@ -1,11 +1,13 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Aluno, ProgressoTurma } from '../../core/models';
+import { formatarData } from '../../core/date-format';
+import { Aluno, ProgressoTurma, Sessao } from '../../core/models';
 import { StudentAuthService } from '../../core/student-auth.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Card } from '../../ui/card/card';
@@ -24,6 +26,17 @@ import { XpBar } from '../../ui/xp-bar/xp-bar';
       <div class="loading"><app-spinner [size]="32" /></div>
     } @else {
       <h1 class="ola">Olá, {{ nome() }} 👋</h1>
+
+      @if (proxima(); as p) {
+        <app-card>
+          <span class="prox__lbl">Próxima aula · {{ formatarData(p.data) }}</span>
+          @if (proximoTopico(); as t) {
+            <p class="prox__topico">O que vem por aí: <strong>{{ t }}</strong></p>
+          } @else {
+            <p class="prox__vazio">Aula {{ p.numero }}</p>
+          }
+        </app-card>
+      }
 
       <app-card>
         <app-xp-bar [xp]="xp()" [unidade]="nomePontuacao()" />
@@ -83,17 +96,37 @@ import { XpBar } from '../../ui/xp-bar/xp-bar';
     .trilho { height: 12px; border-radius: 999px; background: var(--surface-alt); overflow: hidden; }
     .trilho__fill { height: 100%; border-radius: 999px; background: var(--primary); transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
     .evolucao__sub { display: block; margin-top: 0.4rem; font-size: 0.85rem; color: var(--text-muted); }
+    .prox__lbl { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+    .prox__topico { margin: 0.4rem 0 0; font-size: 1.05rem; }
+    .prox__topico strong { color: var(--primary); }
+    .prox__vazio { margin: 0.4rem 0 0; color: var(--text-muted); }
   `,
 })
 export class StudentDashboardPage {
   private readonly api = inject(TurmaApiService);
   private readonly studentAuth = inject(StudentAuthService);
+  protected readonly formatarData = formatarData;
 
   protected readonly carregando = signal(true);
   protected readonly nome = signal(this.studentAuth.aluno()?.nome ?? '');
   protected readonly xp = signal(this.studentAuth.aluno()?.xpTotal ?? 0);
   protected readonly nomePontuacao = this.studentAuth.nomePontuacao;
   protected readonly progresso = signal<ProgressoTurma | null>(null);
+  private readonly sessoes = signal<Sessao[]>([]);
+  private readonly topicos = signal<Map<number, string>>(new Map());
+  private readonly hoje = new Date().toISOString().slice(0, 10);
+
+  /** Próxima aula agendada (menor data ≥ hoje, não cancelada). */
+  protected readonly proxima = computed(() =>
+    this.sessoes()
+      .filter((s) => s.data >= this.hoje && s.status !== 'CANCELADA')
+      .sort((a, b) => a.data.localeCompare(b.data))
+      .at(0),
+  );
+  protected readonly proximoTopico = computed(() => {
+    const p = this.proxima();
+    return p ? this.topicos().get(p.numero) : undefined;
+  });
 
   constructor() {
     // Recarrega o perfil para refletir o XP mais recente.
@@ -107,6 +140,15 @@ export class StudentDashboardPage {
     });
     this.api.getMeuProgresso().subscribe({
       next: (p) => this.progresso.set(p),
+      error: () => {},
+    });
+    this.api.getMinhaAgenda().subscribe({
+      next: (s) => this.sessoes.set(s),
+      error: () => {},
+    });
+    this.api.getMeuPlano().subscribe({
+      next: (r) =>
+        this.topicos.set(new Map(r.topicos.map((t) => [t.numeroAula, t.topico]))),
       error: () => {},
     });
   }
