@@ -31,39 +31,39 @@ import { Spinner } from '../../ui/spinner/spinner';
         @for (t of turmas(); track t.id) {
           <app-card>
             <div class="turma">
-              <div>
-                <h3 class="turma__nome">
-                  @if (t.cor) {
-                    <span class="dot" [style.background]="t.cor"></span>
-                  }
-                  {{ t.nome }}
-                </h3>
-                <span class="badge">
-                  {{ t.tipoModalidade === 'MODULO_FECHADO' ? 'Módulo fechado' : 'Grade fixa' }}
-                </span>
-                @if (t.disciplina) {
-                  <span class="disciplina">{{ t.disciplina }}</span>
-                }
+              <div class="turma__top">
+                <div class="turma__id">
+                  <h3 class="turma__nome">
+                    @if (t.cor) {
+                      <span class="dot" [style.background]="t.cor"></span>
+                    }
+                    {{ t.nome }}
+                  </h3>
+                  <div class="turma__tags">
+                    <span class="badge">
+                      {{ t.tipoModalidade === 'MODULO_FECHADO' ? 'Módulo fechado' : 'Grade fixa' }}
+                    </span>
+                    @if (t.disciplina) {
+                      <span class="disciplina">{{ t.disciplina }}</span>
+                    }
+                  </div>
+                </div>
+                <div class="acoes">
+                  <a class="btn-outline editar" [routerLink]="['/turmas', t.id]">Gerenciar</a>
+                  <a class="btn-outline editar" [routerLink]="['/turmas', t.id, 'editar']">Editar</a>
+                </div>
               </div>
               <div class="turma__meta">
                 @if (t.horaInicio && t.horaFim) {
-                  <span class="muted">{{ t.horaInicio }}–{{ t.horaFim }}</span>
+                  <span>{{ t.horaInicio }}–{{ t.horaFim }}</span>
                 }
-                <span class="muted">Início: {{ formatarData(t.dataInicio) }}</span>
+                <span>Início {{ formatarData(t.dataInicio) }}</span>
                 @if (t.tipoModalidade === 'MODULO_FECHADO' && t.dataFimPrevista) {
-                  <span class="muted">Término: {{ formatarData(t.dataFimPrevista) }}</span>
+                  <span>Término {{ formatarData(t.dataFimPrevista) }}</span>
                 }
                 @if (t.totalAulas) {
-                  <span class="muted">{{ t.totalAulas }} aulas</span>
+                  <span>{{ t.totalAulas }} aulas</span>
                 }
-                <div class="acoes">
-                  <a class="btn-outline editar" [routerLink]="['/turmas', t.id]">
-                    Gerenciar
-                  </a>
-                  <a class="btn-outline editar" [routerLink]="['/turmas', t.id, 'editar']">
-                    Editar
-                  </a>
-                </div>
               </div>
             </div>
           </app-card>
@@ -85,13 +85,19 @@ import { Spinner } from '../../ui/spinner/spinner';
     .lista { display: flex; flex-direction: column; gap: 0.75rem; }
     .turma {
       display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+    .turma__top {
+      display: flex;
       align-items: flex-start;
       justify-content: space-between;
-      gap: 1rem;
+      gap: 0.75rem 1rem;
       flex-wrap: wrap;
     }
+    .turma__id { min-width: 0; }
     .turma__nome {
-      margin: 0 0 0.375rem;
+      margin: 0 0 0.5rem;
       font-size: 1.1rem;
       display: flex;
       align-items: center;
@@ -102,6 +108,13 @@ import { Spinner } from '../../ui/spinner/spinner';
       height: 10px;
       border-radius: 999px;
       display: inline-block;
+      flex: 0 0 auto;
+    }
+    .turma__tags {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
     }
     .badge {
       font-size: 0.7rem;
@@ -112,26 +125,25 @@ import { Spinner } from '../../ui/spinner/spinner';
       color: var(--primary);
     }
     .disciplina {
-      margin-left: 0.5rem;
       font-size: 0.8rem;
       color: var(--text-muted);
     }
     .turma__meta {
       display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 0.2rem;
-      text-align: right;
+      flex-wrap: wrap;
+      gap: 0.3rem 1rem;
       font-size: 0.85rem;
+      color: var(--text-muted);
     }
     .acoes {
       display: flex;
-      gap: 0.4rem;
-      margin-top: 0.5rem;
+      gap: 0.5rem;
+      flex-shrink: 0;
     }
     .editar {
       text-decoration: none;
-      padding: 0.375rem 0.75rem;
+      padding: 0.4rem 0.8rem;
+      white-space: nowrap;
     }
     .muted { color: var(--text-muted); }
   `,
