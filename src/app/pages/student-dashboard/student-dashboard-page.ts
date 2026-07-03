@@ -7,7 +7,7 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { formatarData } from '../../core/date-format';
-import { Aluno, ProgressoTurma, Sessao } from '../../core/models';
+import { Aluno, ProgressoTurma, QlickDoDia, Sessao } from '../../core/models';
 import { StudentAuthService } from '../../core/student-auth.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Card } from '../../ui/card/card';
@@ -26,6 +26,17 @@ import { XpBar } from '../../ui/xp-bar/xp-bar';
       <div class="loading"><app-spinner [size]="32" /></div>
     } @else {
       <h1 class="ola">Olá, {{ nome() }} 👋</h1>
+
+      @if (qlickDoDia(); as q) {
+        <a class="qlick" routerLink="/aluno/qlick">
+          <span class="qlick__pulse"></span>
+          <span>
+            <strong>Tichr Qlick de hoje</strong>
+            <span class="qlick__sub">{{ q.titulo }} · toque para entrar</span>
+          </span>
+          <span class="qlick__seta">→</span>
+        </a>
+      }
 
       @if (proxima(); as p) {
         <app-card>
@@ -100,6 +111,13 @@ import { XpBar } from '../../ui/xp-bar/xp-bar';
     .prox__topico { margin: 0.4rem 0 0; font-size: 1.05rem; }
     .prox__topico strong { color: var(--primary); }
     .prox__vazio { margin: 0.4rem 0 0; color: var(--text-muted); }
+    .qlick { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; padding: 0.9rem 1rem; border-radius: 14px; color: #fff; background: linear-gradient(135deg, #7c3aed, #2563eb); box-shadow: 0 10px 30px color-mix(in srgb, #7c3aed 30%, transparent); }
+    .qlick strong { display: block; }
+    .qlick__sub { font-size: 0.82rem; opacity: 0.9; }
+    .qlick__seta { margin-left: auto; font-weight: 800; font-size: 1.2rem; }
+    .qlick__pulse { flex: 0 0 auto; width: 12px; height: 12px; border-radius: 999px; background: #fff; animation: qpulse 1.2s ease-in-out infinite; }
+    @keyframes qpulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.6); } 50% { box-shadow: 0 0 0 6px rgba(255,255,255,0); } }
+    @media (prefers-reduced-motion: reduce) { .qlick__pulse { animation: none; } }
   `,
 })
 export class StudentDashboardPage {
@@ -112,6 +130,7 @@ export class StudentDashboardPage {
   protected readonly xp = signal(this.studentAuth.aluno()?.xpTotal ?? 0);
   protected readonly nomePontuacao = this.studentAuth.nomePontuacao;
   protected readonly progresso = signal<ProgressoTurma | null>(null);
+  protected readonly qlickDoDia = signal<QlickDoDia | null>(null);
   private readonly sessoes = signal<Sessao[]>([]);
   private readonly topicos = signal<Map<number, string>>(new Map());
   private readonly hoje = new Date().toISOString().slice(0, 10);
@@ -149,6 +168,10 @@ export class StudentDashboardPage {
     this.api.getMeuPlano().subscribe({
       next: (r) =>
         this.topicos.set(new Map(r.topicos.map((t) => [t.numeroAula, t.topico]))),
+      error: () => {},
+    });
+    this.api.getQlickDoDia().subscribe({
+      next: (q) => this.qlickDoDia.set(q),
       error: () => {},
     });
   }

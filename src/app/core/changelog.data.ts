@@ -18,6 +18,18 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.5.0',
+    data: '2026-07-03',
+    titulo: 'Tichr Qlick',
+    itens: [
+      { categoria: 'Nova feature', texto: 'Tichr Qlick: quiz ao vivo estilo Kahoot, exclusivo do plano PhD. Estúdio para montar perguntas e alternativas.' },
+      { categoria: 'Nova feature', texto: 'Partida em tempo real: lobby, pergunta com cronômetro, revelação da resposta e pódio final — tudo sincronizado ao vivo.' },
+      { categoria: 'Nova feature', texto: 'No portal, o aluno entra pelo "Tichr Qlick de hoje", responde e vê sua colocação na hora.' },
+      { categoria: 'Nova feature', texto: 'Os pontos da partida entram no XP do portal (motivo Qlick), somando ao ranking da turma.' },
+      { categoria: 'Melhoria', texto: 'Novo menu "Jogos" com a vitrine do Tichr Qlick.' },
+    ],
+  },
+  {
     versao: 'v0.4.0',
     data: '2026-07-03',
     titulo: 'Plano de Aula & Agenda',

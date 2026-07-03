@@ -30,6 +30,7 @@ export function linksPainel(plano: PlanoAtual | undefined): NavLink[] {
           locked: true,
           query: { recurso: 'PLANO_AULA' },
         },
+    { label: 'Jogos', path: '/jogos', icon: 'game' },
     { label: 'Configurações', path: '/configuracoes', icon: 'settings' },
   ];
 }

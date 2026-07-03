@@ -11,11 +11,15 @@ import {
   CriarEquipePayload,
   CriarExcecaoPayload,
   CriarFeriasPayload,
+  CriarQlickPayload,
   CriarTurmaPayload,
   Equipe,
   Ferias,
+  Partida,
   PlanoAula,
   ProgressoTurma,
+  Qlick,
+  QlickDoDia,
   RankingItem,
   Sessao,
   Squad,
@@ -301,6 +305,74 @@ export class TurmaApiService {
 
   removerTopico(id: string): Observable<{ removido: boolean }> {
     return this.http.delete<{ removido: boolean }>(`${this.base}/topicos/${id}`);
+  }
+
+  // ===== Tichr Qlick (definição do questionário) =====
+
+  getQlicks(): Observable<Qlick[]> {
+    return this.http.get<Qlick[]>(`${this.base}/qlicks`);
+  }
+
+  getQlick(id: string): Observable<Qlick> {
+    return this.http.get<Qlick>(`${this.base}/qlicks/${id}`);
+  }
+
+  criarQlick(payload: CriarQlickPayload): Observable<Qlick> {
+    return this.http.post<Qlick>(`${this.base}/qlicks`, payload);
+  }
+
+  atualizarQlick(id: string, payload: CriarQlickPayload): Observable<Qlick> {
+    return this.http.put<Qlick>(`${this.base}/qlicks/${id}`, payload);
+  }
+
+  removerQlick(id: string): Observable<{ removido: boolean }> {
+    return this.http.delete<{ removido: boolean }>(`${this.base}/qlicks/${id}`);
+  }
+
+  /** Professor: cria a partida (lobby) de um Qlick. */
+  criarPartida(qlickId: string): Observable<Partida> {
+    return this.http.post<Partida>(
+      `${this.base}/qlicks/${qlickId}/partida`,
+      {},
+    );
+  }
+
+  getPartida(id: string): Observable<Partida> {
+    return this.http.get<Partida>(`${this.base}/partidas/${id}`);
+  }
+
+  /** Aluno: Qlick disponível hoje (janela da aula), ou null. */
+  getQlickDoDia(): Observable<QlickDoDia | null> {
+    return this.http.get<QlickDoDia | null>(`${this.base}/aluno/qlick`);
+  }
+
+  /** Aluno: inscrição no lobby da partida. */
+  inscreverQlick(partidaId: string): Observable<unknown> {
+    return this.http.post(
+      `${this.base}/aluno/qlick/${partidaId}/inscricao`,
+      {},
+    );
+  }
+
+  /** Professor: comandos da partida (iniciar/proxima/apurar/encerrar). */
+  comandoPartida(
+    partidaId: string,
+    comando: 'iniciar' | 'proxima' | 'apurar' | 'encerrar',
+  ): Observable<unknown> {
+    return this.http.post(
+      `${this.base}/partidas/${partidaId}/${comando}`,
+      {},
+    );
+  }
+
+  /** Aluno: submete a resposta da pergunta corrente. */
+  responderQlick(
+    partidaId: string,
+    alternativaIndex: number,
+  ): Observable<unknown> {
+    return this.http.post(`${this.base}/aluno/qlick/${partidaId}/resposta`, {
+      alternativaIndex,
+    });
   }
 
   getAlocacoes(turmaId: string): Observable<Alocacao[]> {

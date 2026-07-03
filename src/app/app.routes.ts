@@ -62,6 +62,13 @@ export const routes: Routes = [
             (m) => m.StudentRankingPage,
           ),
       },
+      {
+        path: 'qlick',
+        loadComponent: () =>
+          import('./pages/student-qlick/student-qlick-page').then(
+            (m) => m.StudentQlickPage,
+          ),
+      },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },
@@ -128,6 +135,42 @@ export const routes: Routes = [
           import('./pages/plano-aula/plano-aula-page').then(
             (m) => m.PlanoAulaPage,
           ),
+      },
+      {
+        path: 'jogos',
+        loadComponent: () =>
+          import('./pages/jogos/jogos-page').then((m) => m.JogosPage),
+      },
+      {
+        path: 'jogos/qlick',
+        loadComponent: () =>
+          import('./pages/jogos/qlick-intro-page').then((m) => m.QlickIntroPage),
+      },
+      {
+        path: 'jogos/qlick/meus',
+        canActivate: [exigePlano('QLICK')],
+        loadComponent: () =>
+          import('./pages/jogos/qlick-list-page').then((m) => m.QlickListPage),
+      },
+      {
+        path: 'jogos/qlick/partida/:id',
+        canActivate: [exigePlano('QLICK')],
+        loadComponent: () =>
+          import('./pages/jogos/professor-partida-page').then(
+            (m) => m.ProfessorPartidaPage,
+          ),
+      },
+      {
+        path: 'jogos/qlick/novo',
+        canActivate: [exigePlano('QLICK')],
+        loadComponent: () =>
+          import('./pages/jogos/qlick-studio-page').then((m) => m.QlickStudioPage),
+      },
+      {
+        path: 'jogos/qlick/editar/:id',
+        canActivate: [exigePlano('QLICK')],
+        loadComponent: () =>
+          import('./pages/jogos/qlick-studio-page').then((m) => m.QlickStudioPage),
       },
       {
         path: 'configuracoes',
