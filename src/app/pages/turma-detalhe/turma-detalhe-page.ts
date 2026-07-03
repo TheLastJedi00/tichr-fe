@@ -26,11 +26,12 @@ import { Modal } from '../../ui/modal/modal';
 import { RecursoBloqueado } from '../../ui/recurso-bloqueado/recurso-bloqueado';
 import { Spinner } from '../../ui/spinner/spinner';
 
-type Aba = 'agenda' | 'alunos';
+type Aba = 'agenda' | 'alunos' | 'equipes';
+type Ordenacao = 'nome' | 'pontuacao';
 
 /**
- * Detalhe da turma com abas "Agenda" e "Alunos". A aba de alunos e um quadro
- * de equipes com arrastar-e-soltar: pool "Sem equipe" + uma coluna por equipe.
+ * Detalhe da turma em 3 abas independentes: "Agenda" (sessões), "Alunos"
+ * (lista + pontuação) e "Equipes" (quadro drag & drop, gate do plano Mestre).
  */
 @Component({
   selector: 'app-turma-detalhe-page',
@@ -81,132 +82,190 @@ type Aba = 'agenda' | 'alunos';
         >
           Alunos ({{ alunos().length }})
         </button>
+        <button
+          class="tab"
+          [class.tab--active]="aba() === 'equipes'"
+          type="button"
+          (click)="aba.set('equipes')"
+        >
+          Equipes ({{ equipes().length }})
+        </button>
       </nav>
 
-      @if (aba() === 'agenda') {
-        @if (sessoes().length === 0) {
-          <app-card><p class="muted">Nenhuma aula projetada.</p></app-card>
-        } @else {
-          <div class="sessoes">
-            @for (s of sessoes(); track s.id) {
-              <app-card>
-                <div class="sessao">
-                  <span class="sessao__n">Aula {{ s.numero }}</span>
-                  <span class="sessao__d">{{ formatarData(s.data) }}</span>
-                  <span class="status status--{{ s.status.toLowerCase() }}">
-                    {{ s.status }}
-                  </span>
-                </div>
-              </app-card>
-            }
-          </div>
-        }
-      } @else if (podeGerenciar()) {
-        <app-card>
-          <form class="add" (submit)="$event.preventDefault(); adicionar()">
-            <input
-              class="tichr-input"
-              placeholder="Nomes separados por vírgula ou quebra de linha"
-              [value]="entrada()"
-              (input)="entrada.set($any($event.target).value)"
-            />
-            <button class="btn-primary" type="submit" [disabled]="salvando()">
-              Adicionar
-            </button>
-          </form>
-
-          <div class="acoes">
-            <button class="btn-outline" type="button" (click)="abrirNova()">
-              <app-icon name="plus" [size]="16" /> Nova equipe
-            </button>
-            <button
-              class="btn-primary"
-              type="button"
-              [disabled]="equipes().length === 0 || distribuindo()"
-              [title]="
-                equipes().length === 0 ? 'Crie ao menos uma equipe' : ''
-              "
-              (click)="distribuir()"
-            >
-              <app-icon name="users" [size]="16" />
-              {{ distribuindo() ? 'Distribuindo…' : 'Distribuir' }}
-            </button>
-          </div>
-          @if (equipes().length === 0) {
-            <p class="hint">Crie ao menos uma equipe para distribuir os alunos.</p>
-          }
-        </app-card>
-
-        <div class="board" cdkDropListGroup>
-          <section class="pool">
-            <header class="pool__head">
-              <h3 class="pool__titulo">Sem equipe</h3>
-              <span class="pool__contagem">{{ semEquipe().length }}</span>
-            </header>
-            <div
-              class="dropzone"
-              cdkDropList
-              id="pool"
-              role="list"
-              aria-label="Alunos sem equipe"
-              [cdkDropListData]="semEquipe()"
-              (cdkDropListDropped)="soltar($event, null)"
-            >
-              @for (a of semEquipe(); track a.id) {
-                <app-aluno-card
-                  cdkDrag
-                  [aluno]="a"
-                  (darXp)="darXp(a, $event)"
-                  (remover)="remover(a)"
-                />
-              } @empty {
-                <p class="hint">Todos os alunos estão em equipes.</p>
+      @switch (aba()) {
+        @case ('agenda') {
+          @if (sessoes().length === 0) {
+            <app-card><p class="muted">Nenhuma aula projetada.</p></app-card>
+          } @else {
+            <div class="sessoes">
+              @for (s of sessoes(); track s.id) {
+                <app-card>
+                  <div class="sessao">
+                    <span class="sessao__n">Aula {{ s.numero }}</span>
+                    <span class="sessao__d">{{ formatarData(s.data) }}</span>
+                    <span class="status status--{{ s.status.toLowerCase() }}">
+                      {{ s.status }}
+                    </span>
+                  </div>
+                </app-card>
               }
             </div>
-          </section>
+          }
+        }
 
-          @for (e of equipes(); track e.id) {
-            <app-equipe-coluna
-              [equipe]="e"
-              [total]="daEquipe(e.id).length"
-              (info)="abrirInfo(e)"
-              (excluir)="excluir(e)"
-            >
-              <div
-                class="dropzone"
-                cdkDropList
-                role="list"
-                [id]="e.id"
-                [attr.aria-label]="'Equipe ' + e.titulo"
-                [cdkDropListData]="daEquipe(e.id)"
-                (cdkDropListDropped)="soltar($event, e.id)"
-              >
-                @for (a of daEquipe(e.id); track a.id) {
-                  <app-aluno-card
-                    cdkDrag
-                    [aluno]="a"
-                    (darXp)="darXp(a, $event)"
-                    (remover)="remover(a)"
-                  />
-                } @empty {
-                  <p class="hint">Solte alunos aqui.</p>
+        @case ('alunos') {
+          <app-card>
+            <form class="add" (submit)="$event.preventDefault(); adicionar()">
+              <input
+                class="tichr-input"
+                placeholder="Nomes separados por vírgula ou quebra de linha"
+                [value]="entrada()"
+                (input)="entrada.set($any($event.target).value)"
+              />
+              <button class="btn-primary" type="submit" [disabled]="salvando()">
+                Adicionar
+              </button>
+            </form>
+
+            @if (alunos().length === 0) {
+              <p class="muted vazio">Nenhum aluno ainda. Adicione nomes acima.</p>
+            } @else {
+              <div class="ordenar">
+                <span class="ordenar__label">Ordenar por</span>
+                <button
+                  class="seg"
+                  [class.seg--on]="ordenacao() === 'nome'"
+                  type="button"
+                  (click)="ordenacao.set('nome')"
+                >
+                  Nome
+                </button>
+                @if (cfg().pontuacaoAtiva) {
+                  <button
+                    class="seg"
+                    [class.seg--on]="ordenacao() === 'pontuacao'"
+                    type="button"
+                    (click)="ordenacao.set('pontuacao')"
+                  >
+                    {{ cfg().nomePontuacao }}
+                  </button>
                 }
               </div>
-            </app-equipe-coluna>
-          }
-        </div>
 
-        @if (alunos().length === 0) {
-          <p class="muted vazio">
-            Nenhum aluno ainda. Adicione nomes acima para montar as equipes.
-          </p>
+              <ul class="lista">
+                @for (a of alunosOrdenados(); track a.id) {
+                  <li class="lista__item">
+                    <button
+                      class="lista__click"
+                      type="button"
+                      (click)="abrirPontuar(a)"
+                    >
+                      <span class="lista__nome">{{ a.nome }}</span>
+                      @if (cfg().pontuacaoAtiva) {
+                        <span class="lista__xp">
+                          {{ a.xpTotal ?? 0 }} {{ cfg().nomePontuacao }}
+                        </span>
+                      }
+                    </button>
+                    <button
+                      class="remover"
+                      type="button"
+                      aria-label="Remover aluno"
+                      (click)="remover(a)"
+                    >
+                      <app-icon name="close" [size]="16" />
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+          </app-card>
         }
-      } @else {
-        <app-recurso-bloqueado
-          recurso="Gestão de equipes"
-          planoNecessario="Mestre"
-          (upgrade)="irParaPlanos()"
-        />
+
+        @case ('equipes') {
+          @if (podeGerenciar()) {
+            <app-card>
+              <div class="acoes">
+                <button class="btn-outline" type="button" (click)="abrirNova()">
+                  <app-icon name="plus" [size]="16" /> Nova equipe
+                </button>
+                <button
+                  class="btn-primary"
+                  type="button"
+                  [disabled]="equipes().length === 0 || distribuindo()"
+                  (click)="distribuir()"
+                >
+                  <app-icon name="users" [size]="16" />
+                  {{ distribuindo() ? 'Distribuindo…' : 'Distribuir' }}
+                </button>
+              </div>
+              @if (equipes().length === 0) {
+                <p class="hint">Crie ao menos uma equipe para distribuir os alunos.</p>
+              }
+            </app-card>
+
+            <div cdkDropListGroup>
+              <section class="pool">
+                <header class="pool__head">
+                  <h3 class="pool__titulo">Sem equipe</h3>
+                  <span class="pool__contagem">{{ semEquipe().length }}</span>
+                </header>
+                <div
+                  class="pool__list"
+                  cdkDropList
+                  id="pool"
+                  role="list"
+                  aria-label="Alunos sem equipe"
+                  [cdkDropListData]="semEquipe()"
+                  (cdkDropListDropped)="soltar($event, null)"
+                >
+                  @for (a of semEquipe(); track a.id) {
+                    <app-aluno-card cdkDrag [aluno]="a" [mostrarPontuacao]="false" />
+                  } @empty {
+                    <p class="hint">Todos os alunos estão em equipes.</p>
+                  }
+                </div>
+              </section>
+
+              <div class="board">
+                @for (e of equipes(); track e.id) {
+                  <app-equipe-coluna
+                    [equipe]="e"
+                    [total]="daEquipe(e.id).length"
+                    (info)="abrirInfo(e)"
+                    (excluir)="excluir(e)"
+                  >
+                    <div
+                      class="dropzone"
+                      cdkDropList
+                      role="list"
+                      [id]="e.id"
+                      [attr.aria-label]="'Equipe ' + e.titulo"
+                      [cdkDropListData]="daEquipe(e.id)"
+                      (cdkDropListDropped)="soltar($event, e.id)"
+                    >
+                      @for (a of daEquipe(e.id); track a.id) {
+                        <app-aluno-card cdkDrag [aluno]="a" [mostrarPontuacao]="false" />
+                      } @empty {
+                        <p class="hint">Solte alunos aqui.</p>
+                      }
+                    </div>
+                  </app-equipe-coluna>
+                }
+              </div>
+
+              @if (equipes().length === 0) {
+                <p class="muted vazio">Nenhuma equipe ainda. Clique em "Nova equipe".</p>
+              }
+            </div>
+          } @else {
+            <app-recurso-bloqueado
+              recurso="Gestão de equipes"
+              planoNecessario="Mestre"
+              (upgrade)="irParaPlanos()"
+            />
+          }
+        }
       }
 
       <app-equipe-form
@@ -227,9 +286,7 @@ type Aba = 'agenda' | 'alunos';
             <span class="info__cor" [style.background]="e.cor"></span>
             <span class="info__cortxt">{{ e.cor }}</span>
           </div>
-          <p class="info__desc">
-            {{ e.descricao || 'Sem descrição.' }}
-          </p>
+          <p class="info__desc">{{ e.descricao || 'Sem descrição.' }}</p>
         }
         <div modal-actions>
           <button class="btn-outline" type="button" (click)="infoEquipe.set(null)">
@@ -238,6 +295,56 @@ type Aba = 'agenda' | 'alunos';
           <button class="btn-primary" type="button" (click)="editarDaInfo()">
             Editar
           </button>
+        </div>
+      </app-modal>
+
+      <app-modal
+        [open]="!!pontuando()"
+        [title]="pontuando()?.nome ?? ''"
+        (close)="pontuando.set(null)"
+      >
+        @if (pontuando(); as a) {
+          @if (cfg().pontuacaoAtiva) {
+            <p class="pontos">
+              <strong>{{ a.xpTotal ?? 0 }}</strong> {{ cfg().nomePontuacao }}
+            </p>
+            <label class="campo">
+              <span>Quantidade</span>
+              <input
+                class="tichr-input"
+                type="number"
+                min="1"
+                [value]="qtd()"
+                (input)="qtd.set(+$any($event.target).value)"
+              />
+            </label>
+          } @else {
+            <p class="muted">A pontuação está desativada nesta turma.</p>
+          }
+        }
+        <div modal-actions>
+          @if (cfg().pontuacaoAtiva) {
+            <button
+              class="btn-outline"
+              type="button"
+              [disabled]="pontuandoBusy()"
+              (click)="aplicarPontos(-1)"
+            >
+              {{ cfg().rotuloRemover }}
+            </button>
+            <button
+              class="btn-primary"
+              type="button"
+              [disabled]="pontuandoBusy()"
+              (click)="aplicarPontos(1)"
+            >
+              {{ cfg().rotuloAdicionar }}
+            </button>
+          } @else {
+            <button class="btn-primary" type="button" (click)="pontuando.set(null)">
+              Fechar
+            </button>
+          }
         </div>
       </app-modal>
     } @else {
@@ -262,7 +369,7 @@ type Aba = 'agenda' | 'alunos';
       border-bottom: 1px solid var(--border);
     }
     .tab {
-      padding: 0.6rem 1rem;
+      padding: 0.6rem 0.9rem;
       font: inherit;
       font-weight: 600;
       color: var(--text-muted);
@@ -287,19 +394,67 @@ type Aba = 'agenda' | 'alunos';
     .muted { color: var(--text-muted); }
     .hint { color: var(--text-muted); font-size: 0.85rem; margin: 0.25rem 0; }
 
-    .info { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
-    .info__cor { width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); }
-    .info__cortxt { font-variant-numeric: tabular-nums; color: var(--text-muted); font-size: 0.85rem; }
-    .info__desc { margin: 0; color: var(--text); white-space: pre-wrap; }
-
-    .board {
-      margin-top: 1rem;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 0.75rem;
-      align-items: start;
+    /* ===== Aba Alunos ===== */
+    .ordenar { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
+    .ordenar__label { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; }
+    .seg {
+      font: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 0.3rem 0.7rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
     }
+    .seg--on { color: var(--primary-contrast); background: var(--primary); border-color: var(--primary); }
+    .lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.25rem; }
+    .lista__item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      border-radius: var(--radius);
+      background: var(--surface-alt);
+    }
+    .lista__click {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      min-width: 0;
+      padding: 0.6rem 0.75rem;
+      font: inherit;
+      text-align: left;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: inherit;
+    }
+    .lista__nome { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lista__xp {
+      flex: 0 0 auto;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      font-size: 0.85rem;
+      color: var(--primary);
+    }
+    .remover {
+      display: inline-flex;
+      color: var(--text-muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.5rem;
+    }
+    .remover:hover { color: var(--danger); }
+    .pontos { margin: 0 0 0.75rem; font-size: 1.1rem; }
+    .campo { display: block; }
+    .campo > span { display: block; margin-bottom: 0.35rem; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
+
+    /* ===== Aba Equipes ===== */
     .pool {
+      margin-bottom: 0.75rem;
       border: 1px dashed var(--border);
       border-radius: var(--radius);
       background: var(--surface);
@@ -319,15 +474,36 @@ type Aba = 'agenda' | 'alunos';
       padding: 0.1rem 0.45rem;
       border-radius: 999px;
     }
+    .pool__list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      padding: 0.25rem 0.6rem 0.7rem;
+      min-height: 3rem;
+    }
+    .pool__list app-aluno-card { flex: 0 1 200px; }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 0.75rem;
+      align-items: stretch;
+    }
     .dropzone {
       display: flex;
       flex-direction: column;
       gap: 0.4rem;
-      padding: 0.5rem 0.6rem 0.7rem;
       min-height: 3rem;
+      height: 100%;
     }
-    .pool .dropzone { padding-top: 0; }
 
+    /* ===== Modais ===== */
+    .info { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .info__cor { width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); }
+    .info__cortxt { font-variant-numeric: tabular-nums; color: var(--text-muted); font-size: 0.85rem; }
+    .info__desc { margin: 0; color: var(--text); white-space: pre-wrap; }
+
+    /* ===== Drag & drop ===== */
     .cdk-drag-preview {
       box-sizing: border-box;
       border-radius: var(--radius);
@@ -347,11 +523,6 @@ export class TurmaDetalhePage {
   private readonly profileService = inject(ProfileService);
   protected readonly formatarData = formatarData;
 
-  /** Gestão de equipes exige o plano Mestre (gating inline da aba). */
-  protected readonly podeGerenciar = computed(() =>
-    planoAtendeMinimo(this.profileService.profile()?.planoAtual, 'MESTRE'),
-  );
-
   protected readonly turmaId = this.route.snapshot.paramMap.get('id')!;
   protected readonly aba = signal<Aba>('agenda');
   protected readonly carregando = signal(true);
@@ -360,13 +531,36 @@ export class TurmaDetalhePage {
   protected readonly equipes = signal<Equipe[]>([]);
   protected readonly entrada = signal('');
   protected readonly salvando = signal(false);
+  protected readonly ordenacao = signal<Ordenacao>('nome');
 
-  // Estado do modal de equipe.
+  // Modais de equipe.
   protected readonly formOpen = signal(false);
   protected readonly editando = signal<Equipe | null>(null);
   protected readonly salvandoEquipe = signal(false);
   protected readonly infoEquipe = signal<Equipe | null>(null);
   protected readonly distribuindo = signal(false);
+
+  // Modal de pontuação.
+  protected readonly pontuando = signal<Aluno | null>(null);
+  protected readonly qtd = signal(10);
+  protected readonly pontuandoBusy = signal(false);
+
+  /** Gestão de equipes exige o plano Mestre (gate da aba Equipes). */
+  protected readonly podeGerenciar = computed(() =>
+    planoAtendeMinimo(this.profileService.profile()?.planoAtual, 'MESTRE'),
+  );
+
+  /** Config de pontuação da turma com defaults aplicados. */
+  protected readonly cfg = computed(() => {
+    const t = this.turma();
+    return {
+      pontuacaoAtiva: t?.pontuacaoAtiva ?? true,
+      nomePontuacao: t?.nomePontuacao?.trim() || 'XP',
+      rankingAtivo: t?.rankingAtivo ?? true,
+      rotuloAdicionar: t?.rotuloAdicionar?.trim() || 'Adicionar',
+      rotuloRemover: t?.rotuloRemover?.trim() || 'Remover',
+    };
+  });
 
   private readonly todasSessoes = signal<Sessao[]>([]);
   protected readonly sessoes = computed(() =>
@@ -378,6 +572,13 @@ export class TurmaDetalhePage {
   protected readonly semEquipe = computed(() =>
     this.alunos().filter((a) => !a.equipeId),
   );
+
+  protected readonly alunosOrdenados = computed(() => {
+    const lista = [...this.alunos()];
+    return this.ordenacao() === 'pontuacao'
+      ? lista.sort((a, b) => (b.xpTotal ?? 0) - (a.xpTotal ?? 0))
+      : lista.sort((a, b) => a.nome.localeCompare(b.nome));
+  });
 
   /** Alunos de uma equipe (recalculado a partir do signal de alunos). */
   protected daEquipe(equipeId: string): Aluno[] {
@@ -432,18 +633,38 @@ export class TurmaDetalhePage {
     });
   }
 
-  /** Ferramenta rápida de XP: pontua o aluno com um clique. */
-  protected darXp(aluno: Aluno, pontos: number): void {
-    this.api.darXp(this.turmaId, aluno.id, pontos).subscribe((res) => {
-      this.alunos.update((atual) =>
-        atual.map((a) => (a.id === aluno.id ? { ...a, xpTotal: res.xpTotal } : a)),
-      );
+  // ===== Pontuação =====
+
+  protected abrirPontuar(aluno: Aluno): void {
+    this.pontuando.set(aluno);
+  }
+
+  /** Aplica +/- a quantidade ao aluno em foco e mantém o modal aberto. */
+  protected aplicarPontos(sinal: 1 | -1): void {
+    const alvo = this.pontuando();
+    const qtd = Math.abs(Math.trunc(this.qtd()));
+    if (!alvo || qtd <= 0) {
+      return;
+    }
+    this.pontuandoBusy.set(true);
+    this.api.darXp(this.turmaId, alvo.id, sinal * qtd).subscribe({
+      next: (res) => {
+        this.alunos.update((atual) =>
+          atual.map((a) =>
+            a.id === alvo.id ? { ...a, xpTotal: res.xpTotal } : a,
+          ),
+        );
+        this.pontuando.update((a) =>
+          a ? { ...a, xpTotal: res.xpTotal } : a,
+        );
+        this.pontuandoBusy.set(false);
+      },
+      error: () => this.pontuandoBusy.set(false),
     });
   }
 
   // ===== Drag & drop =====
 
-  /** Persiste o movimento de um card entre pool/equipes (otimista + rollback). */
   protected soltar(event: CdkDragDrop<Aluno[]>, equipeId: string | null): void {
     if (event.previousContainer === event.container) {
       return;
@@ -501,7 +722,6 @@ export class TurmaDetalhePage {
     });
   }
 
-  /** Distribui os alunos pelas equipes de forma balanceada (backend). */
   protected distribuir(): void {
     if (this.equipes().length === 0) {
       return;
@@ -527,7 +747,6 @@ export class TurmaDetalhePage {
     this.infoEquipe.set(equipe);
   }
 
-  /** Do modal de informações, salta para a edição da equipe. */
   protected editarDaInfo(): void {
     this.editando.set(this.infoEquipe());
     this.infoEquipe.set(null);
