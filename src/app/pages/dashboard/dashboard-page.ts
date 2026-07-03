@@ -8,11 +8,12 @@ import {
 import { RouterLink } from '@angular/router';
 import { formatarData } from '../../core/date-format';
 import { dataPorExtenso, hojeISO, saudacaoPorHora } from '../../core/greeting';
-import { CriarExcecaoPayload, Sessao, Turma } from '../../core/models';
+import { CriarExcecaoPayload, Qlick, Sessao, Turma } from '../../core/models';
 import { planoAtendeMinimo } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Card } from '../../ui/card/card';
+import { Icon } from '../../ui/icon/icon';
 import { IconButton } from '../../ui/icon-button/icon-button';
 import { Spinner } from '../../ui/spinner/spinner';
 import { ExcecaoModal } from './excecao-modal';
@@ -25,7 +26,7 @@ import { ExcecaoModal } from './excecao-modal';
   selector: 'app-dashboard-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Card, IconButton, Spinner, ExcecaoModal],
+  imports: [RouterLink, Card, Icon, IconButton, Spinner, ExcecaoModal],
   template: `
     <header class="greeting">
       <h1>Olá, {{ saudacao }}{{ nome() ? ', ' + nome() : '' }}!</h1>
@@ -98,6 +99,17 @@ import { ExcecaoModal } from './excecao-modal';
         </app-card>
       }
 
+      @if (qlickProximaTurma(); as q) {
+        <a class="qlick-aviso" routerLink="/jogos/qlick/meus">
+          <span class="qlick-aviso__ic"><app-icon name="game" [size]="22" /></span>
+          <span class="qlick-aviso__txt">
+            <strong>Qlick pronto para {{ proximaTurma()?.nome }}</strong>
+            <span>“{{ q.titulo }}” — toque para rodar na próxima aula</span>
+          </span>
+          <span class="qlick-aviso__seta">→</span>
+        </a>
+      }
+
       <a class="btn-outline ver-agenda" routerLink="/agenda">Ver agenda completa</a>
     }
 
@@ -133,8 +145,10 @@ import { ExcecaoModal } from './excecao-modal';
       display: flex;
       align-items: baseline;
       justify-content: space-between;
-      gap: 0.75rem;
+      gap: 0.4rem 0.75rem;
+      flex-wrap: wrap;
     }
+    .proxima__info { min-width: 0; }
     .proxima__data {
       display: block;
       font-size: 1.35rem;
@@ -142,9 +156,10 @@ import { ExcecaoModal } from './excecao-modal';
       color: var(--primary);
     }
     .proxima__turma {
-      display: inline-flex;
+      display: flex;
       align-items: center;
-      gap: 0.4rem;
+      flex-wrap: wrap;
+      gap: 0.35rem;
       margin-top: 0.25rem;
       font-weight: 600;
     }
@@ -179,6 +194,23 @@ import { ExcecaoModal } from './excecao-modal';
       margin-top: 0.875rem;
       text-decoration: none;
     }
+    .qlick-aviso {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-top: 0.875rem;
+      padding: 0.85rem 1rem;
+      border-radius: 14px;
+      color: #fff;
+      text-decoration: none;
+      background: linear-gradient(135deg, #7c3aed, #2563eb);
+      box-shadow: 0 10px 30px color-mix(in srgb, #7c3aed 30%, transparent);
+    }
+    .qlick-aviso__ic { flex: 0 0 auto; display: inline-flex; }
+    .qlick-aviso__txt { display: flex; flex-direction: column; min-width: 0; }
+    .qlick-aviso__txt strong { font-weight: 800; }
+    .qlick-aviso__txt span { font-size: 0.82rem; opacity: 0.92; }
+    .qlick-aviso__seta { margin-left: auto; font-weight: 800; font-size: 1.2rem; }
     .onboarding h3 {
       margin: 0 0 0.375rem;
       font-size: 1.1rem;
@@ -257,6 +289,14 @@ export class DashboardPage {
     return p ? (this.turmas().get(p.turmaId) ?? null) : null;
   });
 
+  /** Qlicks do professor (PhD) — para avisar se há um pronto na próxima turma. */
+  private readonly qlicks = signal<Qlick[]>([]);
+  protected readonly qlickProximaTurma = computed<Qlick | null>(() => {
+    const t = this.proximaTurma();
+    if (!t) return null;
+    return this.qlicks().find((q) => q.turmaId === t.id) ?? null;
+  });
+
   constructor() {
     this.profileService.load().subscribe({
       next: () => {
@@ -267,6 +307,12 @@ export class DashboardPage {
           this.api.getPlanosAula().subscribe((ps) =>
             this.planos.set(new Map(ps.map((p) => [p.disciplina, p.contextoGeral]))),
           );
+        }
+        if (planoAtendeMinimo(this.profileService.profile()?.planoAtual, 'PHD')) {
+          this.api.getQlicks().subscribe({
+            next: (qs) => this.qlicks.set(qs),
+            error: () => {},
+          });
         }
         this.enriquecerProxima();
       },
