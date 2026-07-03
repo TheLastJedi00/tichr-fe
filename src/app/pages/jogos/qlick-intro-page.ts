@@ -8,8 +8,10 @@ import {
 import { Router, RouterLink } from '@angular/router';
 import { planoAtendeMinimo } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
+import { TurmaApiService } from '../../core/turma-api.service';
 import { Icon } from '../../ui/icon/icon';
 import { Modal } from '../../ui/modal/modal';
+import { Spinner } from '../../ui/spinner/spinner';
 
 /**
  * Mini landing (in-app) do Tichr Qlick: apresenta a dinâmica e converte.
@@ -19,8 +21,11 @@ import { Modal } from '../../ui/modal/modal';
   selector: 'app-qlick-intro-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Modal],
+  imports: [RouterLink, Icon, Modal, Spinner],
   template: `
+    @if (verificando()) {
+      <div class="loading"><app-spinner [size]="32" /></div>
+    } @else {
     <a class="voltar" routerLink="/jogos">← Jogos</a>
 
     <header class="hero">
@@ -90,8 +95,10 @@ import { Modal } from '../../ui/modal/modal';
         <button class="btn-primary" type="button" (click)="irParaPlanos()">Fazer upgrade</button>
       </div>
     </app-modal>
+    }
   `,
   styles: `
+    .loading { display: flex; justify-content: center; padding: 4rem 0; color: var(--primary); }
     .voltar { color: var(--primary); font-weight: 600; }
     .hero { text-align: center; padding: 1.5rem 0 2rem; }
     .hero__icon { display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 18px; color: var(--primary-contrast); background: var(--primary); }
@@ -130,8 +137,11 @@ import { Modal } from '../../ui/modal/modal';
 })
 export class QlickIntroPage {
   private readonly profileService = inject(ProfileService);
+  private readonly api = inject(TurmaApiService);
   private readonly router = inject(Router);
   protected readonly upsell = signal(false);
+  /** Segura o render da landing até decidir se leva direto aos Qlicks. */
+  protected readonly verificando = signal(true);
 
   protected readonly beneficios = [
     { icone: 'alert' as const, titulo: 'Foco total', texto: 'Cronômetro e ritmo de game show prendem a atenção da turma inteira.' },
@@ -145,8 +155,30 @@ export class QlickIntroPage {
   );
 
   constructor() {
-    if (!this.profileService.profile()) {
-      this.profileService.load().subscribe({ error: () => {} });
+    const decidir = () => {
+      // Professor PhD que já tem Qlicks vai direto à lista — sem rever a landing.
+      if (this.ehPhd()) {
+        this.api.getQlicks().subscribe({
+          next: (qs) => {
+            if (qs.length > 0) {
+              this.router.navigate(['/jogos/qlick/meus'], { replaceUrl: true });
+            } else {
+              this.verificando.set(false);
+            }
+          },
+          error: () => this.verificando.set(false),
+        });
+      } else {
+        this.verificando.set(false);
+      }
+    };
+    if (this.profileService.profile()) {
+      decidir();
+    } else {
+      this.profileService.load().subscribe({
+        next: decidir,
+        error: () => this.verificando.set(false),
+      });
     }
   }
 
