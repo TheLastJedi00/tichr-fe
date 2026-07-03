@@ -5,7 +5,8 @@ export type Recurso =
   | 'GESTAO_EQUIPES'
   | 'DINAMICAS'
   | 'GAMIFICACAO'
-  | 'PLANO_AULA';
+  | 'PLANO_AULA'
+  | 'QLICK';
 
 /** Plano minimo exigido por recurso (ponto unico de verdade do gating). */
 export const RECURSO_PLANO_MINIMO: Record<Recurso, PlanoAtual> = {
@@ -13,6 +14,7 @@ export const RECURSO_PLANO_MINIMO: Record<Recurso, PlanoAtual> = {
   DINAMICAS: 'MESTRE',
   GAMIFICACAO: 'PHD',
   PLANO_AULA: 'GRADUADO',
+  QLICK: 'PHD',
 };
 
 /** Rotulo amigavel de cada recurso (usado nas telas de bloqueio). */
@@ -21,4 +23,5 @@ export const NOME_RECURSO: Record<Recurso, string> = {
   DINAMICAS: 'Dinâmicas de grupos',
   GAMIFICACAO: 'Portal do aluno + Gamificação',
   PLANO_AULA: 'Plano de Aula',
+  QLICK: 'Tichr Qlick',
 };
