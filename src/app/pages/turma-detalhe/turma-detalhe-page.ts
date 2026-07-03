@@ -18,6 +18,7 @@ import {
   Cargo,
   CriarEquipePayload,
   Equipe,
+  ProgressoTurma,
   Sessao,
   Turma,
 } from '../../core/models';
@@ -78,6 +79,28 @@ type Ordenacao = 'nome' | 'pontuacao';
           PIN da turma: <strong>{{ t.pinTurma }}</strong>
           <span class="pinturma__hint">— os alunos usam para entrar no portal</span>
         </p>
+      }
+
+      @if (progresso(); as p) {
+        <div class="prog">
+          <div class="prog__top">
+            <span class="prog__tit">
+              {{ cfg().pontuacaoAtiva ? cfg().nomePontuacao + ' da turma' : 'Progresso do curso' }}
+            </span>
+            <span class="prog__val">
+              @if (cfg().pontuacaoAtiva) {
+                {{ p.pontuacaoBase }} {{ cfg().nomePontuacao }}
+              } @else {
+                {{ p.pct }}%
+              }
+            </span>
+          </div>
+          <div class="trilho"><div class="trilho__fill" [style.width.%]="p.pct"></div></div>
+          <span class="prog__sub">
+            {{ p.concluidas }} de {{ p.total }} aulas concluídas
+            @if (cfg().pontuacaoAtiva) { · base coletiva pelo andamento do curso }
+          </span>
+        </div>
       }
 
       <nav class="tabs">
@@ -612,9 +635,19 @@ type Ordenacao = 'nome' | 'pontuacao';
     .campo > span { display: block; margin-bottom: 0.35rem; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
 
     .lista__avatar { display: inline-flex; flex: 0 0 auto; color: var(--text-muted); }
-    .pinturma { margin: -0.25rem 0 1rem; font-size: 0.9rem; }
+    .pinturma { margin: -0.25rem 0 0.75rem; font-size: 0.9rem; }
     .pinturma strong { font-variant-numeric: tabular-nums; letter-spacing: 0.08em; }
     .pinturma__hint { color: var(--text-muted); }
+    .prog {
+      margin-bottom: 1rem; padding: 0.8rem 0.9rem;
+      border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface);
+    }
+    .prog__top { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.4rem; }
+    .prog__tit { font-weight: 700; }
+    .prog__val { font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums; }
+    .prog .trilho { height: 12px; border-radius: 999px; background: var(--surface-alt); overflow: hidden; }
+    .prog .trilho__fill { height: 100%; border-radius: 999px; background: var(--primary); transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+    .prog__sub { display: block; margin-top: 0.4rem; font-size: 0.82rem; color: var(--text-muted); }
     .pinbox {
       display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
       padding: 0.6rem 0.8rem; border-radius: var(--radius);
@@ -760,6 +793,7 @@ export class TurmaDetalhePage {
   protected readonly entrada = signal('');
   protected readonly salvando = signal(false);
   protected readonly ordenacao = signal<Ordenacao>('nome');
+  protected readonly progresso = signal<ProgressoTurma | null>(null);
 
   // Modais de equipe.
   protected readonly formOpen = signal(false);
@@ -848,6 +882,10 @@ export class TurmaDetalhePage {
     this.api.getAlunos(this.turmaId).subscribe((a) => this.alunos.set(a));
     this.api.getEquipes(this.turmaId).subscribe((e) => this.equipes.set(e));
     this.api.getCargos(this.turmaId).subscribe((c) => this.cargos.set(c));
+    this.api.getProgressoTurma(this.turmaId).subscribe({
+      next: (p) => this.progresso.set(p),
+      error: () => {},
+    });
     if (!this.profileService.profile()) {
       this.profileService.load().subscribe({ error: () => {} });
     }
