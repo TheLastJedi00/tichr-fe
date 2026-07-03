@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, output } from '@angular/core';
 import { ThemeService } from '../../core/theme.service';
+import { BetaBadge } from '../beta-badge/beta-badge';
 import { IconButton } from '../icon-button/icon-button';
 
 /**
@@ -10,12 +11,13 @@ import { IconButton } from '../icon-button/icon-button';
   selector: 'app-header',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IconButton],
+  imports: [IconButton, BetaBadge],
   template: `
     <header class="header">
       <a class="header__logo" href="/">Tichr</a>
 
       <div class="header__actions">
+        <app-beta-badge />
         <app-icon-button
           [name]="theme.theme() === 'dark' ? 'sun' : 'moon'"
           variant="ghost"
