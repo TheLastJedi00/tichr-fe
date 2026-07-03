@@ -116,6 +116,32 @@ export interface TopicoAula {
   topico: string;
 }
 
+export interface PerguntaQlick {
+  enunciado: string;
+  alternativas: string[];
+  corretaIndex: number;
+}
+
+export interface Qlick {
+  id: string;
+  professorId: string;
+  titulo: string;
+  disciplina?: string;
+  topicoId?: string;
+  turmaId?: string;
+  duracaoSegundos: number;
+  perguntas: PerguntaQlick[];
+}
+
+export interface CriarQlickPayload {
+  titulo: string;
+  disciplina?: string;
+  topicoId?: string;
+  turmaId?: string;
+  duracaoSegundos?: number;
+  perguntas: PerguntaQlick[];
+}
+
 export interface ProgressoTurma {
   concluidas: number;
   total: number;

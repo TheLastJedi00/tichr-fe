@@ -11,11 +11,13 @@ import {
   CriarEquipePayload,
   CriarExcecaoPayload,
   CriarFeriasPayload,
+  CriarQlickPayload,
   CriarTurmaPayload,
   Equipe,
   Ferias,
   PlanoAula,
   ProgressoTurma,
+  Qlick,
   RankingItem,
   Sessao,
   Squad,
@@ -301,6 +303,28 @@ export class TurmaApiService {
 
   removerTopico(id: string): Observable<{ removido: boolean }> {
     return this.http.delete<{ removido: boolean }>(`${this.base}/topicos/${id}`);
+  }
+
+  // ===== Tichr Qlick (definição do questionário) =====
+
+  getQlicks(): Observable<Qlick[]> {
+    return this.http.get<Qlick[]>(`${this.base}/qlicks`);
+  }
+
+  getQlick(id: string): Observable<Qlick> {
+    return this.http.get<Qlick>(`${this.base}/qlicks/${id}`);
+  }
+
+  criarQlick(payload: CriarQlickPayload): Observable<Qlick> {
+    return this.http.post<Qlick>(`${this.base}/qlicks`, payload);
+  }
+
+  atualizarQlick(id: string, payload: CriarQlickPayload): Observable<Qlick> {
+    return this.http.put<Qlick>(`${this.base}/qlicks/${id}`, payload);
+  }
+
+  removerQlick(id: string): Observable<{ removido: boolean }> {
+    return this.http.delete<{ removido: boolean }>(`${this.base}/qlicks/${id}`);
   }
 
   getAlocacoes(turmaId: string): Observable<Alocacao[]> {
