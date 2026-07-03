@@ -52,6 +52,10 @@ O diferencial visível está na **demonstração interativa da landing page** e 
 | `/turmas/nova` · `/turmas/:id/editar` | **Nova / Editar turma** | Formulário reativo com dias, modalidade, cor, disciplina, horários e a config de **Pontuação & Gamificação** (liga/desliga, nome da pontuação, rótulos dos botões, ranking on/off). Editar **reprojeta** a agenda. Criar respeita a **cota do plano** (com *upsell* ao estourar). |
 | `/turmas/:id` | **Detalhe da turma** | Exibe o **PIN da turma** e uma **barra de progresso** do curso (que segue o nome da pontuação como base coletiva quando ativa). Três abas: **Agenda** (status dinâmico Concluída/Em andamento/Agendada), **Alunos** (cartas com ícone + nome + pontuação; clicar abre o **modal do aluno**: PIN, editar nome, excluir, pontuar) e **Equipes** (*kanban* drag-and-drop + **cargos**). |
 | `/turmas/:id/dinamica` | **Nova dinâmica** | Sorteio de **squads**: nº de equipes, papéis/temas em *chips*, e a **roleta** que renderiza os grupos. Recurso do **plano Mestre**. |
+| `/jogos` · `/jogos/qlick` | **Jogos / Tichr Qlick** | Vitrine de jogos e a mini-landing do **Tichr Qlick** (quiz ao vivo). Recurso do **plano PhD** (upsell nos inferiores). |
+| `/jogos/qlick/meus` | **Meus Qlicks** | Lista dos quizzes do professor; botão **Rodar** cria a partida e abre a sala. |
+| `/jogos/qlick/novo` · `/editar/:id` | **Estúdio do Qlick** | Formulário reativo (FormArray) de perguntas → alternativas, com marcação da correta e duração. |
+| `/jogos/qlick/partida/:id` | **Sala do professor** | Comanda a partida em tempo real: lobby, pergunta (timer + revelar), ranking da rodada (próxima/encerrar) e pódio. |
 | `/planos` | **Assinatura** | Vitrine dos 4 planos com o **plano atual em destaque** e troca de plano (mock). Destino do botão "Fazer upgrade" quando um recurso exige um plano superior. |
 | `/configuracoes` | **Configurações** | Perfil (nome, disciplina, bio, competências), **@username** do portal (com verificação de disponibilidade em tempo real), **períodos de férias globais** e atalho de **assinatura**. |
 | `/novidades` | **Novidades (Changelog)** *(pública)* | Timeline das versões (Nova feature / Melhoria / Correção), alimentada por `changelog.data.ts` e espelhando o README. Linkada no **rodapé global**. |
@@ -90,6 +94,25 @@ estilo app), autenticada por **PIN** e com token próprio. O aluno entra pela jo
 | `/aluno/dashboard` | **Início** | Card **"O que vem por aí"** com o **tópico da próxima aula**; **barra de nível** (Prata → Diamante) + **barra de evolução da turma**; o rótulo da pontuação segue o **nome definido na turma** (ex.: "Aura"). |
 | `/aluno/agenda` | **Agenda** | Dias letivos com status dinâmico (Concluída / Em andamento / Agendada) e o **tópico** de cada aula ("o que já vimos") — sincronizados do Plano de Aula quando o professor é PhD. |
 | `/aluno/ranking` | **Ranking** | Pódio (🥇🥈🥉) da turma, com o **card do próprio aluno destacado**. A aba **some** quando a turma desativa o ranking. |
+| `/aluno/qlick` | **Tichr Qlick** | Entra no quiz "de hoje": inscrição no lobby, resposta com cronômetro, revelação do acerto + top 3 e **pódio final** com os pontos somados ao XP. |
+
+### Tichr Qlick: quiz ao vivo em tempo real (Plano PhD)
+
+O **Tichr Qlick** é um quiz estilo Kahoot com estado **sincronizado ao vivo** entre o
+professor e todos os alunos. É o primeiro ponto do app a **ler** o Firestore direto no
+cliente (ver [arquitetura](#arquitetura--stack)):
+
+- **Estúdio (professor):** monta o quiz num formulário reativo — perguntas, alternativas,
+  correta e duração por pergunta. Cada quiz vira um *template* reutilizável.
+- **Sala (professor):** ao **Rodar**, abre-se o lobby; conforme os alunos entram, seus nomes
+  aparecem na hora. O professor **inicia**, vê a pergunta com **cronômetro**, **revela** a
+  resposta certa, avança para a **próxima** e, ao fim, **encerra** no pódio.
+- **Portal (aluno):** o card **"Tichr Qlick de hoje"** leva à sala; o aluno se inscreve,
+  responde tocando na alternativa (com trava otimista + timer), vê se **acertou** e sua
+  colocação, e termina no **pódio** — com os **pontos somados ao XP** do portal.
+- **Comando via REST, estado por realtime:** toda escrita vai ao backend (fonte única);
+  o cliente só **observa** o documento da partida via `onSnapshot`. A resposta correta
+  nunca trafega durante a pergunta.
 
 Recursos transversais: **modal global de erro** (toda falha de rede vira um aviso
 claro — exceto a cota, tratada *inline*), **estados de carregamento** consistentes,
@@ -144,9 +167,14 @@ lateral, o **card de upsell** ao atingir o limite do plano, o selo **Beta** no h
 - **Design system flat:** fonte **Inter**, paleta *Slate/Azul* via **CSS Variables**
   (claro/escuro), bordas sólidas, sem gradientes nem sombras esfumaçadas. Classes globais
   `.tichr-input`, `.btn-primary`, `.btn-outline` no `styles.scss`.
-- **Sem Firebase no frontend:** o app fala apenas com a **API do backend**, que é o dono
-  das credenciais e o **intermediário do login**. O `AuthService` guarda o token no
-  `localStorage`; um `HttpInterceptor` injeta o `Bearer` e trata `401` (→ `/login`); um
+- **Backend como fonte, Firebase só-leitura no Qlick:** o app fala com a **API do backend**,
+  que é o dono das credenciais e o **intermediário do login** — toda **escrita** passa por
+  ela. A **única** exceção é o **Tichr Qlick**, que reintroduz o **Firebase JS SDK apenas
+  para leitura em tempo real**: o `RealtimeService` (`initializeApp` + `getFirestore`)
+  escuta o documento da partida via `onSnapshot`, enquanto os comandos continuam indo por
+  REST (CQRS). A `apiKey` web fica no `environment` — é **pública por design** e as
+  `firestore.rules` liberam só a leitura de `qlick_partidas`. O `AuthService` guarda o token
+  no `localStorage`; um `HttpInterceptor` injeta o `Bearer` e trata `401` (→ `/login`); um
   segundo interceptor abre o **modal global de erro** para as demais falhas. Um *route
   guard* protege as telas do painel.
 - **Dois mundos de sessão:** professor (`AuthService`) e aluno (`StudentAuthService`)
@@ -159,9 +187,9 @@ lateral, o **card de upsell** ao atingir o limite do plano, o selo **Beta** no h
 
 ```
 src/app/
-  core/        # serviços (api, auth, student-auth, profile, quota, tema), guards (auth, plano), interceptors, models, dados de planos/recursos, status-sessao (status dinâmico)
+  core/        # serviços (api, auth, student-auth, profile, quota, tema, realtime → Firestore onSnapshot), guards (auth, plano), interceptors, models, dados de planos/recursos, status-sessao (status dinâmico)
   ui/          # componentes burros (card, icon, modal, spinner, quota-tracker, upsell-card, chips-input, xp-bar, aluno-card, equipe-coluna, equipe-form, recurso-bloqueado, beta-badge…)
-  pages/       # telas smart do painel (turma-detalhe, planos…) + portal do aluno (student-entrar, -login, -dashboard, -agenda, -ranking…)
+  pages/       # telas smart do painel (turma-detalhe, planos, jogos/qlick…) + portal do aluno (student-entrar, -login, -dashboard, -agenda, -ranking, -qlick…)
   layout/      # molduras: dashboard-layout (painel) e student-layout (portal do aluno)
 ```
 
