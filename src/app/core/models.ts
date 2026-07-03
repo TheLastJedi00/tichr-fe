@@ -142,6 +142,44 @@ export interface CriarQlickPayload {
   perguntas: PerguntaQlick[];
 }
 
+export type StatusPartida =
+  | 'LOBBY'
+  | 'QUESTAO_ATIVA'
+  | 'RANKING_PARCIAL'
+  | 'ENCERRADO';
+
+export interface PlacarItem {
+  alunoId: string;
+  nome: string;
+  pontos: number;
+}
+
+/** Estado em tempo real de uma partida (lido do Firestore via onSnapshot). */
+export interface Partida {
+  id: string;
+  qlickId: string;
+  professorId: string;
+  turmaId?: string;
+  titulo: string;
+  status: StatusPartida;
+  perguntaAtual: number;
+  totalPerguntas: number;
+  duracaoSegundos: number;
+  perguntaIniciadaEm?: string | null;
+  perguntaPublica?: { enunciado: string; alternativas: string[] } | null;
+  corretaIndex?: number | null;
+  inscritos: { alunoId: string; nome: string }[];
+  placar: PlacarItem[];
+  rankingParcial?: PlacarItem[];
+  rankingFinal?: Array<{ posicao: number } & PlacarItem>;
+}
+
+export interface QlickDoDia {
+  partidaId: string;
+  titulo: string;
+  status: StatusPartida;
+}
+
 export interface ProgressoTurma {
   concluidas: number;
   total: number;
