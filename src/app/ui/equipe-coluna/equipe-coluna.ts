@@ -15,7 +15,7 @@ import { Icon } from '../icon/icon';
   imports: [Icon],
   template: `
     @if (equipe(); as e) {
-      <div class="col" [style.--cor]="e.cor">
+      <div class="col" [class.col--balanca]="balancando()" [style.--cor]="e.cor">
         <span class="faixa"></span>
         <div class="col__head">
           <h3 class="col__titulo">{{ e.titulo }}</h3>
@@ -56,6 +56,14 @@ import { Icon } from '../icon/icon';
       border-radius: var(--radius);
       background: var(--surface-alt);
       overflow: hidden;
+    }
+    .col--balanca { animation: balanca 0.9s ease-in-out infinite; transform-origin: center; }
+    @keyframes balanca {
+      0%, 100% { transform: rotate(-0.8deg); }
+      50% { transform: rotate(0.8deg); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .col--balanca { animation: none; }
     }
     .faixa {
       height: 4px;
@@ -112,6 +120,7 @@ import { Icon } from '../icon/icon';
 export class EquipeColuna {
   readonly equipe = input.required<Equipe>();
   readonly total = input(0);
+  readonly balancando = input(false);
   readonly info = output<void>();
   readonly excluir = output<void>();
 }
