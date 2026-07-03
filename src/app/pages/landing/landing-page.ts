@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { Plano, PLANOS } from '../../core/planos.data';
 import { ThemeService } from '../../core/theme.service';
 import { Icon, IconName } from '../../ui/icon/icon';
 import { IconButton } from '../../ui/icon-button/icon-button';
@@ -10,80 +11,6 @@ interface AulaDemo {
   numero: number;
   data: string;
 }
-
-interface Plano {
-  nome: string;
-  preco: string;
-  periodo?: string;
-  limite: string;
-  pitch: string;
-  cta: string;
-  destaque?: boolean;
-  features: string[];
-}
-
-const PLANOS: readonly Plano[] = [
-  {
-    nome: 'Tichr Estagiário',
-    preco: 'Grátis',
-    limite: 'Até 2 turmas simultâneas',
-    pitch: 'O test-drive de entrada. Resolva sua agenda agora mesmo.',
-    cta: 'Começar grátis',
-    features: [
-      'Motor de deslizamento completo',
-      'Projeção de grade fixa e módulo fechado',
-      'Até 2 turmas simultâneas',
-      'Tema claro e escuro nativos',
-      'Compra avulsa de slots extras (microtransação)',
-    ],
-  },
-  {
-    nome: 'Tichr Graduado',
-    preco: 'R$ 19,90',
-    periodo: '/mês',
-    limite: 'Até 5 turmas simultâneas',
-    pitch: 'O titular da sala. Controle absoluto sobre projeções e deslizamentos.',
-    cta: 'Quero o Graduado',
-    features: [
-      'Tudo do Estagiário',
-      'Até 5 turmas simultâneas',
-      'Gestão de férias globais e por turma',
-      'Disciplinas e cores de destaque',
-      'Recálculo ilimitado da grade',
-    ],
-  },
-  {
-    nome: 'Tichr Mestre',
-    preco: 'R$ 39,90',
-    periodo: '/mês',
-    limite: 'Turmas ilimitadas',
-    pitch: 'A orquestração pedagógica. Squads, sorteios e papéis em sala.',
-    cta: 'Quero o Mestre',
-    destaque: true,
-    features: [
-      'Tudo do Graduado',
-      'Turmas ilimitadas',
-      'Gestão de squads e grupos dinâmicos',
-      'Sorteio automático de temas',
-      'Distribuição de papéis (Tech Lead, Pesquisador…)',
-    ],
-  },
-  {
-    nome: 'Tichr PhD',
-    preco: 'R$ 59,90',
-    periodo: '/mês',
-    limite: 'Turmas ilimitadas + portal',
-    pitch: 'O ecossistema multiplayer. Alunos acompanham a grade e ganham XP.',
-    cta: 'Quero o PhD',
-    features: [
-      'Tudo do Mestre',
-      'Portal do aluno com acesso via PIN',
-      'Ranking e acúmulo de XP',
-      'Barras de progresso e evolução da turma',
-      'Engajamento gamificado multiplayer',
-    ],
-  },
-];
 
 const BASE = ['02 mar', '09 mar', '16 mar', '23 mar', '30 mar'];
 const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
