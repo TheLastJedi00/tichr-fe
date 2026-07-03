@@ -43,15 +43,16 @@ O diferencial visível está na **demonstração interativa da landing page** e 
 | Rota | Tela | Papel |
 |---|---|---|
 | `/` | **Landing** | Explica o conceito com uma demo interativa do deslizamento; CTA de acesso beta e login. |
-| `/login` | **Login** | Entrada (email/senha) — MVP *invite-only*, sem cadastro aberto. |
+| `/login` | **Login** | Entrada (email/senha) — MVP *invite-only*. Traz o atalho **"Entrar como aluno"** → `/entrar`. |
+| `/entrar` | **Entrar como aluno** *(pública)* | Jornada em etapas: busca do **@usuário do professor** → escolha da turma → **PIN da turma** (6 díg) → nome → **PIN do aluno** (4 díg). |
 | `/dashboard` | **Dashboard** | Recepção: saudação por horário, **próxima aula** em destaque (com turma, cor e horário), onboarding no primeiro acesso, e o gatilho de "Exceção". |
 | `/agenda` | **Minha Agenda** | Calendário em **grid de 7 colunas**; cada aula é um *badge* na cor da turma. Clicar num dia abre os detalhes. |
 | `/turmas` | **Minhas Turmas** | Lista das turmas (nome, cor, disciplina, modalidade, horário, término). |
 | `/turmas/nova` · `/turmas/:id/editar` | **Nova / Editar turma** | Formulário reativo com dias, modalidade, cor, disciplina, horários e a config de **Pontuação & Gamificação** (liga/desliga, nome da pontuação, rótulos dos botões, ranking on/off). Editar **reprojeta** a agenda. Criar respeita a **cota do plano** (com *upsell* ao estourar). |
-| `/turmas/:id` | **Detalhe da turma** | Três abas independentes: **Agenda** (sessões), **Alunos** (lista ordenável por nome/pontuação; clicar num aluno abre o modal de **pontuar**, com rótulos personalizados) e **Equipes** (quadro *kanban* com **arrastar-e-soltar** + **cargos**). |
+| `/turmas/:id` | **Detalhe da turma** | Exibe o **PIN da turma** e uma **barra de progresso** do curso (que segue o nome da pontuação como base coletiva quando ativa). Três abas: **Agenda** (status dinâmico Concluída/Em andamento/Agendada), **Alunos** (cartas com ícone + nome + pontuação; clicar abre o **modal do aluno**: PIN, editar nome, excluir, pontuar) e **Equipes** (*kanban* drag-and-drop + **cargos**). |
 | `/turmas/:id/dinamica` | **Nova dinâmica** | Sorteio de **squads**: nº de equipes, papéis/temas em *chips*, e a **roleta** que renderiza os grupos. Recurso do **plano Mestre**. |
 | `/planos` | **Assinatura** | Vitrine dos 4 planos com o **plano atual em destaque** e troca de plano (mock). Destino do botão "Fazer upgrade" quando um recurso exige um plano superior. |
-| `/configuracoes` | **Configurações** | Perfil (nome, disciplina, bio, competências) + **períodos de férias globais** + atalho de **assinatura** com o plano atual. |
+| `/configuracoes` | **Configurações** | Perfil (nome, disciplina, bio, competências), **@username** do portal (com verificação de disponibilidade em tempo real), **períodos de férias globais** e atalho de **assinatura**. |
 
 ### Equipes, cargos e gating (aba Equipes)
 
@@ -68,16 +69,24 @@ uma tela de bloqueio que leva a `/planos`):
   membro exibe os cargos como *bullets* abaixo do nome. Um membro pode ter vários cargos e um
   cargo pode ser dividido entre vários membros.
 
+### Gamificação: exclusiva do plano PhD
+
+Pontuação, ranking e Portal do Aluno são recursos do **plano PhD**. Nos planos inferiores a
+UI de pontuação aparece **visível porém travada** (opacidade + cadeado + `cursor:not-allowed`)
+e o clique abre um **upsell** que leva a `/planos`; o toggle "Habilitar Portal Gamificado" no
+formulário de turma fica **travado em off**. O backend reforça com `403 GAMIFICACAO_LOCKED`.
+
 ### Portal do aluno (Plano PhD)
 
 Experiência **isolada** do painel do professor (sem menu lateral, com barra inferior
-estilo app), autenticada por **PIN** e com token próprio.
+estilo app), autenticada por **PIN** e com token próprio. O aluno entra pela jornada
+`/entrar`: **@usuário do professor → turma → PIN da turma (6 díg) → nome → PIN (4 díg)**.
 
 | Rota | Tela | Papel |
 |---|---|---|
-| `/t/:turmaId` | **Login do aluno** *(pública)* | Saudação da turma, seleção do próprio nome e **teclado numérico** para os 4 dígitos do PIN. |
-| `/aluno/dashboard` | **Início** | Saudação + **barra de nível** animada (Prata → Diamante); o rótulo da pontuação segue o **nome definido na turma** (ex.: "Aura"). |
-| `/aluno/agenda` | **Agenda** | Próximos dias letivos e feriados, **já recalculados**, somente leitura. |
+| `/entrar` · `/t/:turmaId` | **Login do aluno** *(pública)* | Jornada por `@username` + PIN da turma; `/t/:turmaId` é o atalho legado direto. |
+| `/aluno/dashboard` | **Início** | **Barra de nível** animada (Prata → Diamante) + **barra de evolução da turma** (aulas concluídas); o rótulo da pontuação segue o **nome definido na turma** (ex.: "Aura"). |
+| `/aluno/agenda` | **Agenda** | Próximos dias letivos e feriados, **já recalculados**, com status dinâmico (Concluída / Em andamento / Agendada), somente leitura. |
 | `/aluno/ranking` | **Ranking** | Pódio (🥇🥈🥉) da turma, com o **card do próprio aluno destacado**. A aba **some** quando a turma desativa o ranking. |
 
 Recursos transversais: **modal global de erro** (toda falha de rede vira um aviso
@@ -101,16 +110,20 @@ lateral, o **card de upsell** ao atingir o limite do plano e o selo **Beta** no 
 5. Ao **criar turmas além do limite do plano**, o backend responde `403 LIMIT_REACHED` e a
    tela troca o formulário pelo **card de upsell** — comprar vaga avulsa ou subir de nível
    — e **retenta o cadastro** automaticamente. O consumo aparece no **indicador de cota**.
-6. Na turma, cadastra a **lista de chamada** (nomes em lote) e pontua cada aluno com os
+6. Na turma, cadastra a **lista de chamada** (nomes em lote). Cada aluno é uma **carta**;
+   clicar abre o **modal do aluno** — PIN do aluno, editar nome, excluir e pontuar com os
    **rótulos que ele mesmo escolheu** (ex.: "Moggar" / "Punir"). A pontuação e o ranking
-   podem ser **ligados ou desligados** por turma.
+   podem ser **ligados ou desligados** por turma. Uma **barra de progresso** acompanha as
+   aulas concluídas (e vira a base coletiva quando há pontuação).
 7. Na aba **Equipes** (plano Mestre), monta as equipes **arrastando** os alunos ou pelo
    botão **Distribuir**, e atribui **cargos** aos membros no modo de atribuição animado.
    Para dinâmicas rápidas, ainda pode usar a **roleta** de sorteio de squads.
-8. Ao tentar um recurso de um plano superior, é levado ao **painel de planos** (`/planos`)
-   para **fazer upgrade** — a troca de plano reflete na hora (mock de checkout).
-9. No **Plano PhD**, os alunos entram no **portal** por PIN para acompanhar a agenda, o
-   próprio nível (com o nome de pontuação da turma) e o **ranking**.
+8. Ao tentar um recurso de um plano superior (equipes = Mestre; gamificação = PhD), é levado
+   ao **painel de planos** (`/planos`) para **fazer upgrade** — a troca reflete na hora (mock).
+9. No **Plano PhD**, o professor define seu **@username** e o **PIN da turma**; os alunos
+   entram no **portal** por essa jornada (`@username → turma → PIN turma → nome → PIN aluno`)
+   para acompanhar a agenda, o próprio nível (com o nome de pontuação da turma), a **evolução
+   da turma** e o **ranking**.
 
 ---
 
@@ -142,9 +155,9 @@ lateral, o **card de upsell** ao atingir o limite do plano e o selo **Beta** no 
 
 ```
 src/app/
-  core/        # serviços (api, auth, student-auth, profile, quota, tema), guards (auth, plano), interceptors, models, dados de planos/recursos
+  core/        # serviços (api, auth, student-auth, profile, quota, tema), guards (auth, plano), interceptors, models, dados de planos/recursos, status-sessao (status dinâmico)
   ui/          # componentes burros (card, icon, modal, spinner, quota-tracker, upsell-card, chips-input, xp-bar, aluno-card, equipe-coluna, equipe-form, recurso-bloqueado, beta-badge…)
-  pages/       # telas smart do painel (turma-detalhe, planos…) + portal do aluno (student-login, -dashboard, -agenda, -ranking…)
+  pages/       # telas smart do painel (turma-detalhe, planos…) + portal do aluno (student-entrar, -login, -dashboard, -agenda, -ranking…)
   layout/      # molduras: dashboard-layout (painel) e student-layout (portal do aluno)
 ```
 
