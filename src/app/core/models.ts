@@ -94,6 +94,8 @@ export interface ProgressoTurma {
   concluidas: number;
   total: number;
   pct: number;
+  /** Base coletiva que o andamento rendeu a cada aluno. */
+  pontuacaoBase: number;
 }
 
 export interface Aluno {

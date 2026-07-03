@@ -38,6 +38,11 @@ export class TurmaApiService {
     return this.http.get<Turma>(`${this.base}/turmas/${id}`);
   }
 
+  /** Progresso do curso (aulas concluídas/total) + base coletiva. */
+  getProgressoTurma(id: string): Observable<ProgressoTurma> {
+    return this.http.get<ProgressoTurma>(`${this.base}/turmas/${id}/progresso`);
+  }
+
   atualizarTurma(
     id: string,
     payload: CriarTurmaPayload,
