@@ -117,6 +117,14 @@ export const routes: Routes = [
           import('./pages/agenda/agenda-page').then((m) => m.AgendaPage),
       },
       {
+        path: 'plano-aula',
+        canActivate: [exigePlano('PLANO_AULA')],
+        loadComponent: () =>
+          import('./pages/plano-aula/plano-aula-page').then(
+            (m) => m.PlanoAulaPage,
+          ),
+      },
+      {
         path: 'configuracoes',
         loadComponent: () =>
           import('./pages/configuracoes/configuracoes-page').then(

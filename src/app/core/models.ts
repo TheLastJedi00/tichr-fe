@@ -90,6 +90,13 @@ export interface PortalTurma {
   cor?: string;
 }
 
+export interface PlanoAula {
+  id: string;
+  professorId: string;
+  disciplina: string;
+  contextoGeral: string;
+}
+
 export interface ProgressoTurma {
   concluidas: number;
   total: number;

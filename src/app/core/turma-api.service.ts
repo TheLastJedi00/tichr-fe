@@ -13,6 +13,7 @@ import {
   CriarTurmaPayload,
   Equipe,
   Ferias,
+  PlanoAula,
   ProgressoTurma,
   RankingItem,
   Sessao,
@@ -257,5 +258,21 @@ export class TurmaApiService {
 
   getMeuProgresso(): Observable<ProgressoTurma> {
     return this.http.get<ProgressoTurma>(`${this.base}/aluno/progresso`);
+  }
+
+  // ===== Plano de Aula (escopo geral por disciplina) =====
+
+  getPlanosAula(): Observable<PlanoAula[]> {
+    return this.http.get<PlanoAula[]>(`${this.base}/planos-aula`);
+  }
+
+  salvarPlanoAula(
+    disciplina: string,
+    contextoGeral: string,
+  ): Observable<PlanoAula> {
+    return this.http.put<PlanoAula>(`${this.base}/planos-aula`, {
+      disciplina,
+      contextoGeral,
+    });
   }
 }
