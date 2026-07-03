@@ -18,6 +18,13 @@ export const routes: Routes = [
       import('./pages/login/login-page').then((m) => m.LoginPage),
   },
   {
+    path: 'entrar',
+    loadComponent: () =>
+      import('./pages/student-entrar/student-entrar-page').then(
+        (m) => m.StudentEntrarPage,
+      ),
+  },
+  {
     path: 't/:turmaId',
     loadComponent: () =>
       import('./pages/student-login/student-login-page').then(

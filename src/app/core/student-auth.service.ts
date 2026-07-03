@@ -5,6 +5,7 @@ import { API_BASE_URL } from './api.config';
 import {
   LoginAlunoResponse,
   LoginInfoTurma,
+  PortalTurma,
   TurmaConfigPublica,
 } from './models';
 
@@ -41,6 +42,25 @@ export class StudentAuthService {
   /** Info publica da turma (nome + nomes) para a tela de login. */
   infoTurma(turmaId: string): Observable<LoginInfoTurma> {
     return this.http.get<LoginInfoTurma>(`${this.base}/auth/turma/${turmaId}`);
+  }
+
+  /** Portal: turmas ativas de um professor pelo @username. */
+  buscarTurmas(username: string): Observable<PortalTurma[]> {
+    const u = username.trim().replace(/^@/, '');
+    return this.http.get<PortalTurma[]>(
+      `${this.base}/portal/professor/${encodeURIComponent(u)}/turmas`,
+    );
+  }
+
+  /** Portal: valida o PIN de 6 dígitos da turma e devolve os nomes. */
+  desbloquearTurma(
+    turmaId: string,
+    pinTurma: string,
+  ): Observable<LoginInfoTurma> {
+    return this.http.post<LoginInfoTurma>(
+      `${this.base}/portal/turma/${turmaId}/alunos`,
+      { pinTurma },
+    );
   }
 
   login(turmaId: string, pin: string): Observable<LoginAlunoResponse> {
