@@ -69,6 +69,26 @@ export interface Aluno {
   turmaId: string;
   nome: string;
   tagsPerfil?: string[];
+  pinAcesso?: string;
+  xpTotal?: number;
+}
+
+export interface RankingItem {
+  posicao: number;
+  alunoId: string;
+  nome: string;
+  xpTotal: number;
+}
+
+export interface LoginInfoTurma {
+  turmaId: string;
+  turmaNome: string;
+  alunos: Array<{ id: string; nome: string }>;
+}
+
+export interface LoginAlunoResponse {
+  token: string;
+  aluno: { id: string; nome: string; turmaId: string; xpTotal: number };
 }
 
 export interface MembroSquad {

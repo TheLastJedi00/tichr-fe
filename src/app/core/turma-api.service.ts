@@ -9,6 +9,7 @@ import {
   CriarFeriasPayload,
   CriarTurmaPayload,
   Ferias,
+  RankingItem,
   Sessao,
   Squad,
   Turma,
@@ -110,5 +111,36 @@ export class TurmaApiService {
       `${this.base}/turmas/${turmaId}/agrupamento`,
       payload,
     );
+  }
+
+  // ===== Gamificação (XP e ranking) =====
+
+  /** Ferramenta do professor: distribui XP a um aluno. */
+  darXp(
+    turmaId: string,
+    alunoId: string,
+    pontos: number,
+    motivo?: string,
+  ): Observable<{ alunoId: string; xpTotal: number }> {
+    return this.http.post<{ alunoId: string; xpTotal: number }>(
+      `${this.base}/turmas/${turmaId}/alunos/${alunoId}/xp`,
+      { pontos, motivo },
+    );
+  }
+
+  getRanking(turmaId: string): Observable<RankingItem[]> {
+    return this.http.get<RankingItem[]>(
+      `${this.base}/turmas/${turmaId}/ranking`,
+    );
+  }
+
+  // ===== Portal do aluno =====
+
+  getMeuPerfil(): Observable<Aluno> {
+    return this.http.get<Aluno>(`${this.base}/aluno/me`);
+  }
+
+  getMinhaAgenda(): Observable<Sessao[]> {
+    return this.http.get<Sessao[]>(`${this.base}/aluno/agenda`);
   }
 }
