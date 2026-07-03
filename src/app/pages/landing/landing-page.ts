@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { RouterLink } from '@angular/router';
 import { Plano, PLANOS } from '../../core/planos.data';
 import { ThemeService } from '../../core/theme.service';
+import { Footer } from '../../ui/footer/footer';
 import { Icon, IconName } from '../../ui/icon/icon';
 import { IconButton } from '../../ui/icon-button/icon-button';
 import { Modal } from '../../ui/modal/modal';
@@ -24,7 +25,7 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
   selector: 'app-landing-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, IconButton, RouterLink, RevealDirective, Modal],
+  imports: [Icon, IconButton, RouterLink, RevealDirective, Modal, Footer],
   template: `
     <!-- ===== Hero (A Promessa) ===== -->
     <section class="hero">
@@ -187,12 +188,7 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
     </section>
 
     <!-- ===== Rodapé ===== -->
-    <footer class="rodape">
-      <div class="container rodape__inner">
-        <span class="logo">Tichr</span>
-        <span class="muted">© 2026 — De professor para professor.</span>
-      </div>
-    </footer>
+    <app-footer />
 
     <!-- CTA fixo no rodapé (apenas mobile) — sempre ao alcance do polegar -->
     <a class="sticky-cta" href="#planos">Começar grátis</a>
