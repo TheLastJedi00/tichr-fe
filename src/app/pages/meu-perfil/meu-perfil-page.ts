@@ -22,6 +22,7 @@ import { Card } from '../../ui/card/card';
 import { FormBlocker } from '../../ui/form-blocker/form-blocker';
 import { Icon } from '../../ui/icon/icon';
 import { Modal } from '../../ui/modal/modal';
+import { Skeleton } from '../../ui/skeleton/skeleton';
 import { Spinner } from '../../ui/spinner/spinner';
 import { FeriasManager } from '../ferias/ferias-manager';
 
@@ -43,6 +44,7 @@ import { FeriasManager } from '../ferias/ferias-manager';
     Modal,
     ImageCropperComponent,
     FormBlocker,
+    Skeleton,
     FeriasManager,
   ],
   template: `
@@ -50,7 +52,21 @@ import { FeriasManager } from '../ferias/ferias-manager';
     <h1 class="title">Meu Perfil</h1>
 
     @if (carregando()) {
-      <div class="loading"><app-spinner [size]="32" /></div>
+      <div class="sk-foto">
+        <app-skeleton width="112px" height="112px" radius="999px" />
+        <app-skeleton width="130px" height="0.9rem" />
+      </div>
+      <app-card>
+        <div class="sk-form">
+          <app-skeleton width="45%" height="0.85rem" />
+          <app-skeleton height="2.6rem" radius="8px" />
+          <app-skeleton width="35%" height="0.85rem" />
+          <app-skeleton height="2.6rem" radius="8px" />
+          <app-skeleton width="50%" height="0.85rem" />
+          <app-skeleton height="3rem" radius="12px" />
+          <app-skeleton height="3rem" radius="12px" />
+        </div>
+      </app-card>
     } @else {
       <div class="foto">
         <div class="foto__wrap" [class.foto__wrap--busy]="enviandoFoto()">
@@ -234,6 +250,8 @@ import { FeriasManager } from '../ferias/ferias-manager';
     .voltar:hover { color: var(--primary); }
     .title { margin: 0 0 1rem; font-size: 1.5rem; font-weight: 700; }
     .loading { display: flex; justify-content: center; padding: 3rem 0; color: var(--primary); }
+    .sk-foto { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+    .sk-form { display: grid; gap: 0.7rem; }
     .foto { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; margin-bottom: 1rem; }
     .foto__wrap { position: relative; line-height: 0; }
     .foto__wrap--busy app-avatar { opacity: 0.5; }
