@@ -5,7 +5,7 @@ import { hojeISO } from '../../core/greeting';
 import { Sessao, Turma } from '../../core/models';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Modal } from '../../ui/modal/modal';
-import { Spinner } from '../../ui/spinner/spinner';
+import { Skeleton } from '../../ui/skeleton/skeleton';
 
 type Modo = 'calendario' | 'detalhado';
 
@@ -58,7 +58,7 @@ function domingo(iso: string): string {
   selector: 'app-agenda-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Spinner, Modal],
+  imports: [Skeleton, Modal],
   template: `
     <header class="head">
       <h1 class="title">Minha Agenda</h1>
@@ -83,7 +83,20 @@ function domingo(iso: string): string {
     </header>
 
     @if (loading()) {
-      <div class="loading"><app-spinner [size]="32" /></div>
+      <div class="grid-wrap">
+        <div class="grid cabecalho">
+          @for (c of cabecalhos; track $index) {
+            <div class="col-head">{{ c }}</div>
+          }
+        </div>
+        @for (i of [1, 2, 3, 4, 5]; track i) {
+          <div class="grid">
+            @for (j of [0, 1, 2, 3, 4, 5, 6]; track j) {
+              <div class="sk-cell"><app-skeleton height="68px" radius="8px" /></div>
+            }
+          </div>
+        }
+      </div>
     } @else if (modo() === 'calendario') {
       <div class="grid-wrap">
         <div class="grid cabecalho">
@@ -184,6 +197,7 @@ function domingo(iso: string): string {
     .toggle__btn { font: inherit; font-size: 0.85rem; font-weight: 600; padding: 0.35rem 0.8rem; border: none; border-radius: 999px; background: none; color: var(--text-muted); cursor: pointer; }
     .toggle__btn.is-on { background: var(--surface); color: var(--primary); }
     .loading { display: flex; justify-content: center; padding: 3rem 0; color: var(--primary); }
+    .sk-cell { min-height: 68px; }
     .muted { color: var(--text-muted); }
     .grid-wrap { overflow-x: auto; }
     .grid { display: grid; grid-template-columns: repeat(7, minmax(44px, 1fr)); gap: 4px; }
