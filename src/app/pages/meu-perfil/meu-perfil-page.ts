@@ -126,14 +126,16 @@ import { FeriasManager } from '../ferias/ferias-manager';
           <div class="campo">
             <span>Minhas disciplinas / competências</span>
             @if (disciplinas().length) {
-              <div class="chips">
+              <div class="disc-grid">
                 @for (d of disciplinas(); track d) {
-                  <span class="chip">
-                    {{ d }}
-                    <button type="button" class="chip__x" (click)="removerDisciplina(d)" aria-label="Remover">×</button>
-                  </span>
+                  <button type="button" class="disc-card" (click)="abrirDisciplina(d)">
+                    <span class="disc-card__nome">{{ d }}</span>
+                    <span class="disc-card__go" aria-hidden="true">›</span>
+                  </button>
                 }
               </div>
+            } @else {
+              <p class="disc-vazio">Nenhuma disciplina cadastrada ainda.</p>
             }
             <div class="add">
               <input
@@ -143,7 +145,7 @@ import { FeriasManager } from '../ferias/ferias-manager';
                 (input)="nova.set($any($event.target).value)"
                 (keydown.enter)="$event.preventDefault(); adicionarDisciplina()"
               />
-              <button type="button" class="btn-outline" (click)="adicionarDisciplina()">Adicionar</button>
+              <button type="button" class="btn-outline" (click)="adicionarDisciplina()" [disabled]="salvandoDisc()">Adicionar</button>
             </div>
           </div>
 
@@ -189,6 +191,39 @@ import { FeriasManager } from '../ferias/ferias-manager';
         </button>
       </div>
     </app-modal>
+
+    <app-modal [open]="disciplinaAberta() !== null" title="Disciplina" (close)="fecharDisciplina()">
+      <label class="campo">
+        <span>Nome da disciplina</span>
+        <input
+          class="tichr-input"
+          [value]="nomeEdicao()"
+          (input)="nomeEdicao.set($any($event.target).value)"
+          [disabled]="salvandoDisc()"
+        />
+      </label>
+      <button
+        type="button"
+        class="btn-danger full"
+        (click)="excluirDisciplina()"
+        [disabled]="salvandoDisc()"
+      >
+        Excluir disciplina
+      </button>
+      <div modal-actions>
+        <button type="button" class="btn-outline" (click)="fecharDisciplina()" [disabled]="salvandoDisc()">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn-primary"
+          (click)="salvarDisciplina()"
+          [disabled]="salvandoDisc() || !nomeEdicao().trim()"
+        >
+          {{ salvandoDisc() ? 'Salvando…' : 'Salvar' }}
+        </button>
+      </div>
+    </app-modal>
   `,
   styles: `
     .voltar { display: inline-block; margin-bottom: 0.5rem; color: var(--text-muted); text-decoration: none; font-weight: 600; }
@@ -220,9 +255,26 @@ import { FeriasManager } from '../ferias/ferias-manager';
     .dica--ok { color: var(--success); font-weight: 600; }
     .dica--erro { color: var(--danger); font-weight: 600; }
     .dica--lock { color: var(--text-muted); font-weight: 600; }
-    .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem; }
-    .chip { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.3rem 0.625rem; font-weight: 600; font-size: 0.85rem; color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); border-radius: 999px; }
-    .chip__x { border: none; background: none; color: inherit; font-size: 1rem; line-height: 1; cursor: pointer; padding: 0; }
+    .disc-grid { display: grid; gap: 0.5rem; margin-bottom: 0.6rem; }
+    .disc-card {
+      display: flex; align-items: center; gap: 0.75rem;
+      width: 100%; text-align: left;
+      padding: 0.75rem 0.9rem;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; cursor: pointer; color: inherit;
+    }
+    .disc-card:hover { border-color: var(--primary); }
+    .disc-card__nome { font-weight: 600; }
+    .disc-card__go { margin-left: auto; font-size: 1.3rem; color: var(--text-muted); line-height: 1; }
+    .disc-vazio { color: var(--text-muted); font-size: 0.85rem; margin: 0 0 0.6rem; }
+    .btn-danger {
+      width: 100%; margin-top: 0.5rem;
+      padding: 0.7rem 1rem; border-radius: 10px; cursor: pointer;
+      font-weight: 700; color: #fff; background: var(--danger);
+      border: 1px solid var(--danger);
+    }
+    .btn-danger:hover:not(:disabled) { filter: brightness(0.95); }
+    .btn-danger:disabled { opacity: 0.6; cursor: default; }
     .add { display: flex; gap: 0.5rem; }
     .add .tichr-input { flex: 1; }
     .add .btn-outline { white-space: nowrap; }
@@ -381,18 +433,62 @@ export class MeuPerfilPage {
     if (el) el.value = '';
   }
 
-  // ---- Disciplinas / salvar ----
+  // ---- Disciplinas (cards + modal) ----
+
+  protected readonly disciplinaAberta = signal<string | null>(null);
+  protected readonly nomeEdicao = signal('');
+  protected readonly salvandoDisc = signal(false);
+
+  /** Persiste a lista de disciplinas isoladamente (usado pelo modal e pelo add). */
+  private persistirDisciplinas(lista: string[]): void {
+    this.salvandoDisc.set(true);
+    this.profileService.update({ disciplinas: lista }).subscribe({
+      next: () => {
+        this.disciplinas.set(lista);
+        this.salvandoDisc.set(false);
+        this.fecharDisciplina();
+      },
+      error: () => this.salvandoDisc.set(false),
+    });
+  }
 
   protected adicionarDisciplina(): void {
     const d = this.nova().trim();
-    if (d && !this.disciplinas().includes(d)) {
-      this.disciplinas.update((lista) => [...lista, d]);
-    }
     this.nova.set('');
+    if (!d || this.disciplinas().includes(d)) return;
+    this.persistirDisciplinas([...this.disciplinas(), d]);
   }
 
-  protected removerDisciplina(d: string): void {
-    this.disciplinas.update((lista) => lista.filter((x) => x !== d));
+  protected abrirDisciplina(d: string): void {
+    this.disciplinaAberta.set(d);
+    this.nomeEdicao.set(d);
+  }
+
+  protected fecharDisciplina(): void {
+    if (this.salvandoDisc()) return;
+    this.disciplinaAberta.set(null);
+    this.nomeEdicao.set('');
+  }
+
+  protected salvarDisciplina(): void {
+    const original = this.disciplinaAberta();
+    const novo = this.nomeEdicao().trim();
+    if (original === null || !novo) return;
+    if (novo === original) {
+      this.fecharDisciplina();
+      return;
+    }
+    // Renomeia mantendo a posição; ignora se o novo nome já existe.
+    if (this.disciplinas().includes(novo)) return;
+    this.persistirDisciplinas(
+      this.disciplinas().map((x) => (x === original ? novo : x)),
+    );
+  }
+
+  protected excluirDisciplina(): void {
+    const alvo = this.disciplinaAberta();
+    if (alvo === null) return;
+    this.persistirDisciplinas(this.disciplinas().filter((x) => x !== alvo));
   }
 
   protected salvar(): void {
