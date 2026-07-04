@@ -5,7 +5,7 @@ import { API_BASE_URL } from './api.config';
 import {
   LoginAlunoResponse,
   LoginInfoTurma,
-  PortalTurma,
+  PortalBuscaResponse,
   TurmaConfigPublica,
 } from './models';
 
@@ -44,10 +44,10 @@ export class StudentAuthService {
     return this.http.get<LoginInfoTurma>(`${this.base}/auth/turma/${turmaId}`);
   }
 
-  /** Portal: turmas ativas de um professor pelo @username. */
-  buscarTurmas(username: string): Observable<PortalTurma[]> {
+  /** Portal: professor (nome+avatar) + turmas ativas, pelo @username. */
+  buscarTurmas(username: string): Observable<PortalBuscaResponse> {
     const u = username.trim().replace(/^@/, '');
-    return this.http.get<PortalTurma[]>(
+    return this.http.get<PortalBuscaResponse>(
       `${this.base}/portal/professor/${encodeURIComponent(u)}/turmas`,
     );
   }

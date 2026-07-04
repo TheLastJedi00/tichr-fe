@@ -7,8 +7,9 @@ import {
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { Router } from '@angular/router';
-import { PortalTurma } from '../../core/models';
+import { PortalProfessor, PortalTurma } from '../../core/models';
 import { StudentAuthService } from '../../core/student-auth.service';
+import { Avatar } from '../../ui/avatar/avatar';
 import { Icon } from '../../ui/icon/icon';
 
 type Etapa = 'busca' | 'turmas' | 'pinTurma' | 'nome' | 'pinAluno';
@@ -21,7 +22,7 @@ type Etapa = 'busca' | 'turmas' | 'pinTurma' | 'nome' | 'pinAluno';
   selector: 'app-student-entrar-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, NgTemplateOutlet],
+  imports: [Icon, NgTemplateOutlet, Avatar],
   template: `
     <div class="wrap">
       <div class="card">
@@ -52,8 +53,12 @@ type Etapa = 'busca' | 'turmas' | 'pinTurma' | 'nome' | 'pinAluno';
           }
 
           @case ('turmas') {
+            <div class="prof">
+              <app-avatar [nome]="professor()?.nome" [url]="professor()?.avatarUrl" [size]="72" />
+              <strong class="prof__nome">{{ professor()?.nome || ('@' + usernameLimpo()) }}</strong>
+              <span class="prof__user">&#64;{{ professor()?.username || usernameLimpo() }}</span>
+            </div>
             <h1 class="tit">Escolha sua turma</h1>
-            <p class="sub">Turmas de {{ '@' + usernameLimpo() }}</p>
             <div class="turmas">
               @for (t of turmas(); track t.turmaId) {
                 <button class="turma" type="button" (click)="escolherTurma(t)">
@@ -178,6 +183,9 @@ type Etapa = 'busca' | 'turmas' | 'pinTurma' | 'nome' | 'pinAluno';
     .campo span { display: block; font-weight: 600; margin-bottom: 0.35rem; font-size: 0.9rem; }
     .full { width: 100%; }
     .mt { margin-top: 0.5rem; }
+    .prof { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; margin-top: 0.5rem; }
+    .prof__nome { font-size: 1.05rem; font-weight: 800; }
+    .prof__user { color: var(--text-muted); font-size: 0.85rem; font-weight: 600; }
     .turmas { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
     .turma {
       display: flex; align-items: center; gap: 0.5rem;
@@ -212,6 +220,7 @@ export class StudentEntrarPage {
 
   protected readonly etapa = signal<Etapa>('busca');
   protected readonly username = signal('');
+  protected readonly professor = signal<PortalProfessor | null>(null);
   protected readonly turmas = signal<PortalTurma[]>([]);
   protected readonly turmaSel = signal<PortalTurma | null>(null);
   protected readonly alunos = signal<Array<{ id: string; nome: string }>>([]);
@@ -247,8 +256,9 @@ export class StudentEntrarPage {
     this.carregando.set(true);
     this.erro.set('');
     this.studentAuth.buscarTurmas(this.username()).subscribe({
-      next: (turmas) => {
-        this.turmas.set(turmas);
+      next: (res) => {
+        this.professor.set(res.professor);
+        this.turmas.set(res.turmas);
         this.carregando.set(false);
         this.etapa.set('turmas');
       },
