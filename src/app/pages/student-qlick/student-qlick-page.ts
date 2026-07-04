@@ -60,25 +60,24 @@ import { Spinner } from '../../ui/spinner/spinner';
               <span class="timer" [class.timer--fim]="restante() <= 5">{{ restante() }}s</span>
             </div>
             <h2 class="q__enun">{{ p.perguntaPublica?.enunciado }}</h2>
-            @if (respostaIndex() === null && restante() > 0) {
-              <div class="grid">
-                @for (a of p.perguntaPublica?.alternativas ?? []; track $index) {
-                  <button class="opt" type="button" [disabled]="enviando()" (click)="responder($index)">
-                    <span class="opt__key">{{ letra($index) }}</span>{{ a }}
-                  </button>
-                }
-              </div>
-            } @else {
-              <div class="espera">
-                <app-spinner [size]="28" />
-                <p>
-                  @if (respostaIndex() !== null) {
-                    Resposta enviada! Aguardando os colegas…
-                  } @else {
-                    Tempo esgotado. Aguardando a revelação…
-                  }
-                </p>
-              </div>
+            <div class="grid">
+              @for (a of p.perguntaPublica?.alternativas ?? []; track $index) {
+                <button
+                  class="opt opt--{{ $index }}"
+                  type="button"
+                  [class.opt--escolhida]="respostaIndex() === $index"
+                  [class.opt--apagada]="respostaIndex() !== null && respostaIndex() !== $index"
+                  [disabled]="respostaIndex() !== null || restante() === 0 || enviando()"
+                  (click)="responder($index)"
+                >
+                  <span class="opt__key">{{ letra($index) }}</span>{{ a }}
+                </button>
+              }
+            </div>
+            @if (respostaIndex() !== null) {
+              <p class="q__status">Resposta enviada! Aguardando os colegas…</p>
+            } @else if (restante() === 0) {
+              <p class="q__status">Tempo esgotado. Aguardando a revelação…</p>
             }
           </app-card>
         }
@@ -171,11 +170,34 @@ import { Spinner } from '../../ui/spinner/spinner';
     .timer { font-size: 1.4rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--primary); }
     .timer--fim { color: #dc2626; }
     .q__enun { margin: 0 0 1rem; font-size: 1.25rem; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
-    .opt { display: flex; align-items: center; gap: 0.6rem; padding: 1rem 0.9rem; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); font-weight: 700; text-align: left; cursor: pointer; }
-    .opt:hover:not(:disabled) { border-color: var(--primary); }
-    .opt:disabled { opacity: 0.6; }
-    .opt__key { flex: 0 0 auto; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 999px; background: var(--surface-alt); font-size: 0.85rem; font-weight: 800; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+    .opt {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 1.15rem 1rem; border: none; border-radius: 16px;
+      color: #fff; font-weight: 800; font-size: 1rem; text-align: left; cursor: pointer;
+      box-shadow: 0 4px 0 rgba(2, 6, 23, 0.22);
+      transition: transform 0.08s ease, box-shadow 0.12s ease, opacity 0.25s ease, filter 0.2s ease;
+    }
+    .opt:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 rgba(2, 6, 23, 0.22); }
+    .opt:disabled { cursor: default; }
+    .opt--0 { background: #ef4444; }
+    .opt--1 { background: #3b82f6; }
+    .opt--2 { background: #f59e0b; color: #1f2937; }
+    .opt--3 { background: #22c55e; }
+    .opt--apagada { opacity: 0.35; filter: saturate(0.8); }
+    .opt--escolhida { animation: pulse-opt 1s infinite ease-in-out; }
+    @keyframes pulse-opt {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.55); }
+      50% { transform: scale(1.03); box-shadow: 0 0 0 7px rgba(255, 255, 255, 0); }
+    }
+    .opt__key { flex: 0 0 auto; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 999px; background: rgba(255, 255, 255, 0.28); font-size: 0.9rem; font-weight: 800; }
+    .opt--2 .opt__key { background: rgba(0, 0, 0, 0.15); }
+    .q__status { text-align: center; color: var(--text-muted); margin: 1rem 0 0; font-weight: 600; }
+    @media (prefers-reduced-motion: reduce) {
+      .opt { transition: none; }
+      .opt:active:not(:disabled) { transform: none; }
+      .opt--escolhida { animation: none; outline: 3px solid #fff; outline-offset: -3px; }
+    }
     .veredito { display: flex; align-items: center; gap: 0.5rem; font-weight: 800; font-size: 1.1rem; margin-bottom: 1rem; }
     .veredito__ic { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 999px; color: #fff; }
     .veredito--ok { color: #16a34a; }
