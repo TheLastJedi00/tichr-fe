@@ -12,6 +12,7 @@ import { RealtimeService } from '../../core/realtime.service';
 import { StudentAuthService } from '../../core/student-auth.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Card } from '../../ui/card/card';
+import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { Spinner } from '../../ui/spinner/spinner';
 
 /**
@@ -22,7 +23,7 @@ import { Spinner } from '../../ui/spinner/spinner';
   selector: 'app-student-qlick-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Card, Spinner],
+  imports: [Card, Spinner, LobbyLoader],
   template: `
     <h1 class="title">Tichr Qlick</h1>
 
@@ -36,9 +37,10 @@ import { Spinner } from '../../ui/spinner/spinner';
       @switch (p.status) {
         @case ('LOBBY') {
           @if (inscrito()) {
-            <div class="espera">
-              <app-spinner [size]="28" />
-              <p>Você está na sala! Aguardando o professor iniciar…</p>
+            <div class="lobby">
+              <app-lobby-loader />
+              <h2 class="lobby__tit">Você está na sala! 🎉</h2>
+              <p class="lobby__sub">Aguardando o professor iniciar… prepare-se!</p>
             </div>
           } @else {
             <app-card>
@@ -161,6 +163,9 @@ import { Spinner } from '../../ui/spinner/spinner';
     .full { width: 100%; }
     .espera { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; padding: 2rem 0; color: var(--primary); text-align: center; }
     .espera p { color: var(--text-muted); margin: 0; }
+    .lobby { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; padding: 2.5rem 0 2rem; text-align: center; }
+    .lobby__tit { margin: 0.75rem 0 0; font-size: 1.25rem; font-weight: 800; }
+    .lobby__sub { margin: 0; color: var(--text-muted); }
     .q__top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
     .q__conta { font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-muted); }
     .timer { font-size: 1.4rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--primary); }
