@@ -179,6 +179,20 @@ export const routes: Routes = [
             (m) => m.ConfiguracoesPage,
           ),
       },
+      {
+        path: 'configuracoes/perfil',
+        loadComponent: () =>
+          import('./pages/meu-perfil/meu-perfil-page').then(
+            (m) => m.MeuPerfilPage,
+          ),
+      },
+      {
+        path: 'configuracoes/plano',
+        loadComponent: () =>
+          import('./pages/meu-plano/meu-plano-page').then(
+            (m) => m.MeuPlanoPage,
+          ),
+      },
     ],
   },
   { path: '**', redirectTo: '' },
