@@ -26,7 +26,7 @@ import { XpBar } from '../../ui/xp-bar/xp-bar';
     @if (carregando()) {
       <div class="loading"><app-spinner [size]="32" /></div>
     } @else {
-      <h1 class="ola">Olá, {{ nome() }} 👋</h1>
+      <h1 class="ola">Olá, {{ nome() }} <app-icon name="wave" [size]="20" /></h1>
 
       <div class="stack">
       @if (qlickDoDia(); as q) {

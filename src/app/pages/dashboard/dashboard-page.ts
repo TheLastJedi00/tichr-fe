@@ -57,7 +57,7 @@ import { ExcecaoModal } from './excecao-modal';
     @if (mostrarOnboarding()) {
       <app-card>
         <div class="onboarding">
-          <h3>Que bom ter você por aqui! 👋</h3>
+          <h3>Que bom ter você por aqui! <app-icon name="wave" [size]="20" /></h3>
           <p class="muted">
             Para deixarmos a casa com a sua cara, que tal configurar seu perfil?
           </p>

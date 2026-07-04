@@ -100,7 +100,7 @@ import { Spinner } from '../../ui/spinner/spinner';
               @for (a of p.perguntaPublica?.alternativas ?? []; track $index) {
                 <li class="alt" [class.alt--correta]="$index === p.corretaIndex">
                   <span class="alt__key">{{ letra($index) }}</span>{{ a }}
-                  @if ($index === p.corretaIndex) { <span class="alt__ok">✓ correta</span> }
+                  @if ($index === p.corretaIndex) { <span class="alt__ok"><app-icon name="check" [size]="14" /> correta</span> }
                 </li>
               }
             </ul>
@@ -136,7 +136,11 @@ import { Spinner } from '../../ui/spinner/spinner';
             <ol class="podio">
               @for (r of (p.rankingFinal ?? []); track r.alunoId) {
                 <li class="podio__row podio__row--{{ r.posicao }}">
-                  <span class="podio__medal">{{ medalha(r.posicao) }}</span>
+                  <span class="podio__medal">
+                    @if (r.posicao <= 3) {
+                      <app-icon name="medal" [size]="22" class="medal--{{ r.posicao }}" />
+                    } @else { {{ r.posicao }}º }
+                  </span>
                   <span class="rank__nome">{{ r.nome }}</span>
                   <span class="rank__pts">{{ r.pontos }}</span>
                 </li>
@@ -234,7 +238,10 @@ import { Spinner } from '../../ui/spinner/spinner';
     .podio__row--1 { background: color-mix(in srgb, #f59e0b 18%, transparent); }
     .podio__row--2 { background: color-mix(in srgb, #94a3b8 20%, transparent); }
     .podio__row--3 { background: color-mix(in srgb, #b45309 16%, transparent); }
-    .podio__medal { font-size: 1.3rem; }
+    .podio__medal { font-size: 1.1rem; font-weight: 800; display: inline-flex; }
+    .medal--1 { color: #f59e0b; }
+    .medal--2 { color: #94a3b8; }
+    .medal--3 { color: #b45309; }
   `,
 })
 export class ProfessorPartidaPage {
@@ -321,9 +328,6 @@ export class ProfessorPartidaPage {
     return String.fromCharCode(65 + i);
   }
 
-  protected medalha(pos: number): string {
-    return { 1: '🥇', 2: '🥈', 3: '🥉' }[pos] ?? `${pos}º`;
-  }
 
   protected rotulo(status: string): string {
     return {

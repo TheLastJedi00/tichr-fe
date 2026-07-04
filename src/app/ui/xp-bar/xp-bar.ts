@@ -89,7 +89,7 @@ export class XpBar {
   protected readonly legenda = computed(() => {
     const n = this.nivel();
     if (!isFinite(n.max)) {
-      return 'Nível máximo alcançado! 🏆';
+      return 'Nível máximo alcançado!';
     }
     return `Faltam ${n.max - this.xp() + 1} ${this.unidade()} para o próximo nível`;
   });
