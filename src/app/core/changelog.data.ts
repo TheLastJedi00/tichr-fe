@@ -18,6 +18,32 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.7.0',
+    data: '2026-07-04',
+    titulo: 'Smart PINs',
+    itens: [
+      { categoria: 'Nova feature', texto: 'PINs curtos de 2 dígitos para a turma e para cada aluno — bem mais fáceis de digitar na hora de entrar na aula.' },
+      { categoria: 'Nova feature', texto: 'Turmas antigas ganham um aviso e um botão para atualizar aos novos PINs (o sistema regenera o PIN da sala e o de cada aluno em sequência).' },
+      { categoria: 'Melhoria', texto: 'O portal do aluno ajusta sozinho a quantidade de dígitos do PIN, então turmas novas e antigas convivem sem confusão.' },
+    ],
+  },
+  {
+    versao: 'v0.6.0',
+    data: '2026-07-04',
+    titulo: 'Perfil, Mídias & Experiência',
+    itens: [
+      { categoria: 'Nova feature', texto: 'Foto de perfil do professor: recorte quadrado, otimização automática e upload — com um avatar de iniciais quando não há foto.' },
+      { categoria: 'Nova feature', texto: 'Configurações viraram um Hub com atalhos para "Meu Perfil" e "Meu Plano".' },
+      { categoria: 'Nova feature', texto: 'Nome de usuário (@) do portal com trava de 60 dias para evitar trocas frequentes.' },
+      { categoria: 'Nova feature', texto: 'O avatar do professor aparece na busca do aluno no portal.' },
+      { categoria: 'Melhoria', texto: 'Disciplinas agora são cards com um modal para renomear ou excluir.' },
+      { categoria: 'Melhoria', texto: 'Tichr Qlick mais divertido: lobby animado, alternativas coloridas (A/B/C/D), animação ao responder e revelação com confete no acerto.' },
+      { categoria: 'Melhoria', texto: 'Carregamentos com "esqueletos" (skeleton) e bloqueio do formulário enquanto salva, evitando cliques duplos.' },
+      { categoria: 'Melhoria', texto: 'Painel mais rápido: dados carregados de forma agregada e em paralelo.' },
+      { categoria: 'Correção', texto: 'Ajuste visual no aviso de atribuição de cargos (cantos arredondados demais).' },
+    ],
+  },
+  {
     versao: 'v0.5.0',
     data: '2026-07-03',
     titulo: 'Tichr Qlick',
