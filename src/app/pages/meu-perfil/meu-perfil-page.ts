@@ -19,6 +19,7 @@ import { ProfileService } from '../../core/profile.service';
 import { StorageService } from '../../core/storage.service';
 import { Avatar } from '../../ui/avatar/avatar';
 import { Card } from '../../ui/card/card';
+import { FormBlocker } from '../../ui/form-blocker/form-blocker';
 import { Icon } from '../../ui/icon/icon';
 import { Modal } from '../../ui/modal/modal';
 import { Spinner } from '../../ui/spinner/spinner';
@@ -41,6 +42,7 @@ import { FeriasManager } from '../ferias/ferias-manager';
     Icon,
     Modal,
     ImageCropperComponent,
+    FormBlocker,
     FeriasManager,
   ],
   template: `
@@ -78,6 +80,7 @@ import { FeriasManager } from '../ferias/ferias-manager';
         />
       </div>
 
+      <app-form-blocker [busy]="salvando()">
       <app-card title="Dados do perfil">
         <form [formGroup]="form" (submit)="$event.preventDefault(); salvar()">
           <label class="campo">
@@ -162,6 +165,7 @@ import { FeriasManager } from '../ferias/ferias-manager';
           </button>
         </form>
       </app-card>
+      </app-form-blocker>
 
       <div class="ferias-wrap">
         <app-ferias-manager />
