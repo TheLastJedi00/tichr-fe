@@ -18,6 +18,20 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.8.0',
+    data: '2026-07-04',
+    titulo: 'Hall da Fama & Jogos flexíveis',
+    itens: [
+      { categoria: 'Nova feature', texto: 'Turmas agora têm abas Ativas e Encerradas: ao encerrar uma turma, ela vira somente leitura e libera o PIN para uma nova turma.' },
+      { categoria: 'Nova feature', texto: 'Hall da Fama: os alunos acessam as turmas encerradas do professor e veem o ranking final — sem precisar de PIN.' },
+      { categoria: 'Nova feature', texto: 'Um mesmo Tichr Qlick pode ser atribuído a várias turmas; ao rodar, o sistema pergunta para qual turma.' },
+      { categoria: 'Nova feature', texto: 'No estúdio, marque as turmas do jogo; no painel da turma, use "Adicionar jogo" para puxar um Qlick da sua biblioteca.' },
+      { categoria: 'Nova feature', texto: 'Sala de espera do professor mostra o PIN da turma em tamanho grande e uma lista de alunos onde o PIN de cada um se revela ao toque (ajuda quem esqueceu).' },
+      { categoria: 'Melhoria', texto: 'Dashboard ganhou uma grade de Acesso Rápido espelhando o menu, otimizada para o celular.' },
+      { categoria: 'Melhoria', texto: 'Emojis substituídos por ícones para um visual mais consistente entre aparelhos, com espaçamentos e cards mais adaptados ao mobile.' },
+    ],
+  },
+  {
     versao: 'v0.7.0',
     data: '2026-07-04',
     titulo: 'Smart PINs',
