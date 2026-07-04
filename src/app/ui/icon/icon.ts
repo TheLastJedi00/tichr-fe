@@ -20,7 +20,13 @@ export type IconName =
   | 'user'
   | 'book'
   | 'chevron-down'
-  | 'game';
+  | 'game'
+  | 'medal'
+  | 'check'
+  | 'x'
+  | 'wave'
+  | 'sparkles'
+  | 'dice';
 
 /**
  * Componente burro de icones. Centraliza os SVGs e herda a cor do texto
@@ -140,6 +146,33 @@ export type IconName =
           <line x1="15" y1="13" x2="15.01" y2="13" />
           <line x1="18" y1="11" x2="18.01" y2="11" />
           <rect x="2" y="6" width="20" height="12" rx="6" />
+        }
+        @case ('medal') {
+          <path d="M7.5 3 10 8M16.5 3 14 8" />
+          <circle cx="12" cy="15" r="6" />
+          <path d="M12 12.5 13 15h-2l1-2.5z" />
+        }
+        @case ('check') {
+          <path d="M20 6 9 17l-5-5" />
+        }
+        @case ('x') {
+          <path d="M18 6 6 18M6 6l12 12" />
+        }
+        @case ('wave') {
+          <path d="M7 11V6.5a1.5 1.5 0 0 1 3 0V10" />
+          <path d="M10 9.5V5a1.5 1.5 0 0 1 3 0v5" />
+          <path d="M13 10.5V6.5a1.5 1.5 0 0 1 3 0V13" />
+          <path d="M16 12v-1a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1a7 7 0 0 1-6-4l-1-2a1.5 1.5 0 0 1 2.6-1.4L7 13.5" />
+        }
+        @case ('sparkles') {
+          <path d="M12 3l1.9 4.6L18.5 9.5 13.9 11.4 12 16l-1.9-4.6L5.5 9.5l4.6-1.9z" />
+          <path d="M19 14.5l.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6z" />
+        }
+        @case ('dice') {
+          <rect x="3" y="3" width="18" height="18" rx="3" />
+          <circle cx="8.5" cy="8.5" r="1" />
+          <circle cx="15.5" cy="15.5" r="1" />
+          <circle cx="12" cy="12" r="1" />
         }
       }
     </svg>
