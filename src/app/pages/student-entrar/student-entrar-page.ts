@@ -76,9 +76,9 @@ type Etapa = 'busca' | 'turmas' | 'pinTurma' | 'nome' | 'pinAluno';
 
           @case ('pinTurma') {
             <h1 class="tit">PIN da turma</h1>
-            <p class="sub">{{ turmaSel()?.nome }} · 6 dígitos do professor</p>
+            <p class="sub">{{ turmaSel()?.nome }} · {{ pinLenTurma() }} dígitos do professor</p>
             <div class="pin">
-              @for (i of seis; track i) {
+              @for (i of slots(); track i) {
                 <span class="pin__dot" [class.pin__dot--on]="pin().length > i"></span>
               }
             </div>
@@ -87,7 +87,7 @@ type Etapa = 'busca' | 'turmas' | 'pinTurma' | 'nome' | 'pinAluno';
             <button
               class="btn-primary full"
               type="button"
-              [disabled]="pin().length !== 6 || carregando()"
+              [disabled]="pin().length !== pinLenTurma() || carregando()"
               (click)="validarPinTurma()"
             >
               {{ carregando() ? 'Validando…' : 'Continuar' }}
@@ -125,9 +125,9 @@ type Etapa = 'busca' | 'turmas' | 'pinTurma' | 'nome' | 'pinAluno';
 
           @case ('pinAluno') {
             <h1 class="tit">Seu PIN</h1>
-            <p class="sub">4 dígitos pessoais</p>
+            <p class="sub">{{ pinLenAluno() }} dígitos pessoais</p>
             <div class="pin">
-              @for (i of quatro; track i) {
+              @for (i of slots(); track i) {
                 <span class="pin__dot" [class.pin__dot--on]="pin().length > i"></span>
               }
             </div>
@@ -136,7 +136,7 @@ type Etapa = 'busca' | 'turmas' | 'pinTurma' | 'nome' | 'pinAluno';
             <button
               class="btn-primary full"
               type="button"
-              [disabled]="pin().length !== 4 || entrando()"
+              [disabled]="pin().length !== pinLenAluno() || entrando()"
               (click)="entrar()"
             >
               {{ entrando() ? 'Entrando…' : 'Entrar' }}
@@ -215,8 +215,13 @@ export class StudentEntrarPage {
   private readonly studentAuth = inject(StudentAuthService);
 
   protected readonly teclas = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'];
-  protected readonly seis = [0, 1, 2, 3, 4, 5];
-  protected readonly quatro = [0, 1, 2, 3];
+
+  // Smart PINs: o nº de slots vem do backend (2 díg migrado / 6-4 díg legado).
+  protected readonly pinLenTurma = signal(6);
+  protected readonly pinLenAluno = signal(4);
+  protected readonly slots = computed(() =>
+    Array.from({ length: this.tamanhoPin() }, (_, i) => i),
+  );
 
   protected readonly etapa = signal<Etapa>('busca');
   protected readonly username = signal('');
@@ -235,7 +240,7 @@ export class StudentEntrarPage {
   );
 
   private tamanhoPin(): number {
-    return this.etapa() === 'pinTurma' ? 6 : 4;
+    return this.etapa() === 'pinTurma' ? this.pinLenTurma() : this.pinLenAluno();
   }
 
   protected digitar(d: string): void {
@@ -271,6 +276,7 @@ export class StudentEntrarPage {
 
   protected escolherTurma(t: PortalTurma): void {
     this.turmaSel.set(t);
+    this.pinLenTurma.set(t.pinLength ?? 6);
     this.pin.set('');
     this.erro.set('');
     this.etapa.set('pinTurma');
@@ -278,7 +284,7 @@ export class StudentEntrarPage {
 
   protected validarPinTurma(): void {
     const turma = this.turmaSel();
-    if (!turma || this.pin().length !== 6) {
+    if (!turma || this.pin().length !== this.pinLenTurma()) {
       return;
     }
     this.carregando.set(true);
@@ -286,6 +292,7 @@ export class StudentEntrarPage {
     this.studentAuth.desbloquearTurma(turma.turmaId, this.pin()).subscribe({
       next: (info) => {
         this.alunos.set(info.alunos);
+        this.pinLenAluno.set(info.pinAlunoLength ?? 4);
         this.carregando.set(false);
         this.pin.set('');
         this.etapa.set('nome');
@@ -309,7 +316,7 @@ export class StudentEntrarPage {
 
   protected entrar(): void {
     const turma = this.turmaSel();
-    if (!turma || this.pin().length !== 4) {
+    if (!turma || this.pin().length !== this.pinLenAluno()) {
       return;
     }
     this.entrando.set(true);

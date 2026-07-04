@@ -94,6 +94,8 @@ export interface PortalTurma {
   turmaId: string;
   nome: string;
   cor?: string;
+  /** Nº de dígitos do PIN da turma (2 = Smart PIN, 6 = legado) — slots do portal. */
+  pinLength?: number;
 }
 
 /** Professor exibido no card de resultado da busca do portal do aluno. */
@@ -270,6 +272,8 @@ export interface LoginInfoTurma {
   turmaNome: string;
   alunos: Array<{ id: string; nome: string }>;
   config: TurmaConfigPublica;
+  /** Nº de dígitos do PIN do aluno (2 = Smart PIN, 4 = legado). */
+  pinAlunoLength?: number;
 }
 
 export interface LoginAlunoResponse {

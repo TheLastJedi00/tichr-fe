@@ -45,7 +45,7 @@ import { Spinner } from '../../ui/spinner/spinner';
           </label>
 
           <div class="pin">
-            @for (i of [0, 1, 2, 3]; track i) {
+            @for (i of slots(); track i) {
               <span class="pin__dot" [class.pin__dot--on]="pin().length > i"></span>
             }
           </div>
@@ -142,9 +142,14 @@ export class StudentLoginPage {
   protected readonly pin = signal('');
   protected readonly entrando = signal(false);
   protected readonly erro = signal('');
+  // Smart PINs: nº de dígitos do PIN do aluno (2 migrado / 4 legado).
+  protected readonly pinLen = signal(4);
+  protected readonly slots = computed(() =>
+    Array.from({ length: this.pinLen() }, (_, i) => i),
+  );
 
   protected readonly podeEntrar = computed(
-    () => this.pin().length === 4 && this.alunoId().length > 0,
+    () => this.pin().length === this.pinLen() && this.alunoId().length > 0,
   );
 
   constructor() {
@@ -152,6 +157,7 @@ export class StudentLoginPage {
       next: (info) => {
         this.turmaNome.set(info.turmaNome);
         this.alunos.set(info.alunos);
+        this.pinLen.set(info.pinAlunoLength ?? 4);
         this.carregando.set(false);
       },
       error: () => {
@@ -162,7 +168,7 @@ export class StudentLoginPage {
   }
 
   protected digitar(d: string): void {
-    if (this.pin().length < 4) {
+    if (this.pin().length < this.pinLen()) {
       this.pin.update((p) => p + d);
       this.erro.set('');
     }
