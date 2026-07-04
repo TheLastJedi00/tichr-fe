@@ -8,10 +8,12 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Partida } from '../../core/models';
+import { Aluno, Partida, Turma } from '../../core/models';
 import { RealtimeService } from '../../core/realtime.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Card } from '../../ui/card/card';
+import { Icon } from '../../ui/icon/icon';
+import { Modal } from '../../ui/modal/modal';
 import { Spinner } from '../../ui/spinner/spinner';
 
 /**
@@ -23,7 +25,7 @@ import { Spinner } from '../../ui/spinner/spinner';
   selector: 'app-professor-partida-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Card, Spinner],
+  imports: [Card, Spinner, Icon, Modal],
   template: `
     @if (partida(); as p) {
       <header class="head">
@@ -40,6 +42,17 @@ import { Spinner } from '../../ui/spinner/spinner';
 
       @switch (p.status) {
         @case ('LOBBY') {
+          @if (turma()?.pinTurma; as pin) {
+            <app-card>
+              <div class="pinbig">
+                <span class="pinbig__lbl">PIN da turma</span>
+                <strong class="pinbig__val">{{ pin }}</strong>
+                <button class="btn-outline" type="button" (click)="assistencia.set(true)">
+                  <app-icon name="users" [size]="16" /> Ver detalhes / lista de alunos
+                </button>
+              </div>
+            </app-card>
+          }
           <app-card>
             <p class="lead">Alunos entrando na sala…</p>
             @if (p.inscritos.length === 0) {
@@ -87,7 +100,7 @@ import { Spinner } from '../../ui/spinner/spinner';
               @for (a of p.perguntaPublica?.alternativas ?? []; track $index) {
                 <li class="alt" [class.alt--correta]="$index === p.corretaIndex">
                   <span class="alt__key">{{ letra($index) }}</span>{{ a }}
-                  @if ($index === p.corretaIndex) { <span class="alt__ok">✓ correta</span> }
+                  @if ($index === p.corretaIndex) { <span class="alt__ok"><app-icon name="check" [size]="14" /> correta</span> }
                 </li>
               }
             </ul>
@@ -123,7 +136,11 @@ import { Spinner } from '../../ui/spinner/spinner';
             <ol class="podio">
               @for (r of (p.rankingFinal ?? []); track r.alunoId) {
                 <li class="podio__row podio__row--{{ r.posicao }}">
-                  <span class="podio__medal">{{ medalha(r.posicao) }}</span>
+                  <span class="podio__medal">
+                    @if (r.posicao <= 3) {
+                      <app-icon name="medal" [size]="22" class="medal--{{ r.posicao }}" />
+                    } @else { {{ r.posicao }}º }
+                  </span>
                   <span class="rank__nome">{{ r.nome }}</span>
                   <span class="rank__pts">{{ r.pontos }}</span>
                 </li>
@@ -139,8 +156,52 @@ import { Spinner } from '../../ui/spinner/spinner';
     } @else {
       <div class="loading"><app-spinner [size]="32" /></div>
     }
+
+    <app-modal [open]="assistencia()" title="Lista de alunos" (close)="assistencia.set(false)">
+      <p class="muted">Toque no card de um aluno para revelar o PIN e ajudá-lo a entrar.</p>
+      <div class="assist">
+        @for (a of alunos(); track a.id) {
+          <button
+            class="acard"
+            type="button"
+            [class.acard--on]="revelado(a.id)"
+            (click)="revelar(a.id)"
+          >
+            <span class="acard__nome">{{ a.nome }}</span>
+            @if (revelado(a.id)) {
+              <strong class="acard__pin">{{ a.pinAcesso }}</strong>
+            } @else {
+              <span class="acard__oculto">•• toque para ver</span>
+            }
+          </button>
+        } @empty {
+          <p class="muted">Turma sem alunos.</p>
+        }
+      </div>
+      <div modal-actions>
+        <button class="btn-primary" type="button" (click)="assistencia.set(false)">Fechar</button>
+      </div>
+    </app-modal>
   `,
   styles: `
+    .pinbig { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; text-align: center; }
+    .pinbig__lbl { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+    .pinbig__val { font-size: 3.5rem; font-weight: 800; line-height: 1; letter-spacing: 0.1em; color: var(--primary); font-variant-numeric: tabular-nums; }
+    .pinbig .btn-outline { display: inline-flex; align-items: center; gap: 0.4rem; text-decoration: none; }
+    .assist { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+    @media (min-width: 480px) { .assist { grid-template-columns: repeat(3, 1fr); } }
+    .acard {
+      display: flex; flex-direction: column; align-items: center; gap: 0.25rem; cursor: pointer;
+      padding: 0.7rem 0.5rem; border-radius: 12px; text-align: center;
+      border: 1px solid var(--border); background: var(--surface); color: inherit;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+    .acard:hover { border-color: var(--primary); }
+    .acard--on { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, transparent); transform: scale(1.03); }
+    .acard__nome { font-weight: 700; font-size: 0.85rem; }
+    .acard__pin { font-size: 1.6rem; font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums; }
+    .acard__oculto { font-size: 0.7rem; color: var(--text-muted); }
+    @media (prefers-reduced-motion: reduce) { .acard { transition: none; } .acard--on { transform: none; } }
     .head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
     .head__acoes { display: flex; align-items: center; gap: 0.6rem; }
     .title { margin: 0; font-size: 1.5rem; font-weight: 700; }
@@ -177,7 +238,10 @@ import { Spinner } from '../../ui/spinner/spinner';
     .podio__row--1 { background: color-mix(in srgb, #f59e0b 18%, transparent); }
     .podio__row--2 { background: color-mix(in srgb, #94a3b8 20%, transparent); }
     .podio__row--3 { background: color-mix(in srgb, #b45309 16%, transparent); }
-    .podio__medal { font-size: 1.3rem; }
+    .podio__medal { font-size: 1.1rem; font-weight: 800; display: inline-flex; }
+    .medal--1 { color: #f59e0b; }
+    .medal--2 { color: #94a3b8; }
+    .medal--3 { color: #b45309; }
   `,
 })
 export class ProfessorPartidaPage {
@@ -192,6 +256,33 @@ export class ProfessorPartidaPage {
   private readonly agora = signal(Date.now());
   private readonly partidaId = this.route.snapshot.paramMap.get('id')!;
 
+  // Assistência de acesso (PIN da turma + lista de alunos com PIN sob flip).
+  protected readonly turma = signal<Turma | null>(null);
+  protected readonly alunos = signal<Aluno[]>([]);
+  protected readonly assistencia = signal(false);
+  private readonly reveladosSet = signal<Set<string>>(new Set());
+  private detalhesCarregados = false;
+
+  protected revelado(alunoId: string): boolean {
+    return this.reveladosSet().has(alunoId);
+  }
+
+  protected revelar(alunoId: string): void {
+    this.reveladosSet.update((s) => {
+      const n = new Set(s);
+      n.has(alunoId) ? n.delete(alunoId) : n.add(alunoId);
+      return n;
+    });
+  }
+
+  /** Carrega a turma (PIN) + roster (PINs dos alunos) uma vez, para a assistência. */
+  private carregarDetalhes(turmaId: string): void {
+    if (this.detalhesCarregados) return;
+    this.detalhesCarregados = true;
+    this.api.getTurma(turmaId).subscribe((t) => this.turma.set(t));
+    this.api.getAlunos(turmaId).subscribe((a) => this.alunos.set(a));
+  }
+
   /** Segundos restantes da pergunta corrente (0 quando esgotado). */
   protected readonly restante = computed(() => {
     const p = this.partida();
@@ -204,7 +295,13 @@ export class ProfessorPartidaPage {
     this.realtime
       .escutarPartida(this.partidaId)
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({ next: (p) => this.partida.set(p), error: () => {} });
+      .subscribe({
+        next: (p) => {
+          this.partida.set(p);
+          if (p?.turmaId) this.carregarDetalhes(p.turmaId);
+        },
+        error: () => {},
+      });
 
     const tick = setInterval(() => this.agora.set(Date.now()), 500);
     this.destroyRef.onDestroy(() => clearInterval(tick));
@@ -231,9 +328,6 @@ export class ProfessorPartidaPage {
     return String.fromCharCode(65 + i);
   }
 
-  protected medalha(pos: number): string {
-    return { 1: '🥇', 2: '🥈', 3: '🥉' }[pos] ?? `${pos}º`;
-  }
 
   protected rotulo(status: string): string {
     return {

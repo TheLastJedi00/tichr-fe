@@ -59,6 +59,11 @@ export class TurmaApiService {
     );
   }
 
+  /** Encerra a turma (vira somente-leitura e vai para o Hall da Fama). */
+  encerrarTurma(id: string): Observable<Turma> {
+    return this.http.post<Turma>(`${this.base}/turmas/${id}/encerrar`, {});
+  }
+
   atualizarTurma(
     id: string,
     payload: CriarTurmaPayload,
@@ -337,12 +342,19 @@ export class TurmaApiService {
     return this.http.delete<{ removido: boolean }>(`${this.base}/qlicks/${id}`);
   }
 
-  /** Professor: cria a partida (lobby) de um Qlick. */
-  criarPartida(qlickId: string): Observable<Partida> {
+  /** Professor: cria a partida (lobby) de um Qlick para a turma escolhida. */
+  criarPartida(qlickId: string, turmaId?: string): Observable<Partida> {
     return this.http.post<Partida>(
       `${this.base}/qlicks/${qlickId}/partida`,
-      {},
+      turmaId ? { turmaId } : {},
     );
+  }
+
+  /** Atribui (substitui) as turmas de um Qlick — N:N. */
+  atribuirTurmasQlick(qlickId: string, turmaIds: string[]): Observable<Qlick> {
+    return this.http.put<Qlick>(`${this.base}/qlicks/${qlickId}/turmas`, {
+      turmaIds,
+    });
   }
 
   getPartida(id: string): Observable<Partida> {

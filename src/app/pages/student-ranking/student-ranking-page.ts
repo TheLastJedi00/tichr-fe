@@ -7,6 +7,7 @@ import {
 import { RankingItem } from '../../core/models';
 import { StudentAuthService } from '../../core/student-auth.service';
 import { TurmaApiService } from '../../core/turma-api.service';
+import { Icon } from '../../ui/icon/icon';
 import { Spinner } from '../../ui/spinner/spinner';
 
 /**
@@ -17,7 +18,7 @@ import { Spinner } from '../../ui/spinner/spinner';
   selector: 'app-student-ranking-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Spinner],
+  imports: [Spinner, Icon],
   template: `
     <h1 class="title">Ranking da turma</h1>
 
@@ -33,7 +34,11 @@ import { Spinner } from '../../ui/spinner/spinner';
             [class.linha--eu]="item.alunoId === meuId"
             [attr.data-pos]="item.posicao <= 3 ? item.posicao : null"
           >
-            <span class="pos">{{ medalha(item.posicao) }}</span>
+            <span class="pos">
+              @if (item.posicao <= 3) {
+                <app-icon name="medal" [size]="22" class="medal--{{ item.posicao }}" />
+              } @else { {{ item.posicao }}º }
+            </span>
             <span class="nome">
               {{ item.nome }}
               @if (item.alunoId === meuId) { <span class="voce">você</span> }
@@ -65,7 +70,10 @@ import { Spinner } from '../../ui/spinner/spinner';
       outline: 2px solid var(--primary);
       outline-offset: 1px;
     }
-    .pos { font-size: 1.2rem; font-weight: 800; min-width: 2rem; text-align: center; }
+    .pos { font-size: 1.2rem; font-weight: 800; min-width: 2rem; text-align: center; display: inline-flex; justify-content: center; }
+    .medal--1 { color: #f59e0b; }
+    .medal--2 { color: #94a3b8; }
+    .medal--3 { color: #b45309; }
     .nome { flex: 1; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
     .voce {
       font-size: 0.65rem;
@@ -104,7 +112,4 @@ export class StudentRankingPage {
     }
   }
 
-  protected medalha(pos: number): string {
-    return { 1: '🥇', 2: '🥈', 3: '🥉' }[pos] ?? `${pos}º`;
-  }
 }

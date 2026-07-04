@@ -10,6 +10,7 @@ import { forkJoin } from 'rxjs';
 import { formatarData } from '../../core/date-format';
 import { dataPorExtenso, hojeISO, saudacaoPorHora } from '../../core/greeting';
 import { CriarExcecaoPayload, Qlick, Sessao, Turma } from '../../core/models';
+import { linksPainel } from '../../core/nav-links';
 import { planoAtendeMinimo } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { TurmaApiService } from '../../core/turma-api.service';
@@ -41,10 +42,22 @@ import { ExcecaoModal } from './excecao-modal';
       </app-icon-button>
     </div>
 
+    <nav class="atalhos">
+      @for (l of atalhos(); track l.path) {
+        <a class="atalho" [routerLink]="l.path" [queryParams]="l.query ?? null">
+          <span class="atalho__ic"><app-icon [name]="l.icon" [size]="26" /></span>
+          <span class="atalho__lbl">
+            {{ l.label }}
+            @if (l.locked) { <app-icon class="atalho__lock" name="lock" [size]="13" /> }
+          </span>
+        </a>
+      }
+    </nav>
+
     @if (mostrarOnboarding()) {
       <app-card>
         <div class="onboarding">
-          <h3>Que bom ter você por aqui! 👋</h3>
+          <h3>Que bom ter você por aqui! <app-icon name="wave" [size]="20" /></h3>
           <p class="muted">
             Para deixarmos a casa com a sua cara, que tal configurar seu perfil?
           </p>
@@ -142,6 +155,38 @@ import { ExcecaoModal } from './excecao-modal';
       margin-bottom: 1.25rem;
       flex-wrap: wrap;
     }
+    .atalhos {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+    @media (min-width: 560px) { .atalhos { grid-template-columns: repeat(3, 1fr); } }
+    .atalho {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 1.1rem 0.5rem;
+      border-radius: 16px;
+      text-decoration: none;
+      color: inherit;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      transition: transform 0.08s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .atalho:hover { border-color: var(--primary); box-shadow: 4px 4px 0 var(--border); }
+    .atalho:active { transform: translateY(2px); box-shadow: none; }
+    .atalho__ic {
+      display: grid; place-items: center;
+      width: 52px; height: 52px; border-radius: 14px;
+      color: var(--primary);
+      background: color-mix(in srgb, var(--primary) 12%, transparent);
+    }
+    .atalho__lbl { font-weight: 700; font-size: 0.9rem; text-align: center; display: inline-flex; align-items: center; gap: 0.3rem; }
+    .atalho__lock { color: var(--text-muted); }
+    @media (prefers-reduced-motion: reduce) { .atalho { transition: none; } .atalho:active { transform: none; } }
     .proxima {
       display: flex;
       align-items: baseline;
@@ -245,6 +290,13 @@ export class DashboardPage {
   protected readonly perfilCarregado = signal(false);
   protected readonly mostrarOnboarding = computed(
     () => this.perfilCarregado() && !this.nome(),
+  );
+
+  /** Acesso rápido: espelha o menu lateral (mesma fonte), menos o próprio Dashboard. */
+  protected readonly atalhos = computed(() =>
+    linksPainel(this.profileService.profile()?.planoAtual).filter(
+      (l) => l.path !== '/dashboard',
+    ),
   );
 
   protected readonly loading = signal(true);

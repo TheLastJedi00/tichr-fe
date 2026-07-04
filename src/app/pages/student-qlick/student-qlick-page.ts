@@ -14,6 +14,7 @@ import { StudentAuthService } from '../../core/student-auth.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Card } from '../../ui/card/card';
 import { Confetti } from '../../ui/confetti/confetti';
+import { Icon } from '../../ui/icon/icon';
 import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { Spinner } from '../../ui/spinner/spinner';
 
@@ -25,7 +26,7 @@ import { Spinner } from '../../ui/spinner/spinner';
   selector: 'app-student-qlick-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Card, Spinner, RouterLink, LobbyLoader, Confetti],
+  imports: [Card, Spinner, RouterLink, LobbyLoader, Confetti, Icon],
   template: `
     <h1 class="title">Tichr Qlick</h1>
 
@@ -41,7 +42,7 @@ import { Spinner } from '../../ui/spinner/spinner';
           @if (inscrito()) {
             <div class="lobby">
               <app-lobby-loader />
-              <h2 class="lobby__tit">Você está na sala! 🎉</h2>
+              <h2 class="lobby__tit">Você está na sala! <app-icon name="sparkles" [size]="20" /></h2>
               <p class="lobby__sub">Aguardando o professor iniciar… prepare-se!</p>
             </div>
           } @else {
@@ -95,9 +96,9 @@ import { Spinner } from '../../ui/spinner/spinner';
               @if (!respondeu()) {
                 <div class="veredito veredito--neutro"><span class="veredito__ic">–</span> Você não respondeu</div>
               } @else if (acertou(p)) {
-                <div class="veredito veredito--ok"><span class="veredito__ic">✓</span> Você acertou! 🎉</div>
+                <div class="veredito veredito--ok"><span class="veredito__ic"><app-icon name="check" [size]="18" /></span> Você acertou! <app-icon name="sparkles" [size]="18" /></div>
               } @else {
-                <div class="veredito veredito--erro"><span class="veredito__ic">✕</span> Não foi dessa vez</div>
+                <div class="veredito veredito--erro"><span class="veredito__ic"><app-icon name="x" [size]="18" /></span> Não foi dessa vez</div>
               }
               <ul class="alts">
                 @for (a of p.perguntaPublica?.alternativas ?? []; track $index) {
@@ -108,7 +109,7 @@ import { Spinner } from '../../ui/spinner/spinner';
                     [class.alt--shake]="$index === respostaIndex() && $index !== p.corretaIndex"
                   >
                     <span class="alt__key">{{ letra($index) }}</span>{{ a }}
-                    @if ($index === p.corretaIndex) { <span class="alt__ok">✓ correta</span> }
+                    @if ($index === p.corretaIndex) { <span class="alt__ok"><app-icon name="check" [size]="14" /> correta</span> }
                   </li>
                 }
               </ul>
@@ -148,14 +149,18 @@ import { Spinner } from '../../ui/spinner/spinner';
             <ol class="podio">
               @for (r of (p.rankingFinal ?? []); track r.alunoId) {
                 <li class="podio__row podio__row--{{ r.posicao }}" [class.podio__row--eu]="r.alunoId === meuId">
-                  <span class="podio__medal">{{ medalha(r.posicao) }}</span>
+                  <span class="podio__medal">
+                    @if (r.posicao <= 3) {
+                      <app-icon name="medal" [size]="22" class="medal--{{ r.posicao }}" />
+                    } @else { {{ r.posicao }}º }
+                  </span>
                   <span class="rank__nome">{{ r.nome }}</span>
                   <span class="rank__pts">{{ r.pontos }}</span>
                 </li>
               }
             </ol>
             @if (meusPontosFinais(p); as pts) {
-              <p class="portal">+{{ pts }} pontos somados ao seu XP do portal 🎉</p>
+              <p class="portal">+{{ pts }} pontos somados ao seu XP do portal <app-icon name="sparkles" [size]="16" /></p>
             }
           </app-card>
           <a class="btn-primary full sair" routerLink="/aluno/dashboard">Voltar ao início</a>
@@ -277,7 +282,10 @@ import { Spinner } from '../../ui/spinner/spinner';
     .podio__row--2 { background: color-mix(in srgb, #94a3b8 20%, transparent); }
     .podio__row--3 { background: color-mix(in srgb, #b45309 16%, transparent); }
     .podio__row--eu { outline: 2px solid var(--primary); }
-    .podio__medal { font-size: 1.3rem; }
+    .podio__medal { font-size: 1.1rem; font-weight: 800; display: inline-flex; }
+    .medal--1 { color: #f59e0b; }
+    .medal--2 { color: #94a3b8; }
+    .medal--3 { color: #b45309; }
     .portal { margin: 1rem 0 0; text-align: center; font-weight: 700; color: #16a34a; }
     .sair { display: block; margin-top: 1rem; text-align: center; text-decoration: none; }
   `,
@@ -407,7 +415,4 @@ export class StudentQlickPage {
     return String.fromCharCode(65 + i);
   }
 
-  protected medalha(pos: number): string {
-    return { 1: '🥇', 2: '🥈', 3: '🥉' }[pos] ?? `${pos}º`;
-  }
 }

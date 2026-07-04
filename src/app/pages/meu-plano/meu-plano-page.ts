@@ -10,6 +10,7 @@ import { PLANOS } from '../../core/planos.data';
 import { NOME_PLANO } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { Card } from '../../ui/card/card';
+import { Icon } from '../../ui/icon/icon';
 import { Spinner } from '../../ui/spinner/spinner';
 
 /** Meu Plano: resumo da assinatura atual + upsell + atalho de gestão. */
@@ -17,7 +18,7 @@ import { Spinner } from '../../ui/spinner/spinner';
   selector: 'app-meu-plano-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Card, Spinner],
+  imports: [RouterLink, Card, Spinner, Icon],
   template: `
     <a class="voltar" routerLink="/configuracoes">‹ Configurações</a>
     <h1 class="title">Meu Plano</h1>
@@ -59,7 +60,7 @@ import { Spinner } from '../../ui/spinner/spinner';
       } @else {
         <app-card>
           <div class="upsell">
-            <strong>Você está no topo 🎓</strong>
+            <strong>Você está no topo <app-icon name="trophy" [size]="18" /></strong>
             <p>O plano PhD libera todos os recursos do Tichr. Gerencie sua assinatura quando quiser.</p>
             <a class="btn-outline" routerLink="/planos">Gerenciar assinatura</a>
           </div>

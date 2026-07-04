@@ -7,12 +7,19 @@ import {
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { Router } from '@angular/router';
-import { PortalProfessor, PortalTurma } from '../../core/models';
+import { HallTurma, PortalProfessor, PortalTurma } from '../../core/models';
 import { StudentAuthService } from '../../core/student-auth.service';
 import { Avatar } from '../../ui/avatar/avatar';
 import { Icon } from '../../ui/icon/icon';
 
-type Etapa = 'busca' | 'turmas' | 'pinTurma' | 'nome' | 'pinAluno';
+type Etapa =
+  | 'busca'
+  | 'turmas'
+  | 'pinTurma'
+  | 'nome'
+  | 'pinAluno'
+  | 'hall'
+  | 'hallTurma';
 
 /**
  * Jornada pública de acesso do aluno (/entrar), em etapas:
@@ -70,7 +77,52 @@ type Etapa = 'busca' | 'turmas' | 'pinTurma' | 'nome' | 'pinAluno';
                 <p class="sub">Nenhuma turma ativa encontrada.</p>
               }
             </div>
-            <button class="btn-outline full" type="button" (click)="voltar('busca')">
+            <button class="hall-btn" type="button" [disabled]="carregando()" (click)="abrirHall()">
+              <app-icon name="trophy" [size]="18" /> Hall da Fama
+            </button>
+            <button class="btn-outline full mt" type="button" (click)="voltar('busca')">
+              Voltar
+            </button>
+          }
+
+          @case ('hall') {
+            <div class="prof">
+              <app-avatar [nome]="professor()?.nome" [url]="professor()?.avatarUrl" [size]="64" />
+              <strong class="prof__nome"><app-icon name="trophy" [size]="18" /> Hall da Fama</strong>
+              <span class="prof__user">Turmas encerradas de &#64;{{ professor()?.username || usernameLimpo() }}</span>
+            </div>
+            <div class="turmas">
+              @for (t of hallTurmas(); track t.turmaId) {
+                <button class="turma" type="button" (click)="abrirMural(t)">
+                  @if (t.cor) { <span class="dot" [style.background]="t.cor"></span> }
+                  {{ t.nome }}
+                </button>
+              } @empty {
+                <p class="sub">Nenhuma turma encerrada ainda.</p>
+              }
+            </div>
+            <button class="btn-outline full" type="button" (click)="voltar('turmas')">
+              Voltar
+            </button>
+          }
+
+          @case ('hallTurma') {
+            @if (hallData(); as h) {
+              <h1 class="tit"><app-icon name="trophy" [size]="20" /> {{ h.turmaNome }}</h1>
+              <p class="sub">Mural público · {{ h.nomePontuacao }}</p>
+              <ol class="rank">
+                @for (r of h.ranking; track r.alunoId) {
+                  <li class="rank__row" [class.rank__row--podio]="r.posicao <= 3">
+                    <span class="rank__pos">{{ r.posicao }}º</span>
+                    <span class="rank__nome">{{ r.nome }}</span>
+                    <span class="rank__pts">{{ r.xpTotal }}</span>
+                  </li>
+                } @empty {
+                  <p class="sub">Turma sem alunos.</p>
+                }
+              </ol>
+            }
+            <button class="btn-outline full mt" type="button" (click)="voltar('hall')">
               Voltar
             </button>
           }
@@ -188,6 +240,20 @@ type Etapa = 'busca' | 'turmas' | 'pinTurma' | 'nome' | 'pinAluno';
     .prof__nome { font-size: 1.05rem; font-weight: 800; }
     .prof__user { color: var(--text-muted); font-size: 0.85rem; font-weight: 600; }
     .turmas { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+    .hall-btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+      width: 100%; font: inherit; font-weight: 700; cursor: pointer;
+      padding: 0.7rem 1rem; border-radius: 14px; margin-bottom: 0.5rem;
+      color: #92400e; border: 1px solid color-mix(in srgb, #f59e0b 55%, var(--border));
+      background: color-mix(in srgb, #f59e0b 15%, transparent);
+    }
+    .hall-btn:disabled { opacity: 0.6; cursor: default; }
+    .rank { list-style: none; margin: 0 0 1rem; padding: 0; display: grid; gap: 0.4rem; text-align: left; }
+    .rank__row { display: flex; align-items: center; gap: 0.75rem; padding: 0.55rem 0.7rem; border-radius: 10px; background: var(--surface-alt); }
+    .rank__row--podio { background: color-mix(in srgb, #f59e0b 15%, var(--surface-alt)); }
+    .rank__pos { flex: 0 0 auto; width: 32px; font-weight: 800; color: var(--text-muted); }
+    .rank__nome { font-weight: 600; }
+    .rank__pts { margin-left: auto; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--primary); }
     .turma {
       display: flex; align-items: center; gap: 0.5rem;
       font: inherit; font-weight: 600; text-align: left;
@@ -228,6 +294,8 @@ export class StudentEntrarPage {
   protected readonly username = signal('');
   protected readonly professor = signal<PortalProfessor | null>(null);
   protected readonly turmas = signal<PortalTurma[]>([]);
+  protected readonly hallTurmas = signal<PortalTurma[]>([]);
+  protected readonly hallData = signal<HallTurma | null>(null);
   protected readonly turmaSel = signal<PortalTurma | null>(null);
   protected readonly alunos = signal<Array<{ id: string; nome: string }>>([]);
   protected readonly alunoId = signal('');
@@ -281,6 +349,37 @@ export class StudentEntrarPage {
     this.pin.set('');
     this.erro.set('');
     this.etapa.set('pinTurma');
+  }
+
+  /** Abre o Hall da Fama (turmas encerradas do professor, sem PIN). */
+  protected abrirHall(): void {
+    this.carregando.set(true);
+    this.erro.set('');
+    this.studentAuth.buscarHall(this.username()).subscribe({
+      next: (res) => {
+        this.professor.set(res.professor);
+        this.hallTurmas.set(res.turmas);
+        this.carregando.set(false);
+        this.etapa.set('hall');
+      },
+      error: () => {
+        this.carregando.set(false);
+        this.erro.set('Não foi possível carregar o Hall da Fama.');
+      },
+    });
+  }
+
+  /** Abre o mural público (ranking final) de uma turma encerrada — sem PIN. */
+  protected abrirMural(t: PortalTurma): void {
+    this.carregando.set(true);
+    this.studentAuth.hallTurma(t.turmaId).subscribe({
+      next: (h) => {
+        this.hallData.set(h);
+        this.carregando.set(false);
+        this.etapa.set('hallTurma');
+      },
+      error: () => this.carregando.set(false),
+    });
   }
 
   protected validarPinTurma(): void {

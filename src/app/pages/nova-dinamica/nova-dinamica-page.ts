@@ -15,6 +15,7 @@ import { Squad } from '../../core/models';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Card } from '../../ui/card/card';
 import { ChipsInput } from '../../ui/chips-input/chips-input';
+import { Icon } from '../../ui/icon/icon';
 import { Spinner } from '../../ui/spinner/spinner';
 
 /**
@@ -26,7 +27,7 @@ import { Spinner } from '../../ui/spinner/spinner';
   selector: 'app-nova-dinamica-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, Card, ChipsInput, Spinner],
+  imports: [ReactiveFormsModule, RouterLink, Card, ChipsInput, Spinner, Icon],
   template: `
     <header class="head">
       <h1 class="title">Nova dinâmica</h1>
@@ -71,7 +72,7 @@ import { Spinner } from '../../ui/spinner/spinner';
 
     @if (sorteando()) {
       <div class="roleta">
-        <span class="roleta__dado">🎲</span>
+        <span class="roleta__dado"><app-icon name="dice" [size]="40" /></span>
         <span class="roleta__msg">Sorteando as equipes…</span>
       </div>
     } @else if (squads(); as lista) {
