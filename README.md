@@ -44,13 +44,13 @@ O diferencial visível está na **demonstração interativa da landing page** e 
 |---|---|---|
 | `/` | **Landing** | Explica o conceito com uma demo interativa do deslizamento; CTA de acesso beta e login. |
 | `/login` | **Login** | Entrada (email/senha) — MVP *invite-only*. Traz o atalho **"Entrar como aluno"** → `/entrar`. |
-| `/entrar` | **Entrar como aluno** *(pública)* | Jornada em etapas: busca do **@usuário do professor** (o resultado mostra o **avatar** + nome do professor) → escolha da turma → **PIN da turma** (6 díg) → nome → **PIN do aluno** (4 díg). |
+| `/entrar` | **Entrar como aluno** *(pública)* | Jornada em etapas: busca do **@usuário do professor** (o resultado mostra o **avatar** + nome do professor) → escolha da turma → **PIN da turma** → nome → **PIN do aluno**. O nº de slots dos PINs é **dinâmico** (2 díg Smart / 6-4 díg legado, informado pelo backend). |
 | `/dashboard` | **Dashboard** | Recepção: saudação por horário, **próxima aula** em destaque (turma, cor, horário) enriquecida com o **plano de aula** — contexto geral (Graduado) ou **"Assunto de hoje"** (tópico, Mestre/PhD); onboarding no primeiro acesso e o gatilho de "Exceção". |
 | `/agenda` | **Minha Agenda** | Alternância **Calendário** (grade de 7 colunas, semana atual + 4) e **Detalhado** (próximos 15 dias por turnos Manhã/Tarde/Noite); a escolha é memorizada. |
 | `/plano-aula` | **Plano de Aula** | Escopo geral por disciplina (Graduado) e, no plano Mestre, **backlog de tópicos** + **quadro de alocação drag-and-drop** na grade da turma. Recurso do **plano Graduado+** (Estagiário vê cadeado). |
 | `/turmas` | **Minhas Turmas** | Lista das turmas (nome, cor, disciplina, modalidade, horário, término). |
 | `/turmas/nova` · `/turmas/:id/editar` | **Nova / Editar turma** | Formulário reativo com dias, modalidade, cor, disciplina, horários e a config de **Pontuação & Gamificação** (liga/desliga, nome da pontuação, rótulos dos botões, ranking on/off). Editar **reprojeta** a agenda. Criar respeita a **cota do plano** (com *upsell* ao estourar). |
-| `/turmas/:id` | **Detalhe da turma** | Exibe o **PIN da turma** e uma **barra de progresso** do curso (que segue o nome da pontuação como base coletiva quando ativa). Três abas: **Agenda** (status dinâmico Concluída/Em andamento/Agendada), **Alunos** (cartas com ícone + nome + pontuação; clicar abre o **modal do aluno**: PIN, editar nome, excluir, pontuar) e **Equipes** (*kanban* drag-and-drop + **cargos**). |
+| `/turmas/:id` | **Detalhe da turma** | Exibe o **PIN da turma** e uma **barra de progresso** do curso (que segue o nome da pontuação como base coletiva quando ativa). Turmas legadas (PIN 6 díg) mostram um **aviso + modal para migrar aos Smart PINs** (2 díg). Três abas: **Agenda** (status dinâmico), **Alunos** (cartas + **modal do aluno**: PIN, editar nome, excluir, pontuar) e **Equipes** (*kanban* drag-and-drop + **cargos**). |
 | `/turmas/:id/dinamica` | **Nova dinâmica** | Sorteio de **squads**: nº de equipes, papéis/temas em *chips*, e a **roleta** que renderiza os grupos. Recurso do **plano Mestre**. |
 | `/jogos` · `/jogos/qlick` | **Jogos / Tichr Qlick** | Vitrine de jogos e a mini-landing do **Tichr Qlick** (quiz ao vivo). Recurso do **plano PhD** (upsell nos inferiores). |
 | `/jogos/qlick/meus` | **Meus Qlicks** | Lista dos quizzes do professor; botão **Rodar** cria a partida e abre a sala. |
@@ -88,7 +88,8 @@ formulário de turma fica **travado em off**. O backend reforça com `403 GAMIFI
 
 Experiência **isolada** do painel do professor (sem menu lateral, com barra inferior
 estilo app), autenticada por **PIN** e com token próprio. O aluno entra pela jornada
-`/entrar`: **@usuário do professor → turma → PIN da turma (6 díg) → nome → PIN (4 díg)**.
+`/entrar`: **@usuário do professor → turma → PIN da turma → nome → PIN do aluno** (Smart PINs de
+2 díg, ou 6-4 díg em turmas legadas ainda não migradas — o portal adapta os slots).
 
 | Rota | Tela | Papel |
 |---|---|---|
