@@ -7,7 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Partida } from '../../core/models';
 import { RealtimeService } from '../../core/realtime.service';
 import { TurmaApiService } from '../../core/turma-api.service';
@@ -28,7 +28,14 @@ import { Spinner } from '../../ui/spinner/spinner';
     @if (partida(); as p) {
       <header class="head">
         <h1 class="title">{{ p.titulo }}</h1>
-        <span class="status status--{{ p.status.toLowerCase() }}">{{ rotulo(p.status) }}</span>
+        <div class="head__acoes">
+          <span class="status status--{{ p.status.toLowerCase() }}">{{ rotulo(p.status) }}</span>
+          @if (p.status !== 'ENCERRADO') {
+            <button class="btn-encerrar" type="button" [disabled]="processando()" (click)="comando('encerrar')">
+              Encerrar
+            </button>
+          }
+        </div>
       </header>
 
       @switch (p.status) {
@@ -123,6 +130,10 @@ import { Spinner } from '../../ui/spinner/spinner';
               }
             </ol>
           </app-card>
+          <p class="fim">Qlick encerrado — a sala foi fechada para os alunos.</p>
+          <button class="btn-primary full" type="button" (click)="sair()">
+            Concluir e voltar aos Qlicks
+          </button>
         }
       }
     } @else {
@@ -131,8 +142,13 @@ import { Spinner } from '../../ui/spinner/spinner';
   `,
   styles: `
     .head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .head__acoes { display: flex; align-items: center; gap: 0.6rem; }
     .title { margin: 0; font-size: 1.5rem; font-weight: 700; }
     .status { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; padding: 0.2rem 0.55rem; border-radius: 999px; color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); }
+    .btn-encerrar { font-size: 0.8rem; font-weight: 700; padding: 0.3rem 0.7rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: #dc2626; cursor: pointer; }
+    .btn-encerrar:hover:not(:disabled) { border-color: #dc2626; }
+    .btn-encerrar:disabled { opacity: 0.5; }
+    .fim { text-align: center; color: var(--text-muted); margin: 1rem 0 0.75rem; }
     .loading { display: flex; justify-content: center; padding: 3rem 0; color: var(--primary); }
     .lead { font-weight: 600; margin: 0 0 0.75rem; }
     .muted { color: var(--text-muted); }
@@ -168,6 +184,7 @@ export class ProfessorPartidaPage {
   private readonly api = inject(TurmaApiService);
   private readonly realtime = inject(RealtimeService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly partida = signal<Partida | null>(null);
@@ -199,6 +216,11 @@ export class ProfessorPartidaPage {
       next: () => this.processando.set(false),
       error: () => this.processando.set(false),
     });
+  }
+
+  /** Sai da sala após o pódio final (a partida já está encerrada). */
+  protected sair(): void {
+    this.router.navigate(['/jogos/qlick/meus']);
   }
 
   protected ehUltima(p: Partida): boolean {

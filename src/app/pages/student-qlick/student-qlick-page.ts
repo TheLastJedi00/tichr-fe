@@ -7,6 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
 import { Partida, QlickDoDia } from '../../core/models';
 import { RealtimeService } from '../../core/realtime.service';
 import { StudentAuthService } from '../../core/student-auth.service';
@@ -24,7 +25,7 @@ import { Spinner } from '../../ui/spinner/spinner';
   selector: 'app-student-qlick-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Card, Spinner, LobbyLoader, Confetti],
+  imports: [Card, Spinner, RouterLink, LobbyLoader, Confetti],
   template: `
     <h1 class="title">Tichr Qlick</h1>
 
@@ -157,6 +158,7 @@ import { Spinner } from '../../ui/spinner/spinner';
               <p class="portal">+{{ pts }} pontos somados ao seu XP do portal 🎉</p>
             }
           </app-card>
+          <a class="btn-primary full sair" routerLink="/aluno/dashboard">Voltar ao início</a>
         }
       }
     } @else {
@@ -277,6 +279,7 @@ import { Spinner } from '../../ui/spinner/spinner';
     .podio__row--eu { outline: 2px solid var(--primary); }
     .podio__medal { font-size: 1.3rem; }
     .portal { margin: 1rem 0 0; text-align: center; font-weight: 700; color: #16a34a; }
+    .sair { display: block; margin-top: 1rem; text-align: center; text-decoration: none; }
   `,
 })
 export class StudentQlickPage {
