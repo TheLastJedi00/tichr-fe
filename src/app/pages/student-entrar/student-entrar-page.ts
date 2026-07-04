@@ -16,7 +16,8 @@ type Etapa = 'busca' | 'turmas' | 'pinTurma' | 'nome' | 'pinAluno';
 
 /**
  * Jornada pública de acesso do aluno (/entrar), em etapas:
- * @username do professor → turma → PIN da turma (6 díg) → nome → PIN (4 díg).
+ * @username do professor → turma → PIN da turma → nome → PIN do aluno.
+ * O nº de dígitos dos PINs é dinâmico (2 díg Smart / 6-4 díg legado).
  */
 @Component({
   selector: 'app-student-entrar-page',

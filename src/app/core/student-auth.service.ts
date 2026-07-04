@@ -52,7 +52,7 @@ export class StudentAuthService {
     );
   }
 
-  /** Portal: valida o PIN de 6 dígitos da turma e devolve os nomes. */
+  /** Portal: valida o PIN da turma (2 díg Smart / 6 díg legado) e devolve os nomes. */
   desbloquearTurma(
     turmaId: string,
     pinTurma: string,

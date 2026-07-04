@@ -12,7 +12,7 @@ import { Spinner } from '../../ui/spinner/spinner';
 
 /**
  * Tela pública de login do aluno (/t/:turmaId): saudação da turma, seleção do
- * próprio nome e teclado numérico para os 4 dígitos do PIN.
+ * próprio nome e teclado numérico para o PIN (2 díg Smart / 4 díg legado).
  */
 @Component({
   selector: 'app-student-login-page',
