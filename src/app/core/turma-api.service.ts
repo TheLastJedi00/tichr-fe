@@ -59,6 +59,11 @@ export class TurmaApiService {
     );
   }
 
+  /** Encerra a turma (vira somente-leitura e vai para o Hall da Fama). */
+  encerrarTurma(id: string): Observable<Turma> {
+    return this.http.post<Turma>(`${this.base}/turmas/${id}/encerrar`, {});
+  }
+
   atualizarTurma(
     id: string,
     payload: CriarTurmaPayload,

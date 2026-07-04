@@ -117,6 +117,21 @@ export interface HomePayload {
   turmas: Turma[];
 }
 
+/** Hall da Fama: turmas encerradas de um professor (`GET .../hall`). */
+export interface HallResponse {
+  professor: PortalProfessor;
+  turmas: PortalTurma[];
+}
+
+/** Mural público de uma turma encerrada (`GET /portal/turma/:id/hall`). */
+export interface HallTurma {
+  turmaId: string;
+  turmaNome: string;
+  nomePontuacao: string;
+  alunos: Array<{ id: string; nome: string }>;
+  ranking: Array<{ posicao: number; alunoId: string; nome: string; xpTotal: number }>;
+}
+
 export interface PlanoAula {
   id: string;
   professorId: string;

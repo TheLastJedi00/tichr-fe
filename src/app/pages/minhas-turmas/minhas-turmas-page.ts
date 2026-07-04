@@ -1,9 +1,17 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { formatarData } from '../../core/date-format';
 import { Turma } from '../../core/models';
 import { TurmaApiService } from '../../core/turma-api.service';
+import { turmaContaComoAtiva } from '../../core/plano.util';
 import { Card } from '../../ui/card/card';
+import { Modal } from '../../ui/modal/modal';
 import { Skeleton } from '../../ui/skeleton/skeleton';
 
 /** MinhasTurmasPage (smart): lista as turmas do professor. */
@@ -11,7 +19,7 @@ import { Skeleton } from '../../ui/skeleton/skeleton';
   selector: 'app-minhas-turmas-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Card, Skeleton],
+  imports: [RouterLink, Card, Skeleton, Modal],
   template: `
     <header class="head">
       <h1 class="title">Minhas turmas</h1>
@@ -37,8 +45,25 @@ import { Skeleton } from '../../ui/skeleton/skeleton';
         </p>
       </app-card>
     } @else {
+      <div class="abas">
+        <button type="button" class="aba" [class.aba--on]="aba() === 'ativas'" (click)="aba.set('ativas')">
+          Ativas ({{ ativas().length }})
+        </button>
+        <button type="button" class="aba" [class.aba--on]="aba() === 'encerradas'" (click)="aba.set('encerradas')">
+          Encerradas ({{ encerradas().length }})
+        </button>
+      </div>
+
+      @if (turmasFiltradas().length === 0) {
+        <app-card>
+          <p class="muted">
+            {{ aba() === 'ativas' ? 'Nenhuma turma ativa no momento.' : 'Nenhuma turma encerrada ainda.' }}
+          </p>
+        </app-card>
+      }
+
       <div class="lista">
-        @for (t of turmas(); track t.id) {
+        @for (t of turmasFiltradas(); track t.id) {
           <app-card>
             <div class="turma">
               <div class="turma__top">
@@ -48,6 +73,9 @@ import { Skeleton } from '../../ui/skeleton/skeleton';
                       <span class="dot" [style.background]="t.cor"></span>
                     }
                     {{ t.nome }}
+                    @if (aba() === 'encerradas') {
+                      <span class="badge badge--fim">Encerrada</span>
+                    }
                   </h3>
                   <div class="turma__tags">
                     <span class="badge">
@@ -59,8 +87,15 @@ import { Skeleton } from '../../ui/skeleton/skeleton';
                   </div>
                 </div>
                 <div class="acoes">
-                  <a class="btn-outline editar" [routerLink]="['/turmas', t.id]">Gerenciar</a>
-                  <a class="btn-outline editar" [routerLink]="['/turmas', t.id, 'editar']">Editar</a>
+                  <a class="btn-outline editar" [routerLink]="['/turmas', t.id]">
+                    {{ aba() === 'encerradas' ? 'Ver' : 'Gerenciar' }}
+                  </a>
+                  @if (aba() === 'ativas') {
+                    <a class="btn-outline editar" [routerLink]="['/turmas', t.id, 'editar']">Editar</a>
+                    <button class="btn-outline editar encerrar" type="button" (click)="encerrarAlvo.set(t)">
+                      Encerrar
+                    </button>
+                  }
                 </div>
               </div>
               <div class="turma__meta">
@@ -80,8 +115,42 @@ import { Skeleton } from '../../ui/skeleton/skeleton';
         }
       </div>
     }
+
+    <app-modal
+      [open]="encerrarAlvo() !== null"
+      title="Encerrar turma"
+      (close)="encerrando() || encerrarAlvo.set(null)"
+    >
+      <p class="muted">
+        Encerrar <strong>{{ encerrarAlvo()?.nome }}</strong>? Ela vira somente leitura (sem novos
+        jogos ou alunos) e vai para o <strong>Hall da Fama</strong>. O PIN de 2 dígitos volta ao pool.
+      </p>
+      <div modal-actions>
+        <button class="btn-outline" type="button" [disabled]="encerrando()" (click)="encerrarAlvo.set(null)">
+          Cancelar
+        </button>
+        <button class="btn-danger" type="button" [disabled]="encerrando()" (click)="encerrar()">
+          {{ encerrando() ? 'Encerrando…' : 'Encerrar turma' }}
+        </button>
+      </div>
+    </app-modal>
   `,
   styles: `
+    .abas { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+    .aba {
+      font: inherit; font-weight: 700; cursor: pointer;
+      padding: 0.5rem 0.9rem; border-radius: 999px;
+      border: 1px solid var(--border); background: var(--surface); color: var(--text-muted);
+    }
+    .aba--on { color: var(--primary-contrast); background: var(--primary); border-color: var(--primary); }
+    .badge--fim { background: color-mix(in srgb, var(--text-muted) 18%, transparent); color: var(--text-muted); }
+    .encerrar { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, var(--border)); }
+    .encerrar:hover { background: color-mix(in srgb, var(--danger) 10%, transparent); }
+    .btn-danger {
+      padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 700;
+      color: #fff; background: var(--danger); border: 1px solid var(--danger);
+    }
+    .btn-danger:disabled { opacity: 0.6; cursor: default; }
     .head {
       display: flex;
       align-items: center;
@@ -165,6 +234,21 @@ export class MinhasTurmasPage {
   protected readonly loading = signal(true);
   protected readonly turmas = signal<Turma[]>([]);
 
+  protected readonly aba = signal<'ativas' | 'encerradas'>('ativas');
+  protected readonly ativas = computed(() =>
+    this.turmas().filter((t) => turmaContaComoAtiva(t)),
+  );
+  protected readonly encerradas = computed(() =>
+    this.turmas().filter((t) => !turmaContaComoAtiva(t)),
+  );
+  protected readonly turmasFiltradas = computed(() =>
+    this.aba() === 'ativas' ? this.ativas() : this.encerradas(),
+  );
+
+  // Encerrar turma
+  protected readonly encerrarAlvo = signal<Turma | null>(null);
+  protected readonly encerrando = signal(false);
+
   constructor() {
     this.api.getTurmas().subscribe({
       next: (t) => {
@@ -172,6 +256,21 @@ export class MinhasTurmasPage {
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
+    });
+  }
+
+  protected encerrar(): void {
+    const alvo = this.encerrarAlvo();
+    if (!alvo) return;
+    this.encerrando.set(true);
+    this.api.encerrarTurma(alvo.id).subscribe({
+      next: (t) => {
+        this.turmas.update((lista) => lista.map((x) => (x.id === t.id ? t : x)));
+        this.encerrando.set(false);
+        this.encerrarAlvo.set(null);
+        this.aba.set('encerradas');
+      },
+      error: () => this.encerrando.set(false),
     });
   }
 }

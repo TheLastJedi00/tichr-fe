@@ -3,6 +3,8 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { API_BASE_URL } from './api.config';
 import {
+  HallResponse,
+  HallTurma,
   LoginAlunoResponse,
   LoginInfoTurma,
   PortalBuscaResponse,
@@ -50,6 +52,19 @@ export class StudentAuthService {
     return this.http.get<PortalBuscaResponse>(
       `${this.base}/portal/professor/${encodeURIComponent(u)}/turmas`,
     );
+  }
+
+  /** Hall da Fama: turmas encerradas do professor (mural público, sem PIN). */
+  buscarHall(username: string): Observable<HallResponse> {
+    const u = username.trim().replace(/^@/, '');
+    return this.http.get<HallResponse>(
+      `${this.base}/portal/professor/${encodeURIComponent(u)}/hall`,
+    );
+  }
+
+  /** Mural público de uma turma encerrada (roster + ranking final, sem PIN). */
+  hallTurma(turmaId: string): Observable<HallTurma> {
+    return this.http.get<HallTurma>(`${this.base}/portal/turma/${turmaId}/hall`);
   }
 
   /** Portal: valida o PIN da turma (2 díg Smart / 6 díg legado) e devolve os nomes. */
