@@ -5,10 +5,11 @@ import {
   signal,
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { Qlick } from '../../core/models';
+import { Qlick, Turma } from '../../core/models';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Card } from '../../ui/card/card';
 import { Icon } from '../../ui/icon/icon';
+import { Modal } from '../../ui/modal/modal';
 import { PinsModal } from '../../ui/pins-modal/pins-modal';
 import { Skeleton } from '../../ui/skeleton/skeleton';
 
@@ -17,7 +18,7 @@ import { Skeleton } from '../../ui/skeleton/skeleton';
   selector: 'app-qlick-list-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Card, Icon, Skeleton, PinsModal],
+  imports: [RouterLink, Card, Icon, Skeleton, PinsModal, Modal],
   template: `
     <header class="head">
       <div>
@@ -75,6 +76,26 @@ import { Skeleton } from '../../ui/skeleton/skeleton';
     }
 
     <app-pins-modal [open]="pinsAberto()" (close)="pinsAberto.set(false)" />
+
+    <app-modal
+      [open]="escolhaTurma() !== null"
+      title="Para qual turma?"
+      (close)="rodando() || escolhaTurma.set(null)"
+    >
+      <p class="muted">Este Qlick está em várias turmas. Escolha para qual rodar:</p>
+      <div class="pick-turmas">
+        @for (id of turmasDaEscolha(); track id) {
+          <button class="pick-turma" type="button" [disabled]="rodando()" (click)="escolher(id)">
+            {{ nomeTurma(id) }}
+          </button>
+        }
+      </div>
+      <div modal-actions>
+        <button class="btn-outline" type="button" [disabled]="rodando()" (click)="escolhaTurma.set(null)">
+          Cancelar
+        </button>
+      </div>
+    </app-modal>
   `,
   styles: `
     .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
@@ -93,6 +114,13 @@ import { Skeleton } from '../../ui/skeleton/skeleton';
     .item__meta { color: var(--text-muted); font-size: 0.85rem; }
     .item__acoes { display: flex; gap: 0.5rem; }
     .btn-sm { font-size: 0.85rem; padding: 0.4rem 0.8rem; text-decoration: none; }
+    .pick-turmas { display: grid; gap: 0.5rem; }
+    .pick-turma {
+      font: inherit; font-weight: 700; text-align: left; cursor: pointer;
+      padding: 0.7rem 0.9rem; border-radius: 12px;
+      border: 1px solid var(--border); background: var(--surface); color: inherit;
+    }
+    .pick-turma:hover:not(:disabled) { border-color: var(--primary); }
   `,
 })
 export class QlickListPage {
@@ -102,6 +130,9 @@ export class QlickListPage {
   protected readonly rodando = signal(false);
   protected readonly qlicks = signal<Qlick[]>([]);
   protected readonly pinsAberto = signal(false);
+  protected readonly turmas = signal<Turma[]>([]);
+  /** Qlick aguardando a escolha de turma (quando tem várias atribuídas). */
+  protected readonly escolhaTurma = signal<Qlick | null>(null);
 
   constructor() {
     this.api.getQlicks().subscribe({
@@ -111,12 +142,43 @@ export class QlickListPage {
       },
       error: () => this.carregando.set(false),
     });
+    this.api.getTurmas().subscribe((t) => this.turmas.set(t));
   }
 
-  /** Cria a partida (lobby) e vai para a sala do professor. */
+  /** IDs das turmas atribuídas ao Qlick (N:N + legado). */
+  private turmasDoQlick(q: Qlick): string[] {
+    const ids = [...(q.turmaIds ?? [])];
+    if (q.turmaId && !ids.includes(q.turmaId)) ids.push(q.turmaId);
+    return ids;
+  }
+
+  protected nomeTurma(id: string): string {
+    return this.turmas().find((t) => t.id === id)?.nome ?? 'Turma';
+  }
+
+  protected turmasDaEscolha(): string[] {
+    const q = this.escolhaTurma();
+    return q ? this.turmasDoQlick(q) : [];
+  }
+
+  /** Rodar: se o Qlick tem várias turmas, pergunta "para qual turma?". */
   protected rodar(q: Qlick): void {
+    const turmas = this.turmasDoQlick(q);
+    if (turmas.length > 1) {
+      this.escolhaTurma.set(q);
+      return;
+    }
+    this.iniciarPartida(q.id, turmas[0]);
+  }
+
+  protected escolher(turmaId: string): void {
+    const q = this.escolhaTurma();
+    if (q) this.iniciarPartida(q.id, turmaId);
+  }
+
+  private iniciarPartida(qlickId: string, turmaId?: string): void {
     this.rodando.set(true);
-    this.api.criarPartida(q.id).subscribe({
+    this.api.criarPartida(qlickId, turmaId).subscribe({
       next: (p) => this.router.navigate(['/jogos/qlick/partida', p.id]),
       error: () => this.rodando.set(false),
     });
