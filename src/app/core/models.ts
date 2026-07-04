@@ -67,8 +67,13 @@ export interface Profile {
   bio?: string;
   disciplinas?: string[];
   username?: string;
+  avatarUrl?: string;
   planoAtual?: PlanoAtual;
   slotsAdicionaisComprados?: number;
+  /** Trava de identificador: false = @username bloqueado no cooldown. */
+  podeAlterarUsername?: boolean;
+  /** Dias que faltam para liberar a próxima troca do @username (0 = liberado). */
+  diasParaTrocarUsername?: number;
 }
 
 export interface UpdateProfilePayload {
@@ -77,6 +82,7 @@ export interface UpdateProfilePayload {
   bio?: string;
   disciplinas?: string[];
   username?: string;
+  avatarUrl?: string;
 }
 
 export interface CheckUsernameResponse {
@@ -88,6 +94,25 @@ export interface PortalTurma {
   turmaId: string;
   nome: string;
   cor?: string;
+}
+
+/** Professor exibido no card de resultado da busca do portal do aluno. */
+export interface PortalProfessor {
+  nome: string;
+  username: string;
+  avatarUrl?: string;
+}
+
+/** Resposta da busca pública (`GET /portal/professor/:username/turmas`). */
+export interface PortalBuscaResponse {
+  professor: PortalProfessor;
+  turmas: PortalTurma[];
+}
+
+/** Payload agregado do painel do professor (`GET /home`). */
+export interface HomePayload {
+  profile: Profile;
+  turmas: Turma[];
 }
 
 export interface PlanoAula {

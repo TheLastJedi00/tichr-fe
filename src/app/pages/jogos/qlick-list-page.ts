@@ -10,14 +10,14 @@ import { TurmaApiService } from '../../core/turma-api.service';
 import { Card } from '../../ui/card/card';
 import { Icon } from '../../ui/icon/icon';
 import { PinsModal } from '../../ui/pins-modal/pins-modal';
-import { Spinner } from '../../ui/spinner/spinner';
+import { Skeleton } from '../../ui/skeleton/skeleton';
 
 /** Meus Qlicks (PhD): lista dos questionários, com criar, editar e rodar. */
 @Component({
   selector: 'app-qlick-list-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Card, Icon, Spinner, PinsModal],
+  imports: [RouterLink, Card, Icon, Skeleton, PinsModal],
   template: `
     <header class="head">
       <div>
@@ -35,7 +35,19 @@ import { Spinner } from '../../ui/spinner/spinner';
     </header>
 
     @if (carregando()) {
-      <div class="loading"><app-spinner [size]="32" /></div>
+      <div class="lista">
+        @for (i of [1, 2, 3]; track i) {
+          <app-card>
+            <div class="sk-item">
+              <div class="sk-item__info">
+                <app-skeleton width="50%" height="1.05rem" />
+                <app-skeleton width="70%" height="0.85rem" />
+              </div>
+              <app-skeleton width="84px" height="2rem" radius="10px" />
+            </div>
+          </app-card>
+        }
+      </div>
     } @else if (qlicks().length === 0) {
       <app-card><p class="muted">Você ainda não criou nenhum Qlick.</p></app-card>
     } @else {
@@ -74,6 +86,8 @@ import { Spinner } from '../../ui/spinner/spinner';
     .loading { display: flex; justify-content: center; padding: 3rem 0; color: var(--primary); }
     .muted { color: var(--text-muted); margin: 0; }
     .lista { display: flex; flex-direction: column; gap: 0.75rem; }
+    .sk-item { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+    .sk-item__info { display: flex; flex-direction: column; gap: 0.5rem; flex: 1; }
     .item { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
     .item__tit { display: block; font-size: 1.05rem; }
     .item__meta { color: var(--text-muted); font-size: 0.85rem; }

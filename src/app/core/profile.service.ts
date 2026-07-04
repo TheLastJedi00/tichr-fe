@@ -4,6 +4,7 @@ import { Observable, tap } from 'rxjs';
 import { API_BASE_URL } from './api.config';
 import {
   CheckUsernameResponse,
+  HomePayload,
   PlanoAtual,
   Profile,
   UpdateProfilePayload,
@@ -25,6 +26,16 @@ export class ProfileService {
     return this.http
       .get<Profile>(`${this.base}/profile`)
       .pipe(tap((p) => this.profile.set(p)));
+  }
+
+  /**
+   * Agregador do painel (BFF): perfil + turmas num único roundtrip. Atualiza o
+   * perfil reativo (greeting) e devolve o payload completo para a página.
+   */
+  loadHome(): Observable<HomePayload> {
+    return this.http
+      .get<HomePayload>(`${this.base}/home`)
+      .pipe(tap((h) => this.profile.set(h.profile)));
   }
 
   update(payload: UpdateProfilePayload): Observable<Profile> {

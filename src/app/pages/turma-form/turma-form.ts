@@ -14,6 +14,7 @@ import { CriarTurmaPayload, TipoModalidade, Turma } from '../../core/models';
 import { podeGamificar } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { Card } from '../../ui/card/card';
+import { FormBlocker } from '../../ui/form-blocker/form-blocker';
 import { Icon } from '../../ui/icon/icon';
 import { Modal } from '../../ui/modal/modal';
 
@@ -41,8 +42,9 @@ const CORES = [
   selector: 'app-turma-form',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, Card, Icon, Modal],
+  imports: [ReactiveFormsModule, RouterLink, Card, Icon, Modal, FormBlocker],
   template: `
+    <app-form-blocker [busy]="submitting()">
     <app-card>
       <form [formGroup]="form" (ngSubmit)="submeter()">
         <label class="campo">
@@ -189,6 +191,7 @@ const CORES = [
         </button>
       </form>
     </app-card>
+    </app-form-blocker>
 
     <app-modal
       [open]="upsell()"

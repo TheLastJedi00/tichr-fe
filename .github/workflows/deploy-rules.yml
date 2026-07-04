@@ -1,0 +1,38 @@
+name: Deploy Firebase Rules
+
+# Publica as regras do Firestore e do Storage sempre que a main muda os arquivos
+# de rules (ou a config do Firebase). O backend usa o Admin SDK e ignora estas
+# regras — elas valem só para o acesso client-side (leitura do Qlick + foto).
+on:
+  push:
+    branches: [main]
+    paths:
+      - firestore.rules
+      - storage.rules
+      - firebase.json
+      - .github/workflows/deploy-rules.yml
+  # Permite disparar manualmente pela aba Actions.
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instala o Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Grava a service account (base64 -> JSON)
+        run: echo "$FIREBASE_SERVICE_ACCOUNT" | base64 -d > "$RUNNER_TEMP/service-account.json"
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Deploy das rules (Firestore + Storage)
+        run: firebase deploy --only firestore:rules,storage --project tichr-293c8 --non-interactive
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/service-account.json

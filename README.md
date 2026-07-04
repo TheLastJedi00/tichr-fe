@@ -44,7 +44,7 @@ O diferencial visível está na **demonstração interativa da landing page** e 
 |---|---|---|
 | `/` | **Landing** | Explica o conceito com uma demo interativa do deslizamento; CTA de acesso beta e login. |
 | `/login` | **Login** | Entrada (email/senha) — MVP *invite-only*. Traz o atalho **"Entrar como aluno"** → `/entrar`. |
-| `/entrar` | **Entrar como aluno** *(pública)* | Jornada em etapas: busca do **@usuário do professor** → escolha da turma → **PIN da turma** (6 díg) → nome → **PIN do aluno** (4 díg). |
+| `/entrar` | **Entrar como aluno** *(pública)* | Jornada em etapas: busca do **@usuário do professor** (o resultado mostra o **avatar** + nome do professor) → escolha da turma → **PIN da turma** (6 díg) → nome → **PIN do aluno** (4 díg). |
 | `/dashboard` | **Dashboard** | Recepção: saudação por horário, **próxima aula** em destaque (turma, cor, horário) enriquecida com o **plano de aula** — contexto geral (Graduado) ou **"Assunto de hoje"** (tópico, Mestre/PhD); onboarding no primeiro acesso e o gatilho de "Exceção". |
 | `/agenda` | **Minha Agenda** | Alternância **Calendário** (grade de 7 colunas, semana atual + 4) e **Detalhado** (próximos 15 dias por turnos Manhã/Tarde/Noite); a escolha é memorizada. |
 | `/plano-aula` | **Plano de Aula** | Escopo geral por disciplina (Graduado) e, no plano Mestre, **backlog de tópicos** + **quadro de alocação drag-and-drop** na grade da turma. Recurso do **plano Graduado+** (Estagiário vê cadeado). |
@@ -57,7 +57,9 @@ O diferencial visível está na **demonstração interativa da landing page** e 
 | `/jogos/qlick/novo` · `/editar/:id` | **Estúdio do Qlick** | Formulário reativo (FormArray) de perguntas → alternativas, com marcação da correta e duração. |
 | `/jogos/qlick/partida/:id` | **Sala do professor** | Comanda a partida em tempo real: lobby, pergunta (timer + revelar), ranking da rodada (próxima/encerrar) e pódio. |
 | `/planos` | **Assinatura** | Vitrine dos 4 planos com o **plano atual em destaque** e troca de plano (mock). Destino do botão "Fazer upgrade" quando um recurso exige um plano superior. |
-| `/configuracoes` | **Configurações** | Perfil (nome, disciplina, bio, competências), **@username** do portal (com verificação de disponibilidade em tempo real), **períodos de férias globais** e atalho de **assinatura**. |
+| `/configuracoes` | **Hub de Configurações** | Índice da conta: cabeçalho com **avatar + nome** do professor e um menu para **Meu Perfil** e **Meu Plano**. |
+| `/configuracoes/perfil` | **Meu Perfil** | **Foto de perfil** (editar → recorte 1:1 → compressão → upload ao Firebase Storage), dados (nome, disciplina, bio), **@username** com disponibilidade em tempo real e **trava de 60 dias**, **disciplinas como cards** (modal para renomear/excluir) e **férias globais**. |
+| `/configuracoes/plano` | **Meu Plano** | Resumo da assinatura atual (plano, limite, vagas avulsas, features) + **upsell** e atalho de gestão. |
 | `/novidades` | **Novidades (Changelog)** *(pública)* | Timeline das versões (Nova feature / Melhoria / Correção), alimentada por `changelog.data.ts` e espelhando o README. Linkada no **rodapé global**. |
 
 ### Equipes, cargos e gating (aba Equipes)
@@ -94,7 +96,7 @@ estilo app), autenticada por **PIN** e com token próprio. O aluno entra pela jo
 | `/aluno/dashboard` | **Início** | Card **"O que vem por aí"** com o **tópico da próxima aula**; **barra de nível** (Prata → Diamante) + **barra de evolução da turma**; o rótulo da pontuação segue o **nome definido na turma** (ex.: "Aura"). |
 | `/aluno/agenda` | **Agenda** | Dias letivos com status dinâmico (Concluída / Em andamento / Agendada) e o **tópico** de cada aula ("o que já vimos") — sincronizados do Plano de Aula quando o professor é PhD. |
 | `/aluno/ranking` | **Ranking** | Pódio (🥇🥈🥉) da turma, com o **card do próprio aluno destacado**. A aba **some** quando a turma desativa o ranking. |
-| `/aluno/qlick` | **Tichr Qlick** | Entra no quiz "de hoje": inscrição no lobby, resposta com cronômetro, revelação do acerto + top 3 e **pódio final** com os pontos somados ao XP. |
+| `/aluno/qlick` | **Tichr Qlick** | Entra no quiz "de hoje": **lobby animado** (loader temático), alternativas **color-coded A/B/C/D** com feedback de clique (press/scale) e estado de espera, **revelação animada** (correta brilha, erradas em cinza, confete no acerto / shake no erro) e **pódio final** com os pontos somados ao XP. |
 
 ### Tichr Qlick: quiz ao vivo em tempo real (Plano PhD)
 
@@ -115,12 +117,33 @@ cliente (ver [arquitetura](#arquitetura--stack)):
   nunca trafega durante a pergunta.
 
 Recursos transversais: **modal global de erro** (toda falha de rede vira um aviso
-claro — exceto a cota, tratada *inline*), **estados de carregamento** consistentes,
-**tema claro/escuro** nativo, **cores por turma**, o **indicador de cota** no menu
+claro — exceto a cota e a **trava de @username**, tratadas *inline*), **estados de carregamento**
+consistentes, **tema claro/escuro** nativo, **cores por turma**, o **indicador de cota** no menu
 lateral, o **card de upsell** ao atingir o limite do plano, o selo **Beta** no header
 (aviso de que recursos experimentais podem conter bugs e perder dados) e o **rodapé global**
 (autoria, GitHub e âncora para as Novidades). O menu lateral inclui **"Plano de Aula"**
 (com cadeado + upsell para o Estagiário).
+
+### Foto de perfil, mídia e trava de identificador
+
+- **Avatar (client-side):** ao trocar a foto, o Angular abre um **modal de recorte 1:1**
+  (`ngx-image-cropper`), **comprime** silenciosamente para ~50KB / 250px
+  (`browser-image-compression`), sobe o micro-arquivo direto ao **Firebase Storage** e envia
+  a **URL** ao backend (`PATCH /profile`). O `<app-avatar>` mostra a foto ou um **placeholder**
+  com as iniciais. As **regras do Storage** (`storage.rules`) e do Firestore são publicadas por
+  um **workflow do GitHub** a cada merge na `main`.
+- **Trava de @username:** o handle só troca a cada **60 dias**; dentro do período o campo fica
+  **desabilitado** com a microcópia "Você poderá alterar… em X dias" (o backend responde
+  `409 USERNAME_COOLDOWN`).
+
+### Feedback de carregamento e performance
+
+- **Skeleton screens:** listas (Minhas Turmas, Meus Qlicks) renderizam **silhuetas com shimmer**
+  no lugar de uma tela em branco durante o `GET`.
+- **UI-blocking em submits:** ao salvar, o formulário inteiro **esmaece** e ganha um *overlay*
+  com spinner (`<app-form-blocker>`), cortando cliques duplos.
+- **Paralelismo:** o painel consome um **agregador (BFF `GET /home`)** que devolve perfil +
+  turmas num único roundtrip, combinado com as sessões via **`forkJoin`** — fim do efeito cascata.
 
 ---
 

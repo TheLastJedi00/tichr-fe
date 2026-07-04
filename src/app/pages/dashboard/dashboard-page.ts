@@ -6,6 +6,7 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { formatarData } from '../../core/date-format';
 import { dataPorExtenso, hojeISO, saudacaoPorHora } from '../../core/greeting';
 import { CriarExcecaoPayload, Qlick, Sessao, Turma } from '../../core/models';
@@ -298,17 +299,27 @@ export class DashboardPage {
   });
 
   constructor() {
-    this.profileService.load().subscribe({
-      next: () => {
+    // Paralelismo: perfil+turmas (BFF /home) e sessões da semana disparam juntos
+    // via forkJoin — o tempo de tela é o da requisição mais lenta, sem cascata.
+    this.loading.set(true);
+    this.error.set(null);
+    forkJoin({
+      home: this.profileService.loadHome(),
+      sessoes: this.api.getSessoesSemana(),
+    }).subscribe({
+      next: ({ home, sessoes }) => {
         this.perfilCarregado.set(true);
-        if (
-          planoAtendeMinimo(this.profileService.profile()?.planoAtual, 'GRADUADO')
-        ) {
+        this.turmas.set(new Map(home.turmas.map((t) => [t.id, t])));
+        this.sessoes.set(sessoes);
+        this.loading.set(false);
+
+        const plano = home.profile.planoAtual;
+        if (planoAtendeMinimo(plano, 'GRADUADO')) {
           this.api.getPlanosAula().subscribe((ps) =>
             this.planos.set(new Map(ps.map((p) => [p.disciplina, p.contextoGeral]))),
           );
         }
-        if (planoAtendeMinimo(this.profileService.profile()?.planoAtual, 'PHD')) {
+        if (planoAtendeMinimo(plano, 'PHD')) {
           this.api.getQlicks().subscribe({
             next: (qs) => this.qlicks.set(qs),
             error: () => {},
@@ -316,18 +327,14 @@ export class DashboardPage {
         }
         this.enriquecerProxima();
       },
-      error: () => this.perfilCarregado.set(true),
-    });
-    this.api.getTurmas().subscribe({
-      next: (ts) => {
-        this.turmas.set(new Map(ts.map((t) => [t.id, t])));
-        this.enriquecerProxima();
+      error: () => {
+        this.perfilCarregado.set(true);
+        this.loading.set(false);
       },
-      error: () => {},
     });
-    this.carregar();
   }
 
+  /** Recarrega apenas as sessões (após registrar uma exceção). */
   carregar(): void {
     this.loading.set(true);
     this.error.set(null);

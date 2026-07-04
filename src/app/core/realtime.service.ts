@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-import { initializeApp, type FirebaseApp } from 'firebase/app';
 import {
   doc,
   getFirestore,
@@ -7,7 +6,7 @@ import {
   type Firestore,
 } from 'firebase/firestore';
 import { Observable } from 'rxjs';
-import { environment } from '../../environments/environment';
+import { firebaseApp } from './firebase-app';
 import { Partida } from './models';
 
 /**
@@ -17,13 +16,11 @@ import { Partida } from './models';
  */
 @Injectable({ providedIn: 'root' })
 export class RealtimeService {
-  private app?: FirebaseApp;
   private db?: Firestore;
 
   private conectar(): Firestore {
     if (!this.db) {
-      this.app = initializeApp(environment.firebase);
-      this.db = getFirestore(this.app);
+      this.db = getFirestore(firebaseApp());
     }
     return this.db;
   }

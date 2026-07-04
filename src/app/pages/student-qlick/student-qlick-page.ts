@@ -13,6 +13,8 @@ import { RealtimeService } from '../../core/realtime.service';
 import { StudentAuthService } from '../../core/student-auth.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Card } from '../../ui/card/card';
+import { Confetti } from '../../ui/confetti/confetti';
+import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { Spinner } from '../../ui/spinner/spinner';
 
 /**
@@ -23,7 +25,7 @@ import { Spinner } from '../../ui/spinner/spinner';
   selector: 'app-student-qlick-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Card, Spinner, RouterLink],
+  imports: [Card, Spinner, RouterLink, LobbyLoader, Confetti],
   template: `
     <h1 class="title">Tichr Qlick</h1>
 
@@ -37,9 +39,10 @@ import { Spinner } from '../../ui/spinner/spinner';
       @switch (p.status) {
         @case ('LOBBY') {
           @if (inscrito()) {
-            <div class="espera">
-              <app-spinner [size]="28" />
-              <p>Você está na sala! Aguardando o professor iniciar…</p>
+            <div class="lobby">
+              <app-lobby-loader />
+              <h2 class="lobby__tit">Você está na sala! 🎉</h2>
+              <p class="lobby__sub">Aguardando o professor iniciar… prepare-se!</p>
             </div>
           } @else {
             <app-card>
@@ -59,44 +62,57 @@ import { Spinner } from '../../ui/spinner/spinner';
               <span class="timer" [class.timer--fim]="restante() <= 5">{{ restante() }}s</span>
             </div>
             <h2 class="q__enun">{{ p.perguntaPublica?.enunciado }}</h2>
-            @if (respostaIndex() === null && restante() > 0) {
-              <div class="grid">
-                @for (a of p.perguntaPublica?.alternativas ?? []; track $index) {
-                  <button class="opt" type="button" [disabled]="enviando()" (click)="responder($index)">
-                    <span class="opt__key">{{ letra($index) }}</span>{{ a }}
-                  </button>
-                }
-              </div>
-            } @else {
-              <div class="espera">
-                <app-spinner [size]="28" />
-                <p>
-                  @if (respostaIndex() !== null) {
-                    Resposta enviada! Aguardando os colegas…
-                  } @else {
-                    Tempo esgotado. Aguardando a revelação…
-                  }
-                </p>
-              </div>
+            <div class="grid">
+              @for (a of p.perguntaPublica?.alternativas ?? []; track $index) {
+                <button
+                  class="opt opt--{{ $index }}"
+                  type="button"
+                  [class.opt--escolhida]="respostaIndex() === $index"
+                  [class.opt--apagada]="respostaIndex() !== null && respostaIndex() !== $index"
+                  [disabled]="respostaIndex() !== null || restante() === 0 || enviando()"
+                  (click)="responder($index)"
+                >
+                  <span class="opt__key">{{ letra($index) }}</span>{{ a }}
+                </button>
+              }
+            </div>
+            @if (respostaIndex() !== null) {
+              <p class="q__status">Resposta enviada! Aguardando os colegas…</p>
+            } @else if (restante() === 0) {
+              <p class="q__status">Tempo esgotado. Aguardando a revelação…</p>
             }
           </app-card>
         }
 
         @case ('RANKING_PARCIAL') {
+          @if (acertou(p)) { <app-confetti /> }
           <app-card>
-            @if (acertou(p)) {
-              <div class="veredito veredito--ok"><span class="veredito__ic">✓</span> Você acertou!</div>
-            } @else {
-              <div class="veredito veredito--erro"><span class="veredito__ic">✕</span> Não foi dessa vez</div>
-            }
-            <ul class="alts">
-              @for (a of p.perguntaPublica?.alternativas ?? []; track $index) {
-                <li class="alt" [class.alt--correta]="$index === p.corretaIndex">
-                  <span class="alt__key">{{ letra($index) }}</span>{{ a }}
-                  @if ($index === p.corretaIndex) { <span class="alt__ok">correta</span> }
-                </li>
+            <div
+              class="reveal"
+              [class.reveal--ok]="respondeu() && acertou(p)"
+              [class.reveal--erro]="respondeu() && !acertou(p)"
+            >
+              @if (!respondeu()) {
+                <div class="veredito veredito--neutro"><span class="veredito__ic">–</span> Você não respondeu</div>
+              } @else if (acertou(p)) {
+                <div class="veredito veredito--ok"><span class="veredito__ic">✓</span> Você acertou! 🎉</div>
+              } @else {
+                <div class="veredito veredito--erro"><span class="veredito__ic">✕</span> Não foi dessa vez</div>
               }
-            </ul>
+              <ul class="alts">
+                @for (a of p.perguntaPublica?.alternativas ?? []; track $index) {
+                  <li
+                    class="alt alt--{{ $index }}"
+                    [class.alt--correta]="$index === p.corretaIndex"
+                    [class.alt--errada]="$index !== p.corretaIndex"
+                    [class.alt--shake]="$index === respostaIndex() && $index !== p.corretaIndex"
+                  >
+                    <span class="alt__key">{{ letra($index) }}</span>{{ a }}
+                    @if ($index === p.corretaIndex) { <span class="alt__ok">✓ correta</span> }
+                  </li>
+                }
+              </ul>
+            </div>
           </app-card>
 
           @if (minhaPos(p); as pos) {
@@ -163,27 +179,88 @@ import { Spinner } from '../../ui/spinner/spinner';
     .full { width: 100%; }
     .espera { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; padding: 2rem 0; color: var(--primary); text-align: center; }
     .espera p { color: var(--text-muted); margin: 0; }
+    .lobby { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; padding: 2.5rem 0 2rem; text-align: center; }
+    .lobby__tit { margin: 0.75rem 0 0; font-size: 1.25rem; font-weight: 800; }
+    .lobby__sub { margin: 0; color: var(--text-muted); }
     .q__top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
     .q__conta { font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-muted); }
     .timer { font-size: 1.4rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--primary); }
     .timer--fim { color: #dc2626; }
     .q__enun { margin: 0 0 1rem; font-size: 1.25rem; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
-    .opt { display: flex; align-items: center; gap: 0.6rem; padding: 1rem 0.9rem; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); font-weight: 700; text-align: left; cursor: pointer; }
-    .opt:hover:not(:disabled) { border-color: var(--primary); }
-    .opt:disabled { opacity: 0.6; }
-    .opt__key { flex: 0 0 auto; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 999px; background: var(--surface-alt); font-size: 0.85rem; font-weight: 800; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+    .opt {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 1.15rem 1rem; border: none; border-radius: 16px;
+      color: #fff; font-weight: 800; font-size: 1rem; text-align: left; cursor: pointer;
+      box-shadow: 0 4px 0 rgba(2, 6, 23, 0.22);
+      transition: transform 0.08s ease, box-shadow 0.12s ease, opacity 0.25s ease, filter 0.2s ease;
+    }
+    .opt:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 rgba(2, 6, 23, 0.22); }
+    .opt:disabled { cursor: default; }
+    .opt--0 { background: #ef4444; }
+    .opt--1 { background: #3b82f6; }
+    .opt--2 { background: #f59e0b; color: #1f2937; }
+    .opt--3 { background: #22c55e; }
+    .opt--apagada { opacity: 0.35; filter: saturate(0.8); }
+    .opt--escolhida { animation: pulse-opt 1s infinite ease-in-out; }
+    @keyframes pulse-opt {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.55); }
+      50% { transform: scale(1.03); box-shadow: 0 0 0 7px rgba(255, 255, 255, 0); }
+    }
+    .opt__key { flex: 0 0 auto; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 999px; background: rgba(255, 255, 255, 0.28); font-size: 0.9rem; font-weight: 800; }
+    .opt--2 .opt__key { background: rgba(0, 0, 0, 0.15); }
+    .q__status { text-align: center; color: var(--text-muted); margin: 1rem 0 0; font-weight: 600; }
+    @media (prefers-reduced-motion: reduce) {
+      .opt { transition: none; }
+      .opt:active:not(:disabled) { transform: none; }
+      .opt--escolhida { animation: none; outline: 3px solid #fff; outline-offset: -3px; }
+    }
     .veredito { display: flex; align-items: center; gap: 0.5rem; font-weight: 800; font-size: 1.1rem; margin-bottom: 1rem; }
     .veredito__ic { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 999px; color: #fff; }
     .veredito--ok { color: #16a34a; }
     .veredito--ok .veredito__ic { background: #16a34a; }
     .veredito--erro { color: #dc2626; }
     .veredito--erro .veredito__ic { background: #dc2626; }
-    .alts { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
-    .alt { display: flex; align-items: center; gap: 0.6rem; padding: 0.75rem 0.9rem; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); font-weight: 600; }
-    .alt--correta { border-color: #16a34a; background: color-mix(in srgb, #16a34a 12%, transparent); }
-    .alt__key { flex: 0 0 auto; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 999px; background: var(--surface-alt); font-size: 0.8rem; font-weight: 800; }
-    .alt__ok { margin-left: auto; font-size: 0.8rem; font-weight: 800; color: #16a34a; }
+    .reveal { border-radius: 14px; padding: 0.4rem; transition: background 0.4s ease; }
+    .reveal--ok { background: color-mix(in srgb, #22c55e 14%, transparent); }
+    .reveal--erro { background: color-mix(in srgb, #ef4444 12%, transparent); }
+    .veredito--neutro { color: var(--text-muted); }
+    .veredito--neutro .veredito__ic { background: var(--text-muted); }
+    .alts { list-style: none; margin: 0.5rem 0 0; padding: 0; display: grid; gap: 0.5rem; }
+    .alt {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.85rem 0.9rem; border-radius: 12px;
+      color: #fff; font-weight: 700;
+      transition: transform 0.4s ease, filter 0.4s ease, opacity 0.4s ease;
+    }
+    .alt--0 { background: #ef4444; }
+    .alt--1 { background: #3b82f6; }
+    .alt--2 { background: #f59e0b; color: #1f2937; }
+    .alt--3 { background: #22c55e; }
+    .alt--errada { filter: grayscale(1); opacity: 0.5; }
+    .alt--correta {
+      transform: scale(1.03);
+      animation: glow 1.2s infinite ease-in-out;
+    }
+    @keyframes glow {
+      0%, 100% { box-shadow: 0 0 0 3px #fff, 0 0 12px color-mix(in srgb, #22c55e 55%, transparent); }
+      50% { box-shadow: 0 0 0 3px #fff, 0 0 26px color-mix(in srgb, #22c55e 90%, transparent); }
+    }
+    .alt--shake { animation: shake 0.55s ease; }
+    @keyframes shake {
+      10%, 90% { transform: translateX(-2px); }
+      20%, 80% { transform: translateX(4px); }
+      30%, 50%, 70% { transform: translateX(-7px); }
+      40%, 60% { transform: translateX(7px); }
+    }
+    .alt__key { flex: 0 0 auto; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 999px; background: rgba(255, 255, 255, 0.28); font-size: 0.85rem; font-weight: 800; }
+    .alt--2 .alt__key { background: rgba(0, 0, 0, 0.15); }
+    .alt__ok { margin-left: auto; font-size: 0.8rem; font-weight: 800; }
+    @media (prefers-reduced-motion: reduce) {
+      .alt { transition: none; }
+      .alt--correta { transform: none; animation: none; box-shadow: 0 0 0 3px #fff; }
+      .alt--shake { animation: none; }
+    }
     .minha { display: flex; align-items: center; justify-content: space-between; font-weight: 700; }
     .minha strong { color: var(--primary); font-variant-numeric: tabular-nums; }
     .rk__tit { margin: 0 0 0.75rem; font-size: 1.05rem; }
@@ -225,6 +302,9 @@ export class StudentQlickPage {
   protected readonly inscrito = computed(() =>
     this.partida()?.inscritos.some((i) => i.alunoId === this.meuId) ?? false,
   );
+
+  /** O aluno chegou a responder esta pergunta (para o feedback da revelação). */
+  protected readonly respondeu = computed(() => this.respostaIndex() !== null);
 
   protected readonly restante = computed(() => {
     const p = this.partida();
