@@ -224,6 +224,7 @@ type Ordenacao = 'nome' | 'pontuacao';
 
         @case ('equipes') {
           @if (podeGerenciar()) {
+            <div class="stack">
             <app-card>
               <div class="acoes">
                 <button class="btn-outline" type="button" (click)="abrirNova()">
@@ -351,6 +352,7 @@ type Ordenacao = 'nome' | 'pontuacao';
               @if (equipes().length === 0) {
                 <p class="muted vazio">Nenhuma equipe ainda. Clique em "Nova equipe".</p>
               }
+            </div>
             </div>
           } @else {
             <app-recurso-bloqueado
@@ -716,6 +718,7 @@ type Ordenacao = 'nome' | 'pontuacao';
     .danger { color: var(--danger); border-color: var(--danger); }
 
     /* ===== Aba Equipes ===== */
+    .stack { display: flex; flex-direction: column; gap: 0.75rem; }
     .pool {
       margin-bottom: 0.75rem;
       border: 1px dashed var(--border);
