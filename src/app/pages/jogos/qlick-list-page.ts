@@ -9,6 +9,7 @@ import { Qlick } from '../../core/models';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Card } from '../../ui/card/card';
 import { Icon } from '../../ui/icon/icon';
+import { PinsModal } from '../../ui/pins-modal/pins-modal';
 import { Spinner } from '../../ui/spinner/spinner';
 
 /** Meus Qlicks (PhD): lista dos questionários, com criar, editar e rodar. */
@@ -16,16 +17,21 @@ import { Spinner } from '../../ui/spinner/spinner';
   selector: 'app-qlick-list-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Card, Icon, Spinner],
+  imports: [RouterLink, Card, Icon, Spinner, PinsModal],
   template: `
     <header class="head">
       <div>
         <a class="voltar" routerLink="/jogos/qlick">← Tichr Qlick</a>
         <h1 class="title">Meus Qlicks</h1>
       </div>
-      <a class="btn-primary" routerLink="/jogos/qlick/novo">
-        <app-icon name="plus" [size]="16" /> Novo Qlick
-      </a>
+      <div class="head__acoes">
+        <button class="btn-outline pins" type="button" (click)="pinsAberto.set(true)">
+          <app-icon name="users" [size]="16" /> PINs da turma
+        </button>
+        <a class="btn-primary" routerLink="/jogos/qlick/novo">
+          <app-icon name="plus" [size]="16" /> Novo Qlick
+        </a>
+      </div>
     </header>
 
     @if (carregando()) {
@@ -55,12 +61,16 @@ import { Spinner } from '../../ui/spinner/spinner';
         }
       </div>
     }
+
+    <app-pins-modal [open]="pinsAberto()" (close)="pinsAberto.set(false)" />
   `,
   styles: `
     .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .head__acoes { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
     .voltar { color: var(--primary); font-weight: 600; }
     .title { margin: 0.35rem 0 0; font-size: 1.5rem; font-weight: 700; }
-    .btn-primary { text-decoration: none; }
+    .btn-primary, .pins { text-decoration: none; }
+    .pins { display: inline-flex; align-items: center; gap: 0.4rem; }
     .loading { display: flex; justify-content: center; padding: 3rem 0; color: var(--primary); }
     .muted { color: var(--text-muted); margin: 0; }
     .lista { display: flex; flex-direction: column; gap: 0.75rem; }
@@ -77,6 +87,7 @@ export class QlickListPage {
   protected readonly carregando = signal(true);
   protected readonly rodando = signal(false);
   protected readonly qlicks = signal<Qlick[]>([]);
+  protected readonly pinsAberto = signal(false);
 
   constructor() {
     this.api.getQlicks().subscribe({

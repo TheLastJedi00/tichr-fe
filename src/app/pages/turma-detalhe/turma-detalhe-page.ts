@@ -19,6 +19,7 @@ import {
   CriarEquipePayload,
   Equipe,
   ProgressoTurma,
+  Qlick,
   Sessao,
   Turma,
 } from '../../core/models';
@@ -35,7 +36,7 @@ import { Modal } from '../../ui/modal/modal';
 import { RecursoBloqueado } from '../../ui/recurso-bloqueado/recurso-bloqueado';
 import { Spinner } from '../../ui/spinner/spinner';
 
-type Aba = 'agenda' | 'alunos' | 'equipes';
+type Aba = 'agenda' | 'alunos' | 'equipes' | 'jogos';
 type Ordenacao = 'nome' | 'pontuacao';
 
 /**
@@ -128,6 +129,14 @@ type Ordenacao = 'nome' | 'pontuacao';
         >
           Equipes ({{ equipes().length }})
         </button>
+        <button
+          class="tab"
+          [class.tab--active]="aba() === 'jogos'"
+          type="button"
+          (click)="aba.set('jogos')"
+        >
+          Jogos ({{ qlicksDaTurma().length }})
+        </button>
       </nav>
 
       @switch (aba()) {
@@ -215,6 +224,7 @@ type Ordenacao = 'nome' | 'pontuacao';
 
         @case ('equipes') {
           @if (podeGerenciar()) {
+            <div class="stack">
             <app-card>
               <div class="acoes">
                 <button class="btn-outline" type="button" (click)="abrirNova()">
@@ -343,12 +353,57 @@ type Ordenacao = 'nome' | 'pontuacao';
                 <p class="muted vazio">Nenhuma equipe ainda. Clique em "Nova equipe".</p>
               }
             </div>
+            </div>
           } @else {
             <app-recurso-bloqueado
               recurso="Gestão de equipes"
               planoNecessario="Mestre"
               (upgrade)="irParaPlanos()"
             />
+          }
+        }
+
+        @case ('jogos') {
+          @if (qlicksDaTurma().length > 0) {
+            <div class="jogos">
+              @for (q of qlicksDaTurma(); track q.id) {
+                <app-card>
+                  <div class="jogo">
+                    <div class="jogo__info">
+                      <strong class="jogo__tit">{{ q.titulo }}</strong>
+                      <span class="jogo__meta">
+                        {{ q.perguntas.length }} perguntas · {{ q.duracaoSegundos }}s/questão
+                      </span>
+                    </div>
+                    <button
+                      class="btn-primary btn-sm"
+                      type="button"
+                      [disabled]="rodandoQlick()"
+                      (click)="rodarQlick(q)"
+                    >
+                      Rodar
+                    </button>
+                  </div>
+                </app-card>
+              }
+              <a class="btn-outline ver-qlicks" routerLink="/jogos/qlick/meus">
+                Gerenciar todos os Qlicks
+              </a>
+            </div>
+          } @else {
+            <app-card>
+              <div class="jogos-vazio">
+                <span class="jogos-vazio__ic"><app-icon name="game" [size]="30" /></span>
+                <h3>Nenhum jogo nesta turma</h3>
+                <p class="muted">
+                  Crie um <strong>Tichr Qlick</strong> — quiz ao vivo — e vincule a esta
+                  turma para rodar em aula.
+                </p>
+                <a class="btn-primary ir-jogos" routerLink="/jogos/qlick">
+                  Ir para o Tichr Qlick
+                </a>
+              </div>
+            </app-card>
           }
         }
       }
@@ -663,6 +718,7 @@ type Ordenacao = 'nome' | 'pontuacao';
     .danger { color: var(--danger); border-color: var(--danger); }
 
     /* ===== Aba Equipes ===== */
+    .stack { display: flex; flex-direction: column; gap: 0.75rem; }
     .pool {
       margin-bottom: 0.75rem;
       border: 1px dashed var(--border);
@@ -763,6 +819,19 @@ type Ordenacao = 'nome' | 'pontuacao';
     .toast__acoes { display: flex; gap: 0.5rem; }
     .toast .btn-primary, .toast .btn-outline { padding: 0.35rem 0.8rem; }
 
+    /* ===== Aba Jogos ===== */
+    .jogos { display: flex; flex-direction: column; gap: 0.75rem; }
+    .jogo { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+    .jogo__tit { display: block; font-size: 1.05rem; }
+    .jogo__meta { color: var(--text-muted); font-size: 0.85rem; }
+    .jogo .btn-sm { font-size: 0.85rem; padding: 0.4rem 0.9rem; }
+    .ver-qlicks { text-decoration: none; align-self: flex-start; }
+    .jogos-vazio { text-align: center; padding: 1rem 0; }
+    .jogos-vazio__ic { display: inline-flex; align-items: center; justify-content: center; width: 60px; height: 60px; border-radius: 16px; color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); }
+    .jogos-vazio h3 { margin: 0.75rem 0 0.35rem; font-size: 1.15rem; }
+    .jogos-vazio .muted { margin: 0 auto 1.1rem; max-width: 24rem; }
+    .ir-jogos { text-decoration: none; }
+
     /* ===== Drag & drop ===== */
     .cdk-drag-preview {
       box-sizing: border-box;
@@ -794,6 +863,13 @@ export class TurmaDetalhePage {
   protected readonly salvando = signal(false);
   protected readonly ordenacao = signal<Ordenacao>('nome');
   protected readonly progresso = signal<ProgressoTurma | null>(null);
+
+  // Aba Jogos: Qlicks do professor (PhD) filtrados por esta turma.
+  protected readonly qlicks = signal<Qlick[]>([]);
+  protected readonly rodandoQlick = signal(false);
+  protected readonly qlicksDaTurma = computed(() =>
+    this.qlicks().filter((q) => q.turmaId === this.turmaId),
+  );
 
   // Modais de equipe.
   protected readonly formOpen = signal(false);
@@ -886,9 +962,32 @@ export class TurmaDetalhePage {
       next: (p) => this.progresso.set(p),
       error: () => {},
     });
-    if (!this.profileService.profile()) {
-      this.profileService.load().subscribe({ error: () => {} });
+    // Qlicks só existem no PhD — evita 403 (e o modal global de erro) fora dele.
+    const carregarQlicks = () => {
+      if (podeGamificar(this.profileService.profile()?.planoAtual)) {
+        this.api.getQlicks().subscribe({
+          next: (q) => this.qlicks.set(q),
+          error: () => {},
+        });
+      }
+    };
+    if (this.profileService.profile()) {
+      carregarQlicks();
+    } else {
+      this.profileService.load().subscribe({
+        next: carregarQlicks,
+        error: () => {},
+      });
     }
+  }
+
+  /** Cria a partida a partir de um Qlick e vai para a sala do professor. */
+  protected rodarQlick(q: Qlick): void {
+    this.rodandoQlick.set(true);
+    this.api.criarPartida(q.id).subscribe({
+      next: (p) => this.router.navigate(['/jogos/qlick/partida', p.id]),
+      error: () => this.rodandoQlick.set(false),
+    });
   }
 
   /** Cargos atribuídos a um aluno (para os bullets do card). */

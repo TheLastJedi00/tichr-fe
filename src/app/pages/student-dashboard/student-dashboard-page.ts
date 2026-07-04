@@ -28,6 +28,7 @@ import { XpBar } from '../../ui/xp-bar/xp-bar';
     } @else {
       <h1 class="ola">Olá, {{ nome() }} 👋</h1>
 
+      <div class="stack">
       @if (qlickDoDia(); as q) {
         <a class="qlick" routerLink="/aluno/qlick">
           <span class="qlick__pulse"></span>
@@ -77,13 +78,14 @@ import { XpBar } from '../../ui/xp-bar/xp-bar';
           <span>Ranking da turma</span>
         </a>
       </div>
+      </div>
     }
   `,
   styles: `
     .loading { display: flex; justify-content: center; padding: 3rem 0; color: var(--primary); }
     .ola { margin: 0 0 1rem; font-size: 1.5rem; font-weight: 800; }
+    .stack { display: flex; flex-direction: column; gap: 1rem; }
     .atalhos {
-      margin-top: 1rem;
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 0.75rem;
@@ -112,7 +114,7 @@ import { XpBar } from '../../ui/xp-bar/xp-bar';
     .prox__topico { margin: 0.4rem 0 0; font-size: 1.05rem; }
     .prox__topico strong { color: var(--primary); }
     .prox__vazio { margin: 0.4rem 0 0; color: var(--text-muted); }
-    .qlick { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; padding: 0.9rem 1rem; border-radius: 14px; color: #fff; background: linear-gradient(135deg, #7c3aed, #2563eb); box-shadow: 0 10px 30px color-mix(in srgb, #7c3aed 30%, transparent); }
+    .qlick { display: flex; align-items: center; gap: 0.75rem; padding: 0.9rem 1rem; border-radius: 14px; color: #fff; background: linear-gradient(135deg, #7c3aed, #2563eb); box-shadow: 0 10px 30px color-mix(in srgb, #7c3aed 30%, transparent); }
     .qlick strong { display: block; }
     .qlick__sub { font-size: 0.82rem; opacity: 0.9; }
     .qlick__seta { margin-left: auto; font-weight: 800; font-size: 1.2rem; }
