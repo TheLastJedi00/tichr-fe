@@ -220,7 +220,7 @@ function domingo(iso: string): string {
     .turno { margin-bottom: 0.5rem; }
     .turno:last-child { margin-bottom: 0; }
     .turno__nome { display: block; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 0.3rem; }
-    .det { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0; }
+    .det { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0; flex-wrap: wrap; }
     .det--cancelada { opacity: 0.55; text-decoration: line-through; }
     .det__txt { display: flex; flex-direction: column; }
     .det__meta { font-size: 0.82rem; color: var(--text-muted); }
