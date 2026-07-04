@@ -398,6 +398,9 @@ type Ordenacao = 'nome' | 'pontuacao';
                   </div>
                 </app-card>
               }
+              <button class="btn-outline ver-qlicks" type="button" (click)="addJogoAberto.set(true)">
+                Adicionar jogo
+              </button>
               <a class="btn-outline ver-qlicks" routerLink="/jogos/qlick/meus">
                 Gerenciar todos os Qlicks
               </a>
@@ -414,11 +417,41 @@ type Ordenacao = 'nome' | 'pontuacao';
                 <a class="btn-primary ir-jogos" routerLink="/jogos/qlick">
                   Ir para o Tichr Qlick
                 </a>
+                @if (qlicksDisponiveis().length) {
+                  <button class="btn-outline ir-jogos" type="button" (click)="addJogoAberto.set(true)">
+                    Adicionar da biblioteca
+                  </button>
+                }
               </div>
             </app-card>
           }
         }
       }
+
+      <app-modal
+        [open]="addJogoAberto()"
+        title="Adicionar jogo"
+        (close)="atribuindoJogo() || addJogoAberto.set(false)"
+      >
+        @if (qlicksDisponiveis().length) {
+          <p class="muted">Escolha um Qlick da sua biblioteca para atribuir a esta turma:</p>
+          <div class="add-jogos">
+            @for (q of qlicksDisponiveis(); track q.id) {
+              <button class="add-jogo" type="button" [disabled]="atribuindoJogo()" (click)="adicionarJogo(q)">
+                <strong>{{ q.titulo }}</strong>
+                <small>{{ q.perguntas.length }} perguntas</small>
+              </button>
+            }
+          </div>
+        } @else {
+          <p class="muted">Todos os seus Qlicks já estão nesta turma.</p>
+        }
+        <div modal-actions>
+          <button class="btn-outline" type="button" [disabled]="atribuindoJogo()" (click)="addJogoAberto.set(false)">
+            Fechar
+          </button>
+        </div>
+      </app-modal>
 
       <app-equipe-form
         [open]="formOpen()"
@@ -869,6 +902,14 @@ type Ordenacao = 'nome' | 'pontuacao';
     .jogo__meta { color: var(--text-muted); font-size: 0.85rem; }
     .jogo .btn-sm { font-size: 0.85rem; padding: 0.4rem 0.9rem; }
     .ver-qlicks { text-decoration: none; align-self: flex-start; }
+    .add-jogos { display: grid; gap: 0.5rem; }
+    .add-jogo {
+      display: flex; flex-direction: column; gap: 0.15rem; text-align: left; cursor: pointer;
+      padding: 0.7rem 0.9rem; border-radius: 12px;
+      border: 1px solid var(--border); background: var(--surface); color: inherit;
+    }
+    .add-jogo:hover:not(:disabled) { border-color: var(--primary); }
+    .add-jogo small { color: var(--text-muted); }
     .jogos-vazio { text-align: center; padding: 1rem 0; }
     .jogos-vazio__ic { display: inline-flex; align-items: center; justify-content: center; width: 60px; height: 60px; border-radius: 16px; color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); }
     .jogos-vazio h3 { margin: 0.75rem 0 0.35rem; font-size: 1.15rem; }
@@ -919,8 +960,18 @@ export class TurmaDetalhePage {
   protected readonly qlicks = signal<Qlick[]>([]);
   protected readonly rodandoQlick = signal(false);
   protected readonly qlicksDaTurma = computed(() =>
-    this.qlicks().filter((q) => q.turmaId === this.turmaId),
+    this.qlicks().filter((q) => this.qlickNaTurma(q)),
   );
+  /** Qlicks da biblioteca ainda NÃO atribuídos a esta turma (para "Adicionar Jogo"). */
+  protected readonly qlicksDisponiveis = computed(() =>
+    this.qlicks().filter((q) => !this.qlickNaTurma(q)),
+  );
+  protected readonly addJogoAberto = signal(false);
+  protected readonly atribuindoJogo = signal(false);
+
+  private qlickNaTurma(q: Qlick): boolean {
+    return q.turmaId === this.turmaId || (q.turmaIds ?? []).includes(this.turmaId);
+  }
 
   // Modais de equipe.
   protected readonly formOpen = signal(false);
@@ -1035,9 +1086,27 @@ export class TurmaDetalhePage {
   /** Cria a partida a partir de um Qlick e vai para a sala do professor. */
   protected rodarQlick(q: Qlick): void {
     this.rodandoQlick.set(true);
-    this.api.criarPartida(q.id).subscribe({
+    // No painel da turma a turma é implícita — sem perguntar "para qual turma?".
+    this.api.criarPartida(q.id, this.turmaId).subscribe({
       next: (p) => this.router.navigate(['/jogos/qlick/partida', p.id]),
       error: () => this.rodandoQlick.set(false),
+    });
+  }
+
+  /** Atribui um Qlick da biblioteca a esta turma (N:N) e atualiza a lista. */
+  protected adicionarJogo(q: Qlick): void {
+    const atuais = q.turmaIds ?? (q.turmaId ? [q.turmaId] : []);
+    const turmaIds = [...new Set([...atuais, this.turmaId])];
+    this.atribuindoJogo.set(true);
+    this.api.atribuirTurmasQlick(q.id, turmaIds).subscribe({
+      next: () => {
+        this.api.getQlicks().subscribe((qs) => {
+          this.qlicks.set(qs);
+          this.atribuindoJogo.set(false);
+          this.addJogoAberto.set(false);
+        });
+      },
+      error: () => this.atribuindoJogo.set(false),
     });
   }
 

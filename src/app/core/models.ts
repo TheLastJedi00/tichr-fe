@@ -171,6 +171,8 @@ export interface Qlick {
   disciplina?: string;
   topicoId?: string;
   turmaId?: string;
+  /** Turmas atribuídas ao Qlick (N:N). */
+  turmaIds?: string[];
   duracaoSegundos: number;
   perguntas: PerguntaQlick[];
 }
@@ -180,6 +182,7 @@ export interface CriarQlickPayload {
   disciplina?: string;
   topicoId?: string;
   turmaId?: string;
+  turmaIds?: string[];
   duracaoSegundos?: number;
   perguntas: PerguntaQlick[];
 }

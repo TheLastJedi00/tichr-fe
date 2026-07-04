@@ -60,19 +60,25 @@ import { Icon } from '../../ui/icon/icon';
           }
         </div>
 
-        <div class="grid2">
-          <label class="campo">
-            <span>Turma (opcional)</span>
-            <select class="tichr-input" formControlName="turmaId">
-              <option value="">— Salvar sem turma —</option>
-              @for (t of turmas(); track t.id) { <option [value]="t.id">{{ t.nome }}</option> }
-            </select>
-          </label>
-          <label class="campo">
-            <span>Tempo por questão (s)</span>
-            <input class="tichr-input" type="number" min="5" max="600" formControlName="duracaoSegundos" />
-          </label>
+        <div class="campo">
+          <span>Turmas (opcional) — pode atribuir a várias</span>
+          @if (turmas().length) {
+            <div class="turmas-check">
+              @for (t of turmas(); track t.id) {
+                <label class="check" [class.check--on]="turmaIdsSel().includes(t.id)">
+                  <input type="checkbox" [checked]="turmaIdsSel().includes(t.id)" (change)="toggleTurma(t.id)" />
+                  {{ t.nome }}
+                </label>
+              }
+            </div>
+          } @else {
+            <p class="dica">Você ainda não tem turmas.</p>
+          }
         </div>
+        <label class="campo">
+          <span>Tempo por questão (s)</span>
+          <input class="tichr-input" type="number" min="5" max="600" formControlName="duracaoSegundos" />
+        </label>
       </app-card>
 
       <div formArrayName="perguntas">
@@ -139,6 +145,14 @@ import { Icon } from '../../ui/icon/icon';
     .campo__lbl { margin-top: 0.5rem; }
     .grid2 { display: grid; grid-template-columns: 1fr; gap: 0 1rem; }
     @media (min-width: 560px) { .grid2 { grid-template-columns: 1fr 1fr; } }
+    .turmas-check { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .check {
+      display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer;
+      padding: 0.4rem 0.7rem; border-radius: 999px;
+      border: 1px solid var(--border); background: var(--surface); font-weight: 600; font-size: 0.9rem;
+    }
+    .check--on { border-color: var(--primary); color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, transparent); }
+    .dica { color: var(--text-muted); font-size: 0.85rem; margin: 0; }
     app-card + * { margin-top: 1rem; }
     .pcab { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
     .pcab h3 { margin: 0; font-size: 1.05rem; }
@@ -164,6 +178,7 @@ export class QlickStudioPage {
   protected readonly salvando = signal(false);
   protected readonly erro = signal('');
   protected readonly turmas = signal<Turma[]>([]);
+  protected readonly turmaIdsSel = signal<string[]>([]);
   protected readonly topicos = signal<Array<{ id: string; nome: string }>>([]);
   protected readonly disciplinas = computed(
     () => this.profileService.profile()?.disciplinas ?? [],
@@ -173,10 +188,16 @@ export class QlickStudioPage {
     titulo: ['', Validators.required],
     disciplina: [''],
     topicoId: [''],
-    turmaId: [''],
     duracaoSegundos: [60, [Validators.required, Validators.min(5), Validators.max(600)]],
     perguntas: this.fb.array<FormGroup>([]),
   });
+
+  /** Marca/desmarca uma turma na atribuição N:N do Qlick. */
+  protected toggleTurma(id: string): void {
+    this.turmaIdsSel.update((sel) =>
+      sel.includes(id) ? sel.filter((x) => x !== id) : [...sel, id],
+    );
+  }
 
   protected get perguntas(): FormArray<FormGroup> {
     return this.form.get('perguntas') as FormArray<FormGroup>;
@@ -251,9 +272,9 @@ export class QlickStudioPage {
       this.form.patchValue({
         titulo: q.titulo,
         disciplina: q.disciplina ?? '',
-        turmaId: q.turmaId ?? '',
         duracaoSegundos: q.duracaoSegundos,
       });
+      this.turmaIdsSel.set(q.turmaIds ?? (q.turmaId ? [q.turmaId] : []));
       if (q.disciplina) {
         this.api.getTopicos(q.disciplina).subscribe((t) => {
           this.topicos.set(t);
@@ -293,7 +314,7 @@ export class QlickStudioPage {
       })),
       ...(raw.disciplina ? { disciplina: raw.disciplina } : {}),
       ...(raw.topicoId ? { topicoId: raw.topicoId } : {}),
-      ...(raw.turmaId ? { turmaId: raw.turmaId } : {}),
+      turmaIds: this.turmaIdsSel(),
     };
     this.salvando.set(true);
     this.erro.set('');
