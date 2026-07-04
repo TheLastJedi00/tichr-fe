@@ -27,12 +27,26 @@ jobs:
       - name: Instala o Firebase CLI
         run: npm install -g firebase-tools
 
-      - name: Grava a service account (base64 -> JSON)
-        run: echo "$FIREBASE_SERVICE_ACCOUNT" | base64 -d > "$RUNNER_TEMP/service-account.json"
+      - name: Prepara a service account
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          set -euo pipefail
+          if [ -z "${FIREBASE_SERVICE_ACCOUNT:-}" ]; then
+            echo "::error::Secret FIREBASE_SERVICE_ACCOUNT ausente. Em Settings > Secrets and variables > Actions, adicione o JSON da service account (base64 ou cru) com permissão de deploy de rules."
+            exit 1
+          fi
+          OUT="$RUNNER_TEMP/service-account.json"
+          # Aceita o secret em base64 OU como JSON cru.
+          if echo "$FIREBASE_SERVICE_ACCOUNT" | base64 -d > "$OUT" 2>/dev/null && node -e "JSON.parse(require('fs').readFileSync('$OUT','utf8'))" 2>/dev/null; then
+            echo "Service account decodificada de base64."
+          else
+            printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$OUT"
+            echo "Service account usada como JSON cru."
+          fi
+          node -e "const c=JSON.parse(require('fs').readFileSync('$OUT','utf8')); if(!c.client_email){console.error('::error::service account invalida (sem client_email)');process.exit(1);} console.log('Autenticando como', c.client_email);"
 
       - name: Deploy das rules (Firestore + Storage)
-        run: firebase deploy --only firestore:rules,storage --project tichr-293c8 --non-interactive
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/service-account.json
+        run: firebase deploy --only firestore:rules,storage --project tichr-293c8 --non-interactive
