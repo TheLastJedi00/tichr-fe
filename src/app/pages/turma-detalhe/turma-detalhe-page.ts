@@ -82,6 +82,18 @@ type Ordenacao = 'nome' | 'pontuacao';
         </p>
       }
 
+      @if (pinLegado()) {
+        <div class="migrar-aviso">
+          <div class="migrar-aviso__txt">
+            <strong>PIN antigo detectado</strong>
+            <span>Esta turma ainda usa PINs de 6 dígitos. Atualize para os Smart PINs de 2 dígitos do Tichr Qlick — mais fáceis para os alunos digitarem em aula.</span>
+          </div>
+          <button class="btn-primary" type="button" (click)="migrarAberto.set(true)">
+            Atualizar PINs
+          </button>
+        </div>
+      }
+
       @if (progresso(); as p) {
         <div class="prog">
           <div class="prog__top">
@@ -570,6 +582,26 @@ type Ordenacao = 'nome' | 'pontuacao';
           </div>
         </div>
       }
+
+      <app-modal
+        [open]="migrarAberto()"
+        title="Atualizar PINs da turma"
+        (close)="migrando() || migrarAberto.set(false)"
+      >
+        <p class="muted">
+          Vamos gerar um novo <strong>PIN curto (2 dígitos)</strong> para a turma e redistribuir os
+          PINs dos alunos (01, 02, 03…). Os PINs antigos deixarão de funcionar — avise seus alunos
+          dos novos após a atualização.
+        </p>
+        <div modal-actions>
+          <button class="btn-outline" type="button" [disabled]="migrando()" (click)="migrarAberto.set(false)">
+            Cancelar
+          </button>
+          <button class="btn-primary" type="button" [disabled]="migrando()" (click)="migrarPins()">
+            {{ migrando() ? 'Atualizando…' : 'Atualizar agora' }}
+          </button>
+        </div>
+      </app-modal>
     } @else {
       <app-card><p class="muted">Turma não encontrada.</p></app-card>
     }
@@ -693,6 +725,17 @@ type Ordenacao = 'nome' | 'pontuacao';
     .pinturma { margin: -0.25rem 0 0.75rem; font-size: 0.9rem; }
     .pinturma strong { font-variant-numeric: tabular-nums; letter-spacing: 0.08em; }
     .pinturma__hint { color: var(--text-muted); }
+    .migrar-aviso {
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+      flex-wrap: wrap; margin: 0 0 1rem;
+      padding: 0.75rem 0.9rem; border-radius: var(--radius);
+      border: 1px solid color-mix(in srgb, #f59e0b 55%, var(--border));
+      background: color-mix(in srgb, #f59e0b 12%, transparent);
+    }
+    .migrar-aviso__txt { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+    .migrar-aviso__txt strong { font-weight: 800; }
+    .migrar-aviso__txt span { font-size: 0.85rem; color: var(--text-muted); }
+    .migrar-aviso .btn-primary { white-space: nowrap; }
     .prog {
       margin-bottom: 1rem; padding: 0.8rem 0.9rem;
       border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface);
@@ -859,6 +902,14 @@ export class TurmaDetalhePage {
   protected readonly turma = signal<Turma | null>(null);
   protected readonly alunos = signal<Aluno[]>([]);
   protected readonly equipes = signal<Equipe[]>([]);
+
+  // Smart PINs: turma legada = PIN da sala com != 2 dígitos (6 díg antigo).
+  protected readonly pinLegado = computed(() => {
+    const p = this.turma()?.pinTurma;
+    return !!p && p.length !== 2;
+  });
+  protected readonly migrarAberto = signal(false);
+  protected readonly migrando = signal(false);
   protected readonly entrada = signal('');
   protected readonly salvando = signal(false);
   protected readonly ordenacao = signal<Ordenacao>('nome');
@@ -1183,6 +1234,24 @@ export class TurmaDetalhePage {
   protected cancelarAtribuicao(): void {
     this.atribuindo.set(null);
     this.selecionados.set(new Set());
+  }
+
+  /** Migra a turma para os Smart PINs e atualiza o PIN da sala + dos alunos. */
+  protected migrarPins(): void {
+    const t = this.turma();
+    if (!t) {
+      return;
+    }
+    this.migrando.set(true);
+    this.api.migrarPins(t.id).subscribe({
+      next: ({ turma, alunos }) => {
+        this.turma.set(turma);
+        this.alunos.set(alunos);
+        this.migrando.set(false);
+        this.migrarAberto.set(false);
+      },
+      error: () => this.migrando.set(false),
+    });
   }
 
   protected finalizarAtribuicao(): void {

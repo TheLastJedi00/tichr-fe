@@ -51,6 +51,14 @@ export class TurmaApiService {
     return this.http.get<ProgressoTurma>(`${this.base}/turmas/${id}/progresso`);
   }
 
+  /** Migra a turma para os Smart PINs (regenera PIN da sala + PINs dos alunos). */
+  migrarPins(id: string): Observable<{ turma: Turma; alunos: Aluno[] }> {
+    return this.http.post<{ turma: Turma; alunos: Aluno[] }>(
+      `${this.base}/turmas/${id}/migrar-pins`,
+      {},
+    );
+  }
+
   atualizarTurma(
     id: string,
     payload: CriarTurmaPayload,
