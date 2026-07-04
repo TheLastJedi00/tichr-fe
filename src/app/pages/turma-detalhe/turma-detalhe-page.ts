@@ -811,7 +811,7 @@ type Ordenacao = 'nome' | 'pontuacao';
       max-width: calc(100vw - 1.5rem);
       padding: 0.6rem 0.9rem;
       border: 1px solid var(--border);
-      border-radius: 999px;
+      border-radius: var(--radius);
       background: var(--surface);
       box-shadow: 4px 4px 0 var(--border);
     }
