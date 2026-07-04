@@ -81,7 +81,7 @@ import { Icon } from '../../ui/icon/icon';
         </label>
       </app-card>
 
-      <div formArrayName="perguntas">
+      <div class="perguntas" formArrayName="perguntas">
         @for (pg of perguntas.controls; track $index; let pi = $index) {
           <app-card>
             <div [formGroupName]="pi">
@@ -158,6 +158,7 @@ import { Icon } from '../../ui/icon/icon';
     .pcab h3 { margin: 0; font-size: 1.05rem; }
     .rem { display: inline-flex; color: var(--text-muted); background: none; border: none; cursor: pointer; padding: 0.15rem; }
     .rem:hover { color: var(--danger); }
+    .perguntas { display: flex; flex-direction: column; gap: 1rem; margin: 1rem 0; }
     .alts { display: flex; flex-direction: column; gap: 0.5rem; }
     .alt { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
     .alt__radio { width: 18px; height: 18px; flex: 0 0 auto; }
