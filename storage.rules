@@ -1,0 +1,22 @@
+rules_version = '2';
+
+// Regras do Firebase Storage.
+// Contexto: o frontend NÃO mantém sessão do Firebase Auth (a autenticação é
+// intermediada pelo backend), então `request.auth` é sempre nulo no cliente.
+// Por isso a escrita da foto é liberada, mas fortemente restrita: só imagens
+// pequenas na pasta `avatars/`. O backend usa o Admin SDK e ignora estas regras.
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Fotos de perfil dos professores (avatars/{uid}.jpg).
+    match /avatars/{arquivo} {
+      allow read: if true;
+      allow write: if request.resource.size < 300 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // Qualquer outro caminho é negado ao cliente.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

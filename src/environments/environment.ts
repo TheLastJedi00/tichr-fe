@@ -12,5 +12,8 @@ export const environment = {
     apiKey: 'AIzaSyBFjeDZ4Cq11GZEMgPJgNUHV75-zcDrh7g',
     projectId: 'tichr-293c8',
     authDomain: 'tichr-293c8.firebaseapp.com',
+    // Bucket do Storage (foto de perfil). Confirme o nome exato no console
+    // ao habilitar o Storage — pode ser `tichr-293c8.appspot.com` (legado).
+    storageBucket: 'tichr-293c8.firebasestorage.app',
   },
 };
