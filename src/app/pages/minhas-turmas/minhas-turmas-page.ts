@@ -4,14 +4,14 @@ import { formatarData } from '../../core/date-format';
 import { Turma } from '../../core/models';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Card } from '../../ui/card/card';
-import { Spinner } from '../../ui/spinner/spinner';
+import { Skeleton } from '../../ui/skeleton/skeleton';
 
 /** MinhasTurmasPage (smart): lista as turmas do professor. */
 @Component({
   selector: 'app-minhas-turmas-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Card, Spinner],
+  imports: [RouterLink, Card, Skeleton],
   template: `
     <header class="head">
       <h1 class="title">Minhas turmas</h1>
@@ -19,7 +19,17 @@ import { Spinner } from '../../ui/spinner/spinner';
     </header>
 
     @if (loading()) {
-      <div class="loading"><app-spinner [size]="32" /></div>
+      <div class="lista">
+        @for (i of [1, 2, 3]; track i) {
+          <app-card>
+            <div class="sk-turma">
+              <app-skeleton width="55%" height="1.15rem" />
+              <app-skeleton width="40%" height="0.85rem" />
+              <app-skeleton width="70%" height="0.85rem" />
+            </div>
+          </app-card>
+        }
+      </div>
     } @else if (turmas().length === 0) {
       <app-card>
         <p class="muted">
@@ -83,6 +93,7 @@ import { Spinner } from '../../ui/spinner/spinner';
     .nova { text-decoration: none; }
     .loading { display: flex; justify-content: center; padding: 3rem 0; color: var(--primary); }
     .lista { display: flex; flex-direction: column; gap: 0.75rem; }
+    .sk-turma { display: flex; flex-direction: column; gap: 0.6rem; }
     .turma {
       display: flex;
       flex-direction: column;
