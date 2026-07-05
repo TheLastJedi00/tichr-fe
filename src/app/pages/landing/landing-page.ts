@@ -85,6 +85,40 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
       </div>
     </section>
 
+    <!-- ===== Seção A — Tichr Qlick (o grande diferencial) ===== -->
+    <section id="como" class="feature" appReveal>
+      <div class="feature__inner container">
+        <div class="feature__media">
+          <div class="qlick-flow">
+            <div class="qk qk--prof">
+              <span class="qk__lbl"><app-icon name="user" [size]="13" /> professor</span>
+              <p class="qk__q">Qual a capital do Brasil?</p>
+              <span class="qk__count">28 alunos respondendo…</span>
+            </div>
+            <div class="qk qk--aluno">
+              <span class="qk__lbl"><app-icon name="user" [size]="13" /> aluno</span>
+              <div class="qk__opts">
+                <span class="qk__opt qk__opt--a">A</span>
+                <span class="qk__opt qk__opt--b">B</span>
+                <span class="qk__opt qk__opt--c">C</span>
+                <span class="qk__opt qk__opt--d">D</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="feature__copy">
+          <span class="feature__eyebrow"><app-icon name="game" [size]="15" /> Tichr Qlick</span>
+          <h2>Quizzes ao vivo, a sala toda participando</h2>
+          <p>
+            Crie perguntas e rode uma rodada ao vivo: cada aluno responde pelo
+            celular em botões coloridos, o placar sobe na hora e a turma vibra
+            junto. Interatividade de verdade, sem instalar nada.
+          </p>
+          <a class="feature__cta btn-primary" routerLink="/cadastro">Comece grátis agora</a>
+        </div>
+      </div>
+    </section>
+
     <!-- ===== Problema + Agitação (PAS) ===== -->
     <section class="problema" appReveal>
       <div class="container">
@@ -398,6 +432,33 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
     .phone__foot { display: flex; align-items: center; justify-content: space-between; margin-top: 1rem; }
     .phone__timer { flex: 1; height: 6px; border-radius: 999px; margin-right: 0.75rem; background: linear-gradient(90deg, #a78bfa 65%, rgba(148,163,184,0.25) 65%); }
     .phone__live { font-size: 0.72rem; font-weight: 700; color: #f87171; }
+
+    /* ===== Padrão de seção (desfile de features) ===== */
+    .feature { padding: 4.5rem 0; }
+    .feature--alt { background: var(--surface-alt); }
+    .feature__inner { display: grid; grid-template-columns: 1fr; gap: 2rem; align-items: center; }
+    @media (min-width: 860px) {
+      .feature__inner { grid-template-columns: 1fr 1fr; gap: 3.5rem; }
+      .feature--invertido .feature__media { order: 2; }
+    }
+    .feature__eyebrow { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--primary); margin-bottom: 0.6rem; }
+    .feature__copy h2 { margin: 0 0 0.75rem; }
+    .feature__copy p { margin: 0; color: var(--text-muted); font-size: 1.08rem; line-height: 1.6; }
+    .feature__cta { display: inline-flex; margin-top: 1.5rem; text-decoration: none; }
+    .feature__media { display: flex; justify-content: center; }
+
+    /* Seção A — fluxo do Qlick */
+    .qlick-flow { display: grid; gap: 1rem; width: min(360px, 100%); }
+    .qk { border: 1px solid var(--border); border-radius: 16px; background: var(--surface); padding: 1.1rem 1.2rem; box-shadow: 4px 4px 0 color-mix(in srgb, var(--primary) 18%, transparent); }
+    .qk__lbl { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 800; color: var(--text-muted); }
+    .qk__q { margin: 0.5rem 0 0.4rem; font-size: 1.05rem; font-weight: 700; }
+    .qk__count { font-size: 0.82rem; color: var(--primary); font-weight: 600; }
+    .qk__opts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-top: 0.6rem; }
+    .qk__opt { display: flex; align-items: center; justify-content: center; height: 46px; border-radius: 12px; font-weight: 800; color: #fff; }
+    .qk__opt--a { background: #ef4444; }
+    .qk__opt--b { background: #3b82f6; }
+    .qk__opt--c { background: #f59e0b; }
+    .qk__opt--d { background: #22c55e; }
 
     /* ===== Problema ===== */
     .problema { padding: 4rem 0 3rem; text-align: center; }
