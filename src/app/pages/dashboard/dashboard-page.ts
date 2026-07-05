@@ -159,6 +159,7 @@ import { ExcecaoModal } from './excecao-modal';
       margin-bottom: 1.5rem;
     }
     @media (min-width: 560px) { .atalhos { grid-template-columns: repeat(3, 1fr); } }
+    app-onboarding-card { display: block; margin-bottom: 1.5rem; }
     .atalho {
       display: flex;
       flex-direction: column;
