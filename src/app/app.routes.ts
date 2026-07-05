@@ -158,6 +158,21 @@ export const routes: Routes = [
           import('./pages/jogos/wor-landing-page').then((m) => m.WorLandingPage),
       },
       {
+        path: 'jogos/wor/novo',
+        loadComponent: () =>
+          import('./pages/jogos/wor-studio-page').then((m) => m.WorStudioPage),
+      },
+      {
+        path: 'jogos/wor/editar/:id',
+        loadComponent: () =>
+          import('./pages/jogos/wor-studio-page').then((m) => m.WorStudioPage),
+      },
+      {
+        path: 'jogos/wor/meus',
+        loadComponent: () =>
+          import('./pages/jogos/wor-meus-page').then((m) => m.WorMeusPage),
+      },
+      {
         path: 'jogos/qlick/meus',
         canActivate: [exigePlano('QLICK')],
         loadComponent: () =>
