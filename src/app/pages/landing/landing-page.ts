@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { RouterLink } from '@angular/router';
 import { Plano, PLANOS } from '../../core/planos.data';
 import { ThemeService } from '../../core/theme.service';
+import { Avatar } from '../../ui/avatar/avatar';
 import { Footer } from '../../ui/footer/footer';
 import { Icon, IconName } from '../../ui/icon/icon';
 import { IconButton } from '../../ui/icon-button/icon-button';
@@ -26,7 +27,7 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
   selector: 'app-landing-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, IconButton, RouterLink, RevealDirective, Modal, Footer],
+  imports: [Icon, IconButton, RouterLink, RevealDirective, Modal, Footer, Avatar],
   template: `
     <!-- ===== Hero (Atenção + Value Proposition) ===== -->
     <section class="hero">
@@ -175,6 +176,102 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
             Pódios animados, acúmulo de XP e um histórico permanente para celebrar
             os melhores alunos. Ao encerrar a turma, o ranking final vira um mural
             público no Hall da Fama. Toque em "Recompensar" e veja a Duda subir.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Seção D — Equipes e Papéis (roleplay) ===== -->
+    <section class="feature feature--invertido feature--alt" appReveal>
+      <div class="feature__inner container">
+        <div class="feature__media">
+          <div class="squad-card">
+            <span class="squad-card__tit"><app-icon name="users" [size]="15" /> Esquadrão Alfa</span>
+            <ul class="squad-card__list">
+              <li>
+                <app-avatar nome="Ana Souza" [size]="36" />
+                <span class="mchip"><strong>Ana</strong><small>Líder</small></span>
+              </li>
+              <li>
+                <app-avatar nome="Bruno Lima" [size]="36" />
+                <span class="mchip"><strong>Bruno</strong><small>Relator</small></span>
+              </li>
+              <li>
+                <app-avatar nome="Duda Reis" [size]="36" />
+                <span class="mchip"><strong>Duda</strong><small>Pesquisa</small></span>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="feature__copy">
+          <span class="feature__eyebrow"><app-icon name="grip" [size]="15" /> Equipes &amp; papéis</span>
+          <h2>Organize a turma em esquadrões</h2>
+          <p>
+            Monte equipes arrastando alunos e atribua papéis específicos —
+            líder, relator, pesquisa. Facilite trabalhos em grupo e a gestão
+            comportamental, com cada aluno sabendo sua responsabilidade.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Seção E — Planos de Aula ===== -->
+    <section class="feature" appReveal>
+      <div class="feature__inner container">
+        <div class="feature__media">
+          <div class="plan-card">
+            <span class="plan-card__tit"><app-icon name="book" [size]="14" /> Matemática · Unidade 2</span>
+            <ol class="plan-card__list">
+              <li class="is-done"><app-icon name="check" [size]="14" /> Frações</li>
+              <li class="is-done"><app-icon name="check" [size]="14" /> Números decimais</li>
+              <li class="is-now"><span class="plan-card__dot"></span> Porcentagem <em>hoje</em></li>
+              <li class="is-next"><span class="plan-card__dot"></span> Razão e proporção</li>
+            </ol>
+          </div>
+        </div>
+        <div class="feature__copy">
+          <span class="feature__eyebrow"><app-icon name="book" [size]="15" /> Plano de aula</span>
+          <h2>Todo o seu material, organizado num só lugar</h2>
+          <p>
+            Centralize pautas, tópicos e o andamento do curso. O Qlick é a
+            diversão; o Plano de Aula é a sua fundação estruturada — e os tópicos
+            acompanham a grade mesmo quando as aulas deslizam.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Seção F — Agenda Dinâmica (o apoio) ===== -->
+    <section class="feature feature--invertido feature--alt" appReveal>
+      <div class="feature__inner container">
+        <div class="feature__media">
+          <div class="demo-card">
+            <h3 class="demo-card__tit">Sua agenda</h3>
+            <div class="demo">
+              @for (aula of aulas(); track aula.numero) {
+                @if (aula.numero === 3 && imprevisto()) {
+                  <div class="excecao">
+                    <app-icon name="alert" [size]="16" /> Imprevisto: Conselho de classe
+                  </div>
+                }
+                <div class="aula" [class.aula--shift]="imprevisto() && aula.numero >= 3">
+                  <span class="aula__n">Aula {{ aula.numero }}</span>
+                  <span class="aula__d">{{ aula.data }}</span>
+                </div>
+              }
+            </div>
+            <button class="btn-primary demo-card__btn" type="button" (click)="toggle()">
+              {{ imprevisto() ? 'Resetar demonstração' : 'Surgiu um imprevisto!' }}
+            </button>
+          </div>
+        </div>
+        <div class="feature__copy">
+          <span class="feature__eyebrow"><app-icon name="calendar" [size]="15" /> Agenda dinâmica</span>
+          <h2>A rotina que se readapta sozinha</h2>
+          <p>
+            A agenda é o apoio silencioso de tudo isso. Um feriado ou uma reunião
+            e as aulas deslizam automaticamente, recalculando o fim do curso — sem
+            você remexer a grade à mão. Toque e veja acontecer.
           </p>
         </div>
       </div>
@@ -534,6 +631,27 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
     .demo-card { width: min(380px, 100%); padding: 1.4rem; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: 6px 6px 0 color-mix(in srgb, var(--primary) 12%, transparent); }
     .demo-card__tit { margin: 0 0 1rem; font-size: 1.1rem; }
     .demo-card__btn { margin-top: 1.25rem; cursor: pointer; }
+
+    /* Seção D — card flutuante de equipe (flat: sombra dura branca) */
+    .squad-card { width: min(320px, 100%); padding: 1.25rem; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: 8px 8px 0 var(--surface-alt), 8px 8px 0 1px var(--border); }
+    .squad-card__tit { display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 800; color: var(--primary); margin-bottom: 0.9rem; }
+    .squad-card__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+    .squad-card__list li { display: flex; align-items: center; gap: 0.7rem; padding: 0.4rem; border-radius: 12px; background: var(--surface-alt); }
+    .mchip { display: flex; flex-direction: column; line-height: 1.15; }
+    .mchip strong { font-size: 0.95rem; }
+    .mchip small { font-size: 0.75rem; color: var(--primary); font-weight: 700; }
+
+    /* Seção E — pauta do plano de aula */
+    .plan-card { width: min(340px, 100%); padding: 1.25rem; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: 6px 6px 0 color-mix(in srgb, var(--primary) 12%, transparent); }
+    .plan-card__tit { display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 800; color: var(--primary); margin-bottom: 0.9rem; }
+    .plan-card__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+    .plan-card__list li { display: flex; align-items: center; gap: 0.55rem; padding: 0.6rem 0.75rem; border-radius: 10px; background: var(--surface-alt); font-size: 0.95rem; font-weight: 600; }
+    .plan-card__list .is-done { color: var(--text-muted); }
+    .plan-card__list .is-done app-icon { color: var(--success, #16a34a); }
+    .plan-card__list .is-now { background: color-mix(in srgb, var(--primary) 12%, transparent); color: var(--primary); }
+    .plan-card__list .is-now em { margin-left: auto; font-style: normal; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .plan-card__dot { width: 9px; height: 9px; border-radius: 999px; background: currentColor; }
+    .plan-card__list .is-next { color: var(--text-muted); }
 
     /* ===== Problema ===== */
     .problema { padding: 4rem 0 3rem; text-align: center; }
