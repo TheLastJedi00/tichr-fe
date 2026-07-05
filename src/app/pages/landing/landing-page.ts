@@ -119,6 +119,67 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
       </div>
     </section>
 
+    <!-- ===== Seção B — Acesso Frictionless (Smart PIN) ===== -->
+    <section class="feature feature--invertido feature--alt" appReveal>
+      <div class="feature__inner container">
+        <div class="feature__media">
+          <div class="pin-flow">
+            <div class="pin-card">
+              <span class="pin-card__lbl">Sala</span>
+              <div class="pin-boxes"><span>1</span><span>2</span></div>
+            </div>
+            <span class="pin-conn"></span>
+            <div class="pin-card pin-card--aluno">
+              <span class="pin-card__lbl">Aluno</span>
+              <div class="pin-boxes"><span>0</span><span>5</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="feature__copy">
+          <span class="feature__eyebrow"><app-icon name="lock" [size]="15" /> Acesso sem barreiras</span>
+          <h2>O aluno entra em 2 dígitos. Zero conta.</h2>
+          <p>
+            Sem e-mails, sem senhas esquecidas, sem perder os primeiros minutos da
+            aula. O aluno digita o <strong>Smart PIN</strong> da sala e o dele —
+            dois dígitos cada. O acesso mais rápido do mercado.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Seção C — Ranqueamento e Gamificação ===== -->
+    <section class="feature" appReveal>
+      <div class="feature__inner container">
+        <div class="feature__media">
+          <article class="demo-card">
+            <h3 class="demo-card__tit">Ranking da turma</h3>
+            <ul class="rank">
+              @for (a of alunosRank(); track a.id) {
+                <li class="rank__row" [class.rank__row--eu]="a.id === 'duda'">
+                  <span class="rank__pos rank__pos--{{ $index + 1 }}">{{ $index + 1 }}</span>
+                  <span class="rank__nome">{{ a.nome }}</span>
+                  <span class="rank__bar"><span [style.width.%]="pctXp(a.xp)"></span></span>
+                  <span class="rank__xp">{{ a.xp }}</span>
+                </li>
+              }
+            </ul>
+            <button class="btn-primary demo-card__btn" type="button" (click)="recompensar()">
+              {{ recompensado() ? 'Resetar demonstração' : 'Recompensar Duda (+190)' }}
+            </button>
+          </article>
+        </div>
+        <div class="feature__copy">
+          <span class="feature__eyebrow"><app-icon name="medal" [size]="15" /> Ranking &amp; Hall da Fama</span>
+          <h2>O engajamento não morre quando o sinal toca</h2>
+          <p>
+            Pódios animados, acúmulo de XP e um histórico permanente para celebrar
+            os melhores alunos. Ao encerrar a turma, o ranking final vira um mural
+            público no Hall da Fama. Toque em "Recompensar" e veja a Duda subir.
+          </p>
+        </div>
+      </div>
+    </section>
+
     <!-- ===== Problema + Agitação (PAS) ===== -->
     <section class="problema" appReveal>
       <div class="container">
@@ -459,6 +520,20 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
     .qk__opt--b { background: #3b82f6; }
     .qk__opt--c { background: #f59e0b; }
     .qk__opt--d { background: #22c55e; }
+
+    /* Seção B — Smart PIN */
+    .pin-flow { display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
+    .pin-card { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; padding: 1.1rem 1rem; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: 4px 4px 0 rgba(15, 23, 42, 0.08); }
+    .pin-card__lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 800; color: var(--text-muted); }
+    .pin-boxes { display: flex; gap: 0.4rem; }
+    .pin-boxes span { display: flex; align-items: center; justify-content: center; width: 40px; height: 52px; border-radius: 10px; font-size: 1.6rem; font-weight: 800; color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent); }
+    .pin-card--aluno .pin-boxes span { color: var(--success, #16a34a); background: color-mix(in srgb, var(--success, #16a34a) 12%, var(--surface)); border-color: color-mix(in srgb, var(--success, #16a34a) 30%, transparent); }
+    .pin-conn { width: 34px; height: 3px; border-radius: 999px; background: repeating-linear-gradient(90deg, var(--primary) 0 7px, transparent 7px 12px); }
+
+    /* Cartão de demo (ranking/deslizamento) dentro das seções */
+    .demo-card { width: min(380px, 100%); padding: 1.4rem; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: 6px 6px 0 color-mix(in srgb, var(--primary) 12%, transparent); }
+    .demo-card__tit { margin: 0 0 1rem; font-size: 1.1rem; }
+    .demo-card__btn { margin-top: 1.25rem; cursor: pointer; }
 
     /* ===== Problema ===== */
     .problema { padding: 4rem 0 3rem; text-align: center; }
