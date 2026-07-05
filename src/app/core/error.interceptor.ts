@@ -28,7 +28,10 @@ function isTratadoInline(err: HttpErrorResponse): boolean {
   return (
     (err.status === 403 && code === 'LIMIT_REACHED') ||
     (err.status === 409 && code === 'USERNAME_COOLDOWN') ||
-    (err.status === 400 && code === 'CUPOM_INVALIDO')
+    (err.status === 400 && code === 'CUPOM_INVALIDO') ||
+    (err.status === 429 && code === 'IA_RATE_LIMIT') ||
+    (err.status === 503 && code === 'IA_INDISPONIVEL') ||
+    (err.status === 400 && code === 'FORA_DO_TURNO')
   );
 }
 
