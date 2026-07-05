@@ -51,6 +51,16 @@ import { Spinner } from '../../ui/spinner/spinner';
           </span>
           <span class="menu__go" aria-hidden="true">›</span>
         </a>
+        @if (profile()?.isAdmin) {
+          <a class="menu__item admin" routerLink="/admin">
+            <span class="menu__ic"><app-icon name="settings" [size]="22" /></span>
+            <span class="menu__txt">
+              <strong>Painel Admin</strong>
+              <small>Backoffice: métricas, usuários e cupons</small>
+            </span>
+            <span class="menu__go" aria-hidden="true">›</span>
+          </a>
+        }
       </nav>
     }
   `,
