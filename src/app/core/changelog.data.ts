@@ -18,6 +18,15 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.9.1',
+    data: '2026-07-05',
+    titulo: 'Ajustes do cadastro e do painel',
+    itens: [
+      { categoria: 'Nova feature', texto: 'Já dá para aplicar um cupom de desconto na hora de criar a conta.' },
+      { categoria: 'Correção', texto: 'O aviso de "Falta pouco" no painel deixou de aparecer colado ao card da próxima aula.' },
+    ],
+  },
+  {
     versao: 'v0.9.0',
     data: '2026-07-05',
     titulo: 'Cadastro rápido, Tutoriais & Painel Admin',
