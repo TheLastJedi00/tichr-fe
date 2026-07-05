@@ -75,6 +75,13 @@ export const routes: Routes = [
             (m) => m.StudentQlickPage,
           ),
       },
+      {
+        path: 'wor',
+        loadComponent: () =>
+          import('./pages/student-wor/student-wor-page').then(
+            (m) => m.StudentWorPage,
+          ),
+      },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },
