@@ -137,6 +137,30 @@ lateral, o **card de upsell** ao atingir o limite do plano, o selo **Beta** no h
   **desabilitado** com a microcópia "Você poderá alterar… em X dias" (o backend responde
   `409 USERNAME_COOLDOWN`).
 
+### Cadastro, onboarding e tutoriais
+
+- **Cadastro frictionless:** os CTAs "Começar grátis" levam à tela `/cadastro` (e-mail, senha
+  e confirmação). Ao criar a conta (`POST /auth/signup`, plano Estagiário) o usuário já é
+  autenticado e cai direto no painel.
+- **Soft-block de perfil:** enquanto faltar **nome, @username ou foto**, o painel exibe o
+  `<app-onboarding-card>` em destaque ("Falta pouco!") com um checklist e o atalho para
+  concluir o perfil.
+- **Tutoriais de primeiro acesso:** na primeira visita a `/dashboard`, `/agenda`, `/turmas`
+  ou `/jogos`, o `DashboardLayout` escurece o fundo e mostra o `<app-tutorial-overlay>` com
+  uma dica rápida e o "primeiro passo" (marca como visto no `localStorage`; respeita
+  `prefers-reduced-motion`).
+
+### Painel Administrativo (backoffice — só admins)
+
+- Atalho **"Painel Admin"** nas Configurações, exibido só quando o perfil é admin (o
+  `adminGuard` confirma pelo `GET /admin/ping`). Rotas isoladas `/admin`, `/admin/usuarios`
+  e `/admin/cupons`.
+- **Dashboard** com métricas (total, ativos, distribuição por plano); **CRM** com busca de
+  professores e uso (turmas/alunos/Qlicks) e um modal de ações (redefinir senha, limpar dados,
+  desativar/excluir, override de plano, conceder/revogar admin); **Cupons** (CRUD).
+- **Resgate de cupom** em "Meu Plano": o professor digita o código e ganha desconto/meses
+  grátis (`POST /checkout/cupom`).
+
 ### Feedback de carregamento e performance
 
 - **Skeleton screens:** listas (Minhas Turmas, Meus Qlicks) renderizam **silhuetas com shimmer**
