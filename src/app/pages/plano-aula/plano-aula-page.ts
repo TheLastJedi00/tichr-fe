@@ -194,16 +194,17 @@ import { Spinner } from '../../ui/spinner/spinner';
 
     .aulas { display: flex; flex-direction: column; gap: 0.4rem; }
     .aula {
-      display: flex; align-items: center; gap: 0.6rem;
+      display: flex; align-items: center; gap: 0.35rem 0.6rem; flex-wrap: wrap;
       padding: 0.55rem 0.7rem; border: 1px dashed var(--border);
       border-radius: var(--radius); background: var(--surface-alt);
     }
-    .aula__n { font-weight: 700; }
-    .aula__d { color: var(--text-muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+    .aula__n { font-weight: 700; flex: 0 0 auto; }
+    .aula__d { color: var(--text-muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; flex: 0 0 auto; }
     .aula__vazio { margin-left: auto; color: var(--text-muted); font-size: 0.8rem; }
     .aula__topico {
       margin-left: auto; display: inline-flex; align-items: center; gap: 0.3rem;
-      padding: 0.2rem 0.55rem; border-radius: 999px; font-weight: 600; font-size: 0.82rem;
+      max-width: 100%; overflow-wrap: anywhere;
+      padding: 0.2rem 0.55rem; border-radius: 12px; font-weight: 600; font-size: 0.82rem;
       color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent);
     }
     .x { display: inline-flex; border: none; background: none; color: inherit; cursor: pointer; padding: 0; }
