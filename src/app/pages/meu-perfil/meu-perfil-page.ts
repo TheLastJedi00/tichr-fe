@@ -114,13 +114,13 @@ import { FeriasManager } from '../ferias/ferias-manager';
             </div>
             @if (usernameBloqueado()) {
               <span class="dica dica--lock">
-                🔒 Você poderá alterar seu nome de usuário novamente em {{ cooldownDias() }}
+                <app-icon name="lock" [size]="13" /> Você poderá alterar seu nome de usuário novamente em {{ cooldownDias() }}
                 {{ cooldownDias() === 1 ? 'dia' : 'dias' }}.
               </span>
             } @else {
               @switch (usernameStatus()) {
                 @case ('checando') { <span class="dica">Verificando…</span> }
-                @case ('ok') { <span class="dica dica--ok">✓ Disponível</span> }
+                @case ('ok') { <span class="dica dica--ok"><app-icon name="check" [size]="13" /> Disponível</span> }
                 @case ('tomado') { <span class="dica dica--erro">Já está em uso</span> }
                 @default {
                   <span class="dica">Escolha um termo simples — é a chave que seus alunos vão buscar.</span>
@@ -169,7 +169,7 @@ import { FeriasManager } from '../ferias/ferias-manager';
           </div>
 
           @if (salvo()) {
-            <p class="ok">✓ Perfil atualizado!</p>
+            <p class="ok"><app-icon name="check" [size]="15" /> Perfil atualizado!</p>
           }
 
           <button

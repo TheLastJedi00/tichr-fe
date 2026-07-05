@@ -15,6 +15,7 @@ import {
   RECURSO_PLANO_MINIMO,
   Recurso,
 } from '../../core/recursos';
+import { Icon } from '../../ui/icon/icon';
 
 /**
  * Painel de assinatura (smart): vitrine dos planos com destaque no plano atual
@@ -25,6 +26,7 @@ import {
   selector: 'app-planos-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [Icon],
   template: `
     <h1 class="title">Planos</h1>
 
@@ -36,7 +38,7 @@ import {
     }
 
     @if (sucesso()) {
-      <p class="ok">✓ Plano atualizado!</p>
+      <p class="ok"><app-icon name="check" [size]="15" /> Plano atualizado!</p>
     }
 
     <div class="grid">

@@ -76,7 +76,7 @@ import { Spinner } from '../../ui/spinner/spinner';
           ></textarea>
         </label>
 
-        @if (salvo()) { <p class="ok">✓ Plano de aula salvo!</p> }
+        @if (salvo()) { <p class="ok"><app-icon name="check" [size]="15" /> Plano de aula salvo!</p> }
         <button class="btn-primary full" type="button" [disabled]="salvando()" (click)="salvar()">
           {{ salvando() ? 'Salvando…' : 'Salvar' }}
         </button>

@@ -8,6 +8,7 @@ import {
 import { RouterLink } from '@angular/router';
 import { linksPainel } from '../../core/nav-links';
 import { ProfileService } from '../../core/profile.service';
+import { Icon } from '../icon/icon';
 
 /**
  * Rodapé global (dumb-ish): autoria, link de código e âncora para as Novidades.
@@ -18,7 +19,7 @@ import { ProfileService } from '../../core/profile.service';
   selector: 'app-footer',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink],
+  imports: [RouterLink, Icon],
   template: `
     <footer class="footer" [class.footer--landing]="!painel()">
       @if (painel()) {
@@ -29,7 +30,7 @@ import { ProfileService } from '../../core/profile.service';
               [routerLink]="l.path"
               [queryParams]="l.query ?? null"
             >
-              {{ l.label }}@if (l.locked) { 🔒 }
+              {{ l.label }}@if (l.locked) { <app-icon name="lock" [size]="12" /> }
             </a>
           }
         </nav>

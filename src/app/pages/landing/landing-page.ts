@@ -297,7 +297,7 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
         </p>
         @if (naLista()) {
           <p class="final__ok">
-            ✓ Você está na lista de espera. Em breve entramos em contato!
+            <app-icon name="check" [size]="15" /> Você está na lista de espera. Em breve entramos em contato!
           </p>
         } @else {
           <form class="wl" (submit)="$event.preventDefault(); entrar()">
