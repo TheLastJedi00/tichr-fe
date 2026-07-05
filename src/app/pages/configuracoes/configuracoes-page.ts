@@ -87,8 +87,14 @@ import { Spinner } from '../../ui/spinner/spinner';
       border-radius: var(--radius);
       text-decoration: none;
       color: inherit;
+      transition: border-color 0.15s ease, transform 0.15s ease;
     }
-    .menu__item:hover { border-color: var(--primary); }
+    .menu__item:hover { border-color: var(--primary); transform: translateY(-1px); }
+    .menu__item:active { transform: translateY(0); }
+    .menu__item.admin {
+      border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+      background: color-mix(in srgb, var(--primary) 5%, var(--surface));
+    }
     .menu__ic {
       flex: 0 0 auto;
       display: grid;
