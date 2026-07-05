@@ -42,7 +42,7 @@ O diferencial visível está na **demonstração interativa da landing page** e 
 
 | Rota | Tela | Papel |
 |---|---|---|
-| `/` | **Landing** | Explica o conceito com uma demo interativa do deslizamento; CTA de acesso beta e login. |
+| `/` | **Landing** | Rebranding focado em **gamificação**: hero com mockup do **Tichr Qlick** e um desfile *feature-by-feature* (Qlick, acesso por PIN, ranking/Hall da Fama, equipes, plano de aula e a agenda como apoio), alternando lado no desktop e empilhando no mobile. CTA "Comece grátis agora" → `/cadastro`. Mockups em CSS puro, sem emojis. |
 | `/login` | **Login** | Entrada (email/senha) — MVP *invite-only*. Traz o atalho **"Entrar como aluno"** → `/entrar`. |
 | `/entrar` | **Entrar como aluno** *(pública)* | Jornada em etapas: busca do **@usuário do professor** (avatar + nome) → turma → **PIN da turma** → nome → **PIN do aluno** (slots dinâmicos 2/6-4 díg). Traz também o **🏆 Hall da Fama**: turmas encerradas com o **ranking final, sem PIN**. |
 | `/dashboard` | **Dashboard** | Recepção: saudação por horário, **próxima aula** em destaque, **grade de Acesso Rápido** (espelha o menu lateral, mobile-first) e o gatilho de "Exceção". Enriquecido com o **plano de aula** (contexto/tópico) e o aviso de Qlick. |
