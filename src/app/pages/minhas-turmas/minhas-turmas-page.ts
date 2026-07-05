@@ -63,21 +63,21 @@ import { Skeleton } from '../../ui/skeleton/skeleton';
       <div class="lista">
         @for (t of turmasFiltradas(); track t.id) {
           <a class="turma" [routerLink]="['/turmas', t.id]">
-            <span class="turma__nome">
-              @if (t.cor) {
-                <span class="dot" [style.background]="t.cor"></span>
-              }
-              {{ t.nome }}
-            </span>
-            <span class="turma__tags">
+            <span class="turma__body">
+              <span class="turma__nome">
+                @if (t.cor) {
+                  <span class="dot" [style.background]="t.cor"></span>
+                }
+                {{ t.nome }}
+                @if (aba() === 'encerradas') {
+                  <span class="badge badge--fim">Encerrada</span>
+                }
+              </span>
               <span class="badge">
                 {{ t.tipoModalidade === 'MODULO_FECHADO' ? 'Módulo fechado' : 'Grade fixa' }}
               </span>
               @if (t.disciplina) {
-                <span class="disciplina">{{ t.disciplina }}</span>
-              }
-              @if (aba() === 'encerradas') {
-                <span class="badge badge--fim">Encerrada</span>
+                <span class="turma__disc">{{ t.disciplina }}</span>
               }
             </span>
             <span class="turma__go" aria-hidden="true">›</span>
@@ -110,8 +110,7 @@ import { Skeleton } from '../../ui/skeleton/skeleton';
     .turma {
       display: flex;
       align-items: center;
-      flex-wrap: wrap;
-      gap: 0.4rem 0.9rem;
+      gap: 0.75rem;
       padding: 0.95rem 1.1rem;
       border-radius: var(--radius);
       background: var(--surface);
@@ -120,26 +119,29 @@ import { Skeleton } from '../../ui/skeleton/skeleton';
       color: inherit;
     }
     .turma:hover { border-color: var(--primary); }
+    .turma__body {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.35rem;
+      min-width: 0;
+      flex: 1;
+    }
     .turma__nome {
       font-size: 1.1rem;
       font-weight: 700;
       display: inline-flex;
       align-items: center;
       gap: 0.4rem;
-      min-width: 0;
+      max-width: 100%;
     }
+    .turma__disc { color: var(--text-muted); font-size: 0.85rem; overflow-wrap: anywhere; }
     .dot {
       width: 10px;
       height: 10px;
       border-radius: 999px;
       display: inline-block;
       flex: 0 0 auto;
-    }
-    .turma__tags {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 0.5rem;
     }
     .badge {
       font-size: 0.7rem;
@@ -148,12 +150,9 @@ import { Skeleton } from '../../ui/skeleton/skeleton';
       border-radius: 999px;
       border: 1px solid var(--primary);
       color: var(--primary);
+      align-self: flex-start;
     }
-    .disciplina {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-    }
-    .turma__go { margin-left: auto; font-size: 1.4rem; line-height: 1; color: var(--text-muted); }
+    .turma__go { flex: 0 0 auto; font-size: 1.4rem; line-height: 1; color: var(--text-muted); }
     .muted { color: var(--text-muted); }
   `,
 })
