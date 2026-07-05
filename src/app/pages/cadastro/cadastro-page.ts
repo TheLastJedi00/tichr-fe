@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from '../../core/auth.service';
+import { ProfileService } from '../../core/profile.service';
 import { Card } from '../../ui/card/card';
 
 /**
@@ -51,6 +52,18 @@ import { Card } from '../../ui/card/card';
             />
           </label>
 
+          <label class="campo">
+            <span>Cupom <small>(opcional)</small></span>
+            <input
+              class="tichr-input cupom"
+              type="text"
+              autocomplete="off"
+              placeholder="Tem um código de desconto?"
+              [value]="cupom()"
+              (input)="cupom.set($any($event.target).value.toUpperCase())"
+            />
+          </label>
+
           @if (erro()) {
             <p class="error">{{ erro() }}</p>
           }
@@ -94,6 +107,8 @@ import { Card } from '../../ui/card/card';
       font-weight: 600;
       color: var(--text-muted);
     }
+    .campo > span small { font-weight: 500; opacity: 0.8; }
+    .cupom { text-transform: uppercase; letter-spacing: 0.05em; }
     .full {
       width: 100%;
     }
@@ -112,11 +127,13 @@ import { Card } from '../../ui/card/card';
 })
 export class CadastroPage {
   private readonly auth = inject(AuthService);
+  private readonly profile = inject(ProfileService);
   private readonly router = inject(Router);
 
   protected readonly email = signal('');
   protected readonly senha = signal('');
   protected readonly confirma = signal('');
+  protected readonly cupom = signal('');
   protected readonly criando = signal(false);
   protected readonly erro = signal<string | null>(null);
 
@@ -140,7 +157,7 @@ export class CadastroPage {
     this.criando.set(true);
     this.erro.set(null);
     this.auth.signup(this.email(), this.senha()).subscribe({
-      next: () => this.router.navigateByUrl('/dashboard'),
+      next: () => this.aplicarCupomEIr(),
       error: (e: HttpErrorResponse) => {
         this.erro.set(
           e.status === 409
@@ -149,6 +166,23 @@ export class CadastroPage {
         );
         this.criando.set(false);
       },
+    });
+  }
+
+  /**
+   * Conta já criada e autenticada: aplica o cupom (se houver) e segue para o
+   * painel. Cupom é opcional e não bloqueia — se inválido, o usuário pode tentar
+   * de novo depois em "Meu Plano".
+   */
+  private aplicarCupomEIr(): void {
+    const codigo = this.cupom().trim();
+    if (!codigo) {
+      this.router.navigateByUrl('/dashboard');
+      return;
+    }
+    this.profile.aplicarCupom(codigo).subscribe({
+      next: () => this.router.navigateByUrl('/dashboard'),
+      error: () => this.router.navigateByUrl('/dashboard'),
     });
   }
 }
