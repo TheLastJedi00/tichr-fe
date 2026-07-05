@@ -118,7 +118,7 @@ import { Icon } from '../../ui/icon/icon';
                 }
               </div>
               @if (alternativasDe(pi).length < 6) {
-                <button class="btn-outline btn-sm" type="button" (click)="addAlternativa(pi)">
+                <button class="btn-outline btn-sm add-alt" type="button" (click)="addAlternativa(pi)">
                   + Alternativa
                 </button>
               }
@@ -164,6 +164,7 @@ import { Icon } from '../../ui/icon/icon';
     .alt__radio { width: 18px; height: 18px; flex: 0 0 auto; }
     .alt .tichr-input { flex: 1; }
     .btn-sm { font-size: 0.85rem; padding: 0.4rem 0.8rem; }
+    .add-alt { margin-top: 0.6rem; }
     .full { width: 100%; margin-top: 1rem; }
     .salvar { margin-top: 1rem; }
     .erro { color: var(--danger); font-weight: 600; margin: 1rem 0 0; }

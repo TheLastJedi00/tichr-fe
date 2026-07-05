@@ -24,8 +24,8 @@ import { QuotaTracker } from '../quota-tracker/quota-tracker';
   imports: [RouterLink, RouterLinkActive, Icon, IconButton, QuotaTracker],
   template: `
     @if (open()) {
-      <div class="overlay" (click)="close.emit()">
-        <nav class="drawer" (click)="$event.stopPropagation()">
+      <div class="overlay" animate.enter="ov-in" animate.leave="ov-out" (click)="close.emit()">
+        <nav class="drawer" animate.enter="dr-in" animate.leave="dr-out" (click)="$event.stopPropagation()">
           <div class="drawer__head">
             <span class="drawer__title">Menu</span>
             <app-icon-button
@@ -62,6 +62,15 @@ import { QuotaTracker } from '../quota-tracker/quota-tracker';
     }
   `,
   styles: `
+    .ov-in { animation: ov-fade 0.2s ease both; }
+    .ov-out { animation: ov-fade 0.18s ease reverse both; }
+    .dr-in { animation: dr-slide 0.24s cubic-bezier(0.16, 1, 0.3, 1) both; }
+    .dr-out { animation: dr-slide 0.2s ease reverse both; }
+    @keyframes ov-fade { from { opacity: 0; } }
+    @keyframes dr-slide { from { transform: translateX(100%); } }
+    @media (prefers-reduced-motion: reduce) {
+      .ov-in, .ov-out, .dr-in, .dr-out { animation: none; }
+    }
     .overlay {
       position: fixed;
       inset: 0;

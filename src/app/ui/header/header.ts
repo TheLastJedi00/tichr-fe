@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, output } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { AuthService } from '../../core/auth.service';
 import { ThemeService } from '../../core/theme.service';
 import { BetaBadge } from '../beta-badge/beta-badge';
 import { IconButton } from '../icon-button/icon-button';
@@ -11,10 +13,10 @@ import { IconButton } from '../icon-button/icon-button';
   selector: 'app-header',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IconButton, BetaBadge],
+  imports: [IconButton, BetaBadge, RouterLink],
   template: `
     <header class="header">
-      <a class="header__logo" href="/">Tichr</a>
+      <a class="header__logo" [routerLink]="auth.isAuthenticated() ? '/dashboard' : '/'">Tichr</a>
 
       <div class="header__actions">
         <app-beta-badge />
@@ -58,5 +60,6 @@ import { IconButton } from '../icon-button/icon-button';
 })
 export class Header {
   protected readonly theme = inject(ThemeService);
+  protected readonly auth = inject(AuthService);
   readonly toggleMenu = output<void>();
 }
