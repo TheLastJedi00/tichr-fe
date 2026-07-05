@@ -10,11 +10,13 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (open()) {
-      <div class="overlay" (click)="close.emit()">
+      <div class="overlay" animate.enter="ov-in" animate.leave="ov-out" (click)="close.emit()">
         <div
           class="modal"
           role="dialog"
           aria-modal="true"
+          animate.enter="mo-in"
+          animate.leave="mo-out"
           (click)="$event.stopPropagation()"
         >
           @if (title()) {
@@ -31,6 +33,15 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
     }
   `,
   styles: `
+    .ov-in { animation: ov-fade 0.18s ease both; }
+    .ov-out { animation: ov-fade 0.15s ease reverse both; }
+    .mo-in { animation: mo-pop 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
+    .mo-out { animation: mo-pop 0.15s ease reverse both; }
+    @keyframes ov-fade { from { opacity: 0; } }
+    @keyframes mo-pop { from { opacity: 0; transform: translateY(10px) scale(0.97); } }
+    @media (prefers-reduced-motion: reduce) {
+      .ov-in, .ov-out, .mo-in, .mo-out { animation: none; }
+    }
     .overlay {
       position: fixed;
       inset: 0;
