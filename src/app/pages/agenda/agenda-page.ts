@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { formatarData } from '../../core/date-format';
 import { hojeISO } from '../../core/greeting';
@@ -58,7 +59,7 @@ function domingo(iso: string): string {
   selector: 'app-agenda-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Skeleton, Modal],
+  imports: [Skeleton, Modal, RouterLink],
   template: `
     <header class="head">
       <h1 class="title">Minha Agenda</h1>
@@ -169,9 +170,12 @@ function domingo(iso: string): string {
         <ul class="detalhes">
           @for (s of dia.sessoes; track s.id) {
             <li class="detli">
-              <div class="det__turma">
-                <span class="dot" [style.background]="corDaTurma(s.turmaId)"></span>
-                <strong>{{ turmaDe(s.turmaId)?.nome ?? 'Turma' }}</strong>
+              <div class="detli__top">
+                <div class="det__turma">
+                  <span class="dot" [style.background]="corDaTurma(s.turmaId)"></span>
+                  <strong>{{ turmaDe(s.turmaId)?.nome ?? 'Turma' }}</strong>
+                </div>
+                <a class="det__ver" [routerLink]="['/turmas', s.turmaId]">Ver turma ›</a>
               </div>
               <div class="det__meta">
                 <span>Aula {{ s.numero }}</span>
@@ -223,13 +227,16 @@ function domingo(iso: string): string {
     .det { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0; flex-wrap: wrap; }
     .det--cancelada { opacity: 0.55; text-decoration: line-through; }
     .det__txt { display: flex; flex-direction: column; }
-    .det__meta { font-size: 0.82rem; color: var(--text-muted); }
+    .det__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.8rem; font-size: 0.82rem; color: var(--text-muted); }
     .dot { width: 10px; height: 10px; border-radius: 999px; display: inline-block; flex: 0 0 auto; }
 
     .detalhes { list-style: none; margin: 0; padding: 0; }
-    .detli { padding: 0.625rem 0; }
+    .detli { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.75rem 0; }
     .detli + .detli { border-top: 1px solid var(--border); }
-    .det__turma { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.25rem; }
+    .detli__top { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem 0.75rem; flex-wrap: wrap; }
+    .det__turma { display: flex; align-items: center; gap: 0.4rem; min-width: 0; }
+    .det__ver { color: var(--primary); font-weight: 600; text-decoration: none; white-space: nowrap; font-size: 0.85rem; }
+    .det__ver:hover { text-decoration: underline; }
     .badge-status { font-weight: 700; font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 999px; border: 1px solid var(--border); }
     .st--agendada { color: var(--primary); border-color: var(--primary); }
     .st--cancelada { color: var(--danger); border-color: var(--danger); }
