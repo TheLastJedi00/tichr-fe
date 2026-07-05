@@ -24,10 +24,11 @@ function extrairMensagem(err: HttpErrorResponse): string {
 function isTratadoInline(err: HttpErrorResponse): boolean {
   const corpo = err.error as { code?: string } | null;
   const code = corpo?.code;
-  // Cota do plano (upsell) e trava de troca de @username (microcópia no form).
+  // Cota do plano (upsell), trava de @username e cupom inválido (microcópia no form).
   return (
     (err.status === 403 && code === 'LIMIT_REACHED') ||
-    (err.status === 409 && code === 'USERNAME_COOLDOWN')
+    (err.status === 409 && code === 'USERNAME_COOLDOWN') ||
+    (err.status === 400 && code === 'CUPOM_INVALIDO')
   );
 }
 

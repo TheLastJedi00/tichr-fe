@@ -77,4 +77,19 @@ export class ProfileService {
       .post<Profile>(`${this.base}/checkout/upgrade`, { plano })
       .pipe(tap((p) => this.profile.set(p)));
   }
+
+  /** Aplica um cupom no checkout (100% de desconto ou meses grátis). */
+  aplicarCupom(codigo: string): Observable<{
+    aplicado: boolean;
+    tipo: string;
+    planoAtual?: PlanoAtual;
+    cortesiaAte?: string;
+  }> {
+    return this.http
+      .post<{ aplicado: boolean; tipo: string; planoAtual?: PlanoAtual; cortesiaAte?: string }>(
+        `${this.base}/checkout/cupom`,
+        { codigo },
+      )
+      .pipe(tap(() => this.load().subscribe()));
+  }
 }
