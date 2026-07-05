@@ -58,8 +58,9 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
     }
     .modal__actions {
       display: flex;
+      flex-wrap: wrap;
       justify-content: flex-end;
-      gap: 0.5rem;
+      gap: 0.6rem;
       margin-top: 1.25rem;
     }
     .modal__actions:empty {

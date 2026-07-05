@@ -786,8 +786,8 @@ type Ordenacao = 'nome' | 'pontuacao';
     }
     .pinbox__lbl { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; }
     .pinbox__val { font-size: 1.3rem; font-variant-numeric: tabular-nums; letter-spacing: 0.12em; }
-    .linha { display: flex; gap: 0.5rem; }
-    .linha .tichr-input { flex: 1; }
+    .linha { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .linha .tichr-input { flex: 1; min-width: 140px; }
     .linha .qtd { max-width: 92px; flex: 0 0 auto; }
     .secao { margin-top: 1rem; padding-top: 0.9rem; border-top: 1px solid var(--border); }
     .secao__top { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.5rem; }
