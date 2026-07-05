@@ -31,6 +31,20 @@ export const CHANGELOG: VersaoChangelog[] = [
     ],
   },
   {
+    versao: 'v0.8.1',
+    data: '2026-07-05',
+    titulo: 'Ajustes de interface',
+    itens: [
+      { categoria: 'Melhoria', texto: 'Agora dá para sair da conta direto pelo menu lateral, com uma confirmação antes.' },
+      { categoria: 'Melhoria', texto: 'Menu lateral e janelas (modais) abrem e fecham com animações suaves — respeitando quem prefere menos movimento.' },
+      { categoria: 'Melhoria', texto: 'Em "Minhas Turmas", o card ficou mais limpo e clicável; para encerrar uma turma, use agora a tela de edição.' },
+      { categoria: 'Melhoria', texto: 'O detalhe do dia na agenda foi repensado para o celular e ganhou um botão "Ver turma" que leva direto ao painel.' },
+      { categoria: 'Correção', texto: 'Informações não se espremem mais: os cards de turma e de aula empilham nome, modalidade e disciplina e quebram linha quando o texto é longo.' },
+      { categoria: 'Correção', texto: 'Espaçamentos ajustados em janelas e formulários — inclusive as alternativas e os cards do Tichr Qlick, que apareciam colados.' },
+      { categoria: 'Correção', texto: 'Clicar no logo no topo leva ao painel quando você já está logado (antes voltava para a página inicial).' },
+    ],
+  },
+  {
     versao: 'v0.8.0',
     data: '2026-07-04',
     titulo: 'Hall da Fama & Jogos flexíveis',
