@@ -45,37 +45,42 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
 
       <div class="hero__inner container">
         <div class="hero__copy">
-          <span class="hero__eyebrow">A plataforma completa do professor</span>
-          <h1>Toda a sua docência, <span class="grad">organizada sozinha</span>.</h1>
+          <span class="hero__eyebrow">Gamificação para a sala de aula</span>
+          <h1>Transforme aulas comuns em <span class="grad">experiências inesquecíveis</span>.</h1>
           <p class="hero__sub">
-            A agenda que se reorganiza a cada imprevisto é só o começo. Some
-            <strong>planejamento de aulas</strong>,
-            <strong>gestão de turmas e equipes</strong> e um
-            <strong>portal gamificado</strong>, num só lugar, feito de professor
-            para professor.
+            Quizzes ao vivo, ranking e um portal onde <strong>a turma toda
+            participa</strong>. Engaje seus alunos, gerencie equipes e mantenha a
+            competição saudável — do primeiro toque ao Hall da Fama.
           </p>
           <div class="hero__chips">
-            <span><app-icon name="calendar" [size]="15" /> Agenda inteligente</span>
-            <span><app-icon name="book" [size]="15" /> Plano de aula</span>
-            <span><app-icon name="users" [size]="15" /> Turmas &amp; equipes</span>
-            <span><app-icon name="trophy" [size]="15" /> Portal do aluno</span>
+            <span><app-icon name="game" [size]="15" /> Quiz ao vivo</span>
+            <span><app-icon name="lock" [size]="15" /> Entrar por PIN</span>
+            <span><app-icon name="medal" [size]="15" /> Ranking &amp; XP</span>
+            <span><app-icon name="users" [size]="15" /> Equipes</span>
           </div>
           <div class="hero__cta">
-            <a class="btn-glow" routerLink="/cadastro">Começar grátis</a>
+            <a class="btn-glow" routerLink="/cadastro">Comece grátis agora</a>
             <a class="btn-hero-sec" href="#como">Ver como funciona</a>
           </div>
           <p class="hero__reforco">Sem cartão de crédito · Grátis para começar</p>
         </div>
 
-        <!-- Mockup flutuante do Tichr recalculando datas -->
-        <div class="mockup" aria-hidden="true">
-          <div class="mockup__bar"><span></span><span></span><span></span></div>
-          <div class="mockup__row"><span>Aula 03</span><b>16 mar</b></div>
-          <div class="mockup__row mockup__row--alert">
-            <app-icon name="alert" [size]="14" /> imprevisto
+        <!-- Mockup de celular com a tela do Tichr Qlick (CSS puro) -->
+        <div class="phone" aria-hidden="true">
+          <div class="phone__screen">
+            <span class="phone__tag"><app-icon name="game" [size]="13" /> Tichr Qlick</span>
+            <p class="phone__q">Qual a capital do Brasil?</p>
+            <div class="phone__opts">
+              <span class="opt opt--a">A · Rio</span>
+              <span class="opt opt--b">B · Brasília</span>
+              <span class="opt opt--c">C · São Paulo</span>
+              <span class="opt opt--d">D · Salvador</span>
+            </div>
+            <div class="phone__foot">
+              <span class="phone__timer"></span>
+              <span class="phone__live">● ao vivo</span>
+            </div>
           </div>
-          <div class="mockup__row mockup__row--moved"><span>Aula 03</span><b>23 mar</b></div>
-          <div class="mockup__row mockup__row--moved"><span>Aula 04</span><b>30 mar</b></div>
         </div>
       </div>
     </section>
@@ -377,15 +382,22 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
     .hero__login { margin: 0.5rem 0 0; font-size: 0.95rem; color: rgba(226, 232, 240, 0.75); }
     .hero__login a { color: #fff; font-weight: 600; text-decoration: underline; }
 
-    .mockup { justify-self: center; width: min(320px, 100%); padding: 1rem; border-radius: 16px; background: rgba(15, 23, 42, 0.55); border: 1px solid rgba(148, 163, 184, 0.25); box-shadow: 0 24px 60px rgba(2, 6, 23, 0.5); animation: float 6s ease-in-out infinite; }
+    /* Mockup de celular (Tichr Qlick) */
+    .phone { justify-self: center; width: min(300px, 100%); padding: 12px; border-radius: 34px; background: #0b1120; border: 1px solid rgba(148, 163, 184, 0.3); box-shadow: 0 24px 60px rgba(2, 6, 23, 0.55); animation: float 6s ease-in-out infinite; }
     @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
-    @media (prefers-reduced-motion: reduce) { .mockup { animation: none; } }
-    .mockup__bar { display: flex; gap: 0.4rem; margin-bottom: 0.9rem; }
-    .mockup__bar span { width: 10px; height: 10px; border-radius: 50%; background: rgba(148, 163, 184, 0.5); }
-    .mockup__row { display: flex; justify-content: space-between; padding: 0.7rem 0.9rem; margin-top: 0.5rem; border-radius: 10px; background: rgba(148, 163, 184, 0.12); font-size: 0.95rem; color: #e2e8f0; }
-    .mockup__row b { font-variant-numeric: tabular-nums; }
-    .mockup__row--alert { justify-content: center; align-items: center; gap: 0.4rem; color: #fca5a5; background: rgba(239, 68, 68, 0.15); font-weight: 600; }
-    .mockup__row--moved { background: rgba(59, 130, 246, 0.22); color: #bfdbfe; }
+    @media (prefers-reduced-motion: reduce) { .phone { animation: none; } }
+    .phone__screen { border-radius: 24px; background: linear-gradient(160deg, #111827, #1e293b); padding: 1.25rem 1.1rem 1.1rem; }
+    .phone__tag { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.04em; color: #c4b5fd; }
+    .phone__q { margin: 0.75rem 0 1rem; font-size: 1.1rem; font-weight: 700; color: #f8fafc; line-height: 1.25; }
+    .phone__opts { display: grid; gap: 0.55rem; }
+    .opt { padding: 0.7rem 0.85rem; border-radius: 12px; font-weight: 700; font-size: 0.9rem; color: #fff; }
+    .opt--a { background: #ef4444; }
+    .opt--b { background: #3b82f6; box-shadow: 0 0 0 2px #fff, 0 8px 20px rgba(59, 130, 246, 0.5); transform: scale(1.03); }
+    .opt--c { background: #f59e0b; }
+    .opt--d { background: #22c55e; }
+    .phone__foot { display: flex; align-items: center; justify-content: space-between; margin-top: 1rem; }
+    .phone__timer { flex: 1; height: 6px; border-radius: 999px; margin-right: 0.75rem; background: linear-gradient(90deg, #a78bfa 65%, rgba(148,163,184,0.25) 65%); }
+    .phone__live { font-size: 0.72rem; font-weight: 700; color: #f87171; }
 
     /* ===== Problema ===== */
     .problema { padding: 4rem 0 3rem; text-align: center; }
