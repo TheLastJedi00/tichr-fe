@@ -67,6 +67,27 @@ import { Spinner } from '../../ui/spinner/spinner';
         </app-card>
       }
 
+      <app-card>
+        <div class="cupom">
+          <strong>Tem um cupom?</strong>
+          <p class="cupom__hint">Aplique um código para desconto ou meses grátis.</p>
+          <div class="cupom__row">
+            <input
+              class="tichr-input"
+              placeholder="CÓDIGO"
+              [value]="cupom()"
+              (input)="cupom.set($any($event.target).value.toUpperCase())"
+            />
+            <button class="btn-primary" type="button" [disabled]="aplicando() || !cupom().trim()" (click)="aplicar()">
+              {{ aplicando() ? 'Aplicando…' : 'Aplicar' }}
+            </button>
+          </div>
+          @if (cupomMsg(); as m) {
+            <p class="cupom__msg" [class.err]="cupomErro()">{{ m }}</p>
+          }
+        </div>
+      </app-card>
+
       <p class="cobranca">
         Gestão de cobrança e notas fiscais chegam em breve. Por enquanto, as trocas de plano
         são aplicadas na hora, sem cartão.
@@ -91,6 +112,12 @@ import { Spinner } from '../../ui/spinner/spinner';
     .upsell .btn-primary, .upsell .btn-outline { text-decoration: none; margin-top: 0.25rem; }
     .cobranca { margin: 1rem 0 0; color: var(--text-muted); font-size: 0.82rem; }
     app-card + app-card { display: block; margin-top: 1rem; }
+    .cupom { display: flex; flex-direction: column; gap: 0.5rem; }
+    .cupom__hint { margin: 0; color: var(--text-muted); font-size: 0.85rem; }
+    .cupom__row { display: flex; gap: 0.5rem; }
+    .cupom__row .tichr-input { flex: 1; text-transform: uppercase; letter-spacing: 0.05em; }
+    .cupom__msg { margin: 0; font-size: 0.85rem; color: var(--success, #16a34a); font-weight: 600; }
+    .cupom__msg.err { color: var(--danger); }
   `,
 })
 export class MeuPlanoPage {
@@ -112,6 +139,31 @@ export class MeuPlanoPage {
   protected readonly isPhd = computed(
     () => this.profile()?.planoAtual === 'PHD',
   );
+
+  protected readonly cupom = signal('');
+  protected readonly aplicando = signal(false);
+  protected readonly cupomMsg = signal<string | null>(null);
+  protected readonly cupomErro = signal(false);
+
+  protected aplicar(): void {
+    const codigo = this.cupom().trim();
+    if (!codigo) return;
+    this.aplicando.set(true);
+    this.cupomMsg.set(null);
+    this.profileService.aplicarCupom(codigo).subscribe({
+      next: () => {
+        this.aplicando.set(false);
+        this.cupomErro.set(false);
+        this.cupomMsg.set('Cupom aplicado com sucesso!');
+        this.cupom.set('');
+      },
+      error: () => {
+        this.aplicando.set(false);
+        this.cupomErro.set(true);
+        this.cupomMsg.set('Cupom inválido, inativo ou esgotado.');
+      },
+    });
+  }
 
   constructor() {
     if (this.profile()) {

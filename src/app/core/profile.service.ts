@@ -22,6 +22,18 @@ export class ProfileService {
   readonly profile = signal<Profile | null>(null);
   readonly nome = computed(() => this.profile()?.nomeExibicao ?? null);
 
+  /**
+   * Soft-block do onboarding: perfil considerado incompleto enquanto faltar
+   * nome, @username ou foto. Usado para destacar o card de conclusão no painel.
+   */
+  readonly perfilIncompleto = computed(() => {
+    const p = this.profile();
+    if (!p) return false;
+    return (
+      !p.nomeExibicao?.trim() || !p.username?.trim() || !p.avatarUrl?.trim()
+    );
+  });
+
   load(): Observable<Profile> {
     return this.http
       .get<Profile>(`${this.base}/profile`)
@@ -64,5 +76,20 @@ export class ProfileService {
     return this.http
       .post<Profile>(`${this.base}/checkout/upgrade`, { plano })
       .pipe(tap((p) => this.profile.set(p)));
+  }
+
+  /** Aplica um cupom no checkout (100% de desconto ou meses grátis). */
+  aplicarCupom(codigo: string): Observable<{
+    aplicado: boolean;
+    tipo: string;
+    planoAtual?: PlanoAtual;
+    cortesiaAte?: string;
+  }> {
+    return this.http
+      .post<{ aplicado: boolean; tipo: string; planoAtual?: PlanoAtual; cortesiaAte?: string }>(
+        `${this.base}/checkout/cupom`,
+        { codigo },
+      )
+      .pipe(tap(() => this.load().subscribe()));
   }
 }

@@ -18,6 +18,19 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.9.0',
+    data: '2026-07-05',
+    titulo: 'Cadastro rápido, Tutoriais & Painel Admin',
+    itens: [
+      { categoria: 'Nova feature', texto: 'Cadastro grátis em segundos: só e-mail e senha. Você já entra no painel e conclui o perfil depois.' },
+      { categoria: 'Nova feature', texto: 'Um lembrete em destaque no painel ajuda a concluir seu perfil (nome, nome de usuário e foto) para liberar todas as ferramentas.' },
+      { categoria: 'Nova feature', texto: 'Dicas de primeiro acesso: ao abrir uma área pela primeira vez, uma dica rápida explica o que ela faz e qual o primeiro passo.' },
+      { categoria: 'Nova feature', texto: 'Resgate de cupom em "Meu Plano": aplique um código para ganhar desconto ou meses grátis.' },
+      { categoria: 'Nova feature', texto: 'Painel administrativo para a equipe Tichr (métricas de uso, suporte a contas e cupons) — visível apenas para administradores.' },
+      { categoria: 'Melhoria', texto: 'Visual mais consistente: os últimos emojis viraram ícones e as telas novas ganharam microinterações suaves.' },
+    ],
+  },
+  {
     versao: 'v0.8.1',
     data: '2026-07-05',
     titulo: 'Ajustes de interface',

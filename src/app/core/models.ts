@@ -74,6 +74,55 @@ export interface Profile {
   podeAlterarUsername?: boolean;
   /** Dias que faltam para liberar a próxima troca do @username (0 = liberado). */
   diasParaTrocarUsername?: number;
+  /** Acesso ao backoffice (backoffice/painel admin). */
+  isAdmin?: boolean;
+}
+
+// --- Backoffice (Painel Administrativo) ---
+
+export interface AdminMetrics {
+  totalProfessores: number;
+  ativos: number;
+  desativados: number;
+  porPlano: Record<PlanoAtual, number>;
+}
+
+export interface UsoProfessor {
+  turmasAtivas: number;
+  alunos: number;
+  qlicks: number;
+}
+
+export interface UsuarioAdmin {
+  uid: string;
+  email?: string;
+  nomeExibicao?: string;
+  username?: string;
+  planoAtual: PlanoAtual;
+  desativadoEm?: string;
+  uso: UsoProfessor;
+}
+
+export type TipoCupom = 'PLANO_GRATIS' | 'MESES_GRATIS';
+
+export interface Cupom {
+  id: string;
+  codigo: string;
+  tipo: TipoCupom;
+  planoConcedido?: PlanoAtual;
+  meses?: number;
+  ativo: boolean;
+  usos: number;
+  maxUsos?: number;
+}
+
+export interface CriarCupomPayload {
+  codigo: string;
+  tipo: TipoCupom;
+  planoConcedido?: PlanoAtual;
+  meses?: number;
+  maxUsos?: number;
+  ativo?: boolean;
 }
 
 export interface UpdateProfilePayload {

@@ -24,10 +24,11 @@ function extrairMensagem(err: HttpErrorResponse): string {
 function isTratadoInline(err: HttpErrorResponse): boolean {
   const corpo = err.error as { code?: string } | null;
   const code = corpo?.code;
-  // Cota do plano (upsell) e trava de troca de @username (microcópia no form).
+  // Cota do plano (upsell), trava de @username e cupom inválido (microcópia no form).
   return (
     (err.status === 403 && code === 'LIMIT_REACHED') ||
-    (err.status === 409 && code === 'USERNAME_COOLDOWN')
+    (err.status === 409 && code === 'USERNAME_COOLDOWN') ||
+    (err.status === 400 && code === 'CUPOM_INVALIDO')
   );
 }
 
@@ -38,9 +39,15 @@ function isTratadoInline(err: HttpErrorResponse): boolean {
  */
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const errorService = inject(ErrorService);
+  // Telas de login/cadastro mostram o erro inline; o ping do admin é uma sonda
+  // silenciosa do guard (403 = usuário comum, não é erro a exibir).
+  const isFormAuth =
+    req.url.endsWith('/auth/login') ||
+    req.url.endsWith('/auth/signup') ||
+    req.url.endsWith('/admin/ping');
   return next(req).pipe(
     catchError((err: HttpErrorResponse) => {
-      if (err.status !== 401 && !isTratadoInline(err)) {
+      if (err.status !== 401 && !isFormAuth && !isTratadoInline(err)) {
         errorService.show(extrairMensagem(err));
       }
       return throwError(() => err);

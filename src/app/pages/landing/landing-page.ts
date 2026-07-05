@@ -61,7 +61,7 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
             <span><app-icon name="trophy" [size]="15" /> Portal do aluno</span>
           </div>
           <div class="hero__cta">
-            <a class="btn-glow" href="#planos">Começar grátis</a>
+            <a class="btn-glow" routerLink="/cadastro">Começar grátis</a>
             <a class="btn-hero-sec" href="#como">Ver como funciona</a>
           </div>
           <p class="hero__reforco">Sem cartão de crédito · Grátis para começar</p>
@@ -262,7 +262,7 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
                 class="plano__cta"
                 [class.btn-primary]="p.destaque"
                 [class.btn-outline]="!p.destaque"
-                routerLink="/login"
+                routerLink="/cadastro"
               >
                 {{ p.cta }}
               </a>
@@ -297,7 +297,7 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
         </p>
         @if (naLista()) {
           <p class="final__ok">
-            ✓ Você está na lista de espera. Em breve entramos em contato!
+            <app-icon name="check" [size]="15" /> Você está na lista de espera. Em breve entramos em contato!
           </p>
         } @else {
           <form class="wl" (submit)="$event.preventDefault(); entrar()">
@@ -318,7 +318,7 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
     <app-footer />
 
     <!-- CTA fixo no rodapé (apenas mobile) -->
-    <a class="sticky-cta" href="#planos">Começar grátis</a>
+    <a class="sticky-cta" routerLink="/cadastro">Começar grátis</a>
 
     <!-- Modal de detalhes do plano (carregado sob demanda com @defer) -->
     @defer (when planoAberto()) {
@@ -332,7 +332,7 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
               <li>{{ f }}</li>
             }
           </ul>
-          <a modal-actions class="btn-primary modal-cta" routerLink="/login">
+          <a modal-actions class="btn-primary modal-cta" routerLink="/cadastro">
             {{ p.cta }}
           </a>
         </app-modal>

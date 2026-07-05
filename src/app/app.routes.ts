@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth.guard';
+import { adminGuard } from './core/admin.guard';
 import { exigePlano } from './core/plano.guard';
 import { studentGuard } from './core/student-auth.guard';
 import { DashboardLayout } from './layout/dashboard-layout';
@@ -16,6 +17,11 @@ export const routes: Routes = [
     path: 'login',
     loadComponent: () =>
       import('./pages/login/login-page').then((m) => m.LoginPage),
+  },
+  {
+    path: 'cadastro',
+    loadComponent: () =>
+      import('./pages/cadastro/cadastro-page').then((m) => m.CadastroPage),
   },
   {
     path: 'novidades',
@@ -191,6 +197,30 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/meu-plano/meu-plano-page').then(
             (m) => m.MeuPlanoPage,
+          ),
+      },
+      {
+        path: 'admin',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./pages/admin/admin-dashboard-page').then(
+            (m) => m.AdminDashboardPage,
+          ),
+      },
+      {
+        path: 'admin/usuarios',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./pages/admin/admin-usuarios-page').then(
+            (m) => m.AdminUsuariosPage,
+          ),
+      },
+      {
+        path: 'admin/cupons',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./pages/admin/admin-cupons-page').then(
+            (m) => m.AdminCuponsPage,
           ),
       },
     ],

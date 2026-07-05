@@ -51,6 +51,16 @@ import { Spinner } from '../../ui/spinner/spinner';
           </span>
           <span class="menu__go" aria-hidden="true">›</span>
         </a>
+        @if (profile()?.isAdmin) {
+          <a class="menu__item admin" routerLink="/admin">
+            <span class="menu__ic"><app-icon name="settings" [size]="22" /></span>
+            <span class="menu__txt">
+              <strong>Painel Admin</strong>
+              <small>Backoffice: métricas, usuários e cupons</small>
+            </span>
+            <span class="menu__go" aria-hidden="true">›</span>
+          </a>
+        }
       </nav>
     }
   `,
@@ -77,8 +87,14 @@ import { Spinner } from '../../ui/spinner/spinner';
       border-radius: var(--radius);
       text-decoration: none;
       color: inherit;
+      transition: border-color 0.15s ease, transform 0.15s ease;
     }
-    .menu__item:hover { border-color: var(--primary); }
+    .menu__item:hover { border-color: var(--primary); transform: translateY(-1px); }
+    .menu__item:active { transform: translateY(0); }
+    .menu__item.admin {
+      border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+      background: color-mix(in srgb, var(--primary) 5%, var(--surface));
+    }
     .menu__ic {
       flex: 0 0 auto;
       display: grid;
