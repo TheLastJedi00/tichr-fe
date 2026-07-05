@@ -27,7 +27,10 @@ export type IconName =
   | 'wave'
   | 'sparkles'
   | 'dice'
-  | 'logout';
+  | 'logout'
+  | 'castle'
+  | 'sword'
+  | 'shield';
 
 /**
  * Componente burro de icones. Centraliza os SVGs e herda a cor do texto
@@ -179,6 +182,17 @@ export type IconName =
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
           <polyline points="16 17 21 12 16 7" />
           <line x1="21" y1="12" x2="9" y2="12" />
+        }
+        @case ('castle') {
+          <path d="M3 21h18M4 21V9l2 1V7l2 1V5l2 1V4h4v2l2-1v3l2-1v3l2-1v12" />
+          <path d="M10 21v-4a2 2 0 0 1 4 0v4" />
+        }
+        @case ('sword') {
+          <path d="M14.5 17.5 3 6V3h3l11.5 11.5" />
+          <path d="M13 19l6-6M16 16l4 4M19 21l2-2" />
+        }
+        @case ('shield') {
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
         }
       }
     </svg>

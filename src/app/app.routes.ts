@@ -75,6 +75,13 @@ export const routes: Routes = [
             (m) => m.StudentQlickPage,
           ),
       },
+      {
+        path: 'wor',
+        loadComponent: () =>
+          import('./pages/student-wor/student-wor-page').then(
+            (m) => m.StudentWorPage,
+          ),
+      },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },
@@ -151,6 +158,31 @@ export const routes: Routes = [
         path: 'jogos/qlick',
         loadComponent: () =>
           import('./pages/jogos/qlick-intro-page').then((m) => m.QlickIntroPage),
+      },
+      {
+        path: 'jogos/wor',
+        loadComponent: () =>
+          import('./pages/jogos/wor-landing-page').then((m) => m.WorLandingPage),
+      },
+      {
+        path: 'jogos/wor/novo',
+        loadComponent: () =>
+          import('./pages/jogos/wor-studio-page').then((m) => m.WorStudioPage),
+      },
+      {
+        path: 'jogos/wor/editar/:id',
+        loadComponent: () =>
+          import('./pages/jogos/wor-studio-page').then((m) => m.WorStudioPage),
+      },
+      {
+        path: 'jogos/wor/meus',
+        loadComponent: () =>
+          import('./pages/jogos/wor-meus-page').then((m) => m.WorMeusPage),
+      },
+      {
+        path: 'jogos/wor/partida/:id',
+        loadComponent: () =>
+          import('./pages/jogos/wor-projetor-page').then((m) => m.WorProjetorPage),
       },
       {
         path: 'jogos/qlick/meus',

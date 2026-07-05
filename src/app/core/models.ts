@@ -382,3 +382,66 @@ export interface CriarFeriasPayload {
   dataFim: string;
   descricao?: string;
 }
+
+// --- Tichr Wor ---
+
+export interface PalavraWor {
+  id?: string;
+  palavra: string;
+  dicas: string[];
+}
+
+export interface WorJogo {
+  id: string;
+  professorId: string;
+  nome: string;
+  disciplina?: string;
+  topico: string;
+  palavras: PalavraWor[];
+}
+
+export interface CriarWorJogoPayload {
+  nome: string;
+  disciplina?: string;
+  topico: string;
+  palavras: { palavra: string; dicas: string[] }[];
+}
+
+export type StatusMatch = 'LOBBY' | 'EM_ANDAMENTO' | 'ENCERRADO';
+
+export interface WorTeam {
+  id: string;
+  matchId: string;
+  nome: string;
+  cor: string;
+  hp: number;
+  isHorde: boolean;
+  membros: { alunoId: string; nome: string }[];
+}
+
+export interface WorMatch {
+  id: string;
+  jogoId: string;
+  professorId: string;
+  turmaId: string;
+  nome: string;
+  status: StatusMatch;
+  ondaIndex: number;
+  totalOndas: number;
+  /** Máscara da palavra: letra revelada, '_' (oculta) ou ' ' (espaço). */
+  mascara: string[];
+  letrasTentadas: string[];
+  cartasVisiveis: string[];
+  totalCartas: number;
+  turnoEquipeId?: string | null;
+  ordemEquipes: string[];
+  aguardandoDilema: boolean;
+  dilemaEquipeId?: string | null;
+  inscritos: { alunoId: string; nome: string }[];
+  vencedorEquipeId?: string | null;
+}
+
+export interface WorMatchView {
+  match: WorMatch;
+  teams: WorTeam[];
+}

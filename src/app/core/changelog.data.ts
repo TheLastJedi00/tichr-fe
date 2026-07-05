@@ -18,6 +18,16 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.11.0',
+    data: '2026-07-05',
+    titulo: 'Tichr Wor',
+    itens: [
+      { categoria: 'Nova feature', texto: 'Tichr Wor: uma guerra de castelos em equipes. Os alunos decifram palavras, atacam rivais e defendem o HP da sua fortaleza — sobrevivência épica, sem eliminação.' },
+      { categoria: 'Nova feature', texto: 'Monte o "arsenal" de palavras com 3 dicas cada; a IA pode criar os enigmas para você (1 geração por dia), e você reordena as palavras arrastando.' },
+      { categoria: 'Nova feature', texto: 'Tela do projetor mostra a palavra, as cartas de dica e o HP de cada castelo ao vivo; os alunos jogam pelo celular, com Dilema Tático, Risco Heroico e a Horda (quem cai vira Usurpador e pode roubar a liderança).' },
+    ],
+  },
+  {
     versao: 'v0.10.0',
     data: '2026-07-05',
     titulo: 'Nova Landing Page',
