@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { WorApiService } from '../../core/wor-api.service';
-import { WorJogo } from '../../core/models';
+import { TurmaApiService } from '../../core/turma-api.service';
+import { Turma, WorJogo } from '../../core/models';
 import { Icon } from '../../ui/icon/icon';
+import { Modal } from '../../ui/modal/modal';
 import { Spinner } from '../../ui/spinner/spinner';
 
 /** Lista das batalhas prontas do professor (arsenal salvo). */
@@ -10,7 +12,7 @@ import { Spinner } from '../../ui/spinner/spinner';
   selector: 'app-wor-meus-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Spinner],
+  imports: [RouterLink, Icon, Spinner, Modal],
   template: `
     <a class="voltar" routerLink="/jogos/wor">‹ Tichr Wor</a>
     <header class="head">
@@ -32,6 +34,7 @@ import { Spinner } from '../../ui/spinner/spinner';
               <span class="card__meta">{{ j.topico }} · {{ j.palavras.length }} palavra(s)</span>
             </div>
             <div class="card__acoes">
+              <button class="btn-primary" type="button" (click)="abrirRodar(j)">Rodar</button>
               <a class="btn-outline" [routerLink]="['/jogos/wor/editar', j.id]">Editar</a>
               <button class="btn-outline warn" type="button" (click)="remover(j)">Excluir</button>
             </div>
@@ -40,6 +43,21 @@ import { Spinner } from '../../ui/spinner/spinner';
           <p class="vazio">Nenhuma batalha ainda. Forje a primeira!</p>
         }
       </ul>
+    }
+
+    @if (rodando(); as j) {
+      <app-modal [open]="true" [title]="'Rodar: ' + j.nome" (close)="rodando.set(null)">
+        <p class="modal-sub">Escolha a turma para a batalha:</p>
+        <div class="turmas">
+          @for (t of turmasList(); track t.id) {
+            <button class="turma-btn" type="button" [disabled]="criando()" (click)="rodar(j, t)">
+              {{ t.nome }}
+            </button>
+          } @empty {
+            <p class="vazio">Você ainda não tem turmas ativas.</p>
+          }
+        </div>
+      </app-modal>
     }
   `,
   styles: `
@@ -59,6 +77,10 @@ import { Spinner } from '../../ui/spinner/spinner';
     .card__acoes .btn-outline { text-decoration: none; }
     .btn-outline.warn { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, var(--border)); }
     .vazio { color: var(--text-muted); text-align: center; padding: 1.5rem; }
+    .modal-sub { margin: 0 0 0.75rem; color: var(--text-muted); }
+    .turmas { display: flex; flex-direction: column; gap: 0.5rem; }
+    .turma-btn { padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); font-weight: 700; text-align: left; cursor: pointer; }
+    .turma-btn:hover { border-color: #b45309; }
     @media (min-width: 560px) {
       .head { flex-direction: row; align-items: center; justify-content: space-between; }
       .card { flex-direction: row; align-items: center; }
@@ -68,12 +90,32 @@ import { Spinner } from '../../ui/spinner/spinner';
 })
 export class WorMeusPage {
   private readonly api = inject(WorApiService);
+  private readonly turmas = inject(TurmaApiService);
+  private readonly router = inject(Router);
 
   protected readonly jogos = signal<WorJogo[]>([]);
   protected readonly carregando = signal(true);
+  protected readonly rodando = signal<WorJogo | null>(null);
+  protected readonly turmasList = signal<Turma[]>([]);
+  protected readonly criando = signal(false);
 
   constructor() {
     this.carregar();
+  }
+
+  protected abrirRodar(j: WorJogo): void {
+    this.rodando.set(j);
+    this.turmas.getTurmas().subscribe((ts) =>
+      this.turmasList.set(ts.filter((t) => !t.encerradaManualmente)),
+    );
+  }
+
+  protected rodar(j: WorJogo, t: Turma): void {
+    this.criando.set(true);
+    this.api.criarPartida(j.id, t.id).subscribe({
+      next: (v) => this.router.navigate(['/jogos/wor/partida', v.match.id]),
+      error: () => this.criando.set(false),
+    });
   }
 
   private carregar(): void {

@@ -173,6 +173,11 @@ export const routes: Routes = [
           import('./pages/jogos/wor-meus-page').then((m) => m.WorMeusPage),
       },
       {
+        path: 'jogos/wor/partida/:id',
+        loadComponent: () =>
+          import('./pages/jogos/wor-projetor-page').then((m) => m.WorProjetorPage),
+      },
+      {
         path: 'jogos/qlick/meus',
         canActivate: [exigePlano('QLICK')],
         loadComponent: () =>
