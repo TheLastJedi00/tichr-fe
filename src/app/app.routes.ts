@@ -18,6 +18,11 @@ export const routes: Routes = [
       import('./pages/login/login-page').then((m) => m.LoginPage),
   },
   {
+    path: 'cadastro',
+    loadComponent: () =>
+      import('./pages/cadastro/cadastro-page').then((m) => m.CadastroPage),
+  },
+  {
     path: 'novidades',
     loadComponent: () =>
       import('./pages/novidades/novidades-page').then((m) => m.NovidadesPage),

@@ -1,19 +1,25 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from '../../core/auth.service';
 import { Card } from '../../ui/card/card';
 
-/** Tela de login (email/senha). MVP invite-only: sem cadastro. */
+/**
+ * Cadastro frictionless (plano Estagiário): formulário mínimo — e-mail, senha e
+ * confirmação. Ao criar a conta o backend já devolve o token e caímos direto no
+ * Dashboard (onde o soft-block pede a conclusão do perfil).
+ */
 @Component({
-  selector: 'app-login-page',
+  selector: 'app-cadastro-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [Card, RouterLink],
   template: `
     <div class="wrap">
       <span class="logo">Tichr</span>
-      <app-card title="Entrar">
-        <form (submit)="$event.preventDefault(); entrar()">
+      <app-card title="Criar conta">
+        <p class="sub">Comece grátis em segundos. Só precisamos do essencial.</p>
+        <form (submit)="$event.preventDefault(); criar()">
           <label class="campo">
             <span>Email</span>
             <input
@@ -29,9 +35,19 @@ import { Card } from '../../ui/card/card';
             <input
               class="tichr-input"
               type="password"
-              autocomplete="current-password"
+              autocomplete="new-password"
               [value]="senha()"
               (input)="senha.set($any($event.target).value)"
+            />
+          </label>
+          <label class="campo">
+            <span>Confirmar senha</span>
+            <input
+              class="tichr-input"
+              type="password"
+              autocomplete="new-password"
+              [value]="confirma()"
+              (input)="confirma.set($any($event.target).value)"
             />
           </label>
 
@@ -39,14 +55,13 @@ import { Card } from '../../ui/card/card';
             <p class="error">{{ erro() }}</p>
           }
 
-          <button class="btn-primary full" type="submit" [disabled]="entrando()">
-            {{ entrando() ? 'Entrando…' : 'Entrar' }}
+          <button class="btn-primary full" type="submit" [disabled]="criando() || !podeEnviar()">
+            {{ criando() ? 'Criando…' : 'Criar minha conta' }}
           </button>
         </form>
       </app-card>
 
-      <a class="criar" routerLink="/cadastro">Criar conta grátis</a>
-      <a class="aluno" routerLink="/entrar">Entrar como aluno</a>
+      <a class="voltar" routerLink="/login">Já tenho conta — Entrar</a>
     </div>
   `,
   styles: `
@@ -62,6 +77,11 @@ import { Card } from '../../ui/card/card';
       font-weight: 800;
       letter-spacing: -0.02em;
       margin-bottom: 1.25rem;
+    }
+    .sub {
+      margin: 0 0 1rem;
+      color: var(--text-muted);
+      font-size: 0.9rem;
     }
     .campo {
       display: block;
@@ -81,40 +101,53 @@ import { Card } from '../../ui/card/card';
       color: var(--danger);
       margin: 0 0 0.75rem;
     }
-    .criar,
-    .aluno {
+    .voltar {
       display: block;
       text-align: center;
       margin-top: 1rem;
       font-weight: 600;
       color: var(--primary);
     }
-    .criar {
-      margin-top: 1.25rem;
-    }
   `,
 })
-export class LoginPage {
+export class CadastroPage {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
   protected readonly email = signal('');
   protected readonly senha = signal('');
-  protected readonly entrando = signal(false);
+  protected readonly confirma = signal('');
+  protected readonly criando = signal(false);
   protected readonly erro = signal<string | null>(null);
 
-  protected entrar(): void {
+  protected readonly podeEnviar = computed(
+    () => !!this.email() && this.senha().length >= 6 && !!this.confirma(),
+  );
+
+  protected criar(): void {
     if (!this.email() || !this.senha()) {
-      this.erro.set('Preencha email e senha.');
+      this.erro.set('Preencha e-mail e senha.');
       return;
     }
-    this.entrando.set(true);
+    if (this.senha().length < 6) {
+      this.erro.set('A senha deve ter ao menos 6 caracteres.');
+      return;
+    }
+    if (this.senha() !== this.confirma()) {
+      this.erro.set('As senhas não conferem.');
+      return;
+    }
+    this.criando.set(true);
     this.erro.set(null);
-    this.auth.login(this.email(), this.senha()).subscribe({
+    this.auth.signup(this.email(), this.senha()).subscribe({
       next: () => this.router.navigateByUrl('/dashboard'),
-      error: () => {
-        this.erro.set('Email ou senha inválidos.');
-        this.entrando.set(false);
+      error: (e: HttpErrorResponse) => {
+        this.erro.set(
+          e.status === 409
+            ? 'Esse e-mail já está cadastrado.'
+            : 'Não foi possível criar a conta. Tente novamente.',
+        );
+        this.criando.set(false);
       },
     });
   }

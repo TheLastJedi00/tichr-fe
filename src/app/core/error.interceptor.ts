@@ -38,9 +38,12 @@ function isTratadoInline(err: HttpErrorResponse): boolean {
  */
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const errorService = inject(ErrorService);
+  // Telas de login/cadastro mostram o erro inline no próprio formulário.
+  const isFormAuth =
+    req.url.endsWith('/auth/login') || req.url.endsWith('/auth/signup');
   return next(req).pipe(
     catchError((err: HttpErrorResponse) => {
-      if (err.status !== 401 && !isTratadoInline(err)) {
+      if (err.status !== 401 && !isFormAuth && !isTratadoInline(err)) {
         errorService.show(extrairMensagem(err));
       }
       return throwError(() => err);

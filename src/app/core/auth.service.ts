@@ -34,6 +34,13 @@ export class AuthService {
       .pipe(tap((res) => this.setToken(res.token)));
   }
 
+  /** Cadastro frictionless (plano Estagiário): cria a conta e já autentica. */
+  signup(email: string, password: string): Observable<LoginResponse> {
+    return this.http
+      .post<LoginResponse>(`${this.base}/auth/signup`, { email, password })
+      .pipe(tap((res) => this.setToken(res.token)));
+  }
+
   logout(): void {
     this._token.set(null);
     localStorage.removeItem(STORAGE_KEY);
