@@ -2,8 +2,9 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { RouterLink } from '@angular/router';
 import { Plano, PLANOS } from '../../core/planos.data';
 import { ThemeService } from '../../core/theme.service';
+import { Avatar } from '../../ui/avatar/avatar';
 import { Footer } from '../../ui/footer/footer';
-import { Icon, IconName } from '../../ui/icon/icon';
+import { Icon } from '../../ui/icon/icon';
 import { IconButton } from '../../ui/icon-button/icon-button';
 import { Modal } from '../../ui/modal/modal';
 import { RevealDirective } from '../../ui/reveal.directive';
@@ -17,16 +18,17 @@ const BASE = ['02 mar', '09 mar', '16 mar', '23 mar', '30 mar'];
 const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
 
 /**
- * Landing page (rota /). Estrutura orientada a conversão: value proposition
- * clara no hero → problema/agitação (PAS) → como funciona (3 passos) → o
- * ecossistema (a agenda é só a ponta) → prova/garantias → planos com risk
- * reversal → objeções (FAQ) → CTA final. Ver .specs/update/landing-page.md.
+ * Landing page (rota /). Rebranding orientado a gamificação (spec 009):
+ * hero com mockup do Tichr Qlick → desfile "feature por seção" (A Qlick,
+ * B acesso por PIN, C ranking/Hall da Fama, D equipes, E plano de aula,
+ * F agenda de apoio, alternando lado no desktop e empilhando no mobile) →
+ * planos → FAQ → CTA final. Mockups em CSS puro, sem emojis (<app-icon>).
  */
 @Component({
   selector: 'app-landing-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, IconButton, RouterLink, RevealDirective, Modal, Footer],
+  imports: [Icon, IconButton, RouterLink, RevealDirective, Modal, Footer, Avatar],
   template: `
     <!-- ===== Hero (Atenção + Value Proposition) ===== -->
     <section class="hero">
@@ -45,128 +47,114 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
 
       <div class="hero__inner container">
         <div class="hero__copy">
-          <span class="hero__eyebrow">A plataforma completa do professor</span>
-          <h1>Toda a sua docência, <span class="grad">organizada sozinha</span>.</h1>
+          <span class="hero__eyebrow">Gamificação para a sala de aula</span>
+          <h1>Transforme aulas comuns em <span class="grad">experiências inesquecíveis</span>.</h1>
           <p class="hero__sub">
-            A agenda que se reorganiza a cada imprevisto é só o começo. Some
-            <strong>planejamento de aulas</strong>,
-            <strong>gestão de turmas e equipes</strong> e um
-            <strong>portal gamificado</strong>, num só lugar, feito de professor
-            para professor.
+            Quizzes ao vivo, ranking e um portal onde <strong>a turma toda
+            participa</strong>. Engaje seus alunos, gerencie equipes e mantenha a
+            competição saudável — do primeiro toque ao Hall da Fama.
           </p>
           <div class="hero__chips">
-            <span><app-icon name="calendar" [size]="15" /> Agenda inteligente</span>
-            <span><app-icon name="book" [size]="15" /> Plano de aula</span>
-            <span><app-icon name="users" [size]="15" /> Turmas &amp; equipes</span>
-            <span><app-icon name="trophy" [size]="15" /> Portal do aluno</span>
+            <span><app-icon name="game" [size]="15" /> Quiz ao vivo</span>
+            <span><app-icon name="lock" [size]="15" /> Entrar por PIN</span>
+            <span><app-icon name="medal" [size]="15" /> Ranking &amp; XP</span>
+            <span><app-icon name="users" [size]="15" /> Equipes</span>
           </div>
           <div class="hero__cta">
-            <a class="btn-glow" routerLink="/cadastro">Começar grátis</a>
+            <a class="btn-glow" routerLink="/cadastro">Comece grátis agora</a>
             <a class="btn-hero-sec" href="#como">Ver como funciona</a>
           </div>
           <p class="hero__reforco">Sem cartão de crédito · Grátis para começar</p>
         </div>
 
-        <!-- Mockup flutuante do Tichr recalculando datas -->
-        <div class="mockup" aria-hidden="true">
-          <div class="mockup__bar"><span></span><span></span><span></span></div>
-          <div class="mockup__row"><span>Aula 03</span><b>16 mar</b></div>
-          <div class="mockup__row mockup__row--alert">
-            <app-icon name="alert" [size]="14" /> imprevisto
+        <!-- Mockup de celular com a tela do Tichr Qlick (CSS puro) -->
+        <div class="phone" aria-hidden="true">
+          <div class="phone__screen">
+            <span class="phone__tag"><app-icon name="game" [size]="13" /> Tichr Qlick</span>
+            <p class="phone__q">Qual a capital do Brasil?</p>
+            <div class="phone__opts">
+              <span class="opt opt--a">A · Rio</span>
+              <span class="opt opt--b">B · Brasília</span>
+              <span class="opt opt--c">C · São Paulo</span>
+              <span class="opt opt--d">D · Salvador</span>
+            </div>
+            <div class="phone__foot">
+              <span class="phone__timer"></span>
+              <span class="phone__live">● ao vivo</span>
+            </div>
           </div>
-          <div class="mockup__row mockup__row--moved"><span>Aula 03</span><b>23 mar</b></div>
-          <div class="mockup__row mockup__row--moved"><span>Aula 04</span><b>30 mar</b></div>
         </div>
       </div>
     </section>
 
-    <!-- ===== Problema + Agitação (PAS) ===== -->
-    <section class="problema" appReveal>
-      <div class="container">
-        <h2>Feriado, reunião, conselho de classe…</h2>
-        <p class="problema__lead">
-          E lá vai você remexer a grade inteira à mão: reposicionar cada aula,
-          recalcular quando o curso termina, avisar os alunos. Planejamento numa
-          planilha, chamada num caderno, notas em outro lugar. É trabalho demais
-          para <em>ainda não ter dado aula nenhuma</em>.
-        </p>
-      </div>
-    </section>
-
-    <!-- ===== Como funciona (3 passos) + demo ===== -->
-    <section id="como" class="como" appReveal>
-      <div class="container">
-        <h2>Como funciona</h2>
-        <p class="como__lead">Em 3 passos, do caos ao controle.</p>
-        <div class="passos">
-          @for (p of passos; track p.n) {
-            <article class="passo">
-              <span class="passo__n">{{ p.n }}</span>
-              <h3>{{ p.titulo }}</h3>
-              <p>{{ p.texto }}</p>
-            </article>
-          }
-        </div>
-
-        <div class="demo-wrap">
-          <p class="demo-wrap__tit">
-            Veja o deslizamento acontecer <app-icon name="chevron-down" [size]="16" />
-          </p>
-          <div class="demo">
-            @for (aula of aulas(); track aula.numero) {
-              @if (aula.numero === 3 && imprevisto()) {
-                <div class="excecao">
-                  <app-icon name="alert" [size]="16" /> Imprevisto: Conselho de classe
-                </div>
-              }
-              <div class="aula" [class.aula--shift]="imprevisto() && aula.numero >= 3">
-                <span class="aula__n">Aula {{ aula.numero }}</span>
-                <span class="aula__d">{{ aula.data }}</span>
+    <!-- ===== Seção A — Tichr Qlick (o grande diferencial) ===== -->
+    <section id="como" class="feature" appReveal>
+      <div class="feature__inner container">
+        <div class="feature__media">
+          <div class="qlick-flow">
+            <div class="qk qk--prof">
+              <span class="qk__lbl"><app-icon name="user" [size]="13" /> professor</span>
+              <p class="qk__q">Qual a capital do Brasil?</p>
+              <span class="qk__count">28 alunos respondendo…</span>
+            </div>
+            <div class="qk qk--aluno">
+              <span class="qk__lbl"><app-icon name="user" [size]="13" /> aluno</span>
+              <div class="qk__opts">
+                <span class="qk__opt qk__opt--a">A</span>
+                <span class="qk__opt qk__opt--b">B</span>
+                <span class="qk__opt qk__opt--c">C</span>
+                <span class="qk__opt qk__opt--d">D</span>
               </div>
-            }
+            </div>
           </div>
-          <button class="btn-primary demo__btn" type="button" (click)="toggle()">
-            {{ imprevisto() ? 'Resetar demonstração' : 'Surgiu um imprevisto!' }}
-          </button>
+        </div>
+        <div class="feature__copy">
+          <span class="feature__eyebrow"><app-icon name="game" [size]="15" /> Tichr Qlick</span>
+          <h2>Quizzes ao vivo, a sala toda participando</h2>
+          <p>
+            Crie perguntas e rode uma rodada ao vivo: cada aluno responde pelo
+            celular em botões coloridos, o placar sobe na hora e a turma vibra
+            junto. Interatividade de verdade, sem instalar nada.
+          </p>
+          <a class="feature__cta btn-primary" routerLink="/cadastro">Comece grátis agora</a>
         </div>
       </div>
     </section>
 
-    <!-- ===== O ecossistema (a agenda é só a ponta) ===== -->
-    <section id="ecossistema" class="eco" appReveal>
-      <div class="container">
-        <div class="eco__intro">
-          <span class="eco__eyebrow">A agenda é só a ponta do iceberg</span>
-          <h2>Uma plataforma inteira sob a superfície</h2>
-          <p class="eco__lead">
-            O que te traz é a agenda que se resolve sozinha. O que te faz ficar é
-            tudo o que vem por baixo dela.
+    <!-- ===== Seção B — Acesso Frictionless (Smart PIN) ===== -->
+    <section class="feature feature--invertido feature--alt" appReveal>
+      <div class="feature__inner container">
+        <div class="feature__media">
+          <div class="pin-flow">
+            <div class="pin-card">
+              <span class="pin-card__lbl">Sala</span>
+              <div class="pin-boxes"><span>1</span><span>2</span></div>
+            </div>
+            <span class="pin-conn"></span>
+            <div class="pin-card pin-card--aluno">
+              <span class="pin-card__lbl">Aluno</span>
+              <div class="pin-boxes"><span>0</span><span>5</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="feature__copy">
+          <span class="feature__eyebrow"><app-icon name="lock" [size]="15" /> Acesso sem barreiras</span>
+          <h2>O aluno entra em 2 dígitos. Zero conta.</h2>
+          <p>
+            Sem e-mails, sem senhas esquecidas, sem perder os primeiros minutos da
+            aula. O aluno digita o <strong>Smart PIN</strong> da sala e o dele —
+            dois dígitos cada. O acesso mais rápido do mercado.
           </p>
         </div>
-
-        <div class="pilares">
-          @for (p of pilares; track p.titulo) {
-            <article class="pilar">
-              <span class="pilar__icon"><app-icon [name]="p.icone" [size]="28" /></span>
-              <div>
-                <h3>{{ p.titulo }}</h3>
-                <p>{{ p.texto }}</p>
-              </div>
-            </article>
-          }
-        </div>
       </div>
     </section>
 
-    <!-- ===== Demos interativas: ranking + conexão ===== -->
-    <section id="experimente" class="demos" appReveal>
-      <div class="container">
-        <h2>Toque e veja funcionando</h2>
-        <p class="demos__lead">A gamificação e o acesso do aluno, ao vivo.</p>
-        <div class="demos__grid">
-          <!-- Ranking ao vivo -->
-          <article class="democ">
-            <h3>Ranking da turma</h3>
+    <!-- ===== Seção C — Ranqueamento e Gamificação ===== -->
+    <section class="feature" appReveal>
+      <div class="feature__inner container">
+        <div class="feature__media">
+          <article class="demo-card">
+            <h3 class="demo-card__tit">Ranking da turma</h3>
             <ul class="rank">
               @for (a of alunosRank(); track a.id) {
                 <li class="rank__row" [class.rank__row--eu]="a.id === 'duda'">
@@ -177,59 +165,116 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
                 </li>
               }
             </ul>
-            <button class="btn-primary democ__btn" type="button" (click)="recompensar()">
+            <button class="btn-primary demo-card__btn" type="button" (click)="recompensar()">
               {{ recompensado() ? 'Resetar demonstração' : 'Recompensar Duda (+190)' }}
             </button>
           </article>
-
-          <!-- Conexão aluno e professor -->
-          <article class="democ">
-            <h3>Conexão aluno e professor</h3>
-            <div class="conx">
-              <div class="conx__node">
-                <span class="conx__av"><app-icon name="user" [size]="20" /></span>
-                <span class="conx__lbl">professor</span>
-                <strong>&#64;prof.marina</strong>
-              </div>
-              <div class="conx__link" [class.conx__link--on]="conectado()">
-                <span class="conx__dot"></span>
-              </div>
-              <div class="conx__node">
-                <span class="conx__av conx__av--aluno"><app-icon name="user" [size]="20" /></span>
-                <span class="conx__lbl">aluno</span>
-                <strong>Duda</strong>
-              </div>
-            </div>
-
-            @if (conectado()) {
-              <div class="conx__portal">
-                <span class="conx__ptit">Portal da Duda · Nível Ouro</span>
-                <div class="conx__xp"><span></span></div>
-                <span class="conx__meta">410 pts · vê a agenda, o plano e o ranking</span>
-              </div>
-            } @else {
-              <p class="conx__hint">
-                Sem e-mail: busca o &#64;professor, escolhe a turma e entra pelo PIN.
-              </p>
-            }
-
-            <button class="btn-primary democ__btn" type="button" (click)="conectar()">
-              {{ conectado() ? 'Desconectar' : 'Conectar aluno' }}
-            </button>
-          </article>
+        </div>
+        <div class="feature__copy">
+          <span class="feature__eyebrow"><app-icon name="medal" [size]="15" /> Ranking &amp; Hall da Fama</span>
+          <h2>O engajamento não morre quando o sinal toca</h2>
+          <p>
+            Pódios animados, acúmulo de XP e um histórico permanente para celebrar
+            os melhores alunos. Ao encerrar a turma, o ranking final vira um mural
+            público no Hall da Fama. Toque em "Recompensar" e veja a Duda subir.
+          </p>
         </div>
       </div>
     </section>
 
-    <!-- ===== Prova / Garantias (risk reversal) ===== -->
-    <section class="prova" appReveal>
-      <div class="container prova__grid">
-        @for (g of garantias; track g.titulo) {
-          <div class="garantia">
-            <strong>{{ g.titulo }}</strong>
-            <span>{{ g.texto }}</span>
+    <!-- ===== Seção D — Equipes e Papéis (roleplay) ===== -->
+    <section class="feature feature--invertido feature--alt" appReveal>
+      <div class="feature__inner container">
+        <div class="feature__media">
+          <div class="squad-card">
+            <span class="squad-card__tit"><app-icon name="users" [size]="15" /> Esquadrão Alfa</span>
+            <ul class="squad-card__list">
+              <li>
+                <app-avatar nome="Ana Souza" [size]="36" />
+                <span class="mchip"><strong>Ana</strong><small>Líder</small></span>
+              </li>
+              <li>
+                <app-avatar nome="Bruno Lima" [size]="36" />
+                <span class="mchip"><strong>Bruno</strong><small>Relator</small></span>
+              </li>
+              <li>
+                <app-avatar nome="Duda Reis" [size]="36" />
+                <span class="mchip"><strong>Duda</strong><small>Pesquisa</small></span>
+              </li>
+            </ul>
           </div>
-        }
+        </div>
+        <div class="feature__copy">
+          <span class="feature__eyebrow"><app-icon name="grip" [size]="15" /> Equipes &amp; papéis</span>
+          <h2>Organize a turma em esquadrões</h2>
+          <p>
+            Monte equipes arrastando alunos e atribua papéis específicos —
+            líder, relator, pesquisa. Facilite trabalhos em grupo e a gestão
+            comportamental, com cada aluno sabendo sua responsabilidade.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Seção E — Planos de Aula ===== -->
+    <section class="feature" appReveal>
+      <div class="feature__inner container">
+        <div class="feature__media">
+          <div class="plan-card">
+            <span class="plan-card__tit"><app-icon name="book" [size]="14" /> Matemática · Unidade 2</span>
+            <ol class="plan-card__list">
+              <li class="is-done"><app-icon name="check" [size]="14" /> Frações</li>
+              <li class="is-done"><app-icon name="check" [size]="14" /> Números decimais</li>
+              <li class="is-now"><span class="plan-card__dot"></span> Porcentagem <em>hoje</em></li>
+              <li class="is-next"><span class="plan-card__dot"></span> Razão e proporção</li>
+            </ol>
+          </div>
+        </div>
+        <div class="feature__copy">
+          <span class="feature__eyebrow"><app-icon name="book" [size]="15" /> Plano de aula</span>
+          <h2>Todo o seu material, organizado num só lugar</h2>
+          <p>
+            Centralize pautas, tópicos e o andamento do curso. O Qlick é a
+            diversão; o Plano de Aula é a sua fundação estruturada — e os tópicos
+            acompanham a grade mesmo quando as aulas deslizam.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Seção F — Agenda Dinâmica (o apoio) ===== -->
+    <section class="feature feature--invertido feature--alt" appReveal>
+      <div class="feature__inner container">
+        <div class="feature__media">
+          <div class="demo-card">
+            <h3 class="demo-card__tit">Sua agenda</h3>
+            <div class="demo">
+              @for (aula of aulas(); track aula.numero) {
+                @if (aula.numero === 3 && imprevisto()) {
+                  <div class="excecao">
+                    <app-icon name="alert" [size]="16" /> Imprevisto: Conselho de classe
+                  </div>
+                }
+                <div class="aula" [class.aula--shift]="imprevisto() && aula.numero >= 3">
+                  <span class="aula__n">Aula {{ aula.numero }}</span>
+                  <span class="aula__d">{{ aula.data }}</span>
+                </div>
+              }
+            </div>
+            <button class="btn-primary demo-card__btn" type="button" (click)="toggle()">
+              {{ imprevisto() ? 'Resetar demonstração' : 'Surgiu um imprevisto!' }}
+            </button>
+          </div>
+        </div>
+        <div class="feature__copy">
+          <span class="feature__eyebrow"><app-icon name="calendar" [size]="15" /> Agenda dinâmica</span>
+          <h2>A rotina que se readapta sozinha</h2>
+          <p>
+            A agenda é o apoio silencioso de tudo isso. Um feriado ou uma reunião
+            e as aulas deslizam automaticamente, recalculando o fim do curso — sem
+            você remexer a grade à mão. Toque e veja acontecer.
+          </p>
+        </div>
       </div>
     </section>
 
@@ -377,32 +422,86 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
     .hero__login { margin: 0.5rem 0 0; font-size: 0.95rem; color: rgba(226, 232, 240, 0.75); }
     .hero__login a { color: #fff; font-weight: 600; text-decoration: underline; }
 
-    .mockup { justify-self: center; width: min(320px, 100%); padding: 1rem; border-radius: 16px; background: rgba(15, 23, 42, 0.55); border: 1px solid rgba(148, 163, 184, 0.25); box-shadow: 0 24px 60px rgba(2, 6, 23, 0.5); animation: float 6s ease-in-out infinite; }
+    /* Mockup de celular (Tichr Qlick) */
+    .phone { justify-self: center; width: min(300px, 100%); padding: 12px; border-radius: 34px; background: #0b1120; border: 1px solid rgba(148, 163, 184, 0.3); box-shadow: 0 24px 60px rgba(2, 6, 23, 0.55); animation: float 6s ease-in-out infinite; }
     @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
-    @media (prefers-reduced-motion: reduce) { .mockup { animation: none; } }
-    .mockup__bar { display: flex; gap: 0.4rem; margin-bottom: 0.9rem; }
-    .mockup__bar span { width: 10px; height: 10px; border-radius: 50%; background: rgba(148, 163, 184, 0.5); }
-    .mockup__row { display: flex; justify-content: space-between; padding: 0.7rem 0.9rem; margin-top: 0.5rem; border-radius: 10px; background: rgba(148, 163, 184, 0.12); font-size: 0.95rem; color: #e2e8f0; }
-    .mockup__row b { font-variant-numeric: tabular-nums; }
-    .mockup__row--alert { justify-content: center; align-items: center; gap: 0.4rem; color: #fca5a5; background: rgba(239, 68, 68, 0.15); font-weight: 600; }
-    .mockup__row--moved { background: rgba(59, 130, 246, 0.22); color: #bfdbfe; }
+    @media (prefers-reduced-motion: reduce) { .phone { animation: none; } }
+    .phone__screen { border-radius: 24px; background: linear-gradient(160deg, #111827, #1e293b); padding: 1.25rem 1.1rem 1.1rem; }
+    .phone__tag { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.04em; color: #c4b5fd; }
+    .phone__q { margin: 0.75rem 0 1rem; font-size: 1.1rem; font-weight: 700; color: #f8fafc; line-height: 1.25; }
+    .phone__opts { display: grid; gap: 0.55rem; }
+    .opt { padding: 0.7rem 0.85rem; border-radius: 12px; font-weight: 700; font-size: 0.9rem; color: #fff; }
+    .opt--a { background: #ef4444; }
+    .opt--b { background: #3b82f6; box-shadow: 0 0 0 2px #fff, 0 8px 20px rgba(59, 130, 246, 0.5); transform: scale(1.03); }
+    .opt--c { background: #f59e0b; }
+    .opt--d { background: #22c55e; }
+    .phone__foot { display: flex; align-items: center; justify-content: space-between; margin-top: 1rem; }
+    .phone__timer { flex: 1; height: 6px; border-radius: 999px; margin-right: 0.75rem; background: linear-gradient(90deg, #a78bfa 65%, rgba(148,163,184,0.25) 65%); }
+    .phone__live { font-size: 0.72rem; font-weight: 700; color: #f87171; }
 
-    /* ===== Problema ===== */
-    .problema { padding: 4rem 0 3rem; text-align: center; }
-    .problema__lead { max-width: 42rem; margin: 0 auto; color: var(--text-muted); font-size: 1.1rem; }
+    /* ===== Padrão de seção (desfile de features) ===== */
+    .feature { padding: 4.5rem 0; }
+    .feature--alt { background: var(--surface-alt); }
+    .feature__inner { display: grid; grid-template-columns: 1fr; gap: 2rem; align-items: center; }
+    @media (min-width: 860px) {
+      .feature__inner { grid-template-columns: 1fr 1fr; gap: 3.5rem; }
+      .feature--invertido .feature__media { order: 2; }
+    }
+    .feature__eyebrow { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--primary); margin-bottom: 0.6rem; }
+    .feature__copy h2 { margin: 0 0 0.75rem; }
+    .feature__copy p { margin: 0; color: var(--text-muted); font-size: 1.08rem; line-height: 1.6; }
+    .feature__cta { display: inline-flex; margin-top: 1.5rem; text-decoration: none; }
+    .feature__media { display: flex; justify-content: center; }
 
-    /* ===== Como funciona ===== */
-    .como { padding: 3rem 0 4.5rem; text-align: center; background: var(--surface-alt); }
-    .como__lead { max-width: 34rem; margin: 0 auto 2.5rem; color: var(--text-muted); }
-    .passos { display: grid; grid-template-columns: 1fr; gap: 1.25rem; text-align: left; }
-    @media (min-width: 720px) { .passos { grid-template-columns: repeat(3, 1fr); } }
-    .passo { padding: 1.5rem; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
-    .passo__n { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 999px; font-weight: 800; color: var(--primary-contrast); background: var(--primary); }
-    .passo h3 { margin: 0.75rem 0 0.4rem; font-size: 1.1rem; }
-    .passo p { margin: 0; color: var(--text-muted); font-size: 0.95rem; }
-    .demo-wrap { margin-top: 2.5rem; }
-    .demo-wrap__tit { display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 700; margin: 0 0 0.75rem; }
-    .demo-wrap__tit app-icon { color: var(--primary); }
+    /* Seção A — fluxo do Qlick */
+    .qlick-flow { display: grid; gap: 1rem; width: min(360px, 100%); }
+    .qk { border: 1px solid var(--border); border-radius: 16px; background: var(--surface); padding: 1.1rem 1.2rem; box-shadow: 4px 4px 0 color-mix(in srgb, var(--primary) 18%, transparent); }
+    .qk__lbl { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 800; color: var(--text-muted); }
+    .qk__q { margin: 0.5rem 0 0.4rem; font-size: 1.05rem; font-weight: 700; }
+    .qk__count { font-size: 0.82rem; color: var(--primary); font-weight: 600; }
+    .qk__opts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-top: 0.6rem; }
+    .qk__opt { display: flex; align-items: center; justify-content: center; height: 46px; border-radius: 12px; font-weight: 800; color: #fff; }
+    .qk__opt--a { background: #ef4444; }
+    .qk__opt--b { background: #3b82f6; }
+    .qk__opt--c { background: #f59e0b; }
+    .qk__opt--d { background: #22c55e; }
+
+    /* Seção B — Smart PIN */
+    .pin-flow { display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
+    .pin-card { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; padding: 1.1rem 1rem; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: 4px 4px 0 rgba(15, 23, 42, 0.08); }
+    .pin-card__lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 800; color: var(--text-muted); }
+    .pin-boxes { display: flex; gap: 0.4rem; }
+    .pin-boxes span { display: flex; align-items: center; justify-content: center; width: 40px; height: 52px; border-radius: 10px; font-size: 1.6rem; font-weight: 800; color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent); }
+    .pin-card--aluno .pin-boxes span { color: var(--success, #16a34a); background: color-mix(in srgb, var(--success, #16a34a) 12%, var(--surface)); border-color: color-mix(in srgb, var(--success, #16a34a) 30%, transparent); }
+    .pin-conn { width: 34px; height: 3px; border-radius: 999px; background: repeating-linear-gradient(90deg, var(--primary) 0 7px, transparent 7px 12px); }
+
+    /* Cartão de demo (ranking/deslizamento) dentro das seções */
+    .demo-card { width: min(380px, 100%); padding: 1.4rem; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: 6px 6px 0 color-mix(in srgb, var(--primary) 12%, transparent); }
+    .demo-card__tit { margin: 0 0 1rem; font-size: 1.1rem; }
+    .demo-card__btn { margin-top: 1.25rem; cursor: pointer; }
+
+    /* Seção D — card flutuante de equipe (flat: sombra dura branca) */
+    .squad-card { width: min(320px, 100%); padding: 1.25rem; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: 8px 8px 0 var(--surface-alt), 8px 8px 0 1px var(--border); }
+    .squad-card__tit { display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 800; color: var(--primary); margin-bottom: 0.9rem; }
+    .squad-card__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+    .squad-card__list li { display: flex; align-items: center; gap: 0.7rem; padding: 0.4rem; border-radius: 12px; background: var(--surface-alt); }
+    .mchip { display: flex; flex-direction: column; line-height: 1.15; }
+    .mchip strong { font-size: 0.95rem; }
+    .mchip small { font-size: 0.75rem; color: var(--primary); font-weight: 700; }
+
+    /* Seção E — pauta do plano de aula */
+    .plan-card { width: min(340px, 100%); padding: 1.25rem; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: 6px 6px 0 color-mix(in srgb, var(--primary) 12%, transparent); }
+    .plan-card__tit { display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 800; color: var(--primary); margin-bottom: 0.9rem; }
+    .plan-card__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+    .plan-card__list li { display: flex; align-items: center; gap: 0.55rem; padding: 0.6rem 0.75rem; border-radius: 10px; background: var(--surface-alt); font-size: 0.95rem; font-weight: 600; }
+    .plan-card__list .is-done { color: var(--text-muted); }
+    .plan-card__list .is-done app-icon { color: var(--success, #16a34a); }
+    .plan-card__list .is-now { background: color-mix(in srgb, var(--primary) 12%, transparent); color: var(--primary); }
+    .plan-card__list .is-now em { margin-left: auto; font-style: normal; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .plan-card__dot { width: 9px; height: 9px; border-radius: 999px; background: currentColor; }
+    .plan-card__list .is-next { color: var(--text-muted); }
+
+    /* Demo de deslizamento da agenda (Seção F) */
     .demo { max-width: 380px; margin: 0 auto 1.25rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: 0.5rem; text-align: left; }
     .aula { display: flex; align-items: center; justify-content: space-between; padding: 0.8rem 0.9rem; border-radius: var(--radius); transition: background-color 0.45s ease, transform 0.45s ease; }
     .aula + .aula { margin-top: 0.25rem; }
@@ -410,31 +509,7 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
     .aula__n { font-weight: 600; }
     .aula__d { color: var(--text-muted); font-variant-numeric: tabular-nums; }
     .excecao { display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; padding: 0.65rem 0.9rem; font-weight: 600; color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); border-radius: var(--radius); }
-    .demo__btn { margin: 0 auto; cursor: pointer; font-size: 1rem; padding: 0.75rem 1.5rem; }
-
-    /* ===== Ecossistema ===== */
-    .eco { padding: 4.5rem 0; }
-    .eco__intro { text-align: center; }
-    .eco__eyebrow { display: inline-block; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--primary); margin-bottom: 0.5rem; }
-    .eco__lead { max-width: 36rem; margin: 0 auto 2.5rem; color: var(--text-muted); }
-    .pilares { display: grid; grid-template-columns: 1fr; gap: 1rem; }
-    @media (min-width: 720px) { .pilares { grid-template-columns: 1fr 1fr; } }
-    .pilar { display: flex; gap: 1rem; padding: 1.5rem; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); transition: transform 0.2s ease, border-color 0.2s ease; }
-    .pilar:hover { transform: translateY(-3px); border-color: var(--primary); }
-    .pilar__icon { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 14px; color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); }
-    .pilar h3 { margin: 0 0 0.4rem; font-size: 1.15rem; }
-    .pilar p { margin: 0; color: var(--text-muted); font-size: 0.95rem; }
-
-    /* ===== Demos interativas ===== */
-    .demos { padding: 4.5rem 0; background: var(--surface-alt); text-align: center; }
-    .demos__lead { max-width: 34rem; margin: 0 auto 2.5rem; color: var(--text-muted); }
-    .demos__grid { display: grid; grid-template-columns: 1fr; gap: 1.25rem; text-align: left; }
-    @media (min-width: 800px) { .demos__grid { grid-template-columns: 1fr 1fr; } }
-    .democ { display: flex; flex-direction: column; padding: 1.5rem; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
-    .democ h3 { margin: 0 0 1rem; font-size: 1.15rem; }
-    .democ__btn { margin-top: 1.25rem; align-self: flex-start; cursor: pointer; }
-
-    /* Ranking */
+    /* Ranking da turma (Seção C) */
     .rank { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
     .rank__row { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.5rem; border-radius: var(--radius); transition: background-color 0.4s ease; }
     .rank__row--eu { background: color-mix(in srgb, var(--primary) 10%, transparent); }
@@ -446,33 +521,6 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
     .rank__bar { flex: 1; height: 8px; border-radius: 999px; background: var(--surface-alt); overflow: hidden; }
     .rank__bar span { display: block; height: 100%; border-radius: 999px; background: var(--primary); transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
     .rank__xp { flex: 0 0 auto; font-weight: 700; font-size: 0.82rem; font-variant-numeric: tabular-nums; color: var(--primary); min-width: 2.5rem; text-align: right; }
-
-    /* Conexão */
-    .conx { display: flex; align-items: center; gap: 0.5rem; }
-    .conx__node { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.15rem; text-align: center; }
-    .conx__av { display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 999px; color: var(--primary); background: color-mix(in srgb, var(--primary) 14%, transparent); }
-    .conx__av--aluno { color: var(--success); background: color-mix(in srgb, var(--success) 16%, transparent); }
-    .conx__lbl { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700; }
-    .conx__node strong { font-size: 0.9rem; font-variant-numeric: tabular-nums; }
-    .conx__link { flex: 0 0 56px; height: 2px; position: relative; background: repeating-linear-gradient(90deg, var(--border) 0 6px, transparent 6px 12px); }
-    .conx__link--on { background: var(--primary); }
-    .conx__dot { position: absolute; top: 50%; left: 0; width: 8px; height: 8px; border-radius: 999px; background: var(--primary); transform: translate(-2px, -50%); opacity: 0; transition: left 0.6s ease, opacity 0.3s ease; }
-    .conx__link--on .conx__dot { left: 100%; opacity: 1; }
-    @media (prefers-reduced-motion: reduce) { .conx__dot { transition: none; } }
-    .conx__hint { margin: 1rem 0 0; color: var(--text-muted); font-size: 0.9rem; }
-    .conx__portal { margin-top: 1rem; padding: 0.8rem 0.9rem; border-radius: var(--radius); background: color-mix(in srgb, var(--success) 8%, transparent); border: 1px solid color-mix(in srgb, var(--success) 30%, transparent); }
-    .conx__ptit { font-weight: 700; font-size: 0.9rem; }
-    .conx__xp { height: 10px; border-radius: 999px; background: var(--surface-alt); overflow: hidden; margin: 0.4rem 0; }
-    .conx__xp span { display: block; height: 100%; width: 82%; border-radius: 999px; background: linear-gradient(90deg, #3b82f6, #22c55e); }
-    .conx__meta { font-size: 0.82rem; color: var(--text-muted); }
-
-    /* ===== Prova / garantias ===== */
-    .prova { padding: 2.5rem 0; background: var(--surface-alt); }
-    .prova__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; text-align: center; }
-    @media (min-width: 720px) { .prova__grid { grid-template-columns: repeat(4, 1fr); } }
-    .garantia { display: flex; flex-direction: column; gap: 0.2rem; }
-    .garantia strong { font-size: 1.05rem; color: var(--primary); }
-    .garantia span { font-size: 0.85rem; color: var(--text-muted); }
 
     /* ===== Planos ===== */
     .planos { padding: 4.5rem 0 5rem; text-align: center; }
@@ -529,62 +577,6 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
 export class LandingPage {
   protected readonly theme = inject(ThemeService);
 
-  protected readonly passos: ReadonlyArray<{ n: number; titulo: string; texto: string }> = [
-    {
-      n: 1,
-      titulo: 'Descreva a turma',
-      texto: 'Dias da semana, modalidade e início. Nada de cadastrar aula por aula.',
-    },
-    {
-      n: 2,
-      titulo: 'O Tichr projeta e reorganiza',
-      texto: 'A grade nasce pronta e se recalcula sozinha a cada feriado, reunião ou férias.',
-    },
-    {
-      n: 3,
-      titulo: 'Planeje, gerencie e engaje',
-      texto: 'Plano de aula, turmas, equipes e portal do aluno: tudo conectado à mesma grade.',
-    },
-  ];
-
-  protected readonly pilares: ReadonlyArray<{
-    icone: IconName;
-    titulo: string;
-    texto: string;
-  }> = [
-    {
-      icone: 'calendar',
-      titulo: 'Agenda que se reorganiza sozinha',
-      texto:
-        'Grade fixa ou módulo fechado. Um imprevisto desliza a aula e recalcula o término do curso, sem retrabalho.',
-    },
-    {
-      icone: 'book',
-      titulo: 'Do plano macro ao tópico do dia',
-      texto:
-        'Escreva o syllabus da disciplina e arraste tópicos direto na grade. O tópico desliza junto com a aula quando ela se move.',
-    },
-    {
-      icone: 'users',
-      titulo: 'Sua turma, orquestrada',
-      texto:
-        'Lista de chamada, equipes montadas arrastando alunos, cargos por membro e sorteio de dinâmicas em segundos.',
-    },
-    {
-      icone: 'trophy',
-      titulo: 'Portal gamificado do aluno',
-      texto:
-        'Alunos entram por PIN, acompanham a grade, veem "o que já vimos / o que vem por aí" e sobem de nível com XP e ranking.',
-    },
-  ];
-
-  protected readonly garantias: ReadonlyArray<{ titulo: string; texto: string }> = [
-    { titulo: 'Grátis para começar', texto: 'Plano Estagiário sem custo' },
-    { titulo: 'Sem cartão', texto: 'Nada de pagamento para testar' },
-    { titulo: 'Aluno sem e-mail', texto: 'Acesso ao portal só com PIN' },
-    { titulo: 'De professor p/ professor', texto: 'Feito para a rotina real da sala' },
-  ];
-
   protected readonly faqs: ReadonlyArray<{ q: string; a: string }> = [
     {
       q: 'Preciso cadastrar cada aula na mão?',
@@ -636,12 +628,6 @@ export class LandingPage {
   }
   protected pctXp(xp: number): number {
     return Math.min(100, Math.round((xp / 460) * 100));
-  }
-
-  // Demo: conexão aluno e professor (portal sem e-mail).
-  protected readonly conectado = signal(false);
-  protected conectar(): void {
-    this.conectado.update((v) => !v);
   }
 
   protected abrirPlano(plano: Plano): void {

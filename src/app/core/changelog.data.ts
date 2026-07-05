@@ -18,6 +18,15 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.10.0',
+    data: '2026-07-05',
+    titulo: 'Nova Landing Page',
+    itens: [
+      { categoria: 'Melhoria', texto: 'Página inicial repaginada com foco em gamificação: o Tichr Qlick vira o destaque, com uma seção para cada vantagem (quiz ao vivo, acesso por PIN, ranking e Hall da Fama, equipes, plano de aula e agenda).' },
+      { categoria: 'Melhoria', texto: 'Layout que alterna imagem e texto no computador e empilha no celular, com mais respiro entre as seções e ilustrações leves (carrega rápido).' },
+    ],
+  },
+  {
     versao: 'v0.9.1',
     data: '2026-07-05',
     titulo: 'Ajustes do cadastro e do painel',
