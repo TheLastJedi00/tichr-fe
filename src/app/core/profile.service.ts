@@ -22,6 +22,18 @@ export class ProfileService {
   readonly profile = signal<Profile | null>(null);
   readonly nome = computed(() => this.profile()?.nomeExibicao ?? null);
 
+  /**
+   * Soft-block do onboarding: perfil considerado incompleto enquanto faltar
+   * nome, @username ou foto. Usado para destacar o card de conclusão no painel.
+   */
+  readonly perfilIncompleto = computed(() => {
+    const p = this.profile();
+    if (!p) return false;
+    return (
+      !p.nomeExibicao?.trim() || !p.username?.trim() || !p.avatarUrl?.trim()
+    );
+  });
+
   load(): Observable<Profile> {
     return this.http
       .get<Profile>(`${this.base}/profile`)

@@ -18,6 +18,7 @@ import { Card } from '../../ui/card/card';
 import { Icon } from '../../ui/icon/icon';
 import { IconButton } from '../../ui/icon-button/icon-button';
 import { Spinner } from '../../ui/spinner/spinner';
+import { OnboardingCard } from '../../ui/onboarding-card/onboarding-card';
 import { ExcecaoModal } from './excecao-modal';
 
 /**
@@ -28,7 +29,7 @@ import { ExcecaoModal } from './excecao-modal';
   selector: 'app-dashboard-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Card, Icon, IconButton, Spinner, ExcecaoModal],
+  imports: [RouterLink, Card, Icon, IconButton, Spinner, ExcecaoModal, OnboardingCard],
   template: `
     <header class="greeting">
       <h1>Olá, {{ saudacao }}{{ nome() ? ', ' + nome() : '' }}!</h1>
@@ -55,15 +56,11 @@ import { ExcecaoModal } from './excecao-modal';
     </nav>
 
     @if (mostrarOnboarding()) {
-      <app-card>
-        <div class="onboarding">
-          <h3>Que bom ter você por aqui! <app-icon name="wave" [size]="20" /></h3>
-          <p class="muted">
-            Para deixarmos a casa com a sua cara, que tal configurar seu perfil?
-          </p>
-          <a class="btn-primary" routerLink="/configuracoes">Completar meu perfil</a>
-        </div>
-      </app-card>
+      <app-onboarding-card
+        [faltaNome]="faltaNome()"
+        [faltaUsername]="faltaUsername()"
+        [faltaFoto]="faltaFoto()"
+      />
     }
 
     @if (loading()) {
@@ -289,7 +286,16 @@ export class DashboardPage {
   protected readonly nome = this.profileService.nome;
   protected readonly perfilCarregado = signal(false);
   protected readonly mostrarOnboarding = computed(
-    () => this.perfilCarregado() && !this.nome(),
+    () => this.perfilCarregado() && this.profileService.perfilIncompleto(),
+  );
+  protected readonly faltaNome = computed(
+    () => !this.profileService.profile()?.nomeExibicao?.trim(),
+  );
+  protected readonly faltaUsername = computed(
+    () => !this.profileService.profile()?.username?.trim(),
+  );
+  protected readonly faltaFoto = computed(
+    () => !this.profileService.profile()?.avatarUrl?.trim(),
   );
 
   /** Acesso rápido: espelha o menu lateral (mesma fonte), menos o próprio Dashboard. */
