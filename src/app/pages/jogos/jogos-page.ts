@@ -28,6 +28,17 @@ import { Icon } from '../../ui/icon/icon';
         <span class="jogo__cta">Conhecer →</span>
       </a>
 
+      <a class="jogo jogo--destaque jogo--wor" routerLink="/jogos/wor">
+        <span class="jogo__badge jogo__badge--pvp">PvP</span>
+        <span class="jogo__icon jogo__icon--wor"><app-icon name="castle" [size]="30" /></span>
+        <h2 class="jogo__nome">Tichr Wor</h2>
+        <p class="jogo__desc">
+          Guerra de castelos: equipes decifram palavras, atacam rivais e defendem
+          o HP da sua fortaleza. Sobrevivência épica, sem eliminação.
+        </p>
+        <span class="jogo__cta">Conhecer →</span>
+      </a>
+
       @for (j of emBreve; track j) {
         <app-card>
           <div class="soon">
@@ -55,6 +66,12 @@ import { Icon } from '../../ui/icon/icon';
     .jogo__nome { margin: 1rem 0 0.4rem; font-size: 1.3rem; font-weight: 800; }
     .jogo__desc { margin: 0 0 1rem; color: var(--text-muted); font-size: 0.95rem; }
     .jogo__cta { margin-top: auto; font-weight: 700; color: var(--primary); }
+    /* Tema medieval do Tichr Wor */
+    .jogo--wor { border-color: #b45309; }
+    .jogo--wor:hover { box-shadow: 0 16px 40px color-mix(in srgb, #b45309 24%, transparent); }
+    .jogo--wor .jogo__cta { color: #b45309; }
+    .jogo__icon--wor { color: #b45309; background: color-mix(in srgb, #b45309 14%, transparent); }
+    .jogo__badge--pvp { background: #b45309; }
     .soon { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; opacity: 0.7; }
     .soon__nome { font-weight: 700; }
     .soon__tag { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); background: var(--surface-alt); padding: 0.15rem 0.5rem; border-radius: 999px; }
