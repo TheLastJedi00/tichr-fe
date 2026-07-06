@@ -157,13 +157,15 @@ export const routes: Routes = [
       {
         path: 'jogos/qlick',
         loadComponent: () =>
-          import('./pages/jogos/qlick-intro-page').then((m) => m.QlickIntroPage),
+          import('./pages/jogos/qlick-home-page').then((m) => m.QlickHomePage),
       },
+      { path: 'jogos/qlick/meus', redirectTo: 'jogos/qlick', pathMatch: 'full' },
       {
         path: 'jogos/wor',
         loadComponent: () =>
-          import('./pages/jogos/wor-landing-page').then((m) => m.WorLandingPage),
+          import('./pages/jogos/wor-home-page').then((m) => m.WorHomePage),
       },
+      { path: 'jogos/wor/meus', redirectTo: 'jogos/wor', pathMatch: 'full' },
       {
         path: 'jogos/wor/novo',
         canActivate: [exigePlano('WOR')],
@@ -177,22 +179,10 @@ export const routes: Routes = [
           import('./pages/jogos/wor-studio-page').then((m) => m.WorStudioPage),
       },
       {
-        path: 'jogos/wor/meus',
-        canActivate: [exigePlano('WOR')],
-        loadComponent: () =>
-          import('./pages/jogos/wor-meus-page').then((m) => m.WorMeusPage),
-      },
-      {
         path: 'jogos/wor/partida/:id',
         canActivate: [exigePlano('WOR')],
         loadComponent: () =>
           import('./pages/jogos/wor-projetor-page').then((m) => m.WorProjetorPage),
-      },
-      {
-        path: 'jogos/qlick/meus',
-        canActivate: [exigePlano('QLICK')],
-        loadComponent: () =>
-          import('./pages/jogos/qlick-list-page').then((m) => m.QlickListPage),
       },
       {
         path: 'jogos/qlick/partida/:id',

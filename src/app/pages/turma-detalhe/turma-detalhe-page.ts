@@ -401,7 +401,7 @@ type Ordenacao = 'nome' | 'pontuacao';
               <button class="btn-outline ver-qlicks" type="button" (click)="addJogoAberto.set(true)">
                 Adicionar jogo
               </button>
-              <a class="btn-outline ver-qlicks" routerLink="/jogos/qlick/meus">
+              <a class="btn-outline ver-qlicks" routerLink="/jogos/qlick">
                 Gerenciar todos os Qlicks
               </a>
             </div>

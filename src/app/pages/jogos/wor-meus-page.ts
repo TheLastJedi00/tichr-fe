@@ -14,7 +14,7 @@ import { Spinner } from '../../ui/spinner/spinner';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, Icon, Spinner, Modal],
   template: `
-    <a class="voltar" routerLink="/jogos/wor">‹ Tichr Wor</a>
+    <a class="voltar" routerLink="/jogos">‹ Jogos</a>
     <header class="head">
       <h1>Minhas batalhas</h1>
       <a class="btn-primary novo" routerLink="/jogos/wor/novo">

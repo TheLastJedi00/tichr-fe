@@ -18,7 +18,7 @@ import { Icon } from '../../ui/icon/icon';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, Icon],
   template: `
-    <a class="voltar" routerLink="/jogos/wor/meus">‹ Minhas batalhas</a>
+    <a class="voltar" routerLink="/jogos/wor">‹ Minhas batalhas</a>
 
     @if (match(); as m) {
       <h1 class="title">{{ m.nome }}</h1>

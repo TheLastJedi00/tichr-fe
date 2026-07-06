@@ -348,7 +348,7 @@ export class WorStudioPage {
       ? this.api.atualizarJogo(this.id, payload)
       : this.api.criarJogo(payload);
     req.subscribe({
-      next: () => this.router.navigateByUrl('/jogos/wor/meus'),
+      next: () => this.router.navigateByUrl('/jogos/wor'),
       error: () => {
         this.erro.set('Não foi possível salvar. Tente novamente.');
         this.salvando.set(false);
