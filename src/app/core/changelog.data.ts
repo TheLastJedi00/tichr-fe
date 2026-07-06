@@ -18,6 +18,15 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.11.3',
+    data: '2026-07-06',
+    titulo: 'Tichr Wor: sala do professor e entrada dos alunos',
+    itens: [
+      { categoria: 'Correção', texto: 'No Tichr Wor, o botão "Rodar" agora abre corretamente a sala do professor (antes não acontecia nada na tela).' },
+      { categoria: 'Melhoria', texto: 'A sala de espera do professor no Tichr Wor ficou igual à do Tichr Qlick: o PIN da turma em destaque, uma indicação animada de que está aguardando os alunos entrarem, e o "Distribuir equipes" só libera quando há alunos suficientes na sala (com aviso de quantos faltam).' },
+    ],
+  },
+  {
     versao: 'v0.11.2',
     data: '2026-07-06',
     titulo: 'Ajustes do painel, turmas e jogos',
