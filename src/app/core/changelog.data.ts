@@ -18,6 +18,15 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.11.1',
+    data: '2026-07-06',
+    titulo: 'Tichr Wor no mesmo fluxo do Tichr Qlick',
+    itens: [
+      { categoria: 'Correção', texto: 'Ao criar um Tichr Wor você agora escolhe a disciplina, o tópico do plano de aula e as turmas do mesmo jeito que no Tichr Qlick — e a turma da partida é sugerida na hora de rodar.' },
+      { categoria: 'Melhoria', texto: 'Criar e iniciar batalhas do Tichr Wor passou a fazer parte do plano PhD, como os demais jogos ao vivo. A página de apresentação continua aberta para todos.' },
+    ],
+  },
+  {
     versao: 'v0.11.0',
     data: '2026-07-05',
     titulo: 'Tichr Wor',

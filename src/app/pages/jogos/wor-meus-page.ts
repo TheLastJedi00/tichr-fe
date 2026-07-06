@@ -31,10 +31,12 @@ import { Spinner } from '../../ui/spinner/spinner';
             <span class="card__ic"><app-icon name="castle" [size]="22" /></span>
             <div class="card__info">
               <strong>{{ j.nome }}</strong>
-              <span class="card__meta">{{ j.topico }} · {{ j.palavras.length }} palavra(s)</span>
+              <span class="card__meta">
+                @if (j.disciplina) { {{ j.disciplina }} · }{{ j.palavras.length }} palavra(s)
+              </span>
             </div>
             <div class="card__acoes">
-              <button class="btn-primary" type="button" (click)="abrirRodar(j)">Rodar</button>
+              <button class="btn-primary" type="button" [disabled]="criando()" (click)="rodar(j)">Rodar</button>
               <a class="btn-outline" [routerLink]="['/jogos/wor/editar', j.id]">Editar</a>
               <button class="btn-outline warn" type="button" (click)="remover(j)">Excluir</button>
             </div>
@@ -45,17 +47,20 @@ import { Spinner } from '../../ui/spinner/spinner';
       </ul>
     }
 
-    @if (rodando(); as j) {
-      <app-modal [open]="true" [title]="'Rodar: ' + j.nome" (close)="rodando.set(null)">
-        <p class="modal-sub">Escolha a turma para a batalha:</p>
+    @if (escolhaTurma(); as j) {
+      <app-modal [open]="true" [title]="'Rodar: ' + j.nome" (close)="criando() || escolhaTurma.set(null)">
+        <p class="modal-sub">Esta batalha está em várias turmas. Escolha para qual rodar:</p>
         <div class="turmas">
-          @for (t of turmasList(); track t.id) {
-            <button class="turma-btn" type="button" [disabled]="criando()" (click)="rodar(j, t)">
-              {{ t.nome }}
+          @for (id of turmasDaEscolha(); track id) {
+            <button class="turma-btn" type="button" [disabled]="criando()" (click)="escolher(id)">
+              {{ nomeTurma(id) }}
             </button>
-          } @empty {
-            <p class="vazio">Você ainda não tem turmas ativas.</p>
           }
+        </div>
+        <div modal-actions>
+          <button class="btn-outline" type="button" [disabled]="criando()" (click)="escolhaTurma.set(null)">
+            Cancelar
+          </button>
         </div>
       </app-modal>
     }
@@ -95,24 +100,50 @@ export class WorMeusPage {
 
   protected readonly jogos = signal<WorJogo[]>([]);
   protected readonly carregando = signal(true);
-  protected readonly rodando = signal<WorJogo | null>(null);
-  protected readonly turmasList = signal<Turma[]>([]);
   protected readonly criando = signal(false);
+  protected readonly turmasList = signal<Turma[]>([]);
+  /** Batalha aguardando a escolha de turma (quando tem várias atribuídas). */
+  protected readonly escolhaTurma = signal<WorJogo | null>(null);
 
   constructor() {
     this.carregar();
+    this.turmas.getTurmas().subscribe((t) => this.turmasList.set(t));
   }
 
-  protected abrirRodar(j: WorJogo): void {
-    this.rodando.set(j);
-    this.turmas.getTurmas().subscribe((ts) =>
-      this.turmasList.set(ts.filter((t) => !t.encerradaManualmente)),
-    );
+  /** IDs das turmas atribuídas à batalha (N:N + legado). */
+  private turmasDoJogo(j: WorJogo): string[] {
+    const ids = [...(j.turmaIds ?? [])];
+    if (j.turmaId && !ids.includes(j.turmaId)) ids.push(j.turmaId);
+    return ids;
   }
 
-  protected rodar(j: WorJogo, t: Turma): void {
+  protected nomeTurma(id: string): string {
+    return this.turmasList().find((t) => t.id === id)?.nome ?? 'Turma';
+  }
+
+  protected turmasDaEscolha(): string[] {
+    const j = this.escolhaTurma();
+    return j ? this.turmasDoJogo(j) : [];
+  }
+
+  /** Rodar: se a batalha tem várias turmas, pergunta "para qual turma?". */
+  protected rodar(j: WorJogo): void {
+    const turmas = this.turmasDoJogo(j);
+    if (turmas.length > 1) {
+      this.escolhaTurma.set(j);
+      return;
+    }
+    this.iniciarPartida(j.id, turmas[0]);
+  }
+
+  protected escolher(turmaId: string): void {
+    const j = this.escolhaTurma();
+    if (j) this.iniciarPartida(j.id, turmaId);
+  }
+
+  private iniciarPartida(jogoId: string, turmaId?: string): void {
     this.criando.set(true);
-    this.api.criarPartida(j.id, t.id).subscribe({
+    this.api.criarPartida(jogoId, turmaId).subscribe({
       next: (v) => this.router.navigate(['/jogos/wor/partida', v.match.id]),
       error: () => this.criando.set(false),
     });

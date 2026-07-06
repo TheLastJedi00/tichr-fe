@@ -1,16 +1,26 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
+import { planoAtendeMinimo } from '../../core/plano.util';
+import { ProfileService } from '../../core/profile.service';
 import { Icon } from '../../ui/icon/icon';
+import { Modal } from '../../ui/modal/modal';
 
 /**
  * Landing interna do Tichr Wor: "vende" a dinâmica ao professor antes do setup.
  * Mobile-first — tudo empilhado com gap; o grid de 3 colunas só abre no desktop.
+ * Descoberta aberta a todos; o CTA converte: PhD abre o setup, senão faz upsell.
  */
 @Component({
   selector: 'app-wor-landing-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon],
+  imports: [RouterLink, Icon, Modal],
   template: `
     <a class="voltar" routerLink="/jogos">‹ Jogos</a>
 
@@ -49,9 +59,24 @@ import { Icon } from '../../ui/icon/icon';
       </article>
     </section>
 
-    <a class="btn-forjar" routerLink="/jogos/wor/novo">
+    <button class="btn-forjar" type="button" (click)="forjar()">
       <app-icon name="castle" [size]="18" /> Forjar Nova Batalha
-    </a>
+    </button>
+
+    <app-modal
+      [open]="upsell()"
+      title="Tichr Wor é do plano PhD"
+      (close)="upsell.set(false)"
+    >
+      <p class="muted">
+        Criar e rodar batalhas ao vivo faz parte do plano <strong>PhD</strong>.
+        Faça upgrade para transformar a revisão da turma numa guerra épica.
+      </p>
+      <div modal-actions>
+        <button class="btn-outline" type="button" (click)="upsell.set(false)">Agora não</button>
+        <button class="btn-primary" type="button" (click)="irParaPlanos()">Fazer upgrade</button>
+      </div>
+    </app-modal>
   `,
   styles: `
     :host { display: block; }
@@ -69,14 +94,37 @@ import { Icon } from '../../ui/icon/icon';
     .passo p { margin: 0; color: var(--text-muted); font-size: 0.95rem; line-height: 1.55; }
     .btn-forjar {
       display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-      width: 100%; padding: 1rem; border-radius: 14px; text-decoration: none;
-      font-weight: 800; font-size: 1.1rem; color: #fff;
+      width: 100%; padding: 1rem; border: none; border-radius: 14px; cursor: pointer;
+      font: inherit; font-weight: 800; font-size: 1.1rem; color: #fff;
       background: linear-gradient(135deg, #b45309, #7c2d12);
       box-shadow: 0 10px 30px color-mix(in srgb, #b45309 40%, transparent);
       transition: transform 0.15s ease;
     }
     .btn-forjar:hover { transform: translateY(-2px); }
     .btn-forjar:active { transform: translateY(0); }
+    .muted { color: var(--text-muted); margin: 0; }
   `,
 })
-export class WorLandingPage {}
+export class WorLandingPage {
+  private readonly profileService = inject(ProfileService);
+  private readonly router = inject(Router);
+  protected readonly upsell = signal(false);
+
+  private readonly ehPhd = computed(() =>
+    planoAtendeMinimo(this.profileService.profile()?.planoAtual, 'PHD'),
+  );
+
+  /** CTA: PhD abre o setup; senão dispara o upsell (descoberta aberta a todos). */
+  protected forjar(): void {
+    if (this.ehPhd()) {
+      this.router.navigate(['/jogos/wor/novo']);
+    } else {
+      this.upsell.set(true);
+    }
+  }
+
+  protected irParaPlanos(): void {
+    this.upsell.set(false);
+    this.router.navigate(['/planos'], { queryParams: { recurso: 'WOR' } });
+  }
+}
