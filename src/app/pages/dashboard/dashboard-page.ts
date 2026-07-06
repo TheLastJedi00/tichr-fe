@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   computed,
   inject,
   signal,
@@ -8,7 +9,8 @@ import {
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { formatarData } from '../../core/date-format';
-import { dataPorExtenso, hojeISO, saudacaoPorHora } from '../../core/greeting';
+import { dataPorExtenso, saudacaoPorHora } from '../../core/greeting';
+import { statusVisual } from '../../core/status-sessao';
 import { CriarExcecaoPayload, Qlick, Sessao, Turma } from '../../core/models';
 import { linksPainel } from '../../core/nav-links';
 import { planoAtendeMinimo } from '../../core/plano.util';
@@ -70,10 +72,13 @@ import { ExcecaoModal } from './excecao-modal';
       </div>
     } @else {
       @if (proxima(); as p) {
-        <app-card title="Próxima aula">
+        <app-card [title]="emAndamento() ? 'Aula em andamento' : 'Próxima aula'">
           <div class="proxima">
             <div class="proxima__info">
-              <span class="proxima__data">{{ formatarData(p.data) }}</span>
+              <span class="proxima__data">
+                {{ formatarData(p.data) }}
+                @if (emAndamento()) { <span class="badge-live">Em andamento</span> }
+              </span>
               @if (proximaTurma(); as t) {
                 <span class="proxima__turma">
                   <span class="dot" [style.background]="t.cor || 'var(--primary)'"></span>
@@ -199,6 +204,19 @@ import { ExcecaoModal } from './excecao-modal';
       font-weight: 700;
       color: var(--primary);
     }
+    .badge-live {
+      display: inline-block;
+      vertical-align: middle;
+      margin-left: 0.5rem;
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: #fff;
+      background: var(--success, #16a34a);
+    }
     .proxima__turma {
       display: flex;
       align-items: center;
@@ -282,6 +300,8 @@ export class DashboardPage {
   private readonly profileService = inject(ProfileService);
 
   private readonly agora = new Date();
+  /** "Agora" reativo: atualiza a cada minuto p/ o status por horário reagir sozinho. */
+  private readonly relogio = signal(new Date());
   protected readonly saudacao = saudacaoPorHora(this.agora);
   protected readonly dataHoje = dataPorExtenso(this.agora);
   protected readonly nome = this.profileService.nome;
@@ -332,21 +352,46 @@ export class DashboardPage {
     return this.planos().get(t.disciplina) ?? null;
   });
 
-  /** Próxima aula AGENDADA a partir de hoje (a mais próxima). */
+  /**
+   * Aula em foco: a que está em andamento agora, ou a próxima agendada. Cruza a
+   * data da sessão com os horários da turma (`statusVisual`), então uma aula
+   * some do painel assim que o horário dela termina — não só quando o dia vira.
+   */
   protected readonly proxima = computed<Sessao | null>(() => {
-    const hoje = hojeISO(this.agora);
-    return (
-      this.sessoes()
-        .filter((s) => s.status === 'AGENDADA' && s.data >= hoje)
-        .sort((a, b) => a.data.localeCompare(b.data) || a.numero - b.numero)[0] ??
-      null
+    const agora = this.relogio();
+    const turmas = this.turmas();
+    const candidatas = this.sessoes()
+      .filter((s) => s.status === 'AGENDADA')
+      .map((s) => {
+        const t = turmas.get(s.turmaId);
+        return { s, st: statusVisual(s, t?.horaInicio, t?.horaFim, agora) };
+      })
+      .filter((c) => c.st === 'EM_ANDAMENTO' || c.st === 'AGENDADA');
+    // Em andamento primeiro; depois a agendada mais próxima.
+    candidatas.sort(
+      (a, b) =>
+        (a.st === 'EM_ANDAMENTO' ? 0 : 1) - (b.st === 'EM_ANDAMENTO' ? 0 : 1) ||
+        a.s.data.localeCompare(b.s.data) ||
+        a.s.numero - b.s.numero,
     );
+    return candidatas[0]?.s ?? null;
   });
 
   /** Turma da próxima aula (para exibir nome + cor). */
   protected readonly proximaTurma = computed<Turma | null>(() => {
     const p = this.proxima();
     return p ? (this.turmas().get(p.turmaId) ?? null) : null;
+  });
+
+  /** Verdadeiro quando a aula em foco está acontecendo agora (dentro do horário). */
+  protected readonly emAndamento = computed<boolean>(() => {
+    const p = this.proxima();
+    const t = this.proximaTurma();
+    return (
+      !!p &&
+      statusVisual(p, t?.horaInicio, t?.horaFim, this.relogio()) ===
+        'EM_ANDAMENTO'
+    );
   });
 
   /** Qlicks do professor (PhD) — para avisar se há um pronto na próxima turma. */
@@ -358,6 +403,11 @@ export class DashboardPage {
   });
 
   constructor() {
+    // "Agora" avança a cada minuto para que a aula em foco reaja ao relógio
+    // (vira "em andamento" e depois some) sem precisar recarregar a página.
+    const timer = setInterval(() => this.relogio.set(new Date()), 60_000);
+    inject(DestroyRef).onDestroy(() => clearInterval(timer));
+
     // Paralelismo: perfil+turmas (BFF /home) e sessões da semana disparam juntos
     // via forkJoin — o tempo de tela é o da requisição mais lenta, sem cascata.
     this.loading.set(true);

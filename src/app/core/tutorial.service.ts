@@ -37,8 +37,8 @@ export class TutorialService {
     },
     jogos: {
       titulo: 'Jogos',
-      texto: 'Aqui ficam seus Tichr Qlicks — quizzes ao vivo para engajar a turma.',
-      passo: 'Clique em "Novo" para montar sua primeira rodada.',
+      texto: 'O ecossistema de jogos do Tichr para engajar a turma ao vivo — como o Tichr Qlick (quiz) e o Tichr Wor (guerra de castelos), com mais por vir.',
+      passo: 'Escolha um jogo para conhecer como ele funciona.',
     },
   };
 

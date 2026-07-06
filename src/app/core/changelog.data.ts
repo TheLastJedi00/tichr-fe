@@ -18,6 +18,16 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.11.2',
+    data: '2026-07-06',
+    titulo: 'Ajustes do painel, turmas e jogos',
+    itens: [
+      { categoria: 'Correção', texto: 'No painel, a aula em foco agora considera o horário, não só o dia: uma aula que já terminou some da tela e a que está acontecendo aparece marcada como "Em andamento".' },
+      { categoria: 'Correção', texto: 'Turma encerrada por ter acabado os dias de aula: a tela de edição agora explica que basta ajustar a data de início para hoje ou uma data futura para reabri-la.' },
+      { categoria: 'Correção', texto: 'A dica de primeiro acesso da área de Jogos ficou geral (fala do conjunto de jogos, como Tichr Qlick e Tichr Wor) em vez de mencionar só o Qlick.' },
+    ],
+  },
+  {
     versao: 'v0.11.1',
     data: '2026-07-06',
     titulo: 'Tichr Wor no mesmo fluxo do Tichr Qlick',

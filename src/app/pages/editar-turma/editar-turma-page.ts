@@ -28,6 +28,16 @@ import { TurmaForm } from '../turma-form/turma-form';
     @if (carregando()) {
       <div class="loading"><app-spinner [size]="32" /></div>
     } @else if (turma()) {
+      @if (encerradaPorFim()) {
+        <app-card title="Turma encerrada — como reabrir">
+          <p class="reabrir muted">
+            As aulas agendadas desta turma já terminaram, por isso ela aparece como
+            <strong>encerrada</strong>. Para reabri-la, ajuste a
+            <strong>data de início</strong> para hoje ou uma data futura e salve —
+            o Tichr reprojeta a grade e a turma volta a ficar ativa.
+          </p>
+        </app-card>
+      }
       <app-turma-form
         [initial]="turma()"
         submitLabel="Salvar alterações"
@@ -78,6 +88,8 @@ import { TurmaForm } from '../turma-form/turma-form';
     .voltar:hover { color: var(--primary); }
     .title { margin: 0 0 1rem; font-size: 1.5rem; font-weight: 700; }
     .loading { display: flex; justify-content: center; padding: 3rem 0; color: var(--primary); }
+    app-card + app-turma-form { display: block; margin-top: 1rem; }
+    .reabrir { margin: 0; line-height: 1.5; }
     .ferias-wrap { margin-top: 1rem; }
     .perigo-wrap { margin-top: 1rem; }
     .perigo { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
@@ -105,6 +117,15 @@ export class EditarTurmaPage {
   protected readonly ativa = computed(() => {
     const t = this.turma();
     return !!t && turmaContaComoAtiva(t);
+  });
+
+  /**
+   * Encerrada por fim das aulas (módulo cujo cronograma acabou), não por
+   * arquivamento manual. Nesse caso, mover a data de início reabre a turma.
+   */
+  protected readonly encerradaPorFim = computed(() => {
+    const t = this.turma();
+    return !!t && !this.ativa() && !t.encerradaManualmente;
   });
 
   constructor() {
