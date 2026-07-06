@@ -5,6 +5,7 @@ import { API_BASE_URL } from './api.config';
 import {
   CriarWorJogoPayload,
   WorJogo,
+  WorMatch,
   WorMatchView,
 } from './models';
 
@@ -42,8 +43,13 @@ export class WorApiService {
   }
 
   // --- Partida (professor / projetor) ---
-  criarPartida(jogoId: string, turmaId?: string): Observable<WorMatchView> {
-    return this.http.post<WorMatchView>(
+  /**
+   * Cria a partida e devolve o match (entidade crua, com `id`) — como o
+   * `criarPartida` do Qlick devolve a `Partida`. A tela do projetor lê o estado
+   * completo em tempo real; aqui só precisamos do id para navegar.
+   */
+  criarPartida(jogoId: string, turmaId?: string): Observable<WorMatch> {
+    return this.http.post<WorMatch>(
       `${this.base}/wor/jogos/${jogoId}/partida`,
       turmaId ? { turmaId } : {},
     );

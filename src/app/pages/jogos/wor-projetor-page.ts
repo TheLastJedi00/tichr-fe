@@ -6,6 +6,7 @@ import { WorApiService } from '../../core/wor-api.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { WorTeam } from '../../core/models';
 import { Icon } from '../../ui/icon/icon';
+import { Spinner } from '../../ui/spinner/spinner';
 
 /**
  * Tela do projetor (professor/orquestrador). Escuta a raiz + todas as equipes
@@ -16,7 +17,7 @@ import { Icon } from '../../ui/icon/icon';
   selector: 'app-wor-projetor-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon],
+  imports: [RouterLink, Icon, Spinner],
   template: `
     <a class="voltar" routerLink="/jogos/wor">‹ Minhas batalhas</a>
 
@@ -97,7 +98,7 @@ import { Icon } from '../../ui/icon/icon';
         </section>
       }
     } @else {
-      <p class="carregando">Carregando batalha…</p>
+      <div class="carregando"><app-spinner [size]="32" /></div>
     }
   `,
   styles: `
@@ -138,7 +139,7 @@ import { Icon } from '../../ui/icon/icon';
     .hpbar span { display: block; height: 100%; transition: width 0.4s ease; }
     .hp { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); }
     .fim { display: flex; align-items: center; gap: 0.5rem; padding: 1rem; border-radius: 12px; background: color-mix(in srgb, #f59e0b 14%, transparent); color: #b45309; font-weight: 800; justify-content: center; }
-    .carregando { color: var(--text-muted); }
+    .carregando { display: flex; justify-content: center; padding: 3rem 0; color: #b45309; }
   `,
 })
 export class WorProjetorPage {

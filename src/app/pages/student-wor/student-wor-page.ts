@@ -12,7 +12,9 @@ import { StudentAuthService } from '../../core/student-auth.service';
 import { WorApiService } from '../../core/wor-api.service';
 import { WorMatch, WorTeam } from '../../core/models';
 import { Icon } from '../../ui/icon/icon';
+import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { Modal } from '../../ui/modal/modal';
+import { Spinner } from '../../ui/spinner/spinner';
 
 const LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
@@ -24,10 +26,12 @@ const LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
   selector: 'app-student-wor-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, Modal],
+  imports: [Icon, Modal, LobbyLoader, Spinner],
   template: `
     <div class="wrap" [class.dano]="piscar()">
-      @if (!matchId()) {
+      @if (carregando()) {
+        <div class="loading"><app-spinner [size]="32" /></div>
+      } @else if (!matchId()) {
         <div class="vazio">
           <app-icon name="castle" [size]="40" />
           <p>Nenhuma batalha do Tichr Wor agora. Aguarde o professor iniciar.</p>
@@ -42,6 +46,7 @@ const LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
                 Entrar na batalha
               </button>
             } @else {
+              <app-lobby-loader />
               <p class="aguarde">Você está dentro! Aguardando o professor formar as equipes…</p>
             }
           </div>
@@ -154,6 +159,7 @@ const LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
   `,
   styles: `
     :host { display: block; }
+    .loading { display: flex; justify-content: center; padding: 3rem 0; color: #b45309; }
     .wrap { display: flex; flex-direction: column; gap: 1.25rem; padding: 0.25rem; transition: background-color 0.2s ease; }
     .wrap.dano { animation: flash 0.5s ease; }
     @keyframes flash { 0%, 100% { background: transparent; } 30% { background: color-mix(in srgb, var(--danger) 30%, transparent); } }
@@ -196,6 +202,7 @@ export class StudentWorPage {
 
   private readonly alunoId = this.studentAuth.aluno()?.id ?? '';
 
+  protected readonly carregando = signal(true);
   protected readonly matchId = signal<string | null>(null);
   protected readonly root = signal<WorMatch | null>(null);
   protected readonly team = signal<WorTeam | null>(null);
@@ -228,13 +235,28 @@ export class StudentWorPage {
   });
 
   constructor() {
-    this.api.partidaAtual().subscribe((v) => {
-      if (!v) return;
-      this.matchId.set(v.match.id);
-      this.root.set(v.match);
-      this.inscrito.set(v.match.inscritos.some((i) => i.alunoId === this.alunoId));
-      this.resolverEquipe(v.teams);
-      this.conectarRaiz(v.match.id);
+    this.buscar();
+    // Sonda a batalha da turma: quando o professor roda, o lobby aparece em
+    // segundos sem recarregar (mesmo padrão do Tichr Qlick). Para ao encontrar.
+    const sonda = setInterval(() => {
+      if (!this.matchId()) this.buscar();
+    }, 4000);
+    this.destroyRef.onDestroy(() => clearInterval(sonda));
+  }
+
+  /** Busca a partida ativa da turma; ao encontrar, passa a escutar em tempo real. */
+  private buscar(): void {
+    this.api.partidaAtual().subscribe({
+      next: (v) => {
+        this.carregando.set(false);
+        if (!v || this.matchId() === v.match.id) return;
+        this.matchId.set(v.match.id);
+        this.root.set(v.match);
+        this.inscrito.set(v.match.inscritos.some((i) => i.alunoId === this.alunoId));
+        this.resolverEquipe(v.teams);
+        this.conectarRaiz(v.match.id);
+      },
+      error: () => this.carregando.set(false),
     });
   }
 

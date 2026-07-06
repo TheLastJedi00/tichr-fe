@@ -17,6 +17,20 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Partidas do Tichr Wor (estado fragmentado): documento raiz + subcoleção de
+    // equipes. Dados não sensíveis (máscara da palavra, HP, cartas reveladas);
+    // o projetor e o celular do aluno leem em tempo real (onSnapshot). Escrita
+    // SOMENTE pelo backend (Admin SDK).
+    match /matches/{matchId} {
+      allow read: if true;
+      allow write: if false;
+
+      match /teams/{teamId} {
+        allow read: if true;
+        allow write: if false;
+      }
+    }
+
     // Todas as demais coleções (turmas, alunos, qlicks, etc.) ficam fechadas ao
     // cliente — só o Admin SDK do backend as acessa.
     match /{document=**} {
