@@ -166,21 +166,25 @@ export const routes: Routes = [
       },
       {
         path: 'jogos/wor/novo',
+        canActivate: [exigePlano('WOR')],
         loadComponent: () =>
           import('./pages/jogos/wor-studio-page').then((m) => m.WorStudioPage),
       },
       {
         path: 'jogos/wor/editar/:id',
+        canActivate: [exigePlano('WOR')],
         loadComponent: () =>
           import('./pages/jogos/wor-studio-page').then((m) => m.WorStudioPage),
       },
       {
         path: 'jogos/wor/meus',
+        canActivate: [exigePlano('WOR')],
         loadComponent: () =>
           import('./pages/jogos/wor-meus-page').then((m) => m.WorMeusPage),
       },
       {
         path: 'jogos/wor/partida/:id',
+        canActivate: [exigePlano('WOR')],
         loadComponent: () =>
           import('./pages/jogos/wor-projetor-page').then((m) => m.WorProjetorPage),
       },
