@@ -116,7 +116,7 @@ import { ExcecaoModal } from './excecao-modal';
       }
 
       @if (qlickProximaTurma(); as q) {
-        <a class="qlick-aviso" routerLink="/jogos/qlick/meus">
+        <a class="qlick-aviso" routerLink="/jogos/qlick">
           <span class="qlick-aviso__ic"><app-icon name="game" [size]="22" /></span>
           <span class="qlick-aviso__txt">
             <strong>Qlick pronto para {{ proximaTurma()?.nome }}</strong>

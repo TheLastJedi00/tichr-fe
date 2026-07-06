@@ -22,7 +22,7 @@ import { Skeleton } from '../../ui/skeleton/skeleton';
   template: `
     <header class="head">
       <div>
-        <a class="voltar" routerLink="/jogos/qlick">← Tichr Qlick</a>
+        <a class="voltar" routerLink="/jogos">← Jogos</a>
         <h1 class="title">Meus Qlicks</h1>
       </div>
       <div class="head__acoes">

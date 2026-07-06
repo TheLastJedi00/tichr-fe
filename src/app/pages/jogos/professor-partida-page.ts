@@ -317,7 +317,7 @@ export class ProfessorPartidaPage {
 
   /** Sai da sala após o pódio final (a partida já está encerrada). */
   protected sair(): void {
-    this.router.navigate(['/jogos/qlick/meus']);
+    this.router.navigate(['/jogos/qlick']);
   }
 
   protected ehUltima(p: Partida): boolean {
