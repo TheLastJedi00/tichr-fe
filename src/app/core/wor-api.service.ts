@@ -31,8 +31,8 @@ export class WorApiService {
     return this.http.delete<void>(`${this.base}/wor/jogos/${id}`);
   }
   gerarDicas(payload: {
-    topico: string;
     palavra: string;
+    topico?: string;
     disciplina?: string;
   }): Observable<{ dicas: string[] }> {
     return this.http.post<{ dicas: string[] }>(
@@ -42,10 +42,10 @@ export class WorApiService {
   }
 
   // --- Partida (professor / projetor) ---
-  criarPartida(jogoId: string, turmaId: string): Observable<WorMatchView> {
+  criarPartida(jogoId: string, turmaId?: string): Observable<WorMatchView> {
     return this.http.post<WorMatchView>(
       `${this.base}/wor/jogos/${jogoId}/partida`,
-      { turmaId },
+      turmaId ? { turmaId } : {},
     );
   }
   verPartida(matchId: string): Observable<WorMatchView> {

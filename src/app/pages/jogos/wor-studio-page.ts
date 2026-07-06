@@ -1,4 +1,10 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import {
   FormArray,
   FormBuilder,
@@ -13,13 +19,16 @@ import {
   moveItemInArray,
 } from '@angular/cdk/drag-drop';
 import { WorApiService } from '../../core/wor-api.service';
-import { WorJogo } from '../../core/models';
+import { TurmaApiService } from '../../core/turma-api.service';
+import { ProfileService } from '../../core/profile.service';
+import { Topico, Turma, WorJogo } from '../../core/models';
 import { Icon } from '../../ui/icon/icon';
 
 /**
  * Wizard de criação do Tichr Wor (Setup + Arsenal). Mobile-first: tudo empilhado
  * com gap; palavras reordenáveis por drag-and-drop; dicas geradas por IA com
- * tratamento amigável do rate limit.
+ * tratamento amigável do rate limit. O Contexto (disciplina/tópico/turmas)
+ * espelha o estúdio do Tichr Qlick.
  */
 @Component({
   selector: 'app-wor-studio-page',
@@ -38,14 +47,41 @@ import { Icon } from '../../ui/icon/icon';
           <span>Nome da partida</span>
           <input class="tichr-input" formControlName="nome" placeholder="Revisão de História — 2º Bimestre" />
         </label>
-        <label class="campo">
-          <span>Disciplina <small>(opcional)</small></span>
-          <input class="tichr-input" formControlName="disciplina" placeholder="História" />
-        </label>
-        <label class="campo">
-          <span>Tópico principal</span>
-          <input class="tichr-input" formControlName="topico" placeholder="Revolução Francesa" />
-        </label>
+
+        <div class="grid2">
+          <label class="campo">
+            <span>Disciplina <small>(opcional)</small></span>
+            <select class="tichr-input" formControlName="disciplina" (change)="onDisciplina()">
+              <option value="">— Nenhuma —</option>
+              @for (d of disciplinas(); track d) { <option [value]="d">{{ d }}</option> }
+            </select>
+          </label>
+          @if (topicos().length) {
+            <label class="campo">
+              <span>Tópico do plano de aula <small>(opcional)</small></span>
+              <select class="tichr-input" formControlName="topicoId">
+                <option value="">— Nenhum —</option>
+                @for (t of topicos(); track t.id) { <option [value]="t.id">{{ t.nome }}</option> }
+              </select>
+            </label>
+          }
+        </div>
+
+        <div class="campo">
+          <span>Turmas <small>(opcional) — pode atribuir a várias</small></span>
+          @if (turmas().length) {
+            <div class="turmas-check">
+              @for (t of turmas(); track t.id) {
+                <label class="check" [class.check--on]="turmaIdsSel().includes(t.id)">
+                  <input type="checkbox" [checked]="turmaIdsSel().includes(t.id)" (change)="toggleTurma(t.id)" />
+                  {{ t.nome }}
+                </label>
+              }
+            </div>
+          } @else {
+            <p class="dica">Você ainda não tem turmas.</p>
+          }
+        </div>
       </section>
 
       <!-- Passo 2: Arsenal -->
@@ -104,6 +140,16 @@ import { Icon } from '../../ui/icon/icon';
     .campo { display: flex; flex-direction: column; gap: 0.35rem; }
     .campo > span { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
     .campo > span small { font-weight: 500; opacity: 0.8; }
+    .grid2 { display: grid; grid-template-columns: 1fr; gap: 0.9rem; }
+    @media (min-width: 560px) { .grid2 { grid-template-columns: 1fr 1fr; } }
+    .turmas-check { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .check {
+      display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer;
+      padding: 0.4rem 0.7rem; border-radius: 999px;
+      border: 1px solid var(--border); background: var(--surface); font-weight: 600; font-size: 0.9rem;
+    }
+    .check--on { border-color: #b45309; color: #b45309; background: color-mix(in srgb, #b45309 10%, transparent); }
+    .dica { color: var(--text-muted); font-size: 0.85rem; margin: 0; }
     .lista { display: flex; flex-direction: column; gap: 1rem; }
     .palavra { display: flex; flex-direction: column; gap: 0.6rem; padding: 1rem; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
     .palavra.cdk-drag-preview { box-shadow: 0 12px 30px rgba(0,0,0,0.2); }
@@ -130,6 +176,8 @@ import { Icon } from '../../ui/icon/icon';
 export class WorStudioPage {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(WorApiService);
+  private readonly turmaApi = inject(TurmaApiService);
+  private readonly profileService = inject(ProfileService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -141,10 +189,17 @@ export class WorStudioPage {
   protected readonly iaEsgotada = signal(false);
   protected readonly iaMsg = signal<Record<number, string>>({});
 
+  protected readonly turmas = signal<Turma[]>([]);
+  protected readonly turmaIdsSel = signal<string[]>([]);
+  protected readonly topicos = signal<Topico[]>([]);
+  protected readonly disciplinas = computed(
+    () => this.profileService.profile()?.disciplinas ?? [],
+  );
+
   protected readonly form = this.fb.group({
     nome: ['', [Validators.required, Validators.maxLength(80)]],
     disciplina: [''],
-    topico: ['', [Validators.required, Validators.maxLength(80)]],
+    topicoId: [''],
     palavras: this.fb.array([this.novaPalavra()]),
   });
 
@@ -154,9 +209,17 @@ export class WorStudioPage {
 
   constructor() {
     this.id = this.route.snapshot.paramMap.get('id');
-    if (this.id) {
-      this.editando.set(true);
-      this.api.obterJogo(this.id).subscribe((j) => this.preencher(j));
+    const iniciar = () => {
+      this.turmaApi.getTurmas().subscribe((t) => this.turmas.set(t));
+      if (this.id) {
+        this.editando.set(true);
+        this.api.obterJogo(this.id).subscribe((j) => this.preencher(j));
+      }
+    };
+    if (this.profileService.profile()) {
+      iniciar();
+    } else {
+      this.profileService.load().subscribe({ next: iniciar, error: iniciar });
     }
   }
 
@@ -167,6 +230,24 @@ export class WorStudioPage {
     return (c as FormGroup).get('dicas') as FormArray;
   }
 
+  /** Marca/desmarca uma turma na atribuição N:N da batalha. */
+  protected toggleTurma(id: string): void {
+    this.turmaIdsSel.update((sel) =>
+      sel.includes(id) ? sel.filter((x) => x !== id) : [...sel, id],
+    );
+  }
+
+  /** Carrega os tópicos do plano de aula ao trocar a disciplina. */
+  protected onDisciplina(): void {
+    const disc = this.form.get('disciplina')!.value ?? '';
+    this.form.get('topicoId')!.setValue('');
+    if (disc) {
+      this.turmaApi.getTopicos(disc).subscribe((t) => this.topicos.set(t));
+    } else {
+      this.topicos.set([]);
+    }
+  }
+
   private novaPalavra(palavra = '', dicas: string[] = []): FormGroup {
     return this.fb.group({
       palavra: [palavra, [Validators.required, Validators.maxLength(40)]],
@@ -175,7 +256,14 @@ export class WorStudioPage {
   }
 
   private preencher(j: WorJogo): void {
-    this.form.patchValue({ nome: j.nome, disciplina: j.disciplina ?? '', topico: j.topico });
+    this.form.patchValue({ nome: j.nome, disciplina: j.disciplina ?? '' });
+    this.turmaIdsSel.set(j.turmaIds ?? (j.turmaId ? [j.turmaId] : []));
+    if (j.disciplina) {
+      this.turmaApi.getTopicos(j.disciplina).subscribe((t) => {
+        this.topicos.set(t);
+        this.form.get('topicoId')!.setValue(j.topicoId ?? '');
+      });
+    }
     this.palavras.clear();
     (j.palavras.length ? j.palavras : [{ palavra: '', dicas: [] }]).forEach((p) =>
       this.palavras.push(this.novaPalavra(p.palavra, p.dicas)),
@@ -194,6 +282,12 @@ export class WorStudioPage {
     this.palavras.updateValueAndValidity();
   }
 
+  /** Nome do tópico selecionado — vira contexto textual da IA (como no free-text antigo). */
+  private nomeTopicoSelecionado(): string | undefined {
+    const id = this.form.get('topicoId')?.value;
+    return id ? this.topicos().find((t) => t.id === id)?.nome : undefined;
+  }
+
   protected gerarDicas(i: number): void {
     const grupo = this.palavras.at(i) as FormGroup;
     const palavra = (grupo.get('palavra')?.value ?? '').trim();
@@ -206,7 +300,7 @@ export class WorStudioPage {
     this.api
       .gerarDicas({
         palavra,
-        topico: this.form.get('topico')?.value ?? '',
+        topico: this.nomeTopicoSelecionado(),
         disciplina: this.form.get('disciplina')?.value || undefined,
       })
       .subscribe({
@@ -233,15 +327,16 @@ export class WorStudioPage {
 
   protected salvar(): void {
     if (this.form.invalid) {
-      this.erro.set('Preencha o nome, o tópico e ao menos uma palavra.');
+      this.erro.set('Preencha o nome e ao menos uma palavra.');
       this.form.markAllAsTouched();
       return;
     }
     const v = this.form.getRawValue();
     const payload = {
       nome: v.nome!,
-      disciplina: v.disciplina || undefined,
-      topico: v.topico!,
+      ...(v.disciplina ? { disciplina: v.disciplina } : {}),
+      ...(v.topicoId ? { topicoId: v.topicoId } : {}),
+      turmaIds: this.turmaIdsSel(),
       palavras: (v.palavras as Array<{ palavra: string; dicas: string[] }>).map((p) => ({
         palavra: p.palavra,
         dicas: (p.dicas ?? []).filter((d) => d && d.trim()),

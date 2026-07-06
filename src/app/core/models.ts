@@ -396,14 +396,20 @@ export interface WorJogo {
   professorId: string;
   nome: string;
   disciplina?: string;
-  topico: string;
+  /** Tópico do plano de aula (opcional) — referência ao `Topico` (mesmo do Qlick). */
+  topicoId?: string;
+  /** Turma única (legado). Substituída por `turmaIds` (N:N). */
+  turmaId?: string;
+  /** Turmas atribuídas à batalha (relação N:N). */
+  turmaIds?: string[];
   palavras: PalavraWor[];
 }
 
 export interface CriarWorJogoPayload {
   nome: string;
   disciplina?: string;
-  topico: string;
+  topicoId?: string;
+  turmaIds?: string[];
   palavras: { palavra: string; dicas: string[] }[];
 }
 
