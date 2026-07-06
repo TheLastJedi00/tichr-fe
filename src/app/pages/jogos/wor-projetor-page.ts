@@ -4,9 +4,10 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { RealtimeService } from '../../core/realtime.service';
 import { WorApiService } from '../../core/wor-api.service';
 import { TurmaApiService } from '../../core/turma-api.service';
-import { WorTeam } from '../../core/models';
+import { Aluno, WorTeam } from '../../core/models';
 import { Icon } from '../../ui/icon/icon';
 import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
+import { Modal } from '../../ui/modal/modal';
 import { Spinner } from '../../ui/spinner/spinner';
 
 /**
@@ -18,7 +19,7 @@ import { Spinner } from '../../ui/spinner/spinner';
   selector: 'app-wor-projetor-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Spinner, LobbyLoader],
+  imports: [RouterLink, Icon, Spinner, LobbyLoader, Modal],
   template: `
     <a class="voltar" routerLink="/jogos/wor">‹ Minhas batalhas</a>
 
@@ -32,6 +33,9 @@ import { Spinner } from '../../ui/spinner/spinner';
               <span class="pinbig__lbl">PIN da turma</span>
               <strong class="pinbig__val">{{ p }}</strong>
               <span class="pinbig__hint">Os alunos entram pelo portal com este PIN</span>
+              <button class="btn-outline" type="button" (click)="assistencia.set(true)">
+                <app-icon name="users" [size]="16" /> Ver detalhes / lista de alunos
+              </button>
             </div>
           }
 
@@ -122,6 +126,32 @@ import { Spinner } from '../../ui/spinner/spinner';
     } @else {
       <div class="carregando"><app-spinner [size]="32" /></div>
     }
+
+    <app-modal [open]="assistencia()" title="Lista de alunos" (close)="assistencia.set(false)">
+      <p class="muted">Toque no card de um aluno para revelar o PIN e ajudá-lo a entrar.</p>
+      <div class="assist">
+        @for (a of alunos(); track a.id) {
+          <button
+            class="acard"
+            type="button"
+            [class.acard--on]="revelado(a.id)"
+            (click)="revelar(a.id)"
+          >
+            <span class="acard__nome">{{ a.nome }}</span>
+            @if (revelado(a.id)) {
+              <strong class="acard__pin">{{ a.pinAcesso }}</strong>
+            } @else {
+              <span class="acard__oculto">•• toque para ver</span>
+            }
+          </button>
+        } @empty {
+          <p class="muted">Turma sem alunos.</p>
+        }
+      </div>
+      <div modal-actions>
+        <button class="btn-primary" type="button" (click)="assistencia.set(false)">Fechar</button>
+      </div>
+    </app-modal>
   `,
   styles: `
     :host { display: block; }
@@ -132,6 +162,16 @@ import { Spinner } from '../../ui/spinner/spinner';
     .pinbig__lbl { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
     .pinbig__val { font-size: 3.5rem; font-weight: 800; line-height: 1; letter-spacing: 0.12em; color: #b45309; font-variant-numeric: tabular-nums; }
     .pinbig__hint { font-size: 0.8rem; color: var(--text-muted); }
+    .pinbig .btn-outline { display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 0.25rem; }
+    .assist { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+    @media (min-width: 480px) { .assist { grid-template-columns: repeat(3, 1fr); } }
+    .acard { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; cursor: pointer; padding: 0.7rem 0.5rem; border-radius: 12px; text-align: center; border: 1px solid var(--border); background: var(--surface); color: inherit; transition: transform 0.15s ease, border-color 0.15s ease; }
+    .acard:hover { border-color: #b45309; }
+    .acard--on { border-color: #b45309; background: color-mix(in srgb, #b45309 10%, transparent); transform: scale(1.03); }
+    .acard__nome { font-weight: 700; font-size: 0.85rem; }
+    .acard__pin { font-size: 1.6rem; font-weight: 800; color: #b45309; font-variant-numeric: tabular-nums; }
+    .acard__oculto { font-size: 0.7rem; color: var(--text-muted); }
+    @media (prefers-reduced-motion: reduce) { .acard { transition: none; } .acard--on { transform: none; } }
     .espera { display: flex; flex-direction: column; gap: 0.6rem; }
     .lead { font-weight: 600; margin: 0; }
     .lead--row { display: flex; align-items: center; gap: 0.2rem; }
@@ -191,15 +231,35 @@ export class WorProjetorPage {
   protected readonly erro = signal<string | null>(null);
   protected readonly pin = signal<string | null>(null);
 
+  // Assistência de acesso (lista de alunos com o PIN sob flip) — igual ao Qlick.
+  protected readonly alunos = signal<Aluno[]>([]);
+  protected readonly assistencia = signal(false);
+  private readonly reveladosSet = signal<Set<string>>(new Set());
+
+  protected revelado(alunoId: string): boolean {
+    return this.reveladosSet().has(alunoId);
+  }
+
+  protected revelar(alunoId: string): void {
+    this.reveladosSet.update((s) => {
+      const n = new Set(s);
+      n.has(alunoId) ? n.delete(alunoId) : n.add(alunoId);
+      return n;
+    });
+  }
+
   protected readonly vencedorNome = computed(() => {
     const id = this.match()?.vencedorEquipeId;
     return this.teams().find((t) => t.id === id)?.nome ?? '—';
   });
 
   constructor() {
-    // Busca o PIN da turma (uma vez) para exibir no lobby.
+    // Busca o PIN da turma + roster (PINs dos alunos) uma vez, para o lobby/assistência.
     this.api.verPartida(this.matchId).subscribe((v) => {
-      this.turmas.getTurma(v.match.turmaId).subscribe((t) => this.pin.set(t.pinTurma ?? null));
+      const turmaId = v.match.turmaId;
+      if (!turmaId) return;
+      this.turmas.getTurma(turmaId).subscribe((t) => this.pin.set(t.pinTurma ?? null));
+      this.turmas.getAlunos(turmaId).subscribe((a) => this.alunos.set(a));
     });
   }
 
