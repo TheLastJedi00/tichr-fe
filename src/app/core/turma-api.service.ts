@@ -74,6 +74,24 @@ export class TurmaApiService {
     );
   }
 
+  /**
+   * Reabre uma turma encerrada (fallback de 1 clique): limpa o arquivamento
+   * manual e, para módulos cujas aulas acabaram, re-ancora o início em hoje —
+   * reprojetando a grade para frente (mesmo efeito de editar a data de início).
+   */
+  reabrirTurma(turma: Turma): Observable<{ turma: Turma; sessoes: Sessao[] }> {
+    const d = new Date();
+    const hoje = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const body: Record<string, unknown> = { encerradaManualmente: false };
+    if (turma.tipoModalidade === 'MODULO_FECHADO') {
+      body['dataInicio'] = hoje;
+    }
+    return this.http.put<{ turma: Turma; sessoes: Sessao[] }>(
+      `${this.base}/turmas/${turma.id}`,
+      body,
+    );
+  }
+
   getFerias(): Observable<Ferias[]> {
     return this.http.get<Ferias[]>(`${this.base}/ferias`);
   }

@@ -28,14 +28,22 @@ import { TurmaForm } from '../turma-form/turma-form';
     @if (carregando()) {
       <div class="loading"><app-spinner [size]="32" /></div>
     } @else if (turma()) {
-      @if (encerradaPorFim()) {
-        <app-card title="Turma encerrada — como reabrir">
-          <p class="reabrir muted">
-            As aulas agendadas desta turma já terminaram, por isso ela aparece como
-            <strong>encerrada</strong>. Para reabri-la, ajuste a
-            <strong>data de início</strong> para hoje ou uma data futura e salve —
-            o Tichr reprojeta a grade e a turma volta a ficar ativa.
-          </p>
+      @if (encerrada()) {
+        <app-card title="Turma encerrada">
+          <div class="reabrir-box">
+            <p class="reabrir muted">
+              @if (encerradaPorFim()) {
+                As aulas agendadas desta turma já terminaram. Reabra para reagendar
+                a grade a partir de <strong>hoje</strong> — ou ajuste a
+                <strong>data de início</strong> abaixo e salve.
+              } @else {
+                Esta turma está arquivada no Hall da Fama. Reabra para voltar a usá-la.
+              }
+            </p>
+            <button class="btn-primary" type="button" [disabled]="reabrindo()" (click)="reabrir()">
+              {{ reabrindo() ? 'Reabrindo…' : 'Reabrir turma' }}
+            </button>
+          </div>
         </app-card>
       }
       <app-turma-form
@@ -89,6 +97,7 @@ import { TurmaForm } from '../turma-form/turma-form';
     .title { margin: 0 0 1rem; font-size: 1.5rem; font-weight: 700; }
     .loading { display: flex; justify-content: center; padding: 3rem 0; color: var(--primary); }
     app-card + app-turma-form { display: block; margin-top: 1rem; }
+    .reabrir-box { display: flex; flex-direction: column; gap: 0.75rem; align-items: flex-start; }
     .reabrir { margin: 0; line-height: 1.5; }
     .ferias-wrap { margin-top: 1rem; }
     .perigo-wrap { margin-top: 1rem; }
@@ -109,6 +118,7 @@ export class EditarTurmaPage {
 
   protected readonly carregando = signal(true);
   protected readonly salvando = signal(false);
+  protected readonly reabrindo = signal(false);
   protected readonly turma = signal<Turma | null>(null);
   protected readonly encerrarAberto = signal(false);
   protected readonly encerrando = signal(false);
@@ -117,6 +127,12 @@ export class EditarTurmaPage {
   protected readonly ativa = computed(() => {
     const t = this.turma();
     return !!t && turmaContaComoAtiva(t);
+  });
+
+  /** Turma encerrada (por fim das aulas ou arquivamento manual). */
+  protected readonly encerrada = computed(() => {
+    const t = this.turma();
+    return !!t && !this.ativa();
   });
 
   /**
@@ -151,6 +167,17 @@ export class EditarTurmaPage {
     this.api.encerrarTurma(this.id).subscribe({
       next: () => this.router.navigateByUrl('/turmas'),
       error: () => this.encerrando.set(false),
+    });
+  }
+
+  /** Reabre a turma (fallback de 1 clique) e volta à lista, já como ativa. */
+  protected reabrir(): void {
+    const t = this.turma();
+    if (!t) return;
+    this.reabrindo.set(true);
+    this.api.reabrirTurma(t).subscribe({
+      next: () => this.router.navigateByUrl('/turmas'),
+      error: () => this.reabrindo.set(false),
     });
   }
 }
