@@ -144,7 +144,7 @@ export class WorMeusPage {
   private iniciarPartida(jogoId: string, turmaId?: string): void {
     this.criando.set(true);
     this.api.criarPartida(jogoId, turmaId).subscribe({
-      next: (v) => this.router.navigate(['/jogos/wor/partida', v.match.id]),
+      next: (m) => this.router.navigate(['/jogos/wor/partida', m.id]),
       error: () => this.criando.set(false),
     });
   }
