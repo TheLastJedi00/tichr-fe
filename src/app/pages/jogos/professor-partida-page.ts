@@ -13,6 +13,7 @@ import { RealtimeService } from '../../core/realtime.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Card } from '../../ui/card/card';
 import { Icon } from '../../ui/icon/icon';
+import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { Modal } from '../../ui/modal/modal';
 import { Spinner } from '../../ui/spinner/spinner';
 
@@ -25,7 +26,7 @@ import { Spinner } from '../../ui/spinner/spinner';
   selector: 'app-professor-partida-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Card, Spinner, Icon, Modal],
+  imports: [Card, Spinner, Icon, Modal, LobbyLoader],
   template: `
     @if (partida(); as p) {
       <header class="head">
@@ -54,7 +55,10 @@ import { Spinner } from '../../ui/spinner/spinner';
             </app-card>
           }
           <app-card>
-            <p class="lead">Alunos entrando na sala…</p>
+            <div class="lead lead--row">
+              <span>Alunos entrando na sala…</span>
+              <app-lobby-loader class="loader-mini" />
+            </div>
             @if (p.inscritos.length === 0) {
               <p class="muted">Aguardando os primeiros inscritos.</p>
             } @else {
@@ -212,6 +216,9 @@ import { Spinner } from '../../ui/spinner/spinner';
     .fim { text-align: center; color: var(--text-muted); margin: 1rem 0 0.75rem; }
     .loading { display: flex; justify-content: center; padding: 3rem 0; color: var(--primary); }
     .lead { font-weight: 600; margin: 0 0 0.75rem; }
+    .lead--row { display: flex; align-items: center; gap: 0.2rem; }
+    /* Loader colorido do lobby, porém discreto ao lado do texto de espera. */
+    .loader-mini { transform: scale(0.5); margin: -14px -10px; }
     .muted { color: var(--text-muted); }
     .inscritos { list-style: none; margin: 0 0 1.25rem; padding: 0; display: flex; flex-wrap: wrap; gap: 0.5rem; }
     .chip { padding: 0.35rem 0.7rem; border-radius: 999px; background: var(--surface-alt); font-weight: 600; font-size: 0.9rem; }

@@ -6,6 +6,7 @@ import { WorApiService } from '../../core/wor-api.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { WorTeam } from '../../core/models';
 import { Icon } from '../../ui/icon/icon';
+import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { Spinner } from '../../ui/spinner/spinner';
 
 /**
@@ -17,7 +18,7 @@ import { Spinner } from '../../ui/spinner/spinner';
   selector: 'app-wor-projetor-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Spinner],
+  imports: [RouterLink, Icon, Spinner, LobbyLoader],
   template: `
     <a class="voltar" routerLink="/jogos/wor">‹ Minhas batalhas</a>
 
@@ -26,17 +27,26 @@ import { Spinner } from '../../ui/spinner/spinner';
 
       @if (m.status === 'LOBBY') {
         <section class="lobby">
-          @if (pin()) {
-            <div class="pin">
-              <span class="pin__lbl">Alunos entram pelo portal com o PIN da turma</span>
-              <strong class="pin__num">{{ pin() }}</strong>
+          @if (pin(); as p) {
+            <div class="pinbig">
+              <span class="pinbig__lbl">PIN da turma</span>
+              <strong class="pinbig__val">{{ p }}</strong>
+              <span class="pinbig__hint">Os alunos entram pelo portal com este PIN</span>
             </div>
           }
-          <div class="inscritos">
-            <span class="inscritos__tit">{{ m.inscritos.length }} na sala</span>
-            <div class="chips">
-              @for (i of m.inscritos; track i.alunoId) { <span class="chip">{{ i.nome }}</span> }
+
+          <div class="espera">
+            <div class="lead lead--row">
+              <span>Alunos entrando na sala…</span>
+              <app-lobby-loader class="loader-mini" />
             </div>
+            @if (!m.inscritos.length) {
+              <p class="muted">Aguardando os primeiros alunos entrarem.</p>
+            } @else {
+              <ul class="inscritos">
+                @for (i of m.inscritos; track i.alunoId) { <li class="chip">{{ i.nome }}</li> }
+              </ul>
+            }
           </div>
 
           @if (!teams().length) {
@@ -44,14 +54,26 @@ import { Spinner } from '../../ui/spinner/spinner';
               <span>Número de equipes</span>
               <input class="tichr-input" type="number" min="2" max="6" [value]="numEquipes()" (input)="numEquipes.set(+$any($event.target).value)" />
             </label>
-            <button class="btn-primary" type="button" [disabled]="ocupado()" (click)="distribuir()">Distribuir equipes</button>
+            <button
+              class="btn-primary full"
+              type="button"
+              [disabled]="ocupado() || m.inscritos.length < numEquipes()"
+              (click)="distribuir()"
+            >
+              Distribuir equipes ({{ m.inscritos.length }} na sala)
+            </button>
+            @if (m.inscritos.length < numEquipes()) {
+              <p class="muted center">
+                É preciso pelo menos {{ numEquipes() }} alunos na sala (1 por equipe). Peça para entrarem pelo portal com o PIN da turma.
+              </p>
+            }
           } @else {
             <div class="teams">
               @for (t of teams(); track t.id) {
                 <span class="team-chip" [style.background]="t.cor">{{ t.nome }} · {{ t.membros.length }}</span>
               }
             </div>
-            <button class="btn-primary" type="button" [disabled]="ocupado()" (click)="iniciar()">Iniciar batalha</button>
+            <button class="btn-primary full" type="button" [disabled]="ocupado()" (click)="iniciar()">Iniciar batalha</button>
           }
           @if (erro()) { <p class="erro">{{ erro() }}</p> }
         </section>
@@ -106,12 +128,20 @@ import { Spinner } from '../../ui/spinner/spinner';
     .voltar { display: inline-block; margin-bottom: 0.75rem; color: var(--text-muted); text-decoration: none; font-weight: 600; }
     .title { margin: 0 0 1.25rem; font-size: 1.5rem; font-weight: 800; }
     .lobby, .jogo { display: flex; flex-direction: column; gap: 1.25rem; }
-    .pin { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; padding: 1.25rem; border-radius: 16px; background: color-mix(in srgb, #b45309 10%, var(--surface)); border: 1px solid color-mix(in srgb, #b45309 30%, transparent); }
-    .pin__lbl { font-size: 0.85rem; color: var(--text-muted); text-align: center; }
-    .pin__num { font-size: 3rem; font-weight: 800; letter-spacing: 0.15em; color: #b45309; }
-    .inscritos { display: flex; flex-direction: column; gap: 0.5rem; }
-    .inscritos__tit { font-weight: 700; }
-    .chips, .teams { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .pinbig { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; padding: 1.5rem; border-radius: 16px; text-align: center; background: color-mix(in srgb, #b45309 10%, var(--surface)); border: 1px solid color-mix(in srgb, #b45309 30%, transparent); }
+    .pinbig__lbl { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+    .pinbig__val { font-size: 3.5rem; font-weight: 800; line-height: 1; letter-spacing: 0.12em; color: #b45309; font-variant-numeric: tabular-nums; }
+    .pinbig__hint { font-size: 0.8rem; color: var(--text-muted); }
+    .espera { display: flex; flex-direction: column; gap: 0.6rem; }
+    .lead { font-weight: 600; margin: 0; }
+    .lead--row { display: flex; align-items: center; gap: 0.2rem; }
+    /* Loader colorido do lobby, discreto ao lado do texto de espera. */
+    .loader-mini { transform: scale(0.5); margin: -14px -10px; }
+    .muted { color: var(--text-muted); margin: 0; }
+    .center { text-align: center; }
+    .full { width: 100%; }
+    .inscritos { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .teams { display: flex; flex-wrap: wrap; gap: 0.5rem; }
     .chip { padding: 0.3rem 0.7rem; border-radius: 999px; background: var(--surface-alt); font-size: 0.85rem; font-weight: 600; }
     .team-chip { padding: 0.3rem 0.75rem; border-radius: 999px; color: #fff; font-weight: 700; font-size: 0.85rem; }
     .campo { display: flex; flex-direction: column; gap: 0.35rem; }
