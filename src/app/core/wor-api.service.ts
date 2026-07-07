@@ -76,6 +76,13 @@ export class WorApiService {
       {},
     );
   }
+  /** Encerra a rodada por tempo esgotado (o projetor dispara ao zerar o cronômetro). */
+  tempo(matchId: string): Observable<WorMatchView> {
+    return this.http.post<WorMatchView>(
+      `${this.base}/wor/matches/${matchId}/tempo`,
+      {},
+    );
+  }
 
   // --- Aluno (portal) ---
   partidaAtual(): Observable<WorMatchView | null> {
