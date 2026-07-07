@@ -7,10 +7,12 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
 import { RealtimeService } from '../../core/realtime.service';
 import { StudentAuthService } from '../../core/student-auth.service';
 import { WorApiService } from '../../core/wor-api.service';
 import { WorMatch, WorTeam } from '../../core/models';
+import { Confetti } from '../../ui/confetti/confetti';
 import { Icon } from '../../ui/icon/icon';
 import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { Modal } from '../../ui/modal/modal';
@@ -19,14 +21,16 @@ import { Spinner } from '../../ui/spinner/spinner';
 const LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
 /**
- * Cliente do aluno (mobile-first). Escuta APENAS o próprio time + a raiz. Tudo
- * empilhado com gap; ações via REST. Dano pisca a tela; a queda abre o modal da Horda.
+ * Cliente do aluno (mobile-first). Escuta APENAS o próprio time + a raiz. Cada
+ * membro da equipe age uma vez na rodada: chuta uma letra e VOTA o alvo (atacar
+ * rival ou comprar dica), ou arrisca a palavra. Dano pisca a tela; a queda abre
+ * o modal da Horda; o fim mostra quem venceu.
  */
 @Component({
   selector: 'app-student-wor-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, Modal, LobbyLoader, Spinner],
+  imports: [Icon, Modal, LobbyLoader, Spinner, Confetti, RouterLink],
   template: `
     <div class="wrap" [class.dano]="piscar()">
       @if (carregando()) {
@@ -58,7 +62,7 @@ const LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
             <span class="fort__nome">
               <app-icon [name]="t.isHorde ? 'sword' : 'castle'" [size]="18" /> {{ t.nome }}
             </span>
-            <span class="hpbar"><span [style.width.%]="t.hp"></span></span>
+            <span class="hpbar"><span [style.width.%]="hpPct(t.hp)"></span></span>
             <span class="hp">{{ t.hp }} HP</span>
           </header>
 
@@ -71,30 +75,31 @@ const LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
           </div>
 
           @if (m.status === 'ENCERRADO') {
-            <div class="fim"><app-icon name="trophy" [size]="20" /> Batalha encerrada!</div>
-          } @else if (aguardandoMeuDilema()) {
-            <!-- Dilema Tático -->
-            <div class="painel">
-              <h2>Você acertou! Escolha sua ação:</h2>
-              <button class="btn-primary" type="button" (click)="abrirAtaque()">
-                <app-icon name="sword" [size]="16" /> Atacar um rival
-              </button>
-              <button class="btn-outline" type="button" [disabled]="semCartas()" (click)="confirmarDica()">
-                <app-icon name="sparkles" [size]="16" /> Comprar dica (sacrifício)
-              </button>
-              @if (semCartas()) { <small class="hint">Todas as cartas já foram reveladas.</small> }
+            @if (venci()) { <app-confetti /> }
+            <div class="fim" [class.fim--win]="venci()">
+              <app-icon [name]="venci() ? 'trophy' : 'castle'" [size]="24" />
+              {{ venci() ? 'Sua equipe venceu a batalha!' : vencedorNome() + ' venceu a batalha.' }}
             </div>
-          } @else if (ehMeuTurno()) {
+            <p class="aguarde">Seu castelo terminou com {{ t.hp }} HP.</p>
+            <a class="btn-primary voltar-btn" routerLink="/aluno/dashboard">Voltar ao início</a>
+          } @else if (!ehMeuTurno()) {
+            <p class="aguarde">Aguarde o turno da sua equipe…</p>
+          } @else if (jaJoguei()) {
+            <div class="painel">
+              <app-lobby-loader />
+              <p class="aguarde">Você jogou! Aguardando os outros membros da sua equipe…</p>
+            </div>
+          } @else {
             <div class="painel">
               @if (!t.isHorde) {
-                <h2>Seu turno — escolha uma letra</h2>
+                <h2>Sua vez — escolha uma letra</h2>
                 <div class="teclado">
                   @for (l of letras; track l) {
                     <button
                       class="tecla"
                       type="button"
-                      [disabled]="ocupado() || m.letrasTentadas.includes(l)"
-                      (click)="chutar(l)"
+                      [disabled]="ocupado() || letraUsada(l)"
+                      (click)="escolherLetra(l)"
                     >{{ l }}</button>
                   }
                 </div>
@@ -104,8 +109,6 @@ const LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
                 {{ t.isHorde ? 'Tentar Invasão' : 'Arriscar a palavra' }}
               </button>
             </div>
-          } @else {
-            <p class="aguarde">Aguarde o seu turno…</p>
           }
 
           <!-- Cartas de dica visíveis -->
@@ -120,15 +123,22 @@ const LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
       }
     </div>
 
-    <!-- Modal: escolher rival para atacar -->
-    @if (escolhendoAlvo()) {
-      <app-modal [open]="true" title="Atacar qual castelo?" (close)="escolhendoAlvo.set(false)">
+    <!-- Modal: escolher letra → votar o alvo (atacar rival ou comprar dica) -->
+    @if (letraEscolhida(); as l) {
+      <app-modal [open]="true" [title]="'Letra ' + l + ' — vote a ação'" (close)="letraEscolhida.set(null)">
+        <p class="aviso">
+          Se sua equipe acertar, ataca o castelo <b>mais votado</b>. Escolha o alvo — ou vote em comprar uma dica.
+        </p>
         <div class="alvos">
           @for (r of rivais(); track r.id) {
-            <button class="alvo" type="button" [style.--cor]="r.cor" (click)="atacar(r)">
-              {{ r.nome }} · {{ r.hp }} HP
+            <button class="alvo" type="button" [style.--cor]="r.cor" [disabled]="ocupado()" (click)="votarAtacar(r)">
+              <app-icon name="sword" [size]="16" /> Atacar {{ r.nome }} · {{ r.hp }} HP
             </button>
           }
+          <button class="alvo alvo--dica" type="button" [disabled]="ocupado() || semCartas()" (click)="votarDica()">
+            <app-icon name="sparkles" [size]="16" /> Comprar dica (revelar carta)
+          </button>
+          @if (semCartas()) { <small class="hint">Todas as cartas já foram reveladas.</small> }
         </div>
       </app-modal>
     }
@@ -138,7 +148,7 @@ const LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
       <app-modal [open]="true" title="Arriscar a palavra?" (close)="modalRisco.set(false)">
         <p class="aviso">
           Se acertar, você {{ team()?.isHorde ? 'invade e rouba o castelo do líder' : 'cura seu castelo massivamente e encerra a rodada' }}.
-          Se errar, sofrerá Dano Crítico do sistema.
+          Se errar, sofrerá Dano Crítico no seu castelo.
         </p>
         <input class="tichr-input" [value]="palpite()" (input)="palpite.set($any($event.target).value)" placeholder="Digite a palavra inteira" />
         <button modal-actions class="btn-primary" type="button" [disabled]="ocupado() || !palpite().trim()" (click)="arriscar()">
@@ -186,10 +196,14 @@ const LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
     .hint { color: var(--text-muted); text-align: center; }
     .cartas { display: flex; flex-direction: column; gap: 0.5rem; }
     .carta { padding: 0.75rem; border-radius: 10px; background: #fdf6e3; color: #5b3a1a; font-size: 0.9rem; }
-    .fim { display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 1rem; border-radius: 12px; background: color-mix(in srgb, #f59e0b 14%, transparent); color: #b45309; font-weight: 800; }
-    .alvos, .painel .btn-primary, .painel .btn-outline { width: 100%; }
+    .fim { display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 1rem; border-radius: 12px; background: color-mix(in srgb, #94a3b8 18%, transparent); color: var(--text); font-weight: 800; text-align: center; }
+    .fim--win { background: color-mix(in srgb, #f59e0b 18%, transparent); color: #b45309; }
+    .voltar-btn { width: 100%; text-align: center; text-decoration: none; }
+    .alvos, .painel .btn-primary { width: 100%; }
     .alvos { display: flex; flex-direction: column; gap: 0.5rem; }
-    .alvo { padding: 0.8rem; border-radius: 12px; border: 2px solid var(--cor); background: color-mix(in srgb, var(--cor) 10%, var(--surface)); font-weight: 800; cursor: pointer; }
+    .alvo { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.8rem; border-radius: 12px; border: 2px solid var(--cor); background: color-mix(in srgb, var(--cor) 10%, var(--surface)); font-weight: 800; cursor: pointer; }
+    .alvo--dica { --cor: #b45309; }
+    .alvo:disabled { opacity: 0.5; cursor: not-allowed; }
     .aviso { margin: 0 0 0.75rem; color: var(--text-muted); }
     .aviso b { color: var(--text); }
   `,
@@ -207,12 +221,14 @@ export class StudentWorPage {
   protected readonly root = signal<WorMatch | null>(null);
   protected readonly team = signal<WorTeam | null>(null);
   protected readonly rivais = signal<WorTeam[]>([]);
+  protected readonly todosTeams = signal<WorTeam[]>([]);
   protected readonly inscrito = signal(false);
   protected readonly ocupado = signal(false);
   protected readonly piscar = signal(false);
   protected readonly modalHorda = signal(false);
   protected readonly modalRisco = signal(false);
-  protected readonly escolhendoAlvo = signal(false);
+  /** Letra escolhida aguardando o voto do alvo (abre o modal de votação). */
+  protected readonly letraEscolhida = signal<string | null>(null);
   protected readonly palpite = signal('');
 
   protected readonly letras = LETRAS;
@@ -223,16 +239,36 @@ export class StudentWorPage {
   protected readonly ehMeuTurno = computed(
     () => !!this.myTeamId && this.root()?.turnoEquipeId === this.myTeamId,
   );
-  protected readonly aguardandoMeuDilema = computed(
-    () =>
-      !!this.myTeamId &&
-      !!this.root()?.aguardandoDilema &&
-      this.root()?.dilemaEquipeId === this.myTeamId,
+  /** Verdadeiro se este aluno já agiu na rodada atual (aguardando os colegas). */
+  protected readonly jaJoguei = computed(
+    () => this.root()?.acoesRodada?.some((a) => a.alunoId === this.alunoId) ?? false,
   );
   protected readonly semCartas = computed(() => {
     const m = this.root();
     return !!m && m.cartasVisiveis.length >= m.totalCartas;
   });
+  protected readonly venci = computed(
+    () => !!this.myTeamId && this.root()?.vencedorEquipeId === this.myTeamId,
+  );
+  protected readonly vencedorNome = computed(
+    () =>
+      this.todosTeams().find((t) => t.id === this.root()?.vencedorEquipeId)?.nome ??
+      'A equipe vencedora',
+  );
+
+  /** Barra de HP em % (HP inicial é 1000). */
+  protected hpPct(hp: number): number {
+    return Math.max(0, Math.min(100, hp / 10));
+  }
+
+  protected letraUsada(l: string): boolean {
+    const m = this.root();
+    if (!m) return false;
+    return (
+      m.letrasTentadas.includes(l) ||
+      (m.acoesRodada?.some((a) => a.tipo === 'LETRA' && a.letra === l) ?? false)
+    );
+  }
 
   constructor() {
     this.buscar();
@@ -271,6 +307,10 @@ export class StudentWorPage {
         // Equipes formadas depois do lobby: descobre a minha equipe uma vez.
         if (!this.myTeamId && m.status !== 'LOBBY') {
           this.api.partidaAtual().subscribe((v) => v && this.resolverEquipe(v.teams));
+        }
+        // No fim, carrega as equipes uma vez para nomear o vencedor.
+        if (m.status === 'ENCERRADO' && !this.todosTeams().length) {
+          this.api.partidaAtual().subscribe((v) => v && this.todosTeams.set(v.teams));
         }
       });
   }
@@ -316,26 +356,27 @@ export class StudentWorPage {
     this.inscrito.set(true);
   }
 
-  protected chutar(letra: string): void {
-    this.acao(this.api.chutarLetra(this.matchId()!, letra));
-  }
-
-  protected abrirAtaque(): void {
-    // Busca as equipes (uma vez) para escolher o alvo — leitura pontual, não realtime.
+  /** Escolhe a letra e abre a votação do alvo (busca os rivais uma vez). */
+  protected escolherLetra(letra: string): void {
     this.api.partidaAtual().subscribe((v) => {
       if (!v) return;
       this.rivais.set(v.teams.filter((t) => t.id !== this.myTeamId && t.hp > 0));
-      this.escolhendoAlvo.set(true);
+      this.letraEscolhida.set(letra);
     });
   }
 
-  protected atacar(alvo: WorTeam): void {
-    this.escolhendoAlvo.set(false);
-    this.acao(this.api.dilema(this.matchId()!, 'ATACAR', alvo.id));
+  protected votarAtacar(alvo: WorTeam): void {
+    const l = this.letraEscolhida();
+    if (!l) return;
+    this.letraEscolhida.set(null);
+    this.acao(this.api.chutarLetra(this.matchId()!, l, 'ATACAR', alvo.id));
   }
 
-  protected confirmarDica(): void {
-    this.acao(this.api.dilema(this.matchId()!, 'COMPRAR_DICA'));
+  protected votarDica(): void {
+    const l = this.letraEscolhida();
+    if (!l) return;
+    this.letraEscolhida.set(null);
+    this.acao(this.api.chutarLetra(this.matchId()!, l, 'DICA'));
   }
 
   protected arriscar(): void {

@@ -441,10 +441,19 @@ export interface WorMatch {
   totalCartas: number;
   turnoEquipeId?: string | null;
   ordemEquipes: string[];
-  aguardandoDilema: boolean;
-  dilemaEquipeId?: string | null;
+  /** Ações já feitas pelos membros da equipe do turno nesta rodada. */
+  acoesRodada: AcaoMembroWor[];
   inscritos: { alunoId: string; nome: string }[];
   vencedorEquipeId?: string | null;
+}
+
+/** Ação de um membro na rodada (para o cliente saber quem já jogou). */
+export interface AcaoMembroWor {
+  alunoId: string;
+  tipo: 'LETRA' | 'ARRISCAR';
+  letra?: string;
+  acertou: boolean;
+  ordem: number;
 }
 
 export interface WorMatchView {

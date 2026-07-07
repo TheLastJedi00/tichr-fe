@@ -57,10 +57,11 @@ export class WorApiService {
   verPartida(matchId: string): Observable<WorMatchView> {
     return this.http.get<WorMatchView>(`${this.base}/wor/matches/${matchId}`);
   }
-  distribuir(matchId: string, numeroEquipes: number): Observable<WorMatchView> {
+  /** Distribui os inscritos em equipes com tamanho automático (backend decide). */
+  distribuir(matchId: string): Observable<WorMatchView> {
     return this.http.post<WorMatchView>(
       `${this.base}/wor/matches/${matchId}/distribuir`,
-      { numeroEquipes },
+      {},
     );
   }
   iniciar(matchId: string): Observable<WorMatchView> {
@@ -86,20 +87,16 @@ export class WorApiService {
       { nome },
     );
   }
-  chutarLetra(matchId: string, letra: string): Observable<WorMatchView> {
-    return this.http.post<WorMatchView>(
-      `${this.base}/aluno/wor/${matchId}/letra`,
-      { letra },
-    );
-  }
-  dilema(
+  /** Chuta uma letra e vota a ação da equipe (atacar um rival ou comprar dica). */
+  chutarLetra(
     matchId: string,
-    acao: 'ATACAR' | 'COMPRAR_DICA',
+    letra: string,
+    acao: 'ATACAR' | 'DICA',
     alvoEquipeId?: string,
   ): Observable<WorMatchView> {
     return this.http.post<WorMatchView>(
-      `${this.base}/aluno/wor/${matchId}/dilema`,
-      { acao, alvoEquipeId },
+      `${this.base}/aluno/wor/${matchId}/letra`,
+      { letra, acao, alvoEquipeId },
     );
   }
   arriscar(matchId: string, palavra: string): Observable<WorMatchView> {
