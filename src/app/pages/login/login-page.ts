@@ -11,6 +11,7 @@ import { Card } from '../../ui/card/card';
   imports: [Card, RouterLink],
   template: `
     <div class="wrap">
+      <a class="voltar" routerLink="/">← Voltar ao site</a>
       <span class="logo">Tichr</span>
       <app-card title="Entrar">
         <form (submit)="$event.preventDefault(); entrar()">
@@ -54,6 +55,12 @@ import { Card } from '../../ui/card/card';
       max-width: 380px;
       margin: 0 auto;
       padding: 4rem 1.25rem;
+    }
+    .voltar {
+      display: inline-block;
+      margin-bottom: 1.5rem;
+      font-weight: 600;
+      color: var(--text-muted);
     }
     .logo {
       display: block;
