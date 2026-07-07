@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { RealtimeService } from '../../core/realtime.service';
@@ -89,6 +89,12 @@ import { Spinner } from '../../ui/spinner/spinner';
             }
           </div>
           <p class="onda">Onda {{ m.ondaIndex + 1 }} de {{ m.totalOndas }}</p>
+
+          @if (m.status === 'EM_ANDAMENTO') {
+            <div class="timer" [class.timer--fim]="restante() <= 10">
+              Turno da {{ turnoNome() }} · {{ restante() }}s
+            </div>
+          }
 
           <div class="cartas">
             @for (c of m.cartasVisiveis; track $index) {
@@ -191,6 +197,8 @@ import { Spinner } from '../../ui/spinner/spinner';
     .box--on { border-bottom-color: #b45309; color: #b45309; }
     .sp { width: 1.2rem; }
     .onda { margin: 0; text-align: center; color: var(--text-muted); font-weight: 600; }
+    .timer { align-self: center; display: inline-flex; padding: 0.35rem 1rem; border-radius: 999px; background: var(--surface-alt); font-weight: 800; font-size: 1.1rem; font-variant-numeric: tabular-nums; color: #b45309; }
+    .timer--fim { color: #fff; background: var(--danger); }
     .cartas { display: flex; flex-direction: column; gap: 0.6rem; }
     .carta { position: relative; padding: 1rem 1rem 1rem 1.2rem; border-radius: 12px; background: #fdf6e3; color: #5b3a1a; border: 1px solid #e6d3a8; font-weight: 600; }
     .carta__n { display: block; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.7; margin-bottom: 0.2rem; }
@@ -250,6 +258,21 @@ export class WorProjetorPage {
     return this.teams().find((t) => t.id === id)?.nome ?? '—';
   });
 
+  private readonly relogio = signal(Date.now());
+  private readonly destroyRef = inject(DestroyRef);
+  private tempoDisparadoEm: string | null = null;
+
+  protected readonly turnoNome = computed(
+    () => this.teams().find((t) => t.id === this.match()?.turnoEquipeId)?.nome ?? 'equipe',
+  );
+  /** Segundos restantes da rodada (cronômetro de 1 min). */
+  protected readonly restante = computed(() => {
+    const m = this.match();
+    if (!m || m.status !== 'EM_ANDAMENTO' || !m.rodadaIniciadaEm) return 60;
+    const fim = Date.parse(m.rodadaIniciadaEm) + 60_000;
+    return Math.max(0, Math.ceil((fim - this.relogio()) / 1000));
+  });
+
   constructor() {
     // Busca o PIN da turma + roster (PINs dos alunos) uma vez, para o lobby/assistência.
     this.api.verPartida(this.matchId).subscribe((v) => {
@@ -258,6 +281,21 @@ export class WorProjetorPage {
       this.turmas.getTurma(turmaId).subscribe((t) => this.pin.set(t.pinTurma ?? null));
       this.turmas.getAlunos(turmaId).subscribe((a) => this.alunos.set(a));
     });
+    // O projetor (sempre presente) fecha a rodada quando o cronômetro zera.
+    const tick = setInterval(() => {
+      this.relogio.set(Date.now());
+      this.checarTempo();
+    }, 1000);
+    this.destroyRef.onDestroy(() => clearInterval(tick));
+  }
+
+  /** Ao zerar o cronômetro, dispara o encerramento da rodada por tempo (uma vez). */
+  private checarTempo(): void {
+    const m = this.match();
+    if (!m || m.status !== 'EM_ANDAMENTO' || !m.rodadaIniciadaEm) return;
+    if (this.restante() > 0 || this.tempoDisparadoEm === m.rodadaIniciadaEm) return;
+    this.tempoDisparadoEm = m.rodadaIniciadaEm;
+    this.api.tempo(this.matchId).subscribe({ next: () => {}, error: () => {} });
   }
 
   protected distribuir(): void {

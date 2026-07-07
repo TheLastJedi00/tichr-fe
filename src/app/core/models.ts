@@ -443,6 +443,12 @@ export interface WorMatch {
   ordemEquipes: string[];
   /** Ações já feitas pelos membros da equipe do turno nesta rodada. */
   acoesRodada: AcaoMembroWor[];
+  /** Início do turno/rodada atual (ISO) — base do cronômetro de 1 min. */
+  rodadaIniciadaEm?: string | null;
+  /** Snapshot de todas as equipes (o aluno vê os castelos rivais pela raiz). */
+  placar: PlacarEquipe[];
+  /** Resultado da última rodada (reveal + quem atacou). */
+  resumoRodada?: ResumoRodada | null;
   inscritos: { alunoId: string; nome: string }[];
   vencedorEquipeId?: string | null;
 }
@@ -454,6 +460,29 @@ export interface AcaoMembroWor {
   letra?: string;
   acertou: boolean;
   ordem: number;
+}
+
+/** Snapshot público de uma equipe (castelo) na raiz da partida. */
+export interface PlacarEquipe {
+  id: string;
+  nome: string;
+  cor: string;
+  hp: number;
+  isHorde: boolean;
+}
+
+/** Resultado da última rodada resolvida — reveal + quem atacou quem. */
+export interface ResumoRodada {
+  seq: number;
+  equipeId: string;
+  equipeNome: string;
+  acertadores: { nome: string; letra: string }[];
+  acao: 'ATACAR' | 'DICA' | 'NADA';
+  alvoEquipeId?: string;
+  alvoNome?: string;
+  dano?: number;
+  critico?: boolean;
+  porTempo?: boolean;
 }
 
 export interface WorMatchView {
