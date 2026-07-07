@@ -47,10 +47,10 @@ O diferencial visível está na **demonstração interativa da landing page** e 
 | `/entrar` | **Entrar como aluno** *(pública)* | Jornada em etapas: busca do **@usuário do professor** (avatar + nome) → turma → **PIN da turma** → nome → **PIN do aluno** (slots dinâmicos 2/6-4 díg). Traz também o **🏆 Hall da Fama**: turmas encerradas com o **ranking final, sem PIN**. |
 | `/dashboard` | **Dashboard** | Recepção: saudação por horário, **próxima aula** em destaque, **grade de Acesso Rápido** (espelha o menu lateral, mobile-first) e o gatilho de "Exceção". Enriquecido com o **plano de aula** (contexto/tópico) e o aviso de Qlick. |
 | `/agenda` | **Minha Agenda** | Alternância **Calendário** (grade de 7 colunas, semana atual + 4) e **Detalhado** (próximos 15 dias por turnos Manhã/Tarde/Noite); a escolha é memorizada. |
-| `/plano-aula` | **Plano de Aula** | Escopo geral por disciplina (Graduado) e, no plano Mestre, **backlog de tópicos** + **quadro de alocação drag-and-drop** na grade da turma. Recurso do **plano Graduado+** (Estagiário vê cadeado). |
+| `/plano-aula` | **Plano de Aula** | Escopo geral por disciplina **e** o **quadro modular** (backlog de tópicos + **alocação drag-and-drop** na grade da turma) — tudo no **plano Graduado+** (Estagiário vê cadeado). |
 | `/turmas` | **Minhas Turmas** | Lista das turmas em abas **Ativas** / **Encerradas**, com a ação **Encerrar turma** (vira somente leitura e vai para o Hall da Fama). |
 | `/turmas/nova` · `/turmas/:id/editar` | **Nova / Editar turma** | Formulário reativo com dias, modalidade, cor, disciplina, horários e a config de **Pontuação & Gamificação** (liga/desliga, nome da pontuação, rótulos dos botões, ranking on/off). Editar **reprojeta** a agenda. Criar respeita a **cota do plano** (com *upsell* ao estourar). |
-| `/turmas/:id` | **Detalhe da turma** | Exibe o **PIN da turma** e uma **barra de progresso** do curso (que segue o nome da pontuação como base coletiva quando ativa). Turmas legadas (PIN 6 díg) mostram um **aviso + modal para migrar aos Smart PINs** (2 díg). Abas: **Agenda**, **Alunos** (cartas + **modal do aluno**), **Equipes** (*kanban* + **cargos**) e **Jogos** (Qlicks da turma, com **Adicionar jogo** da biblioteca — N:N). |
+| `/turmas/:id` | **Detalhe da turma** | Exibe o **PIN da turma** e uma **barra de progresso** do curso (que segue o nome da pontuação como base coletiva quando ativa). Turmas legadas (PIN 6 díg) mostram um **aviso + modal para migrar aos Smart PINs** (2 díg). Abas: **Agenda**, **Alunos** (cartas + **modal do aluno**; cadastro é recurso do **plano Mestre** — planos inferiores veem bloqueio), **Equipes** (*kanban* + **cargos**) e **Jogos** (Qlicks da turma, com **Adicionar jogo** da biblioteca — N:N). |
 | `/turmas/:id/dinamica` | **Nova dinâmica** | Sorteio de **squads**: nº de equipes, papéis/temas em *chips*, e a **roleta** que renderiza os grupos. Recurso do **plano Mestre**. |
 | `/jogos` · `/jogos/qlick` | **Jogos / Tichr Qlick** | Vitrine de jogos e a mini-landing do **Tichr Qlick** (quiz ao vivo). Recurso do **plano PhD** (upsell nos inferiores). |
 | `/jogos/wor` · `.../novo` · `.../meus` · `.../partida/:id` | **Tichr Wor** | Guerra de castelos PvP: landing interna, **wizard de criação** (arsenal + **dicas por IA**, reordenar por drag-and-drop), lista de batalhas e a **tela do projetor** (lobby → jogo, realtime). |
@@ -63,6 +63,24 @@ O diferencial visível está na **demonstração interativa da landing page** e 
 | `/configuracoes/perfil` | **Meu Perfil** | **Foto de perfil** (editar → recorte 1:1 → compressão → upload ao Firebase Storage), dados (nome, disciplina, bio), **@username** com disponibilidade em tempo real e **trava de 60 dias**, **disciplinas como cards** (modal para renomear/excluir) e **férias globais**. |
 | `/configuracoes/plano` | **Meu Plano** | Resumo da assinatura atual (plano, limite, vagas avulsas, features) + **upsell** e atalho de gestão. |
 | `/novidades` | **Novidades (Changelog)** *(pública)* | Timeline das versões (Nova feature / Melhoria / Correção), alimentada por `changelog.data.ts` e espelhando o README. Linkada no **rodapé global**. |
+
+### Planos, limites e gating
+
+Ladder de assinatura (fonte única de gating em `core/recursos.ts` +
+`core/plano.util.ts`; o backend reforça cada regra):
+
+| Plano | Limite de turmas | Desbloqueia |
+| --- | --- | --- |
+| **Estagiário** (grátis) | **5** | Agenda + motor de deslizamento |
+| **Graduado** | **99** | Plano de aula **geral e modular** (arraste tópicos para as aulas) |
+| **Mestre** | **99** | **Cadastro de alunos**, equipes/squads e papéis |
+| **PhD** | **99** | Portal do aluno, gamificação (XP/ranking) e jogos (Qlick e Wor) |
+
+O teto de **99 turmas** vale para todos os planos pagos: o **PIN da turma é de 2 dígitos**
+(`01`–`99`) e não pode repetir entre turmas ativas — por isso nenhum plano é "ilimitado". O
+**indicador de cota** no menu mostra sempre `ativas/99` (ou `/5` no Estagiário) e o
+`limiteDoPlano` soma slots avulsos limitando a esse teto. Criar turma respeita a cota (com
+*upsell* ao estourar).
 
 ### Equipes, cargos e gating (aba Equipes)
 
