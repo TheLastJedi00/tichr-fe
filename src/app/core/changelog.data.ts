@@ -25,6 +25,9 @@ export const CHANGELOG: VersaoChangelog[] = [
       { categoria: 'Melhoria', texto: 'O Tichr Wor agora aparece como um card no painel do aluno (igual ao Tichr Qlick), sem uma aba separada — o aluno descobre a batalha do dia e entra por ali.' },
       { categoria: 'Melhoria', texto: 'Nova dinâmica de rodada: cada integrante da equipe joga uma letra e vota em qual castelo atacar; se todos acertarem, o ataque é crítico. As equipes são formadas automaticamente (duplas a partir de 4 alunos, trios a partir de 6, quartetos a partir de 8).' },
       { categoria: 'Melhoria', texto: 'No fim da batalha ficou claro quem venceu: a equipe campeã aparece em destaque, com confete para quem ganhou.' },
+      { categoria: 'Melhoria', texto: 'Durante a batalha o aluno vê os castelos de todas as equipes (HP e de quem é a vez) e, a cada rodada, um resumo de quem acertou a letra e quem atacou quem — com um aviso na tela quando o seu castelo leva dano.' },
+      { categoria: 'Melhoria', texto: 'Cada rodada tem 1 minuto, com cronômetro visível para todos; ao zerar, a rodada é encerrada automaticamente.' },
+      { categoria: 'Correção', texto: 'Contraste do Tichr Wor no tema escuro: textos e cartas de dica que ficavam difíceis de ler foram clareados.' },
     ],
   },
   {
