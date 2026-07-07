@@ -651,8 +651,9 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
     .feature__eyebrow--wor { color: #b45309; }
     .btn-wor { display: inline-flex; align-items: center; justify-content: center; margin-top: 1.5rem; padding: 0.8rem 1.6rem; font-weight: 800; color: #fff; text-decoration: none; border-radius: var(--radius); background: linear-gradient(135deg, #b45309, #7c2d12); box-shadow: 0 10px 30px color-mix(in srgb, #b45309 40%, transparent); transition: transform 0.15s ease; }
     .btn-wor:hover { transform: translateY(-2px); }
-    .war { display: flex; align-items: stretch; justify-content: center; gap: 0.75rem; width: min(400px, 100%); }
-    .castle { flex: 1; display: flex; flex-direction: column; gap: 0.45rem; padding: 1rem 1.1rem; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: 4px 4px 0 color-mix(in srgb, #b45309 18%, transparent); }
+    /* Mobile-first: castelos empilhados (dois em linha espremiam no celular). */
+    .war { display: flex; flex-direction: column; align-items: stretch; gap: 0.6rem; width: min(340px, 100%); margin: 0 auto; }
+    .castle { display: flex; flex-direction: column; gap: 0.45rem; padding: 1rem 1.1rem; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: 4px 4px 0 color-mix(in srgb, #b45309 18%, transparent); }
     .castle__lbl { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: #b45309; }
     .hp { display: block; height: 9px; border-radius: 999px; background: var(--surface-alt); overflow: hidden; }
     .hp__fill { display: block; height: 100%; border-radius: 999px; background: #22c55e; }
@@ -662,7 +663,14 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
     .castle__dmg { align-self: flex-start; font-size: 0.75rem; font-weight: 800; color: #fff; padding: 0.15rem 0.5rem; border-radius: 999px; background: #ef4444; }
     @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
     @media (prefers-reduced-motion: reduce) { .castle--hit { animation: none; } }
-    .war__vs { display: flex; align-items: center; color: #b45309; }
+    /* Empilhado: a espada aponta para baixo, entre os castelos. */
+    .war__vs { display: flex; align-items: center; justify-content: center; color: #b45309; transform: rotate(90deg); }
+    /* Espaço suficiente (dentro do painel ou telas maiores): volta a duelo lado a lado. */
+    @media (min-width: 560px) {
+      .war { flex-direction: row; align-items: stretch; justify-content: center; width: min(440px, 100%); gap: 0.75rem; }
+      .castle { flex: 1; }
+      .war__vs { transform: none; }
+    }
     .word { display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.1rem; }
     .word span { display: flex; align-items: center; justify-content: center; width: 42px; height: 50px; border-radius: 10px; font-size: 1.5rem; font-weight: 800; color: #fff; background: linear-gradient(135deg, #b45309, #7c2d12); }
     .word span.word--off { color: color-mix(in srgb, #b45309 55%, transparent); background: color-mix(in srgb, #b45309 12%, var(--surface)); border: 1px solid color-mix(in srgb, #b45309 30%, transparent); }
