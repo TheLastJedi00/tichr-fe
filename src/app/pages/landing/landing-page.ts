@@ -47,22 +47,23 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
 
       <div class="hero__inner container">
         <div class="hero__copy">
-          <span class="hero__eyebrow">Gamificação para a sala de aula</span>
+          <span class="hero__eyebrow">Uma arena de jogos para a sala de aula</span>
           <h1>Transforme aulas comuns em <span class="grad">experiências inesquecíveis</span>.</h1>
           <p class="hero__sub">
-            Quizzes ao vivo, ranking e um portal onde <strong>a turma toda
-            participa</strong>. Engaje seus alunos, gerencie equipes e mantenha a
-            competição saudável — do primeiro toque ao Hall da Fama.
+            Jogos ao vivo, ranking e um portal onde <strong>a turma toda
+            participa</strong>. Do quiz relâmpago à batalha de castelos, engaje
+            seus alunos e mantenha a competição saudável — do primeiro toque ao
+            Hall da Fama.
           </p>
           <div class="hero__chips">
             <span><app-icon name="game" [size]="15" /> Quiz ao vivo</span>
-            <span><app-icon name="lock" [size]="15" /> Entrar por PIN</span>
+            <span><app-icon name="castle" [size]="15" /> Batalha de palavras</span>
             <span><app-icon name="medal" [size]="15" /> Ranking &amp; XP</span>
             <span><app-icon name="users" [size]="15" /> Equipes</span>
           </div>
           <div class="hero__cta">
             <a class="btn-glow" routerLink="/cadastro">Comece grátis agora</a>
-            <a class="btn-hero-sec" href="#como">Ver como funciona</a>
+            <a class="btn-hero-sec" href="#jogos">Conheça os jogos</a>
           </div>
           <p class="hero__reforco">Sem cartão de crédito · Grátis para começar</p>
         </div>
@@ -83,6 +84,62 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
               <span class="phone__live">● ao vivo</span>
             </div>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Arena de Jogos (os dois jogos + "mais em breve") ===== -->
+    <section id="jogos" class="arena" appReveal>
+      <div class="container">
+        <span class="arena__eyebrow"><app-icon name="dice" [size]="15" /> Arena de jogos</span>
+        <h2>Não é só um quiz. É uma arena de jogos ao vivo.</h2>
+        <p class="arena__lead">
+          Cada jogo tem a sua mecânica, mas o palco é o mesmo: a sala toda
+          jogando junta, pelo celular, sem instalar nada. E o arsenal só cresce.
+        </p>
+
+        <div class="arena__grid">
+          <!-- Tichr Qlick -->
+          <article class="gcard gcard--qlick">
+            <span class="gcard__ic"><app-icon name="game" [size]="24" /></span>
+            <span class="gcard__tag">Quiz ao vivo</span>
+            <h3 class="gcard__nome">Tichr Qlick</h3>
+            <p class="gcard__desc">
+              Perguntas de múltipla escolha na tela, cada aluno responde em
+              botões coloridos e o placar sobe na hora. A turma vibra junto.
+            </p>
+            <span class="gcard__meta gcard__meta--free">
+              <app-icon name="check" [size]="14" /> Grátis para começar
+            </span>
+          </article>
+
+          <!-- Tichr Wor -->
+          <article class="gcard gcard--wor">
+            <span class="gcard__ic"><app-icon name="castle" [size]="24" /></span>
+            <span class="gcard__tag">Guerra de palavras</span>
+            <h3 class="gcard__nome">Tichr Wor</h3>
+            <p class="gcard__desc">
+              Equipes defendem castelos e revidam com letras e palavras. Errar
+              dói, acertar ataca o rival — a revisão da matéria vira batalha épica.
+            </p>
+            <span class="gcard__meta gcard__meta--phd">
+              <app-icon name="trophy" [size]="14" /> Plano PhD
+            </span>
+          </article>
+
+          <!-- Mais em breve -->
+          <article class="gcard gcard--soon">
+            <span class="gcard__ic"><app-icon name="sparkles" [size]="24" /></span>
+            <span class="gcard__tag">Em breve</span>
+            <h3 class="gcard__nome">Novos jogos</h3>
+            <p class="gcard__desc">
+              Estamos forjando novas mecânicas para o arsenal. Cada atualização
+              traz mais um jeito de transformar a sua aula num jogo.
+            </p>
+            <span class="gcard__meta gcard__meta--soon">
+              <app-icon name="rocket" [size]="14" /> Em desenvolvimento
+            </span>
+          </article>
         </div>
       </div>
     </section>
@@ -117,6 +174,42 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
             junto. Interatividade de verdade, sem instalar nada.
           </p>
           <a class="feature__cta btn-primary" routerLink="/cadastro">Comece grátis agora</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Seção A-bis — Tichr Wor (batalha de palavras) ===== -->
+    <section class="feature feature--invertido feature--wor" appReveal>
+      <div class="feature__inner container">
+        <div class="feature__media">
+          <div class="war">
+            <div class="castle">
+              <span class="castle__lbl"><app-icon name="castle" [size]="13" /> Equipe 1</span>
+              <span class="hp"><span class="hp__fill" style="width: 100%"></span></span>
+              <span class="hp__val">1000 / 1000</span>
+            </div>
+            <span class="war__vs"><app-icon name="sword" [size]="20" /></span>
+            <div class="castle castle--hit">
+              <span class="castle__lbl"><app-icon name="castle" [size]="13" /> Equipe 2</span>
+              <span class="hp"><span class="hp__fill hp__fill--low" style="width: 80%"></span></span>
+              <span class="hp__val">800 / 1000</span>
+              <span class="castle__dmg">crítico −200</span>
+            </div>
+          </div>
+          <div class="word">
+            <span>A</span><span>R</span><span class="word--off">_</span><span class="word--off">_</span>
+          </div>
+        </div>
+        <div class="feature__copy">
+          <span class="feature__eyebrow feature__eyebrow--wor"><app-icon name="castle" [size]="15" /> Tichr Wor</span>
+          <h2>A revisão da matéria vira uma guerra épica</h2>
+          <p>
+            Divida a turma em equipes: cada uma defende um castelo. Acertar
+            letras carrega o ataque, arriscar a palavra derruba o rival e as
+            dicas geradas por IA mantêm todo mundo no jogo. Castelos caem, mas
+            ninguém é eliminado — quem perde vira Usurpador e volta pra briga.
+          </p>
+          <a class="feature__cta btn-wor" routerLink="/cadastro">Forjar sua primeira batalha</a>
         </div>
       </div>
     </section>
@@ -234,7 +327,7 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
           <span class="feature__eyebrow"><app-icon name="book" [size]="15" /> Plano de aula</span>
           <h2>Todo o seu material, organizado num só lugar</h2>
           <p>
-            Centralize pautas, tópicos e o andamento do curso. O Qlick é a
+            Centralize pautas, tópicos e o andamento do curso. Os jogos são a
             diversão; o Plano de Aula é a sua fundação estruturada — e os tópicos
             acompanham a grade mesmo quando as aulas deslizam.
           </p>
@@ -522,6 +615,58 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
     .rank__bar span { display: block; height: 100%; border-radius: 999px; background: var(--primary); transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
     .rank__xp { flex: 0 0 auto; font-weight: 700; font-size: 0.82rem; font-variant-numeric: tabular-nums; color: var(--primary); min-width: 2.5rem; text-align: right; }
 
+    /* ===== Arena de jogos ===== */
+    .arena { padding: 4.5rem 0; text-align: center; }
+    .arena__eyebrow { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--primary); margin-bottom: 0.6rem; }
+    .arena__lead { max-width: 40rem; margin: 0 auto 2.5rem; color: var(--text-muted); font-size: 1.08rem; line-height: 1.6; }
+    .arena__grid { display: grid; grid-template-columns: 1fr; gap: 1.25rem; text-align: left; }
+    @media (min-width: 820px) { .arena__grid { grid-template-columns: repeat(3, 1fr); } }
+    .gcard { display: flex; flex-direction: column; gap: 0.55rem; padding: 1.6rem 1.4rem; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); border-top: 3px solid var(--border); transition: transform 0.15s ease, box-shadow 0.2s ease; }
+    .gcard:hover { transform: translateY(-4px); }
+    .gcard__ic { display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 14px; }
+    .gcard__tag { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+    .gcard__nome { margin: 0; font-size: 1.3rem; font-weight: 800; letter-spacing: -0.01em; }
+    .gcard__desc { margin: 0; color: var(--text-muted); font-size: 0.98rem; line-height: 1.55; flex: 1; }
+    .gcard__meta { display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 0.4rem; font-size: 0.82rem; font-weight: 700; }
+    /* Qlick — azul/primário */
+    .gcard--qlick { border-top-color: var(--primary); }
+    .gcard--qlick:hover { box-shadow: 0 16px 40px color-mix(in srgb, var(--primary) 22%, transparent); }
+    .gcard--qlick .gcard__ic { color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); }
+    .gcard--qlick .gcard__tag { color: var(--primary); }
+    .gcard__meta--free { color: var(--success, #16a34a); }
+    /* Wor — âmbar */
+    .gcard--wor { border-top-color: #b45309; }
+    .gcard--wor:hover { box-shadow: 0 16px 40px color-mix(in srgb, #b45309 26%, transparent); }
+    .gcard--wor .gcard__ic { color: #b45309; background: color-mix(in srgb, #b45309 14%, transparent); }
+    .gcard--wor .gcard__tag { color: #b45309; }
+    .gcard__meta--phd { color: #b45309; }
+    /* Em breve — apagado/tracejado */
+    .gcard--soon { border-style: dashed; border-top-style: solid; border-top-color: color-mix(in srgb, var(--text-muted) 50%, transparent); background: color-mix(in srgb, var(--surface-alt) 60%, var(--surface)); }
+    .gcard--soon .gcard__ic { color: var(--text-muted); background: color-mix(in srgb, var(--text-muted) 12%, transparent); }
+    .gcard--soon .gcard__tag { color: var(--text-muted); }
+    .gcard__meta--soon { color: var(--text-muted); }
+
+    /* Seção deep-dive do Wor — fundo âmbar próprio + mockup de batalha */
+    .feature--wor { background: color-mix(in srgb, #b45309 7%, var(--surface)); }
+    .feature__eyebrow--wor { color: #b45309; }
+    .btn-wor { display: inline-flex; align-items: center; justify-content: center; margin-top: 1.5rem; padding: 0.8rem 1.6rem; font-weight: 800; color: #fff; text-decoration: none; border-radius: var(--radius); background: linear-gradient(135deg, #b45309, #7c2d12); box-shadow: 0 10px 30px color-mix(in srgb, #b45309 40%, transparent); transition: transform 0.15s ease; }
+    .btn-wor:hover { transform: translateY(-2px); }
+    .war { display: flex; align-items: stretch; justify-content: center; gap: 0.75rem; width: min(400px, 100%); }
+    .castle { flex: 1; display: flex; flex-direction: column; gap: 0.45rem; padding: 1rem 1.1rem; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: 4px 4px 0 color-mix(in srgb, #b45309 18%, transparent); }
+    .castle__lbl { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: #b45309; }
+    .hp { display: block; height: 9px; border-radius: 999px; background: var(--surface-alt); overflow: hidden; }
+    .hp__fill { display: block; height: 100%; border-radius: 999px; background: #22c55e; }
+    .hp__fill--low { background: #f59e0b; }
+    .hp__val { font-size: 0.78rem; font-weight: 700; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+    .castle--hit { animation: shake 0.5s ease; }
+    .castle__dmg { align-self: flex-start; font-size: 0.75rem; font-weight: 800; color: #fff; padding: 0.15rem 0.5rem; border-radius: 999px; background: #ef4444; }
+    @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
+    @media (prefers-reduced-motion: reduce) { .castle--hit { animation: none; } }
+    .war__vs { display: flex; align-items: center; color: #b45309; }
+    .word { display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.1rem; }
+    .word span { display: flex; align-items: center; justify-content: center; width: 42px; height: 50px; border-radius: 10px; font-size: 1.5rem; font-weight: 800; color: #fff; background: linear-gradient(135deg, #b45309, #7c2d12); }
+    .word span.word--off { color: color-mix(in srgb, #b45309 55%, transparent); background: color-mix(in srgb, #b45309 12%, var(--surface)); border: 1px solid color-mix(in srgb, #b45309 30%, transparent); }
+
     /* ===== Planos ===== */
     .planos { padding: 4.5rem 0 5rem; text-align: center; }
     .planos__lead { max-width: 38rem; margin: 0 auto 2.5rem; color: var(--text-muted); }
@@ -578,6 +723,10 @@ export class LandingPage {
   protected readonly theme = inject(ThemeService);
 
   protected readonly faqs: ReadonlyArray<{ q: string; a: string }> = [
+    {
+      q: 'Quais jogos o Tichr tem?',
+      a: 'Hoje são dois: o Tichr Qlick (quiz ao vivo, grátis para começar) e o Tichr Wor (batalha de palavras em equipes, no plano PhD). Novas mecânicas estão em desenvolvimento e chegam ao arsenal nas próximas atualizações.',
+    },
     {
       q: 'Preciso cadastrar cada aula na mão?',
       a: 'Não. Você descreve as regras da turma (dias, modalidade, início) e o Tichr projeta toda a grade e a reorganiza sozinho quando surge um imprevisto.',

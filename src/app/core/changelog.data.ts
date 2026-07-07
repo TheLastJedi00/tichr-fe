@@ -18,6 +18,15 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.11.5',
+    data: '2026-07-06',
+    titulo: 'Página inicial: a arena dos dois jogos',
+    itens: [
+      { categoria: 'Melhoria', texto: 'A página inicial deixou de falar só do Tichr Qlick: agora apresenta uma "arena de jogos" com os dois jogos lado a lado — Tichr Qlick (quiz ao vivo) e Tichr Wor (batalha de palavras em equipes) — cada um com a sua identidade.' },
+      { categoria: 'Melhoria', texto: 'Nova seção de destaque do Tichr Wor com um mockup da batalha (castelos, vida e palavra sendo revelada) e um card "novos jogos em breve", deixando claro que o arsenal vai crescer.' },
+    ],
+  },
+  {
     versao: 'v0.11.4',
     data: '2026-07-06',
     titulo: 'Tichr Wor: rodada em equipe e descoberta como o Qlick',
