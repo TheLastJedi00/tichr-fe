@@ -411,11 +411,12 @@ type Ordenacao = 'nome' | 'pontuacao';
                 <span class="jogos-vazio__ic"><app-icon name="game" [size]="30" /></span>
                 <h3>Nenhum jogo nesta turma</h3>
                 <p class="muted">
-                  Crie um <strong>Tichr Qlick</strong> — quiz ao vivo — e vincule a esta
-                  turma para rodar em aula.
+                  Escolha um jogo do arsenal — <strong>Tichr Qlick</strong> (quiz ao vivo),
+                  <strong>Tichr Wor</strong> (batalha de palavras) e mais a caminho — e
+                  vincule a esta turma para rodar em aula.
                 </p>
-                <a class="btn-primary ir-jogos" routerLink="/jogos/qlick">
-                  Ir para o Tichr Qlick
+                <a class="btn-primary ir-jogos" routerLink="/jogos">
+                  Explorar os jogos
                 </a>
                 @if (qlicksDisponiveis().length) {
                   <button class="btn-outline ir-jogos" type="button" (click)="addJogoAberto.set(true)">
