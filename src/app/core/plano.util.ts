@@ -1,11 +1,20 @@
 import { PlanoAtual, Profile, Turma } from './models';
 
-/** Limite base de turmas ativas por plano (Infinity = ilimitado). */
+/**
+ * Teto tecnico de turmas ativas: o PIN da turma e de 2 digitos ('01'..'99') e
+ * nao pode repetir entre turmas ativas. Espelha `LIMITE_TURMAS_ATIVAS` do backend.
+ */
+const TETO_TURMAS = 99;
+
+/**
+ * Limite base de turmas ativas por plano. Nenhum plano e ilimitado — o teto do
+ * PIN de 2 digitos (99) vale para todos os pagos; o Estagiario fica em 5.
+ */
 const LIMITE_BASE_PLANO: Record<PlanoAtual, number> = {
-  ESTAGIARIO: 2,
-  GRADUADO: 5,
-  MESTRE: Infinity,
-  PHD: Infinity,
+  ESTAGIARIO: 5,
+  GRADUADO: TETO_TURMAS,
+  MESTRE: TETO_TURMAS,
+  PHD: TETO_TURMAS,
 };
 
 /** Rotulos amigaveis dos planos. */
@@ -39,10 +48,14 @@ export function podeGamificar(atual: PlanoAtual | undefined): boolean {
   return planoAtendeMinimo(atual, 'PHD');
 }
 
-/** Limite efetivo do professor: base do plano + slots avulsos comprados. */
+/**
+ * Limite efetivo do professor: base do plano + slots avulsos comprados, sempre
+ * limitado ao teto tecnico do PIN de 2 digitos (99).
+ */
 export function limiteDoPlano(profile: Profile | null): number {
   const plano = profile?.planoAtual ?? 'ESTAGIARIO';
-  return LIMITE_BASE_PLANO[plano] + (profile?.slotsAdicionaisComprados ?? 0);
+  const base = LIMITE_BASE_PLANO[plano] + (profile?.slotsAdicionaisComprados ?? 0);
+  return Math.min(base, TETO_TURMAS);
 }
 
 /** Hoje como 'YYYY-MM-DD' (mesma convenca de calendario do backend). */
