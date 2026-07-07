@@ -108,8 +108,8 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
               Perguntas de múltipla escolha na tela, cada aluno responde em
               botões coloridos e o placar sobe na hora. A turma vibra junto.
             </p>
-            <span class="gcard__meta gcard__meta--free">
-              <app-icon name="check" [size]="14" /> Grátis para começar
+            <span class="gcard__meta gcard__meta--phd">
+              <app-icon name="trophy" [size]="14" /> Plano PhD
             </span>
           </article>
 
@@ -633,7 +633,6 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
     .gcard--qlick:hover { box-shadow: 0 16px 40px color-mix(in srgb, var(--primary) 22%, transparent); }
     .gcard--qlick .gcard__ic { color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); }
     .gcard--qlick .gcard__tag { color: var(--primary); }
-    .gcard__meta--free { color: var(--success, #16a34a); }
     /* Wor — âmbar */
     .gcard--wor { border-top-color: #b45309; }
     .gcard--wor:hover { box-shadow: 0 16px 40px color-mix(in srgb, #b45309 26%, transparent); }
@@ -733,7 +732,7 @@ export class LandingPage {
   protected readonly faqs: ReadonlyArray<{ q: string; a: string }> = [
     {
       q: 'Quais jogos o Tichr tem?',
-      a: 'Hoje são dois: o Tichr Qlick (quiz ao vivo, grátis para começar) e o Tichr Wor (batalha de palavras em equipes, no plano PhD). Novas mecânicas estão em desenvolvimento e chegam ao arsenal nas próximas atualizações.',
+      a: 'Hoje são dois: o Tichr Qlick (quiz ao vivo) e o Tichr Wor (batalha de palavras em equipes) — ambos, como toda a gamificação, fazem parte do plano PhD. Você pode conhecer tudo nos planos gratuitos e desbloquear quando quiser. Novas mecânicas estão em desenvolvimento e chegam ao arsenal nas próximas atualizações.',
     },
     {
       q: 'Preciso cadastrar cada aula na mão?',
