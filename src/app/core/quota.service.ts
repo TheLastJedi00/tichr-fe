@@ -22,16 +22,11 @@ export class QuotaService {
     () => this.turmas().filter((t) => turmaContaComoAtiva(t)).length,
   );
 
-  /** Limite efetivo do plano (Infinity = ilimitado). */
+  /** Limite efetivo do plano (sempre finito: teto do PIN de 2 digitos = 99). */
   readonly limite = computed(() => limiteDoPlano(this.profileService.profile()));
 
-  /** True quando o plano e ilimitado (Mestre/PhD). */
-  readonly ilimitado = computed(() => this.limite() === Infinity);
-
   /** True quando o professor ja bateu o limite. */
-  readonly noLimite = computed(
-    () => !this.ilimitado() && this.ativas() >= this.limite(),
-  );
+  readonly noLimite = computed(() => this.ativas() >= this.limite());
 
   /** Recarrega as turmas para recalcular o consumo. */
   refresh(): Observable<Turma[]> {

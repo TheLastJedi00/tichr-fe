@@ -53,7 +53,7 @@ import { Spinner } from '../../ui/spinner/spinner';
         <app-card>
           <div class="upsell">
             <strong>Quer desbloquear mais?</strong>
-            <p>Planos superiores liberam gamificação, dinâmicas, Tichr Qlick e turmas ilimitadas.</p>
+            <p>Planos superiores liberam gestão de alunos e equipes, gamificação e o ecossistema de jogos (Tichr Qlick e Wor).</p>
             <a class="btn-primary" routerLink="/planos">Ver planos e fazer upgrade</a>
           </div>
         </app-card>

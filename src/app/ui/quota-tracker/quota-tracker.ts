@@ -22,16 +22,12 @@ import { NOME_PLANO } from '../../core/plano.util';
         <span class="quota__label">Turmas ativas</span>
         <span class="quota__plano">{{ nomePlano() }}</span>
       </div>
-      @if (quota.ilimitado()) {
-        <span class="quota__count">Ilimitadas</span>
-      } @else {
-        <span class="quota__count" [class.quota__count--full]="quota.noLimite()">
-          {{ quota.ativas() }}/{{ quota.limite() }}
-        </span>
-        <div class="quota__bar">
-          <div class="quota__fill" [style.width.%]="pct()"></div>
-        </div>
-      }
+      <span class="quota__count" [class.quota__count--full]="quota.noLimite()">
+        {{ quota.ativas() }}/{{ quota.limite() }}
+      </span>
+      <div class="quota__bar">
+        <div class="quota__fill" [style.width.%]="pct()"></div>
+      </div>
     </div>
   `,
   styles: `

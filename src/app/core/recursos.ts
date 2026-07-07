@@ -2,6 +2,7 @@ import { PlanoAtual } from './models';
 
 /** Recursos gerenciaveis sujeitos a gating por plano. */
 export type Recurso =
+  | 'CADASTRO_ALUNOS'
   | 'GESTAO_EQUIPES'
   | 'DINAMICAS'
   | 'GAMIFICACAO'
@@ -11,6 +12,8 @@ export type Recurso =
 
 /** Plano minimo exigido por recurso (ponto unico de verdade do gating). */
 export const RECURSO_PLANO_MINIMO: Record<Recurso, PlanoAtual> = {
+  // Gestao nominal de alunos vira o ponto de virada do plano Mestre.
+  CADASTRO_ALUNOS: 'MESTRE',
   GESTAO_EQUIPES: 'MESTRE',
   DINAMICAS: 'MESTRE',
   GAMIFICACAO: 'PHD',
@@ -22,6 +25,7 @@ export const RECURSO_PLANO_MINIMO: Record<Recurso, PlanoAtual> = {
 
 /** Rotulo amigavel de cada recurso (usado nas telas de bloqueio). */
 export const NOME_RECURSO: Record<Recurso, string> = {
+  CADASTRO_ALUNOS: 'Cadastro de alunos',
   GESTAO_EQUIPES: 'Gestão de equipes',
   DINAMICAS: 'Dinâmicas de grupos',
   GAMIFICACAO: 'Portal do aluno + Gamificação',

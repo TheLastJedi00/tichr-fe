@@ -173,6 +173,7 @@ type Ordenacao = 'nome' | 'pontuacao';
         }
 
         @case ('alunos') {
+          @if (podeGerenciarAlunos()) {
           <app-card>
             <form class="add" (submit)="$event.preventDefault(); adicionar()">
               <input
@@ -232,6 +233,13 @@ type Ordenacao = 'nome' | 'pontuacao';
               </ul>
             }
           </app-card>
+          } @else {
+            <app-recurso-bloqueado
+              recurso="Cadastro de alunos"
+              planoNecessario="Mestre"
+              (upgrade)="irParaPlanosAlunos()"
+            />
+          }
         }
 
         @case ('equipes') {
@@ -1002,6 +1010,11 @@ export class TurmaDetalhePage {
     planoAtendeMinimo(this.profileService.profile()?.planoAtual, 'MESTRE'),
   );
 
+  /** Cadastro nominal de alunos também é recurso do plano Mestre (gate da aba Alunos). */
+  protected readonly podeGerenciarAlunos = computed(() =>
+    planoAtendeMinimo(this.profileService.profile()?.planoAtual, 'MESTRE'),
+  );
+
   /** Pontuação/gamificação é exclusiva do plano PhD. */
   protected readonly podePontuar = computed(() =>
     podeGamificar(this.profileService.profile()?.planoAtual),
@@ -1121,6 +1134,12 @@ export class TurmaDetalhePage {
   protected irParaPlanos(): void {
     this.router.navigate(['/planos'], {
       queryParams: { recurso: 'GESTAO_EQUIPES' },
+    });
+  }
+
+  protected irParaPlanosAlunos(): void {
+    this.router.navigate(['/planos'], {
+      queryParams: { recurso: 'CADASTRO_ALUNOS' },
     });
   }
 

@@ -18,6 +18,17 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.12.0',
+    data: '2026-07-07',
+    titulo: 'Planos: novos limites e recursos por nível',
+    itens: [
+      { categoria: 'Melhoria', texto: 'O plano Estagiário agora permite até 5 turmas simultâneas (antes eram 2), e todos os planos pagos vão até 99 turmas.' },
+      { categoria: 'Melhoria', texto: 'O plano de aula modular — arrastar tópicos direto para as aulas da grade — passou a estar disponível já no plano Graduado.' },
+      { categoria: 'Melhoria', texto: 'O cadastro nominal de alunos passou a fazer parte do plano Mestre. Nos planos abaixo, a aba de alunos mostra um convite para desbloquear o recurso.' },
+      { categoria: 'Melhoria', texto: 'Textos dos planos atualizados: a diferença entre os planos pagos passa a ser pelos recursos (planejamento, gestão de alunos e equipes, gamificação e jogos), não mais pela quantidade de turmas.' },
+    ],
+  },
+  {
     versao: 'v0.11.5',
     data: '2026-07-06',
     titulo: 'Página inicial: a arena dos dois jogos',
