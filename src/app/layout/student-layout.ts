@@ -6,6 +6,7 @@ import {
 } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { StudentAuthService } from '../core/student-auth.service';
+import { ThemeService } from '../core/theme.service';
 import { Icon, IconName } from '../ui/icon/icon';
 
 interface NavItem {
@@ -26,7 +27,17 @@ interface NavItem {
   template: `
     <header class="topo">
       <span class="topo__marca">Tichr</span>
-      <button class="sair" type="button" (click)="sair()">Sair</button>
+      <div class="topo__acoes">
+        <button
+          class="tema"
+          type="button"
+          [attr.aria-label]="theme.theme() === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'"
+          (click)="theme.toggle()"
+        >
+          <app-icon [name]="theme.theme() === 'dark' ? 'sun' : 'moon'" [size]="18" />
+        </button>
+        <button class="sair" type="button" (click)="sair()">Sair</button>
+      </div>
     </header>
 
     <main class="conteudo">
@@ -62,6 +73,19 @@ interface NavItem {
       color: #fff;
     }
     .topo__marca { font-weight: 800; letter-spacing: -0.02em; }
+    .topo__acoes { display: flex; align-items: center; gap: 0.6rem; }
+    .tema {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.15);
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+    }
     .sair {
       font: inherit;
       font-weight: 600;
@@ -105,6 +129,7 @@ interface NavItem {
 export class StudentLayout {
   private readonly studentAuth = inject(StudentAuthService);
   private readonly router = inject(Router);
+  protected readonly theme = inject(ThemeService);
 
   /** Ranking some da barra quando a turma o desativa. */
   protected readonly nav = computed<NavItem[]>(() => [
