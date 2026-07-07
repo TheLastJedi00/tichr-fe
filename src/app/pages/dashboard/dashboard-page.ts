@@ -457,12 +457,12 @@ export class DashboardPage {
     });
   }
 
-  /** Carrega o tópico alocado à próxima aula (Mestre+), quando há dados. */
+  /** Carrega o tópico alocado à próxima aula (Graduado+, dono do quadro modular). */
   private enriquecerProxima(): void {
     const p = this.proxima();
     const t = this.proximaTurma();
     const plano = this.profileService.profile()?.planoAtual;
-    if (!p || !t?.disciplina || !planoAtendeMinimo(plano, 'MESTRE')) {
+    if (!p || !t?.disciplina || !planoAtendeMinimo(plano, 'GRADUADO')) {
       return;
     }
     const chave = `${t.id}:${p.numero}`;

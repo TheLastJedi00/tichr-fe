@@ -22,8 +22,8 @@ import { Icon } from '../../ui/icon/icon';
 import { Spinner } from '../../ui/spinner/spinner';
 
 /**
- * Plano de Aula: escopo geral por disciplina (Graduado) e, no plano Mestre,
- * backlog de tópicos + quadro de alocação (drag & drop) na grade da turma.
+ * Plano de Aula (Graduado): escopo geral por disciplina + backlog de tópicos e
+ * quadro de alocação (drag & drop) na grade da turma — tudo no mesmo plano.
  */
 @Component({
   selector: 'app-plano-aula-page',
@@ -82,7 +82,7 @@ import { Spinner } from '../../ui/spinner/spinner';
         </button>
       </app-card>
 
-      @if (podeMestre()) {
+      @if (podeModular()) {
         <div cdkDropListGroup class="micro">
           <app-card>
             <h2 class="sub">Tópicos da disciplina</h2>
@@ -229,7 +229,7 @@ export class PlanoAulaPage {
   protected readonly contexto = signal('');
   private readonly planos = signal<PlanoAula[]>([]);
 
-  // Mestre: tópicos + alocação.
+  // Graduado: tópicos + alocação (quadro modular).
   protected readonly topicos = signal<Topico[]>([]);
   protected readonly entradaTopico = signal('');
   protected readonly salvandoTopico = signal(false);
@@ -241,8 +241,9 @@ export class PlanoAulaPage {
   protected readonly disciplinas = computed(
     () => this.profileService.profile()?.disciplinas ?? [],
   );
-  protected readonly podeMestre = computed(() =>
-    planoAtendeMinimo(this.profileService.profile()?.planoAtual, 'MESTRE'),
+  /** Quadro modular (tópicos + alocação): liberado já no plano Graduado. */
+  protected readonly podeModular = computed(() =>
+    planoAtendeMinimo(this.profileService.profile()?.planoAtual, 'GRADUADO'),
   );
   protected readonly turmasDaDisciplina = computed(() =>
     this.turmas().filter((t) => t.disciplina === this.disciplinaSel()),
@@ -268,7 +269,7 @@ export class PlanoAulaPage {
         this.selecionar(primeira);
         this.carregando.set(false);
       });
-      if (this.podeMestre()) {
+      if (this.podeModular()) {
         this.api.getTurmas().subscribe((t) => this.turmas.set(t));
         this.api.getSessoesSemana().subscribe((s) => this.sessoes.set(s));
       }
@@ -289,7 +290,7 @@ export class PlanoAulaPage {
     this.contexto.set(
       this.planos().find((p) => p.disciplina === disciplina)?.contextoGeral ?? '',
     );
-    if (this.podeMestre() && disciplina) {
+    if (this.podeModular() && disciplina) {
       this.api.getTopicos(disciplina).subscribe((t) => this.topicos.set(t));
       const turma = this.turmasDaDisciplina()[0];
       this.selecionarTurma(turma?.id ?? '');
