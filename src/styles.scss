@@ -169,3 +169,17 @@ a {
     color: var(--primary);
   }
 }
+
+/* Linha de ações dos modais (slot [modal-actions]).
+   O <div modal-actions> é o wrapper padrão dos botões. Sem esta regra, o gap
+   de .modal__actions recai sobre o próprio div (filho único do slot) e os
+   botões internos ficam colados. Padroniza a linha e o espaçamento de 2rem
+   entre os botões. Global porque conteúdo projetado não é alcançado pelo CSS
+   encapsulado do componente Modal. */
+div[modal-actions] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2rem;
+}

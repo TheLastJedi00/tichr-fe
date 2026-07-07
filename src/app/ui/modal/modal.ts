@@ -70,8 +70,9 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
     .modal__actions {
       display: flex;
       flex-wrap: wrap;
+      align-items: center;
       justify-content: flex-end;
-      gap: 0.6rem;
+      gap: 2rem;
       margin-top: 1.25rem;
     }
     .modal__actions:empty {
