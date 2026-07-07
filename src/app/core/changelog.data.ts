@@ -18,6 +18,16 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.11.4',
+    data: '2026-07-06',
+    titulo: 'Tichr Wor: rodada em equipe e descoberta como o Qlick',
+    itens: [
+      { categoria: 'Melhoria', texto: 'O Tichr Wor agora aparece como um card no painel do aluno (igual ao Tichr Qlick), sem uma aba separada — o aluno descobre a batalha do dia e entra por ali.' },
+      { categoria: 'Melhoria', texto: 'Nova dinâmica de rodada: cada integrante da equipe joga uma letra e vota em qual castelo atacar; se todos acertarem, o ataque é crítico. As equipes são formadas automaticamente (duplas a partir de 4 alunos, trios a partir de 6, quartetos a partir de 8).' },
+      { categoria: 'Melhoria', texto: 'No fim da batalha ficou claro quem venceu: a equipe campeã aparece em destaque, com confete para quem ganhou.' },
+    ],
+  },
+  {
     versao: 'v0.11.3',
     data: '2026-07-06',
     titulo: 'Tichr Wor: sala do professor e entrada dos alunos',

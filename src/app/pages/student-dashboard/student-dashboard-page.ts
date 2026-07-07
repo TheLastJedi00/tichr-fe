@@ -8,9 +8,10 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { formatarData } from '../../core/date-format';
-import { Aluno, ProgressoTurma, QlickDoDia, Sessao } from '../../core/models';
+import { Aluno, ProgressoTurma, QlickDoDia, Sessao, WorMatchView } from '../../core/models';
 import { StudentAuthService } from '../../core/student-auth.service';
 import { TurmaApiService } from '../../core/turma-api.service';
+import { WorApiService } from '../../core/wor-api.service';
 import { Card } from '../../ui/card/card';
 import { Icon } from '../../ui/icon/icon';
 import { Spinner } from '../../ui/spinner/spinner';
@@ -35,6 +36,17 @@ import { XpBar } from '../../ui/xp-bar/xp-bar';
           <span>
             <strong>Tichr Qlick de hoje</strong>
             <span class="qlick__sub">{{ q.titulo }} · toque para entrar</span>
+          </span>
+          <span class="qlick__seta">→</span>
+        </a>
+      }
+
+      @if (worDoDia(); as w) {
+        <a class="qlick qlick--wor" routerLink="/aluno/wor">
+          <span class="qlick__pulse"></span>
+          <span>
+            <strong>Tichr Wor de hoje</strong>
+            <span class="qlick__sub">{{ w.match.nome }} · toque para entrar</span>
           </span>
           <span class="qlick__seta">→</span>
         </a>
@@ -118,6 +130,7 @@ import { XpBar } from '../../ui/xp-bar/xp-bar';
     .qlick strong { display: block; }
     .qlick__sub { font-size: 0.82rem; opacity: 0.9; }
     .qlick__seta { margin-left: auto; font-weight: 800; font-size: 1.2rem; }
+    .qlick--wor { background: linear-gradient(135deg, #b45309, #7c2d12); box-shadow: 0 10px 30px color-mix(in srgb, #b45309 30%, transparent); }
     .qlick__pulse { flex: 0 0 auto; width: 12px; height: 12px; border-radius: 999px; background: #fff; animation: qpulse 1.2s ease-in-out infinite; }
     @keyframes qpulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.6); } 50% { box-shadow: 0 0 0 6px rgba(255,255,255,0); } }
     @media (prefers-reduced-motion: reduce) { .qlick__pulse { animation: none; } }
@@ -125,6 +138,7 @@ import { XpBar } from '../../ui/xp-bar/xp-bar';
 })
 export class StudentDashboardPage {
   private readonly api = inject(TurmaApiService);
+  private readonly worApi = inject(WorApiService);
   private readonly studentAuth = inject(StudentAuthService);
   private readonly destroyRef = inject(DestroyRef);
   protected readonly formatarData = formatarData;
@@ -135,6 +149,7 @@ export class StudentDashboardPage {
   protected readonly nomePontuacao = this.studentAuth.nomePontuacao;
   protected readonly progresso = signal<ProgressoTurma | null>(null);
   protected readonly qlickDoDia = signal<QlickDoDia | null>(null);
+  protected readonly worDoDia = signal<WorMatchView | null>(null);
   private readonly sessoes = signal<Sessao[]>([]);
   private readonly topicos = signal<Map<number, string>>(new Map());
   private readonly hoje = new Date().toISOString().slice(0, 10);
@@ -174,11 +189,13 @@ export class StudentDashboardPage {
         this.topicos.set(new Map(r.topicos.map((t) => [t.numeroAula, t.topico]))),
       error: () => {},
     });
-    // Sonda o "Qlick do dia": o card surge assim que o professor roda a partida,
-    // sem o aluno recarregar o painel. Para quando a partida já apareceu.
+    // Sonda os jogos do dia (Qlick e Wor): o card surge assim que o professor
+    // roda a partida, sem o aluno recarregar. Para quando a partida já apareceu.
     this.buscarQlick();
+    this.buscarWor();
     const sonda = setInterval(() => {
       if (!this.qlickDoDia()) this.buscarQlick();
+      if (!this.worDoDia()) this.buscarWor();
     }, 5000);
     this.destroyRef.onDestroy(() => clearInterval(sonda));
   }
@@ -186,6 +203,13 @@ export class StudentDashboardPage {
   private buscarQlick(): void {
     this.api.getQlickDoDia().subscribe({
       next: (q) => this.qlickDoDia.set(q),
+      error: () => {},
+    });
+  }
+
+  private buscarWor(): void {
+    this.worApi.partidaAtual().subscribe({
+      next: (w) => this.worDoDia.set(w),
       error: () => {},
     });
   }

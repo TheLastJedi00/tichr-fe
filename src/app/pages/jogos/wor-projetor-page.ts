@@ -54,23 +54,21 @@ import { Spinner } from '../../ui/spinner/spinner';
           </div>
 
           @if (!teams().length) {
-            <label class="campo">
-              <span>Número de equipes</span>
-              <input class="tichr-input" type="number" min="2" max="6" [value]="numEquipes()" (input)="numEquipes.set(+$any($event.target).value)" />
-            </label>
             <button
               class="btn-primary full"
               type="button"
-              [disabled]="ocupado() || m.inscritos.length < numEquipes()"
+              [disabled]="ocupado() || m.inscritos.length < 2"
               (click)="distribuir()"
             >
               Distribuir equipes ({{ m.inscritos.length }} na sala)
             </button>
-            @if (m.inscritos.length < numEquipes()) {
-              <p class="muted center">
-                É preciso pelo menos {{ numEquipes() }} alunos na sala (1 por equipe). Peça para entrarem pelo portal com o PIN da turma.
-              </p>
-            }
+            <p class="muted center">
+              @if (m.inscritos.length < 2) {
+                É preciso pelo menos 2 alunos na sala. Peça para entrarem pelo portal com o PIN da turma.
+              } @else {
+                As equipes são formadas automaticamente: duplas a partir de 4 alunos, trios a partir de 6, quartetos a partir de 8.
+              }
+            </p>
           } @else {
             <div class="teams">
               @for (t of teams(); track t.id) {
@@ -107,7 +105,7 @@ import { Spinner } from '../../ui/spinner/spinner';
                   @if (t.isHorde) { <span class="tag">Horda</span> }
                   @if (t.id === m.turnoEquipeId) { <span class="tag tag--turno">Turno</span> }
                 </span>
-                <span class="hpbar"><span [style.width.%]="t.hp" [style.background]="t.cor"></span></span>
+                <span class="hpbar"><span [style.width.%]="t.hp / 10" [style.background]="t.cor"></span></span>
                 <span class="hp">{{ t.hp }} HP</span>
               </div>
             }
@@ -226,7 +224,6 @@ export class WorProjetorPage {
     initialValue: [] as WorTeam[],
   });
 
-  protected readonly numEquipes = signal(2);
   protected readonly ocupado = signal(false);
   protected readonly erro = signal<string | null>(null);
   protected readonly pin = signal<string | null>(null);
@@ -264,7 +261,7 @@ export class WorProjetorPage {
   }
 
   protected distribuir(): void {
-    this.acao(this.api.distribuir(this.matchId, this.numEquipes()));
+    this.acao(this.api.distribuir(this.matchId));
   }
   protected iniciar(): void {
     this.acao(this.api.iniciar(this.matchId));

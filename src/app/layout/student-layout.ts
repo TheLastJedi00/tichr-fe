@@ -110,7 +110,7 @@ export class StudentLayout {
   protected readonly nav = computed<NavItem[]>(() => [
     { label: 'Início', path: '/aluno/dashboard', icon: 'home' },
     { label: 'Agenda', path: '/aluno/agenda', icon: 'calendar' },
-    { label: 'Wor', path: '/aluno/wor', icon: 'castle' },
+    // O Tichr Wor (como o Qlick) é descoberto por um card no painel, não por aba.
     ...(this.studentAuth.rankingAtivo()
       ? [{ label: 'Ranking', path: '/aluno/ranking', icon: 'trophy' as IconName }]
       : []),
