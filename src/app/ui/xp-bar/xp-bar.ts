@@ -4,24 +4,12 @@ import {
   computed,
   input,
 } from '@angular/core';
-
-interface Nivel {
-  nome: string;
-  min: number;
-  max: number;
-}
-
-/** Trilha de níveis por XP (Prata → Ouro → Platina → Diamante). */
-const NIVEIS: Nivel[] = [
-  { nome: 'Prata', min: 0, max: 500 },
-  { nome: 'Ouro', min: 501, max: 1000 },
-  { nome: 'Platina', min: 1001, max: 2000 },
-  { nome: 'Diamante', min: 2001, max: Infinity },
-];
+import { LimiaresNivel, nivelDeXp } from '../../core/nivel.util';
 
 /**
  * Barra de XP animada: mostra o nível atual e o progresso até o próximo.
  * A porcentagem é derivada por Signal (input reativo) para animar suave.
+ * Trilha Bronze → Prata → Ouro → Diamante → Platina com limiares da turma.
  */
 @Component({
   selector: 'app-xp-bar',
@@ -30,7 +18,7 @@ const NIVEIS: Nivel[] = [
   template: `
     <div class="xp">
       <div class="xp__top">
-        <span class="xp__nivel">{{ nivel().nome }}</span>
+        <span class="xp__nivel" [style.color]="nivel().cor">{{ nivel().nome }}</span>
         <span class="xp__pontos">{{ xp() }} {{ unidade() }}</span>
       </div>
       <div class="xp__trilho">
@@ -72,25 +60,25 @@ const NIVEIS: Nivel[] = [
 export class XpBar {
   readonly xp = input(0);
   readonly unidade = input('XP');
+  /** Limiares de nível da turma; ausente → usa os defaults. */
+  readonly limiares = input<Partial<LimiaresNivel> | null>(null);
 
-  protected readonly nivel = computed<Nivel>(
-    () => NIVEIS.find((n) => this.xp() <= n.max) ?? NIVEIS[NIVEIS.length - 1],
-  );
+  protected readonly nivel = computed(() => nivelDeXp(this.xp(), this.limiares()));
 
   protected readonly pct = computed(() => {
     const n = this.nivel();
-    if (!isFinite(n.max)) {
+    if (n.proxMin === null) {
       return 100;
     }
-    const faixa = n.max - n.min + 1;
-    return Math.min(100, Math.max(0, ((this.xp() - n.min) / faixa) * 100));
+    const faixa = n.proxMin - n.atualMin;
+    return Math.min(100, Math.max(0, ((this.xp() - n.atualMin) / faixa) * 100));
   });
 
   protected readonly legenda = computed(() => {
     const n = this.nivel();
-    if (!isFinite(n.max)) {
+    if (n.proxMin === null) {
       return 'Nível máximo alcançado!';
     }
-    return `Faltam ${n.max - this.xp() + 1} ${this.unidade()} para o próximo nível`;
+    return `Faltam ${n.proxMin - this.xp()} ${this.unidade()} para o próximo nível`;
   });
 }

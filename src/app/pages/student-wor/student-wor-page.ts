@@ -78,8 +78,10 @@ const LIMITE_RODADA_S = 60;
             <span class="fort__nome">
               <app-icon [name]="t.isHorde ? 'sword' : 'castle'" [size]="18" /> {{ t.nome }}
             </span>
+            <span class="fort__pontos"><app-icon name="trophy" [size]="14" /> {{ t.pontos ?? 0 }} pts</span>
             <span class="hpbar"><span [style.width.%]="hpPct(t.hp)"></span></span>
             <span class="hp">{{ t.hp }} HP</span>
+            <span class="fort__dica">O dano vira pontos: desempata e vale ranking.</span>
           </header>
 
           @if (m.status === 'EM_ANDAMENTO') {
@@ -235,6 +237,8 @@ const LIMITE_RODADA_S = 60;
     .aguarde { text-align: center; color: var(--text-muted); font-weight: 600; }
     .fort { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.9rem; border-radius: 14px; border: 2px solid var(--cor); background: color-mix(in srgb, var(--cor) 8%, var(--surface)); }
     .fort__nome { display: flex; align-items: center; gap: 0.4rem; font-weight: 800; }
+    .fort__pontos { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 1.05rem; font-weight: 800; color: var(--cor); font-variant-numeric: tabular-nums; }
+    .fort__dica { font-size: 0.72rem; color: var(--text-muted); }
     .hpbar { height: 12px; border-radius: 999px; background: var(--surface-alt); overflow: hidden; }
     .hpbar span { display: block; height: 100%; background: var(--cor); transition: width 0.4s ease; }
     .hp { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); }
