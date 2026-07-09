@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { RouterLink } from '@angular/router';
 import { AdminApiService } from '../../core/admin-api.service';
 import { AdminMetrics, PlanoAtual } from '../../core/models';
+import { ProfileService } from '../../core/profile.service';
 import { Card } from '../../ui/card/card';
 import { Icon } from '../../ui/icon/icon';
 import { Spinner } from '../../ui/spinner/spinner';
@@ -47,6 +48,30 @@ const PLANOS: PlanoAtual[] = ['ESTAGIARIO', 'GRADUADO', 'MESTRE', 'PHD'];
             </li>
           }
         </ul>
+      </app-card>
+
+      <app-card title="Meu plano">
+        <p class="meu__sub">Troca direta do seu próprio plano, sem cobrança.</p>
+        <div class="meu">
+          <select
+            class="tichr-input"
+            [value]="meuPlano()"
+            (change)="meuPlano.set($any($event.target).value)"
+          >
+            @for (p of planos; track p) {
+              <option [value]="p">{{ rotulo(p) }}</option>
+            }
+          </select>
+          <button
+            class="btn-primary"
+            type="button"
+            (click)="aplicarMeuPlano()"
+            [disabled]="aplicando() || meuPlano() === planoAtual()"
+          >
+            {{ aplicando() ? 'Aplicando…' : 'Aplicar' }}
+          </button>
+        </div>
+        @if (msg()) { <p class="meu__msg">{{ msg() }}</p> }
       </app-card>
 
       <nav class="atalhos">
@@ -100,6 +125,10 @@ const PLANOS: PlanoAtual[] = ['ESTAGIARIO', 'GRADUADO', 'MESTRE', 'PHD'];
       background: color-mix(in srgb, var(--primary) 6%, var(--surface));
     }
     .planos__val { font-weight: 700; }
+    .meu__sub { margin: 0 0 0.75rem; color: var(--text-muted); font-size: 0.85rem; }
+    .meu { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .meu select { flex: 1; min-width: 150px; }
+    .meu__msg { margin: 0.6rem 0 0; color: var(--success); font-size: 0.85rem; font-weight: 600; }
     .atalhos {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -123,10 +152,18 @@ const PLANOS: PlanoAtual[] = ['ESTAGIARIO', 'GRADUADO', 'MESTRE', 'PHD'];
 })
 export class AdminDashboardPage {
   private readonly api = inject(AdminApiService);
+  private readonly profileService = inject(ProfileService);
 
   protected readonly planos = PLANOS;
   protected readonly metrics = signal<AdminMetrics | null>(null);
   protected readonly carregando = signal(true);
+
+  /** Plano atual do admin (perfil reativo) e a seleção do switcher. */
+  protected readonly planoAtual = () =>
+    this.profileService.profile()?.planoAtual ?? 'ESTAGIARIO';
+  protected readonly meuPlano = signal<PlanoAtual>('ESTAGIARIO');
+  protected readonly aplicando = signal(false);
+  protected readonly msg = signal<string | null>(null);
 
   constructor() {
     this.api.metrics().subscribe({
@@ -135,6 +172,34 @@ export class AdminDashboardPage {
         this.carregando.set(false);
       },
       error: () => this.carregando.set(false),
+    });
+    // Sincroniza a seleção com o plano atual do admin (carrega o perfil se preciso).
+    if (this.profileService.profile()) {
+      this.meuPlano.set(this.planoAtual());
+    } else {
+      this.profileService.load().subscribe({
+        next: (p) => this.meuPlano.set(p.planoAtual ?? 'ESTAGIARIO'),
+        error: () => {},
+      });
+    }
+  }
+
+  /** Troca o próprio plano via override de admin (sem cobrança) e recarrega o perfil. */
+  protected aplicarMeuPlano(): void {
+    const uid = this.profileService.profile()?.uid;
+    if (!uid || this.meuPlano() === this.planoAtual()) return;
+    this.aplicando.set(true);
+    this.msg.set(null);
+    this.api.alterarPlano(uid, this.meuPlano()).subscribe({
+      next: () => {
+        this.profileService.load().subscribe();
+        this.msg.set(`Seu plano agora é ${this.rotulo(this.meuPlano())}.`);
+        this.aplicando.set(false);
+      },
+      error: () => {
+        this.msg.set('Não foi possível trocar o plano.');
+        this.aplicando.set(false);
+      },
     });
   }
 
