@@ -11,6 +11,7 @@ import {
 import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CriarTurmaPayload, TipoModalidade, Turma } from '../../core/models';
+import { NIVEIS_DEFAULT } from '../../core/nivel.util';
 import { podeGamificar } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { Card } from '../../ui/card/card';
@@ -183,6 +184,31 @@ const CORES = [
               <input type="checkbox" formControlName="rankingAtivo" />
               <span>Ranking ativo</span>
             </label>
+
+            <div class="campo">
+              <span>Níveis — XP para alcançar cada tier</span>
+              <div class="niveis">
+                <label>
+                  <span>Prata</span>
+                  <input class="tichr-input" type="number" min="1" formControlName="nivelPrata" />
+                </label>
+                <label>
+                  <span>Ouro</span>
+                  <input class="tichr-input" type="number" min="1" formControlName="nivelOuro" />
+                </label>
+                <label>
+                  <span>Diamante</span>
+                  <input class="tichr-input" type="number" min="1" formControlName="nivelDiamante" />
+                </label>
+                <label>
+                  <span>Platina</span>
+                  <input class="tichr-input" type="number" min="1" formControlName="nivelPlatina" />
+                </label>
+              </div>
+              <p class="hint">
+                Bronze começa em 0. Use valores crescentes: Prata &lt; Ouro &lt; Diamante &lt; Platina.
+              </p>
+            </div>
           }
         </fieldset>
 
@@ -294,6 +320,16 @@ const CORES = [
       font-weight: 600;
       color: var(--text-muted);
     }
+    .niveis { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 0.75rem; }
+    @media (min-width: 520px) { .niveis { grid-template-columns: repeat(4, 1fr); } }
+    .niveis label { display: block; }
+    .niveis label > span {
+      display: block;
+      margin-bottom: 0.3rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
   `,
 })
 export class TurmaForm {
@@ -326,6 +362,10 @@ export class TurmaForm {
     rankingAtivo: [true],
     rotuloAdicionar: ['Adicionar'],
     rotuloRemover: ['Remover'],
+    nivelPrata: [NIVEIS_DEFAULT.prata],
+    nivelOuro: [NIVEIS_DEFAULT.ouro],
+    nivelDiamante: [NIVEIS_DEFAULT.diamante],
+    nivelPlatina: [NIVEIS_DEFAULT.platina],
   });
 
   private readonly modalidade = signal<TipoModalidade>('GRADE_FIXA');
@@ -379,6 +419,10 @@ export class TurmaForm {
         rankingAtivo: t.rankingAtivo ?? true,
         rotuloAdicionar: t.rotuloAdicionar ?? 'Adicionar',
         rotuloRemover: t.rotuloRemover ?? 'Remover',
+        nivelPrata: t.nivelPrata ?? NIVEIS_DEFAULT.prata,
+        nivelOuro: t.nivelOuro ?? NIVEIS_DEFAULT.ouro,
+        nivelDiamante: t.nivelDiamante ?? NIVEIS_DEFAULT.diamante,
+        nivelPlatina: t.nivelPlatina ?? NIVEIS_DEFAULT.platina,
       });
       this.modalidade.set(t.tipoModalidade);
       this.pontuacaoAtivaSig.set(t.pontuacaoAtiva ?? true);
@@ -411,6 +455,10 @@ export class TurmaForm {
       rankingAtivo: this.podeGamif() && raw.rankingAtivo,
       rotuloAdicionar: raw.rotuloAdicionar.trim() || 'Adicionar',
       rotuloRemover: raw.rotuloRemover.trim() || 'Remover',
+      nivelPrata: Number(raw.nivelPrata) || NIVEIS_DEFAULT.prata,
+      nivelOuro: Number(raw.nivelOuro) || NIVEIS_DEFAULT.ouro,
+      nivelDiamante: Number(raw.nivelDiamante) || NIVEIS_DEFAULT.diamante,
+      nivelPlatina: Number(raw.nivelPlatina) || NIVEIS_DEFAULT.platina,
       ...(raw.disciplina ? { disciplina: raw.disciplina } : {}),
       ...(raw.horaInicio ? { horaInicio: raw.horaInicio } : {}),
       ...(raw.horaFim ? { horaFim: raw.horaFim } : {}),

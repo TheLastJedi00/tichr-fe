@@ -28,6 +28,17 @@ export const CHANGELOG: VersaoChangelog[] = [
     ],
   },
   {
+    versao: 'v0.12.1',
+    data: '2026-07-09',
+    titulo: 'Tichr Wor: pontos que viram ranking, níveis e férias na agenda',
+    itens: [
+      { categoria: 'Melhoria', texto: 'No Tichr Wor, cada equipe agora tem uma barra de pontuação acima da vida: o dano causado vira pontos. A vitória continua sendo de quem tem mais vida, mas os pontos servem de desempate — e terminar com o castelo mais intacto, ou arriscar a palavra inteira e acertar, rende pontos extras.' },
+      { categoria: 'Melhoria', texto: 'Os pontos conquistados na batalha do Wor passam a contar no ranking da turma: a equipe campeã leva a pontuação cheia e as demais metade, refletindo direto na pontuação de cada aluno.' },
+      { categoria: 'Melhoria', texto: 'Ao configurar a pontuação de uma turma, o professor agora define com quantos pontos o aluno sobe de Bronze para Prata, Ouro, Diamante e Platina. O nível do aluno aparece abaixo do nome na lista da turma.' },
+      { categoria: 'Correção', texto: 'Na Minha Agenda, os dias marcados como férias agora aparecem com um contorno vermelho, ficando fáceis de identificar no calendário.' },
+    ],
+  },
+  {
     versao: 'v0.12.0',
     data: '2026-07-07',
     titulo: 'Planos: novos limites e recursos por nível',
