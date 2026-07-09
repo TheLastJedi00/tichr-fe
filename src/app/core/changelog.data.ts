@@ -18,6 +18,14 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.13.1',
+    data: '2026-07-09',
+    titulo: 'Excluir a própria conta',
+    itens: [
+      { categoria: 'Nova feature', texto: 'Em Meu Perfil você agora pode excluir a própria conta. Por segurança, é preciso confirmar a senha e digitar uma palavra de confirmação — a exclusão é definitiva e apaga todos os dados atrelados (turmas, alunos, jogos e histórico).' },
+    ],
+  },
+  {
     versao: 'v0.13.0',
     data: '2026-07-09',
     titulo: 'Cadastro, Termos de Uso e Privacidade',

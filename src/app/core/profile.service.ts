@@ -78,6 +78,16 @@ export class ProfileService {
       .pipe(tap((p) => this.profile.set(p)));
   }
 
+  /**
+   * Auto-exclusão da conta: reautentica com a senha e apaga tudo (irreversível).
+   * O chamador deve deslogar e sair da área logada em seguida.
+   */
+  excluirConta(senha: string): Observable<{ modo: 'soft' | 'hard' }> {
+    return this.http.delete<{ modo: 'soft' | 'hard' }>(`${this.base}/profile`, {
+      body: { senha },
+    });
+  }
+
   /** Aplica um cupom no checkout (100% de desconto ou meses grátis). */
   aplicarCupom(codigo: string): Observable<{
     aplicado: boolean;

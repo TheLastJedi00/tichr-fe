@@ -25,6 +25,7 @@ import { Modal } from '../../ui/modal/modal';
 import { Skeleton } from '../../ui/skeleton/skeleton';
 import { Spinner } from '../../ui/spinner/spinner';
 import { FeriasManager } from '../ferias/ferias-manager';
+import { ExcluirContaCard } from './excluir-conta-card';
 
 /**
  * Meu Perfil (smart): foto, dados pessoais, @username (com trava de cooldown)
@@ -46,6 +47,7 @@ import { FeriasManager } from '../ferias/ferias-manager';
     FormBlocker,
     Skeleton,
     FeriasManager,
+    ExcluirContaCard,
   ],
   template: `
     <a class="voltar" routerLink="/configuracoes">‹ Configurações</a>
@@ -185,6 +187,10 @@ import { FeriasManager } from '../ferias/ferias-manager';
 
       <div class="ferias-wrap">
         <app-ferias-manager />
+      </div>
+
+      <div class="ferias-wrap">
+        <app-excluir-conta-card />
       </div>
     }
 
