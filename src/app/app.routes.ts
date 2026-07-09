@@ -29,6 +29,18 @@ export const routes: Routes = [
       import('./pages/novidades/novidades-page').then((m) => m.NovidadesPage),
   },
   {
+    path: 'termos',
+    loadComponent: () =>
+      import('./pages/termos/termos-page').then((m) => m.TermosPage),
+  },
+  {
+    path: 'privacidade',
+    loadComponent: () =>
+      import('./pages/privacidade/privacidade-page').then(
+        (m) => m.PrivacidadePage,
+      ),
+  },
+  {
     path: 'entrar',
     loadComponent: () =>
       import('./pages/student-entrar/student-entrar-page').then(
