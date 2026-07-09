@@ -401,6 +401,7 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
                 [class.btn-primary]="p.destaque"
                 [class.btn-outline]="!p.destaque"
                 routerLink="/cadastro"
+                [queryParams]="{ plano: p.plano }"
               >
                 {{ p.cta }}
               </a>
@@ -470,7 +471,12 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
               <li>{{ f }}</li>
             }
           </ul>
-          <a modal-actions class="btn-primary modal-cta" routerLink="/cadastro">
+          <a
+            modal-actions
+            class="btn-primary modal-cta"
+            routerLink="/cadastro"
+            [queryParams]="{ plano: p.plano }"
+          >
             {{ p.cta }}
           </a>
         </app-modal>

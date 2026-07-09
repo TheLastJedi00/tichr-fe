@@ -34,10 +34,19 @@ export class AuthService {
       .pipe(tap((res) => this.setToken(res.token)));
   }
 
-  /** Cadastro frictionless (plano Estagiário): cria a conta e já autentica. */
-  signup(email: string, password: string): Observable<LoginResponse> {
+  /**
+   * Cadastro (plano Estagiário): cria a conta com nome + aceite legal e já
+   * autentica. O aceite dos Termos e da Privacidade é obrigatório (LGPD).
+   */
+  signup(dados: {
+    nome: string;
+    email: string;
+    password: string;
+    aceiteTermos: boolean;
+    aceitePrivacidade: boolean;
+  }): Observable<LoginResponse> {
     return this.http
-      .post<LoginResponse>(`${this.base}/auth/signup`, { email, password })
+      .post<LoginResponse>(`${this.base}/auth/signup`, dados)
       .pipe(tap((res) => this.setToken(res.token)));
   }
 
