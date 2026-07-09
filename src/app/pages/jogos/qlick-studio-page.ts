@@ -19,6 +19,7 @@ import { ProfileService } from '../../core/profile.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Card } from '../../ui/card/card';
 import { Icon } from '../../ui/icon/icon';
+import { Modal } from '../../ui/modal/modal';
 
 /**
  * Estúdio do Tichr Qlick (PhD): cria/edita o questionário — título, perguntas
@@ -29,7 +30,7 @@ import { Icon } from '../../ui/icon/icon';
   selector: 'app-qlick-studio-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, Card, Icon],
+  imports: [ReactiveFormsModule, RouterLink, Card, Icon, Modal],
   template: `
     <a class="voltar" routerLink="/jogos/qlick">← Tichr Qlick</a>
     <h1 class="title">{{ editId ? 'Editar Qlick' : 'Novo Qlick' }}</h1>
@@ -80,6 +81,13 @@ import { Icon } from '../../ui/icon/icon';
           <input class="tichr-input" type="number" min="5" max="600" formControlName="duracaoSegundos" />
         </label>
       </app-card>
+
+      <div class="ia-bar">
+        <button class="btn-ia" type="button" (click)="iaAberta.set(true)">
+          <app-icon name="sparkles" [size]="16" /> Gerar perguntas com IA
+        </button>
+        <span class="ia-hint">Cria 10 perguntas (você edita depois). 1 geração por dia.</span>
+      </div>
 
       <div class="perguntas" formArrayName="perguntas">
         @for (pg of perguntas.controls; track $index; let pi = $index) {
@@ -136,6 +144,42 @@ import { Icon } from '../../ui/icon/icon';
         {{ salvando() ? 'Salvando…' : editId ? 'Salvar alterações' : 'Criar Qlick' }}
       </button>
     </form>
+
+    <app-modal
+      [open]="iaAberta()"
+      title="Gerar perguntas com IA"
+      (close)="iaLoading() || iaAberta.set(false)"
+    >
+      <p class="ia-sub">
+        Descreva como você quer as perguntas — a IA cria <b>10 perguntas com 4
+        alternativas</b> cada, usando a disciplina e o tópico selecionados como
+        contexto. Depois é só editar. Limite de 1 geração por dia.
+      </p>
+      <textarea
+        class="tichr-input ia-txt"
+        rows="4"
+        [value]="instrucaoIa()"
+        (input)="instrucaoIa.set($any($event.target).value)"
+        [disabled]="iaLoading()"
+        placeholder="Ex: perguntas de nível médio, objetivas, evitando pegadinhas; foque em datas e causas."
+      ></textarea>
+      @if (iaMsg()) {
+        <p class="ia-feedback" [class.ok]="iaOk()">{{ iaMsg() }}</p>
+      }
+      <div modal-actions>
+        <button class="btn-outline" type="button" (click)="iaAberta.set(false)" [disabled]="iaLoading()">
+          Fechar
+        </button>
+        <button
+          class="btn-primary"
+          type="button"
+          (click)="gerarIa()"
+          [disabled]="iaLoading() || iaEsgotada() || !instrucaoIa().trim()"
+        >
+          {{ iaLoading() ? 'Gerando…' : 'Gerar' }}
+        </button>
+      </div>
+    </app-modal>
   `,
   styles: `
     .voltar { color: var(--primary); font-weight: 600; }
@@ -168,6 +212,20 @@ import { Icon } from '../../ui/icon/icon';
     .full { width: 100%; margin-top: 1rem; }
     .salvar { margin-top: 1rem; }
     .erro { color: var(--danger); font-weight: 600; margin: 1rem 0 0; }
+    .ia-bar { display: flex; align-items: center; gap: 0.6rem 0.9rem; flex-wrap: wrap; margin-top: 1rem; }
+    .btn-ia {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      font: inherit; font-weight: 700; cursor: pointer;
+      padding: 0.55rem 1rem; border-radius: var(--radius);
+      color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+      border: 1px solid var(--primary);
+    }
+    .btn-ia:hover { background: color-mix(in srgb, var(--primary) 16%, var(--surface)); }
+    .ia-hint { font-size: 0.82rem; color: var(--text-muted); }
+    .ia-sub { margin: 0 0 0.75rem; color: var(--text-muted); font-size: 0.9rem; }
+    .ia-txt { width: 100%; resize: vertical; font: inherit; }
+    .ia-feedback { margin: 0.75rem 0 0; font-weight: 600; color: var(--danger); }
+    .ia-feedback.ok { color: var(--success); }
   `,
 })
 export class QlickStudioPage {
@@ -186,6 +244,14 @@ export class QlickStudioPage {
   protected readonly disciplinas = computed(
     () => this.profileService.profile()?.disciplinas ?? [],
   );
+
+  // Geração por IA (modal): instrução + estados de loading/feedback/cota.
+  protected readonly iaAberta = signal(false);
+  protected readonly iaLoading = signal(false);
+  protected readonly iaEsgotada = signal(false);
+  protected readonly iaOk = signal(false);
+  protected readonly iaMsg = signal('');
+  protected readonly instrucaoIa = signal('');
 
   protected readonly form = this.fb.group({
     titulo: ['', Validators.required],
@@ -223,6 +289,21 @@ export class QlickStudioPage {
         this.fb.control('', Validators.required),
         this.fb.control('', Validators.required),
       ]),
+    });
+  }
+
+  /** Monta um FormGroup de pergunta já com os dados (edição / geração por IA). */
+  private perguntaComDados(
+    enunciado: string,
+    alternativas: string[],
+    corretaIndex: number,
+  ): FormGroup {
+    return this.fb.group({
+      enunciado: [enunciado, Validators.required],
+      corretaIndex: [corretaIndex],
+      alternativas: this.fb.array<FormControl>(
+        alternativas.map((a) => this.fb.control(a, Validators.required)),
+      ),
     });
   }
 
@@ -286,18 +367,68 @@ export class QlickStudioPage {
       }
       this.perguntas.clear();
       for (const p of q.perguntas) {
-        const alts = this.fb.array<FormControl>(
-          p.alternativas.map((a) => this.fb.control(a, Validators.required)),
-        );
         this.perguntas.push(
-          this.fb.group({
-            enunciado: [p.enunciado, Validators.required],
-            corretaIndex: [p.corretaIndex],
-            alternativas: alts,
-          }),
+          this.perguntaComDados(p.enunciado, p.alternativas, p.corretaIndex),
         );
       }
     });
+  }
+
+  /** Nome (texto) do tópico selecionado — enviado à IA como contexto. */
+  private nomeTopicoSelecionado(): string | undefined {
+    const id = this.form.get('topicoId')?.value;
+    return id ? this.topicos().find((t) => t.id === id)?.nome : undefined;
+  }
+
+  /**
+   * Gera as perguntas por IA a partir da instrução + disciplina/tópico. No
+   * sucesso, substitui as perguntas do estúdio pelas geradas (o professor edita
+   * depois). Trata rate limit (429), bloqueio de plano e indisponibilidade.
+   */
+  protected gerarIa(): void {
+    const instrucao = this.instrucaoIa().trim();
+    if (!instrucao || this.iaLoading() || this.iaEsgotada()) return;
+    this.iaLoading.set(true);
+    this.iaOk.set(false);
+    this.iaMsg.set('');
+    this.api
+      .gerarPerguntasIa({
+        instrucao,
+        disciplina: this.form.get('disciplina')?.value || undefined,
+        topico: this.nomeTopicoSelecionado(),
+      })
+      .subscribe({
+        next: ({ perguntas }) => {
+          this.perguntas.clear();
+          for (const p of perguntas) {
+            this.perguntas.push(
+              this.perguntaComDados(p.enunciado, p.alternativas, p.corretaIndex),
+            );
+          }
+          this.iaLoading.set(false);
+          this.iaEsgotada.set(true); // cota diária consumida
+          this.iaOk.set(true);
+          this.iaMsg.set(
+            `${perguntas.length} perguntas geradas! Feche este aviso para revisar e editar.`,
+          );
+        },
+        error: (e: { error?: { code?: string; message?: string } }) => {
+          this.iaLoading.set(false);
+          this.iaOk.set(false);
+          const code = e.error?.code;
+          if (code === 'IA_RATE_LIMIT') {
+            this.iaEsgotada.set(true);
+            this.iaMsg.set(
+              e.error?.message ??
+                'Sua geração diária se esgotou. Volte amanhã ou escreva manualmente.',
+            );
+          } else if (code === 'QLICK_LOCKED') {
+            this.iaMsg.set('A geração por IA é exclusiva do plano PhD.');
+          } else {
+            this.iaMsg.set('IA indisponível agora. Tente de novo ou escreva manualmente.');
+          }
+        },
+      });
   }
 
   protected salvar(): void {

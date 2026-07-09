@@ -16,6 +16,7 @@ import {
   Equipe,
   Ferias,
   Partida,
+  PerguntaQlick,
   PlanoAula,
   ProgressoTurma,
   Qlick,
@@ -358,6 +359,18 @@ export class TurmaApiService {
 
   removerQlick(id: string): Observable<{ removido: boolean }> {
     return this.http.delete<{ removido: boolean }>(`${this.base}/qlicks/${id}`);
+  }
+
+  /** Geração de perguntas por IA (10 perguntas × 4 alternativas). 1×/dia. */
+  gerarPerguntasIa(payload: {
+    instrucao: string;
+    disciplina?: string;
+    topico?: string;
+  }): Observable<{ perguntas: PerguntaQlick[] }> {
+    return this.http.post<{ perguntas: PerguntaQlick[] }>(
+      `${this.base}/qlicks/ia/perguntas`,
+      payload,
+    );
   }
 
   /** Professor: cria a partida (lobby) de um Qlick para a turma escolhida. */
