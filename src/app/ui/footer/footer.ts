@@ -46,6 +46,10 @@ import { Icon } from '../icon/icon';
           >GitHub</a>
           <span class="footer__sep">·</span>
           <a class="footer__link" routerLink="/novidades">O que há de novo?</a>
+          <span class="footer__sep">·</span>
+          <a class="footer__link" routerLink="/termos">Termos de Uso</a>
+          <span class="footer__sep">·</span>
+          <a class="footer__link" routerLink="/privacidade">Privacidade</a>
         </div>
       }
     </footer>

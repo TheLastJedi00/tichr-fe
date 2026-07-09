@@ -59,10 +59,11 @@ O diferencial visível está na **demonstração interativa da landing page** e 
 | `/jogos/qlick/novo` · `/editar/:id` | **Estúdio do Qlick** | Formulário reativo (FormArray) de perguntas → alternativas, com marcação da correta e duração. |
 | `/jogos/qlick/partida/:id` | **Sala do professor** | Comanda a partida em tempo real; o **lobby** exibe o **PIN da turma em tamanho grande** + um **modal de assistência** (grid de alunos com o PIN revelado por toque, em *flip*). Depois: pergunta (timer + revelar), ranking da rodada e pódio. |
 | `/planos` | **Assinatura** | Vitrine dos 4 planos com o **plano atual em destaque** e troca de plano (mock). Destino do botão "Fazer upgrade" quando um recurso exige um plano superior. |
-| `/configuracoes` | **Hub de Configurações** | Índice da conta: cabeçalho com **avatar + nome** do professor e um menu para **Meu Perfil** e **Meu Plano**. |
+| `/configuracoes` | **Hub de Configurações** | Índice da conta: cabeçalho com **avatar + nome** do professor e um menu para **Meu Perfil**, **Meu Plano** e a seção **Legal** (**Termos de Uso** e **Política de Privacidade**). |
 | `/configuracoes/perfil` | **Meu Perfil** | **Foto de perfil** (editar → recorte 1:1 → compressão → upload ao Firebase Storage), dados (nome, disciplina, bio), **@username** com disponibilidade em tempo real e **trava de 60 dias**, **disciplinas como cards** (modal para renomear/excluir) e **férias globais**. |
 | `/configuracoes/plano` | **Meu Plano** | Resumo da assinatura atual (plano, limite, vagas avulsas, features) + **upsell** e atalho de gestão. |
 | `/novidades` | **Novidades (Changelog)** *(pública)* | Timeline das versões (Nova feature / Melhoria / Correção), alimentada por `changelog.data.ts` e espelhando o README. Linkada no **rodapé global**. |
+| `/termos` · `/privacidade` | **Documentos legais** *(públicas)* | Termos de Uso e Política de Privacidade (foco **LGPD**), a partir de `core/legal.data.ts` e do componente reutilizável `<app-legal-doc>`. Linkados no **rodapé** da landing, no hub de **Configurações** e abertos em **modais** no cadastro. |
 
 ### Planos, limites e gating
 
@@ -159,9 +160,14 @@ lateral, o **card de upsell** ao atingir o limite do plano, o selo **Beta** no h
 
 ### Cadastro, onboarding e tutoriais
 
-- **Cadastro frictionless:** os CTAs "Começar grátis" levam à tela `/cadastro` (e-mail, senha
-  e confirmação). Ao criar a conta (`POST /auth/signup`, plano Estagiário) o usuário já é
-  autenticado e cai direto no painel.
+- **Cadastro com plano e aceite legal:** a tela `/cadastro` é um **formulário reativo** com
+  **Nome, E-mail e Senha**, botão **"← Voltar ao site"** e o **card do plano** escolhido na
+  landing (via `?plano=`), trocável por **modal**. O **cupom** aparece só nos planos pagos; o
+  **aceite dos Termos de Uso e da Política de Privacidade** (dois checkboxes que abrem os
+  documentos em **modais**) é obrigatório — o botão **"Criar Conta"** só libera com o form
+  válido e ambos marcados. Ao criar (`POST /auth/signup` com nome + aceites, plano Estagiário)
+  o usuário já é autenticado; em seguida aplica o **cupom** ou faz o **upgrade** do plano
+  escolhido e cai no painel.
 - **Soft-block de perfil:** enquanto faltar **nome, @username ou foto**, o painel exibe o
   `<app-onboarding-card>` em destaque ("Falta pouco!") com um checklist e o atalho para
   concluir o perfil.
