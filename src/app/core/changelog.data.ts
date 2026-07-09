@@ -18,6 +18,16 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.13.0',
+    data: '2026-07-09',
+    titulo: 'Cadastro, Termos de Uso e Privacidade',
+    itens: [
+      { categoria: 'Nova feature', texto: 'Chegaram os Termos de Uso e a Política de Privacidade: duas páginas próprias, acessíveis pelo rodapé do site, pelas Configurações e direto na hora de criar a conta.' },
+      { categoria: 'Melhoria', texto: 'Tela de criar conta repaginada: agora você informa o nome, vê o plano escolhido (e pode trocá-lo ali mesmo) e o campo de cupom aparece só nos planos pagos.' },
+      { categoria: 'Melhoria', texto: 'Para criar a conta é preciso marcar que leu e concorda com os Termos de Uso e a Política de Privacidade — os documentos abrem em uma janela sem sair do cadastro. O botão "Criar Conta" só habilita depois do aceite.' },
+    ],
+  },
+  {
     versao: 'v0.12.0',
     data: '2026-07-07',
     titulo: 'Planos: novos limites e recursos por nível',
