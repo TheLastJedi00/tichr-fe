@@ -33,6 +33,11 @@ export interface Turma {
   rankingAtivo?: boolean;
   rotuloAdicionar?: string;
   rotuloRemover?: string;
+  // Limiares de nível (XP para alcançar cada tier). Bronze = piso 0.
+  nivelPrata?: number;
+  nivelOuro?: number;
+  nivelDiamante?: number;
+  nivelPlatina?: number;
   /** PIN da turma (portal do aluno): 2 díg (Smart PIN) ou 6 díg (legado). */
   pinTurma?: string;
 }
@@ -52,6 +57,10 @@ export interface CriarTurmaPayload {
   rankingAtivo?: boolean;
   rotuloAdicionar?: string;
   rotuloRemover?: string;
+  nivelPrata?: number;
+  nivelOuro?: number;
+  nivelDiamante?: number;
+  nivelPlatina?: number;
 }
 
 export interface CriarExcecaoPayload {
@@ -422,6 +431,8 @@ export interface WorTeam {
   cor: string;
   hp: number;
   isHorde: boolean;
+  /** Pontos de combate acumulados (dano causado + bônus). Desempata e vira XP. */
+  pontos?: number;
   membros: { alunoId: string; nome: string }[];
 }
 
@@ -469,6 +480,8 @@ export interface PlacarEquipe {
   cor: string;
   hp: number;
   isHorde: boolean;
+  /** Pontos de combate acumulados (barra acima do HP). */
+  pontos?: number;
 }
 
 /** Resultado da última rodada resolvida — reveal + quem atacou quem. */

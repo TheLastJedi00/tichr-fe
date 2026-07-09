@@ -23,6 +23,7 @@ import {
   Sessao,
   Turma,
 } from '../../core/models';
+import { nivelDeXp } from '../../core/nivel.util';
 import { planoAtendeMinimo, podeGamificar } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { ROTULO_STATUS, statusVisual } from '../../core/status-sessao';
@@ -221,7 +222,14 @@ type Ordenacao = 'nome' | 'pontuacao';
                       (click)="abrirDetalhe(a)"
                     >
                       <span class="lista__avatar"><app-icon name="user" [size]="18" /></span>
-                      <span class="lista__nome">{{ a.nome }}</span>
+                      <span class="lista__info">
+                        <span class="lista__nome">{{ a.nome }}</span>
+                        @if (cfg().pontuacaoAtiva) {
+                          <span class="lista__nivel" [style.color]="nivelDe(a.xpTotal ?? 0).cor">
+                            {{ nivelDe(a.xpTotal ?? 0).nome }}
+                          </span>
+                        }
+                      </span>
                       @if (cfg().pontuacaoAtiva) {
                         <span class="lista__xp">
                           {{ a.xpTotal ?? 0 }} {{ cfg().nomePontuacao }}
@@ -742,7 +750,9 @@ type Ordenacao = 'nome' | 'pontuacao';
     }
     .lista__click--lock { opacity: 0.6; cursor: not-allowed; }
     .lista__click--lock .lista__xp { color: var(--text-muted); }
-    .lista__nome { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lista__info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.1rem; }
+    .lista__nome { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lista__nivel { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; }
     .lista__xp {
       flex: 0 0 auto;
       font-weight: 700;
@@ -1030,8 +1040,19 @@ export class TurmaDetalhePage {
       rankingAtivo: t?.rankingAtivo ?? true,
       rotuloAdicionar: t?.rotuloAdicionar?.trim() || 'Adicionar',
       rotuloRemover: t?.rotuloRemover?.trim() || 'Remover',
+      niveis: {
+        prata: t?.nivelPrata,
+        ouro: t?.nivelOuro,
+        diamante: t?.nivelDiamante,
+        platina: t?.nivelPlatina,
+      },
     };
   });
+
+  /** Nível (Bronze→Platina) de um aluno pelos limiares da turma. */
+  protected nivelDe(xp: number) {
+    return nivelDeXp(xp, this.cfg().niveis);
+  }
 
   private readonly todasSessoes = signal<Sessao[]>([]);
   protected readonly sessoes = computed(() =>

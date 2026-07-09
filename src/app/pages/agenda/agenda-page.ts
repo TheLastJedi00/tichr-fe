@@ -3,7 +3,7 @@ import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { formatarData } from '../../core/date-format';
 import { hojeISO } from '../../core/greeting';
-import { Sessao, Turma } from '../../core/models';
+import { Ferias, Sessao, Turma } from '../../core/models';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Modal } from '../../ui/modal/modal';
 import { Skeleton } from '../../ui/skeleton/skeleton';
@@ -15,6 +15,7 @@ interface DiaCal {
   dia: number;
   sessoes: Sessao[];
   hoje: boolean;
+  ferias: boolean;
 }
 interface AulaDet {
   sessao: Sessao;
@@ -112,7 +113,9 @@ function domingo(iso: string): string {
                 class="cell"
                 [class.tem-aula]="dia.sessoes.length"
                 [class.hoje]="dia.hoje"
+                [class.ferias]="dia.ferias"
                 [class.clicavel]="dia.sessoes.length"
+                [attr.title]="dia.ferias ? 'Férias' : null"
                 (click)="dia.sessoes.length && diaSelecionado.set(dia)"
               >
                 <span class="cell__dia">{{ dia.dia }}</span>
@@ -210,6 +213,8 @@ function domingo(iso: string): string {
     .cell { min-height: 68px; padding: 0.375rem; background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius); }
     .cell.tem-aula { background: var(--surface); border-color: var(--primary); }
     .cell.hoje { outline: 2px solid var(--primary); outline-offset: -1px; }
+    /* Férias: contorno vermelho (box-shadow inset p/ não brigar com border/outline). */
+    .cell.ferias { box-shadow: inset 0 0 0 2px var(--danger); }
     .cell__dia { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
     .cell.hoje .cell__dia { color: var(--primary); }
     .badge { display: block; margin-top: 0.25rem; padding: 0.1rem 0.3rem; font-size: 0.68rem; font-weight: 700; color: var(--primary-contrast); background: var(--primary); border-radius: 4px; white-space: nowrap; }
@@ -251,6 +256,8 @@ export class AgendaPage {
   protected readonly sessoes = signal<Sessao[]>([]);
   protected readonly diaSelecionado = signal<DiaCal | null>(null);
   private readonly turmasMap = signal<Map<string, Turma>>(new Map());
+  /** Períodos de férias do professor (contorno vermelho no dia). */
+  private readonly ferias = signal<Ferias[]>([]);
 
   protected readonly modo = signal<Modo>(
     (localStorage.getItem(MODO_KEY) as Modo) || 'calendario',
@@ -266,6 +273,11 @@ export class AgendaPage {
   }
   protected corDaTurma(turmaId: string): string {
     return this.turmasMap().get(turmaId)?.cor ?? 'var(--primary)';
+  }
+
+  /** Verdadeiro se o dia (iso) cai em algum período de férias do professor. */
+  private ehFerias(iso: string): boolean {
+    return this.ferias().some((f) => f.dataInicio <= iso && iso <= f.dataFim);
   }
 
   /** Calendário: semana atual + 4 seguintes (5 semanas). */
@@ -285,6 +297,7 @@ export class AgendaPage {
           dia: parse(cursor).getUTCDate(),
           sessoes: porData.get(cursor) ?? [],
           hoje: cursor === hoje,
+          ferias: this.ehFerias(cursor),
         });
         cursor = addDays(cursor, 1);
       }
@@ -339,10 +352,12 @@ export class AgendaPage {
     forkJoin({
       sessoes: this.api.getSessoesSemana(),
       turmas: this.api.getTurmas(),
+      ferias: this.api.getFerias(),
     }).subscribe({
-      next: ({ sessoes, turmas }) => {
+      next: ({ sessoes, turmas, ferias }) => {
         this.turmasMap.set(new Map(turmas.map((t: Turma) => [t.id, t])));
         this.sessoes.set(sessoes);
+        this.ferias.set(ferias);
         this.loading.set(false);
       },
       error: () => this.loading.set(false),

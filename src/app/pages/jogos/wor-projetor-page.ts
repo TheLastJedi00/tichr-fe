@@ -111,6 +111,7 @@ import { Spinner } from '../../ui/spinner/spinner';
                   @if (t.isHorde) { <span class="tag">Horda</span> }
                   @if (t.id === m.turnoEquipeId) { <span class="tag tag--turno">Turno</span> }
                 </span>
+                <span class="pontos"><app-icon name="trophy" [size]="13" /> {{ t.pontos ?? 0 }} pts</span>
                 <span class="hpbar"><span [style.width.%]="t.hp / 10" [style.background]="t.cor"></span></span>
                 <span class="hp">{{ t.hp }} HP</span>
               </div>
@@ -211,6 +212,7 @@ import { Spinner } from '../../ui/spinner/spinner';
     .fort__top strong { flex: 1; min-width: 0; }
     .tag { font-size: 0.68rem; font-weight: 800; text-transform: uppercase; padding: 0.1rem 0.4rem; border-radius: 999px; background: var(--surface-alt); color: var(--text-muted); }
     .tag--turno { background: #b45309; color: #fff; }
+    .pontos { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.9rem; font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums; }
     .hpbar { height: 10px; border-radius: 999px; background: var(--surface-alt); overflow: hidden; }
     .hpbar span { display: block; height: 100%; transition: width 0.4s ease; }
     .hp { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); }
