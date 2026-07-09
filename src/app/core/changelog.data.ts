@@ -18,6 +18,14 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.14.0',
+    data: '2026-07-09',
+    titulo: 'Tichr Qlick: perguntas geradas por IA',
+    itens: [
+      { categoria: 'Nova feature', texto: 'No estúdio do Tichr Qlick agora tem "Gerar perguntas com IA": você abre um campo, descreve como quer as questões e a IA cria 10 perguntas com 4 alternativas cada, usando a disciplina e o tópico como contexto. As perguntas ficam prontas para você revisar e editar do jeito de sempre. Limite de 1 geração por dia (independente da geração de dicas do Tichr Wor).' },
+    ],
+  },
+  {
     versao: 'v0.13.1',
     data: '2026-07-09',
     titulo: 'Excluir a própria conta',
