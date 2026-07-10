@@ -22,6 +22,7 @@ import { WorApiService } from '../../core/wor-api.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { ProfileService } from '../../core/profile.service';
 import { Topico, Turma, WorJogo } from '../../core/models';
+import { turmaContaComoAtiva } from '../../core/plano.util';
 import { Icon } from '../../ui/icon/icon';
 
 /**
@@ -69,9 +70,9 @@ import { Icon } from '../../ui/icon/icon';
 
         <div class="campo">
           <span>Turmas <small>(opcional) — pode atribuir a várias</small></span>
-          @if (turmas().length) {
+          @if (turmasVinculaveis().length) {
             <div class="turmas-check">
-              @for (t of turmas(); track t.id) {
+              @for (t of turmasVinculaveis(); track t.id) {
                 <label class="check" [class.check--on]="turmaIdsSel().includes(t.id)">
                   <input type="checkbox" [checked]="turmaIdsSel().includes(t.id)" (change)="toggleTurma(t.id)" />
                   {{ t.nome }}
@@ -79,7 +80,7 @@ import { Icon } from '../../ui/icon/icon';
               }
             </div>
           } @else {
-            <p class="dica">Você ainda não tem turmas.</p>
+            <p class="dica">Nenhuma turma ativa para vincular.</p>
           }
         </div>
       </section>
@@ -191,6 +192,16 @@ export class WorStudioPage {
 
   protected readonly turmas = signal<Turma[]>([]);
   protected readonly turmaIdsSel = signal<string[]>([]);
+  /**
+   * Só faz sentido vincular uma batalha a turmas ativas. Mantém visíveis as já
+   * selecionadas (ex.: ao editar um jogo cuja turma encerrou depois) para não
+   * esconder/perder a atribuição existente.
+   */
+  protected readonly turmasVinculaveis = computed(() =>
+    this.turmas().filter(
+      (t) => turmaContaComoAtiva(t) || this.turmaIdsSel().includes(t.id),
+    ),
+  );
   protected readonly topicos = signal<Topico[]>([]);
   protected readonly disciplinas = computed(
     () => this.profileService.profile()?.disciplinas ?? [],

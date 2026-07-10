@@ -18,6 +18,14 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.14.3',
+    data: '2026-07-09',
+    titulo: 'Jogos: vincular só a turmas ativas',
+    itens: [
+      { categoria: 'Correção', texto: 'Ao criar ou editar um Tichr Qlick ou um Tichr Wor, a lista de turmas para vincular o jogo agora mostra apenas turmas ativas — as turmas já encerradas deixaram de aparecer, já que não faz sentido preparar um jogo para uma turma encerrada. Se um jogo já estava vinculado a uma turma que encerrou depois, ela continua visível na edição para você poder removê-la.' },
+    ],
+  },
+  {
     versao: 'v0.14.2',
     data: '2026-07-09',
     titulo: 'Painel: jogo da próxima aula por assunto',
