@@ -15,6 +15,7 @@ import {
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CriarQlickPayload, Turma } from '../../core/models';
+import { turmaContaComoAtiva } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Card } from '../../ui/card/card';
@@ -63,9 +64,9 @@ import { Modal } from '../../ui/modal/modal';
 
         <div class="campo">
           <span>Turmas (opcional) — pode atribuir a várias</span>
-          @if (turmas().length) {
+          @if (turmasVinculaveis().length) {
             <div class="turmas-check">
-              @for (t of turmas(); track t.id) {
+              @for (t of turmasVinculaveis(); track t.id) {
                 <label class="check" [class.check--on]="turmaIdsSel().includes(t.id)">
                   <input type="checkbox" [checked]="turmaIdsSel().includes(t.id)" (change)="toggleTurma(t.id)" />
                   {{ t.nome }}
@@ -73,7 +74,7 @@ import { Modal } from '../../ui/modal/modal';
               }
             </div>
           } @else {
-            <p class="dica">Você ainda não tem turmas.</p>
+            <p class="dica">Nenhuma turma ativa para vincular.</p>
           }
         </div>
         <label class="campo">
@@ -240,6 +241,16 @@ export class QlickStudioPage {
   protected readonly erro = signal('');
   protected readonly turmas = signal<Turma[]>([]);
   protected readonly turmaIdsSel = signal<string[]>([]);
+  /**
+   * Só faz sentido vincular um jogo a turmas ativas. Mantém visíveis as já
+   * selecionadas (ex.: ao editar um jogo cuja turma encerrou depois) para não
+   * esconder/perder a atribuição existente.
+   */
+  protected readonly turmasVinculaveis = computed(() =>
+    this.turmas().filter(
+      (t) => turmaContaComoAtiva(t) || this.turmaIdsSel().includes(t.id),
+    ),
+  );
   protected readonly topicos = signal<Array<{ id: string; nome: string }>>([]);
   protected readonly disciplinas = computed(
     () => this.profileService.profile()?.disciplinas ?? [],
