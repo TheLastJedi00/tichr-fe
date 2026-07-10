@@ -26,6 +26,16 @@ export const CHANGELOG: VersaoChangelog[] = [
     ],
   },
   {
+    versao: 'v0.14.2',
+    data: '2026-07-09',
+    titulo: 'Painel: jogo da próxima aula por assunto',
+    itens: [
+      { categoria: 'Correção', texto: 'No painel, o aviso de jogo pronto para a próxima aula agora leva em conta o assunto da aula: em vez de repetir sempre o mesmo jogo da turma, aparece o jogo do mesmo assunto da próxima aula — bem mais preciso. Quando a aula ainda não tem um assunto definido, o painel continua mostrando os jogos daquela turma.' },
+      { categoria: 'Melhoria', texto: 'O aviso de jogo pronto no painel passou a incluir também as batalhas do Tichr Wor, e não só o Tichr Qlick.' },
+      { categoria: 'Melhoria', texto: 'O card da próxima aula no painel ganhou um botão "Detalhes da turma" para abrir a turma direto dali.' },
+    ],
+  },
+  {
     versao: 'v0.14.1',
     data: '2026-07-09',
     titulo: 'Ordenar alunos por pontuação',
