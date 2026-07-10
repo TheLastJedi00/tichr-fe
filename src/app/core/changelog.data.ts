@@ -18,6 +18,14 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.14.1',
+    data: '2026-07-09',
+    titulo: 'Ordenar alunos por pontuação',
+    itens: [
+      { categoria: 'Correção', texto: 'Na lista de alunos da turma, ao ordenar por pontuação, quem tem mais pontos fica no topo e os alunos empatados agora aparecem em ordem alfabética — antes o empate caía numa ordem aparentemente aleatória.' },
+    ],
+  },
+  {
     versao: 'v0.14.0',
     data: '2026-07-09',
     titulo: 'Tichr Qlick: perguntas geradas por IA',

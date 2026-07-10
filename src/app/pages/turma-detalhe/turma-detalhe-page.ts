@@ -1068,7 +1068,10 @@ export class TurmaDetalhePage {
   protected readonly alunosOrdenados = computed(() => {
     const lista = [...this.alunos()];
     return this.ordenacao() === 'pontuacao'
-      ? lista.sort((a, b) => (b.xpTotal ?? 0) - (a.xpTotal ?? 0))
+      ? lista.sort(
+          (a, b) =>
+            (b.xpTotal ?? 0) - (a.xpTotal ?? 0) || a.nome.localeCompare(b.nome),
+        )
       : lista.sort((a, b) => a.nome.localeCompare(b.nome));
   });
 
