@@ -11,17 +11,31 @@ import { forkJoin } from 'rxjs';
 import { formatarData } from '../../core/date-format';
 import { dataPorExtenso, saudacaoPorHora } from '../../core/greeting';
 import { statusVisual } from '../../core/status-sessao';
-import { CriarExcecaoPayload, Qlick, Sessao, Turma } from '../../core/models';
+import {
+  CriarExcecaoPayload,
+  Qlick,
+  Sessao,
+  Turma,
+  WorJogo,
+} from '../../core/models';
 import { linksPainel } from '../../core/nav-links';
 import { planoAtendeMinimo } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { TurmaApiService } from '../../core/turma-api.service';
+import { WorApiService } from '../../core/wor-api.service';
 import { Card } from '../../ui/card/card';
 import { Icon } from '../../ui/icon/icon';
 import { IconButton } from '../../ui/icon-button/icon-button';
 import { Spinner } from '../../ui/spinner/spinner';
 import { OnboardingCard } from '../../ui/onboarding-card/onboarding-card';
 import { ExcecaoModal } from './excecao-modal';
+
+/** Aviso de jogo (Qlick ou Wor) pronto para a próxima aula. */
+interface AvisoJogo {
+  tipo: 'Qlick' | 'Wor';
+  titulo: string;
+  rota: string;
+}
 
 /**
  * DashboardPage (Smart Component): tela de recepção. Saudação personalizada,
@@ -106,6 +120,11 @@ import { ExcecaoModal } from './excecao-modal';
               <p class="plano__txt">{{ ctx }}</p>
             </details>
           }
+          @if (proximaTurma(); as t) {
+            <a class="btn-outline detalhes-turma" [routerLink]="['/turmas', t.id]">
+              <app-icon name="building" [size]="16" /> Detalhes da turma
+            </a>
+          }
         </app-card>
       } @else {
         <app-card>
@@ -115,14 +134,18 @@ import { ExcecaoModal } from './excecao-modal';
         </app-card>
       }
 
-      @if (qlickProximaTurma(); as q) {
-        <a class="qlick-aviso" routerLink="/jogos/qlick">
-          <span class="qlick-aviso__ic"><app-icon name="game" [size]="22" /></span>
-          <span class="qlick-aviso__txt">
-            <strong>Qlick pronto para {{ proximaTurma()?.nome }}</strong>
-            <span>“{{ q.titulo }}” — toque para rodar na próxima aula</span>
+      @for (jg of jogosProximaAula(); track jg.tipo + '::' + jg.titulo) {
+        <a
+          class="jogo-aviso"
+          [class.jogo-aviso--wor]="jg.tipo === 'Wor'"
+          [routerLink]="jg.rota"
+        >
+          <span class="jogo-aviso__ic"><app-icon name="game" [size]="22" /></span>
+          <span class="jogo-aviso__txt">
+            <strong>{{ jg.tipo }} pronto para {{ proximaTurma()?.nome }}</strong>
+            <span>“{{ jg.titulo }}” — toque para rodar na próxima aula</span>
           </span>
-          <span class="qlick-aviso__seta">→</span>
+          <span class="jogo-aviso__seta">→</span>
         </a>
       }
 
@@ -256,7 +279,14 @@ import { ExcecaoModal } from './excecao-modal';
       margin-top: 0.875rem;
       text-decoration: none;
     }
-    .qlick-aviso {
+    .detalhes-turma {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-top: 0.9rem;
+      text-decoration: none;
+    }
+    .jogo-aviso {
       display: flex;
       align-items: center;
       gap: 0.75rem;
@@ -268,11 +298,15 @@ import { ExcecaoModal } from './excecao-modal';
       background: linear-gradient(135deg, #7c3aed, #2563eb);
       box-shadow: 0 10px 30px color-mix(in srgb, #7c3aed 30%, transparent);
     }
-    .qlick-aviso__ic { flex: 0 0 auto; display: inline-flex; }
-    .qlick-aviso__txt { display: flex; flex-direction: column; min-width: 0; }
-    .qlick-aviso__txt strong { font-weight: 800; }
-    .qlick-aviso__txt span { font-size: 0.82rem; opacity: 0.92; }
-    .qlick-aviso__seta { margin-left: auto; font-weight: 800; font-size: 1.2rem; }
+    .jogo-aviso--wor {
+      background: linear-gradient(135deg, #ea580c, #dc2626);
+      box-shadow: 0 10px 30px color-mix(in srgb, #dc2626 30%, transparent);
+    }
+    .jogo-aviso__ic { flex: 0 0 auto; display: inline-flex; }
+    .jogo-aviso__txt { display: flex; flex-direction: column; min-width: 0; }
+    .jogo-aviso__txt strong { font-weight: 800; }
+    .jogo-aviso__txt span { font-size: 0.82rem; opacity: 0.92; }
+    .jogo-aviso__seta { margin-left: auto; font-weight: 800; font-size: 1.2rem; }
     .onboarding h3 {
       margin: 0 0 0.375rem;
       font-size: 1.1rem;
@@ -297,6 +331,7 @@ import { ExcecaoModal } from './excecao-modal';
 })
 export class DashboardPage {
   private readonly api = inject(TurmaApiService);
+  private readonly worApi = inject(WorApiService);
   private readonly profileService = inject(ProfileService);
 
   private readonly agora = new Date();
@@ -336,6 +371,8 @@ export class DashboardPage {
   // Plano de aula: contexto geral por disciplina (Graduado+) e tópico da próxima aula (Mestre+).
   private readonly planos = signal<Map<string, string>>(new Map());
   protected readonly topicoProximo = signal<string | null>(null);
+  /** Tópico (id) alocado à próxima aula — usado para casar os jogos por tópico. */
+  private readonly topicoIdProximo = signal<string | null>(null);
   private topicoCarregadoPara = '';
 
   protected readonly formatarData = formatarData;
@@ -394,12 +431,36 @@ export class DashboardPage {
     );
   });
 
-  /** Qlicks do professor (PhD) — para avisar se há um pronto na próxima turma. */
+  /** Jogos do professor (PhD): Qlick e Wor — avisos da próxima aula. */
   private readonly qlicks = signal<Qlick[]>([]);
-  protected readonly qlickProximaTurma = computed<Qlick | null>(() => {
+  private readonly worJogos = signal<WorJogo[]>([]);
+
+  /**
+   * Jogos (Qlick e Wor) prontos para a próxima aula. Casa por turma e, quando a
+   * próxima aula tem um tópico alocado, só notifica os jogos do MESMO tópico —
+   * assim o aviso é preciso ("o jogo daquele assunto"), em vez de repetir sempre
+   * o mesmo jogo da turma. Sem tópico conhecido, cai para os jogos da turma.
+   */
+  protected readonly jogosProximaAula = computed<AvisoJogo[]>(() => {
     const t = this.proximaTurma();
-    if (!t) return null;
-    return this.qlicks().find((q) => q.turmaId === t.id) ?? null;
+    if (!t) return [];
+    const topico = this.topicoIdProximo();
+    const daTurma = (turmaIds: string[] | undefined, legado?: string) =>
+      legado === t.id || (turmaIds ?? []).includes(t.id);
+    const doTopico = (jogoTopico?: string) => !topico || jogoTopico === topico;
+
+    const avisos: AvisoJogo[] = [];
+    for (const q of this.qlicks()) {
+      if (daTurma(q.turmaIds, q.turmaId) && doTopico(q.topicoId)) {
+        avisos.push({ tipo: 'Qlick', titulo: q.titulo, rota: '/jogos/qlick' });
+      }
+    }
+    for (const j of this.worJogos()) {
+      if (daTurma(j.turmaIds, j.turmaId) && doTopico(j.topicoId)) {
+        avisos.push({ tipo: 'Wor', titulo: j.nome, rota: '/jogos/wor' });
+      }
+    }
+    return avisos;
   });
 
   constructor() {
@@ -433,6 +494,10 @@ export class DashboardPage {
             next: (qs) => this.qlicks.set(qs),
             error: () => {},
           });
+          this.worApi.listarJogos().subscribe({
+            next: (js) => this.worJogos.set(js),
+            error: () => {},
+          });
         }
         this.enriquecerProxima();
       },
@@ -463,6 +528,9 @@ export class DashboardPage {
     const t = this.proximaTurma();
     const plano = this.profileService.profile()?.planoAtual;
     if (!p || !t?.disciplina || !planoAtendeMinimo(plano, 'GRADUADO')) {
+      // Sem tópico a resolver: zera para não filtrar jogos por um tópico antigo.
+      this.topicoProximo.set(null);
+      this.topicoIdProximo.set(null);
       return;
     }
     const chave = `${t.id}:${p.numero}`;
@@ -474,8 +542,10 @@ export class DashboardPage {
       const aloc = alocs.find((a) => a.numeroAula === p.numero);
       if (!aloc) {
         this.topicoProximo.set(null);
+        this.topicoIdProximo.set(null);
         return;
       }
+      this.topicoIdProximo.set(aloc.topicoId);
       this.api.getTopicos(t.disciplina!).subscribe((tops) =>
         this.topicoProximo.set(
           tops.find((x) => x.id === aloc.topicoId)?.nome ?? null,
