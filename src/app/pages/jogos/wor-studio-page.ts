@@ -24,18 +24,20 @@ import { ProfileService } from '../../core/profile.service';
 import { Topico, Turma, WorJogo } from '../../core/models';
 import { turmaContaComoAtiva } from '../../core/plano.util';
 import { Icon } from '../../ui/icon/icon';
+import { Modal } from '../../ui/modal/modal';
 
 /**
  * Wizard de criação do Tichr Wor (Setup + Arsenal). Mobile-first: tudo empilhado
- * com gap; palavras reordenáveis por drag-and-drop; dicas geradas por IA com
- * tratamento amigável do rate limit. O Contexto (disciplina/tópico/turmas)
- * espelha o estúdio do Tichr Qlick.
+ * com gap; palavras reordenáveis por drag-and-drop; arsenal inteiro (palavras +
+ * dicas) forjado por IA num clique, a partir de uma instrução no modal, com
+ * tratamento amigável do rate limit. O Contexto (disciplina/tópico/turmas) e o
+ * fluxo da IA espelham o estúdio do Tichr Qlick.
  */
 @Component({
   selector: 'app-wor-studio-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, DragDropModule, Icon],
+  imports: [ReactiveFormsModule, RouterLink, DragDropModule, Icon, Modal],
   template: `
     <a class="voltar" routerLink="/jogos/wor">‹ Tichr Wor</a>
     <h1 class="title">{{ editando() ? 'Editar batalha' : 'Forjar nova batalha' }}</h1>
@@ -89,6 +91,13 @@ import { Icon } from '../../ui/icon/icon';
       <section class="bloco">
         <h2 class="bloco__tit">Arsenal (palavras &amp; dicas)</h2>
 
+        <div class="ia-bar">
+          <button class="btn-ia" type="button" (click)="iaAberta.set(true)">
+            <app-icon name="sparkles" [size]="16" /> Forjar arsenal com IA
+          </button>
+          <span class="ia-hint">Cria 5 palavras com 3 dicas cada (você edita depois). 1 geração por dia.</span>
+        </div>
+
         <div cdkDropList (cdkDropListDropped)="reordenar($event)" class="lista">
           @for (p of palavras.controls; track p; let i = $index) {
             <div class="palavra" cdkDrag [formGroup]="asGroup(p)">
@@ -104,14 +113,6 @@ import { Icon } from '../../ui/icon/icon';
                 @for (d of dicasDe(p).controls; track d; let j = $index) {
                   <input class="tichr-input dica" [formControlName]="j" [placeholder]="'Carta ' + (j + 1)" />
                 }
-              </div>
-
-              <div class="palavra__acoes">
-                <button class="btn-ia" type="button" [disabled]="iaEsgotada() || carregandoIa() === i" (click)="gerarDicas(i)">
-                  <app-icon name="sparkles" [size]="15" />
-                  {{ carregandoIa() === i ? 'Forjando enigmas…' : 'Gerar Dicas com IA' }}
-                </button>
-                @if (iaMsg()[i]; as msg) { <span class="ia-msg">{{ msg }}</span> }
               </div>
             </div>
           }
@@ -130,6 +131,43 @@ import { Icon } from '../../ui/icon/icon';
         </button>
       </div>
     </form>
+
+    <app-modal
+      [open]="iaAberta()"
+      title="Forjar arsenal com IA"
+      (close)="iaLoading() || iaAberta.set(false)"
+    >
+      <p class="ia-sub">
+        Descreva o que a batalha deve cobrar — a IA forja <b>5 palavras secretas
+        com 3 dicas</b> cada (da mais difícil à mais fácil), usando a disciplina e
+        o tópico selecionados como contexto. Depois é só editar. Limite de 1
+        geração por dia.
+      </p>
+      <textarea
+        class="tichr-input ia-txt"
+        rows="4"
+        [value]="instrucaoIa()"
+        (input)="instrucaoIa.set($any($event.target).value)"
+        [disabled]="iaLoading()"
+        placeholder="Ex: termos-chave da Revolução Francesa, palavras curtas, dicas sem citar datas."
+      ></textarea>
+      @if (iaMsg()) {
+        <p class="ia-feedback" [class.ok]="iaOk()">{{ iaMsg() }}</p>
+      }
+      <div modal-actions>
+        <button class="btn-outline" type="button" (click)="iaAberta.set(false)" [disabled]="iaLoading()">
+          Fechar
+        </button>
+        <button
+          class="btn-primary"
+          type="button"
+          (click)="gerarArsenal()"
+          [disabled]="iaLoading() || iaEsgotada() || !instrucaoIa().trim()"
+        >
+          {{ iaLoading() ? 'Forjando enigmas…' : 'Forjar' }}
+        </button>
+      </div>
+    </app-modal>
   `,
   styles: `
     :host { display: block; }
@@ -160,14 +198,19 @@ import { Icon } from '../../ui/icon/icon';
     .ic-btn { display: inline-flex; padding: 0.4rem; border: none; background: none; color: var(--danger); cursor: pointer; border-radius: 8px; }
     .ic-btn:hover { background: color-mix(in srgb, var(--danger) 10%, transparent); }
     .dicas { display: flex; flex-direction: column; gap: 0.5rem; }
-    .palavra__acoes { display: flex; flex-direction: column; gap: 0.4rem; align-items: flex-start; }
+    .ia-bar { display: flex; align-items: center; gap: 0.6rem 0.9rem; flex-wrap: wrap; }
     .btn-ia {
       display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.55rem 0.9rem;
       border-radius: 10px; border: 1px solid #b45309; background: color-mix(in srgb, #b45309 8%, transparent);
       color: #b45309; font-weight: 700; font-size: 0.9rem; cursor: pointer;
     }
+    .btn-ia:hover { background: color-mix(in srgb, #b45309 16%, transparent); }
     .btn-ia:disabled { opacity: 0.55; cursor: not-allowed; }
-    .ia-msg { font-size: 0.82rem; color: var(--text-muted); }
+    .ia-hint { font-size: 0.82rem; color: var(--text-muted); }
+    .ia-sub { margin: 0 0 0.75rem; color: var(--text-muted); font-size: 0.9rem; }
+    .ia-txt { width: 100%; resize: vertical; font: inherit; }
+    .ia-feedback { margin: 0.75rem 0 0; font-weight: 600; color: var(--danger); }
+    .ia-feedback.ok { color: var(--success); }
     .add { align-self: flex-start; display: inline-flex; align-items: center; gap: 0.4rem; }
     .erro { margin: 0; color: var(--danger); font-weight: 600; }
     .rodape { display: flex; }
@@ -186,9 +229,13 @@ export class WorStudioPage {
   protected readonly editando = signal(false);
   protected readonly salvando = signal(false);
   protected readonly erro = signal<string | null>(null);
-  protected readonly carregandoIa = signal<number | null>(null);
+  // Geração por IA (modal): instrução + estados de loading/feedback/cota.
+  protected readonly iaAberta = signal(false);
+  protected readonly iaLoading = signal(false);
   protected readonly iaEsgotada = signal(false);
-  protected readonly iaMsg = signal<Record<number, string>>({});
+  protected readonly iaOk = signal(false);
+  protected readonly iaMsg = signal('');
+  protected readonly instrucaoIa = signal('');
 
   protected readonly turmas = signal<Turma[]>([]);
   protected readonly turmaIdsSel = signal<string[]>([]);
@@ -299,41 +346,53 @@ export class WorStudioPage {
     return id ? this.topicos().find((t) => t.id === id)?.nome : undefined;
   }
 
-  protected gerarDicas(i: number): void {
-    const grupo = this.palavras.at(i) as FormGroup;
-    const palavra = (grupo.get('palavra')?.value ?? '').trim();
-    if (!palavra) {
-      this.setIaMsg(i, 'Digite a palavra primeiro.');
-      return;
-    }
-    this.carregandoIa.set(i);
-    this.setIaMsg(i, '');
+  /**
+   * Forja o arsenal por IA a partir da instrução + disciplina/tópico. No sucesso,
+   * substitui as palavras do estúdio pelas geradas (o professor edita depois).
+   * Trata rate limit (429), bloqueio de plano e indisponibilidade.
+   */
+  protected gerarArsenal(): void {
+    const instrucao = this.instrucaoIa().trim();
+    if (!instrucao || this.iaLoading() || this.iaEsgotada()) return;
+    this.iaLoading.set(true);
+    this.iaOk.set(false);
+    this.iaMsg.set('');
     this.api
-      .gerarDicas({
-        palavra,
+      .gerarArsenal({
+        instrucao,
         topico: this.nomeTopicoSelecionado(),
         disciplina: this.form.get('disciplina')?.value || undefined,
       })
       .subscribe({
-        next: ({ dicas }) => {
-          const arr = this.dicasDe(grupo);
-          [0, 1, 2].forEach((k) => arr.at(k).setValue(dicas[k] ?? ''));
-          this.carregandoIa.set(null);
+        next: ({ palavras }) => {
+          this.palavras.clear();
+          palavras.forEach((p) =>
+            this.palavras.push(this.novaPalavra(p.palavra, p.dicas)),
+          );
+          this.iaLoading.set(false);
+          this.iaEsgotada.set(true); // cota diária consumida
+          this.iaOk.set(true);
+          this.iaMsg.set(
+            `${palavras.length} palavras forjadas! Feche este aviso para revisar e editar.`,
+          );
         },
-        error: (e: { status: number; error?: { code?: string; message?: string } }) => {
-          this.carregandoIa.set(null);
-          if (e.error?.code === 'IA_RATE_LIMIT') {
+        error: (e: { error?: { code?: string; message?: string } }) => {
+          this.iaLoading.set(false);
+          this.iaOk.set(false);
+          const code = e.error?.code;
+          if (code === 'IA_RATE_LIMIT') {
             this.iaEsgotada.set(true);
-            this.setIaMsg(i, e.error.message ?? 'Sua magia diária se esgotou. Escreva as dicas manualmente.');
+            this.iaMsg.set(
+              e.error?.message ??
+                'Sua magia diária se esgotou. Volte amanhã ou escreva manualmente.',
+            );
+          } else if (code === 'WOR_LOCKED') {
+            this.iaMsg.set('A geração por IA é exclusiva do plano PhD.');
           } else {
-            this.setIaMsg(i, 'IA indisponível agora. Escreva as dicas manualmente.');
+            this.iaMsg.set('IA indisponível agora. Tente de novo ou escreva manualmente.');
           }
         },
       });
-  }
-
-  private setIaMsg(i: number, msg: string): void {
-    this.iaMsg.set({ ...this.iaMsg(), [i]: msg });
   }
 
   protected salvar(): void {

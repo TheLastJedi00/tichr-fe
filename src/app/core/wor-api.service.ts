@@ -31,15 +31,18 @@ export class WorApiService {
   removerJogo(id: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/wor/jogos/${id}`);
   }
-  gerarDicas(payload: {
-    palavra: string;
+  /**
+   * Forja o arsenal inteiro por IA: a instrução do professor + disciplina/tópico
+   * viram 5 palavras com 3 dicas cada, em uma única geração (1×/dia).
+   */
+  gerarArsenal(payload: {
+    instrucao: string;
     topico?: string;
     disciplina?: string;
-  }): Observable<{ dicas: string[] }> {
-    return this.http.post<{ dicas: string[] }>(
-      `${this.base}/wor/jogos/dicas`,
-      payload,
-    );
+  }): Observable<{ palavras: Array<{ palavra: string; dicas: string[] }> }> {
+    return this.http.post<{
+      palavras: Array<{ palavra: string; dicas: string[] }>;
+    }>(`${this.base}/wor/jogos/arsenal`, payload);
   }
 
   // --- Partida (professor / projetor) ---

@@ -18,6 +18,15 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.15.0',
+    data: '2026-07-12',
+    titulo: 'Tichr Wor: arsenal inteiro forjado por IA',
+    itens: [
+      { categoria: 'Nova feature', texto: 'No estúdio do Tichr Wor, o botão "Forjar arsenal com IA" abre um espaço onde você descreve o que a batalha deve cobrar e, em um clique, a IA cria 5 palavras secretas já com as 3 dicas de cada uma — usando a disciplina e o tópico escolhidos como contexto. Antes era preciso digitar cada palavra e pedir as dicas uma por uma; agora o arsenal nasce pronto e você só ajusta o que quiser.' },
+      { categoria: 'Melhoria', texto: 'A geração continua limitada a 1 vez por dia, e agora ela rende muito mais: em vez de gastar a cota com as dicas de uma única palavra, você recebe a batalha inteira de uma vez. Escrever palavras e dicas na mão segue sempre disponível.' },
+    ],
+  },
+  {
     versao: 'v0.14.3',
     data: '2026-07-09',
     titulo: 'Jogos: vincular só a turmas ativas',
