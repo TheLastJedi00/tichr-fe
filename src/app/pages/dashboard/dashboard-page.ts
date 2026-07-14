@@ -13,6 +13,7 @@ import { dataPorExtenso, saudacaoPorHora } from '../../core/greeting';
 import { statusVisual } from '../../core/status-sessao';
 import {
   CriarExcecaoPayload,
+  IsolateusJogo,
   Qlick,
   Sessao,
   Turma,
@@ -22,6 +23,7 @@ import { linksPainel } from '../../core/nav-links';
 import { planoAtendeMinimo } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { TurmaApiService } from '../../core/turma-api.service';
+import { IsolateusApiService } from '../../core/isolateus-api.service';
 import { WorApiService } from '../../core/wor-api.service';
 import { Card } from '../../ui/card/card';
 import { Icon } from '../../ui/icon/icon';
@@ -32,7 +34,7 @@ import { ExcecaoModal } from './excecao-modal';
 
 /** Aviso de jogo (Qlick ou Wor) pronto para a próxima aula. */
 interface AvisoJogo {
-  tipo: 'Qlick' | 'Wor';
+  tipo: 'Qlick' | 'Wor' | 'Isolateus';
   titulo: string;
   rota: string;
 }
@@ -138,9 +140,12 @@ interface AvisoJogo {
         <a
           class="jogo-aviso"
           [class.jogo-aviso--wor]="jg.tipo === 'Wor'"
+          [class.jogo-aviso--iso]="jg.tipo === 'Isolateus'"
           [routerLink]="jg.rota"
         >
-          <span class="jogo-aviso__ic"><app-icon name="game" [size]="22" /></span>
+          <span class="jogo-aviso__ic">
+            <app-icon [name]="jg.tipo === 'Isolateus' ? 'alien' : 'game'" [size]="22" />
+          </span>
           <span class="jogo-aviso__txt">
             <strong>{{ jg.tipo }} pronto para {{ proximaTurma()?.nome }}</strong>
             <span>“{{ jg.titulo }}” — toque para rodar na próxima aula</span>
@@ -302,6 +307,10 @@ interface AvisoJogo {
       background: linear-gradient(135deg, #ea580c, #dc2626);
       box-shadow: 0 10px 30px color-mix(in srgb, #dc2626 30%, transparent);
     }
+    .jogo-aviso--iso {
+      background: linear-gradient(135deg, #84cc16, #4d7c0f);
+      box-shadow: 0 10px 30px color-mix(in srgb, #84cc16 32%, transparent);
+    }
     .jogo-aviso__ic { flex: 0 0 auto; display: inline-flex; }
     .jogo-aviso__txt { display: flex; flex-direction: column; min-width: 0; }
     .jogo-aviso__txt strong { font-weight: 800; }
@@ -332,6 +341,7 @@ interface AvisoJogo {
 export class DashboardPage {
   private readonly api = inject(TurmaApiService);
   private readonly worApi = inject(WorApiService);
+  private readonly isolateusApi = inject(IsolateusApiService);
   private readonly profileService = inject(ProfileService);
 
   private readonly agora = new Date();
@@ -434,6 +444,7 @@ export class DashboardPage {
   /** Jogos do professor (PhD): Qlick e Wor — avisos da próxima aula. */
   private readonly qlicks = signal<Qlick[]>([]);
   private readonly worJogos = signal<WorJogo[]>([]);
+  private readonly isolateusJogos = signal<IsolateusJogo[]>([]);
 
   /**
    * Jogos (Qlick e Wor) prontos para a próxima aula. Casa por turma e, quando a
@@ -458,6 +469,15 @@ export class DashboardPage {
     for (const j of this.worJogos()) {
       if (daTurma(j.turmaIds, j.turmaId) && doTopico(j.topicoId)) {
         avisos.push({ tipo: 'Wor', titulo: j.nome, rota: '/jogos/wor' });
+      }
+    }
+    for (const j of this.isolateusJogos()) {
+      if (daTurma(j.turmaIds, j.turmaId) && doTopico(j.topicoId)) {
+        avisos.push({
+          tipo: 'Isolateus',
+          titulo: j.nome,
+          rota: '/jogos/isolateus',
+        });
       }
     }
     return avisos;
@@ -496,6 +516,10 @@ export class DashboardPage {
           });
           this.worApi.listarJogos().subscribe({
             next: (js) => this.worJogos.set(js),
+            error: () => {},
+          });
+          this.isolateusApi.listarJogos().subscribe({
+            next: (js) => this.isolateusJogos.set(js),
             error: () => {},
           });
         }
