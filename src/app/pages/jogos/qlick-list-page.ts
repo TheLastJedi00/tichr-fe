@@ -6,11 +6,13 @@ import {
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { Qlick, Turma } from '../../core/models';
+import { REGRAS_JOGO } from '../../core/regras-jogo.data';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Card } from '../../ui/card/card';
 import { Icon } from '../../ui/icon/icon';
 import { Modal } from '../../ui/modal/modal';
 import { PinsModal } from '../../ui/pins-modal/pins-modal';
+import { RegrasJogoView } from '../../ui/regras-jogo/regras-jogo';
 import { Skeleton } from '../../ui/skeleton/skeleton';
 
 /** Meus Qlicks (PhD): lista dos questionários, com criar, editar e rodar. */
@@ -18,7 +20,7 @@ import { Skeleton } from '../../ui/skeleton/skeleton';
   selector: 'app-qlick-list-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Card, Icon, Skeleton, PinsModal, Modal],
+  imports: [RouterLink, Card, Icon, Skeleton, PinsModal, Modal, RegrasJogoView],
   template: `
     <header class="head">
       <div>
@@ -26,6 +28,9 @@ import { Skeleton } from '../../ui/skeleton/skeleton';
         <h1 class="title">Meus Qlicks</h1>
       </div>
       <div class="head__acoes">
+        <button class="btn-outline regras-btn" type="button" (click)="regrasAberto.set(true)">
+          <app-icon name="info" [size]="16" /> Regras e Pontuações
+        </button>
         <button class="btn-outline pins" type="button" (click)="pinsAberto.set(true)">
           <app-icon name="users" [size]="16" /> PINs da turma
         </button>
@@ -34,6 +39,13 @@ import { Skeleton } from '../../ui/skeleton/skeleton';
         </a>
       </div>
     </header>
+
+    <app-modal [open]="regrasAberto()" title="Tichr Qlick — Regras e Pontuações" (close)="regrasAberto.set(false)">
+      <app-regras-jogo [regras]="regras" />
+      <div modal-actions>
+        <button class="btn-primary" type="button" (click)="regrasAberto.set(false)">Fechar</button>
+      </div>
+    </app-modal>
 
     @if (carregando()) {
       <div class="lista">
@@ -103,7 +115,7 @@ import { Skeleton } from '../../ui/skeleton/skeleton';
     .voltar { color: var(--primary); font-weight: 600; }
     .title { margin: 0.35rem 0 0; font-size: 1.5rem; font-weight: 700; }
     .btn-primary, .pins { text-decoration: none; }
-    .pins { display: inline-flex; align-items: center; gap: 0.4rem; }
+    .pins, .regras-btn { display: inline-flex; align-items: center; gap: 0.4rem; }
     .loading { display: flex; justify-content: center; padding: 3rem 0; color: var(--primary); }
     .muted { color: var(--text-muted); margin: 0; }
     .lista { display: flex; flex-direction: column; gap: 0.75rem; }
@@ -130,6 +142,9 @@ export class QlickListPage {
   protected readonly rodando = signal(false);
   protected readonly qlicks = signal<Qlick[]>([]);
   protected readonly pinsAberto = signal(false);
+  /** Guia de consulta rápida durante a aula (regras + tabela de XP). */
+  protected readonly regrasAberto = signal(false);
+  protected readonly regras = REGRAS_JOGO.QLICK;
   protected readonly turmas = signal<Turma[]>([]);
   /** Qlick aguardando a escolha de turma (quando tem várias atribuídas). */
   protected readonly escolhaTurma = signal<Qlick | null>(null);
