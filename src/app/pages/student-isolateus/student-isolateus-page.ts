@@ -18,6 +18,9 @@ import { Spinner } from '../../ui/spinner/spinner';
 
 /** Duração da animação do Despertar (revelação de papéis). */
 const REVELACAO_MS = 3000;
+/** Janelas da Quarentena — espelham as constantes `ISOLATEUS` do backend. */
+const LIMITE_DEBATE_S = 90;
+const LIMITE_VOTO_S = 60;
 
 /**
  * O celular do habitante. Descobre a investigação da turma sozinho (sonda de 4s,
@@ -232,6 +235,96 @@ const REVELACAO_MS = 3000;
               }
             }
 
+            @case ('RESULTADO_RODADA') {
+              @if (p.vereditoQuarentena; as v) {
+                <div class="card-global" [class.card-global--ok]="v.eraAmeaca">{{ v.texto }}</div>
+              }
+              @if (p.resumoRodada; as r) {
+                <div class="card-global" [class.card-global--ok]="r.defendida">{{ r.texto }}</div>
+              }
+              @if (p.questaoPublica && p.corretaIndex !== null && p.corretaIndex !== undefined) {
+                <p class="muted center">
+                  Resposta correta:
+                  <b>{{ letra(p.corretaIndex) }}) {{ p.questaoPublica.alternativas[p.corretaIndex] }}</b>
+                </p>
+              }
+              @if (!p.quarentenaUsada && !foraDaVila()) {
+                <button class="btn-quarentena" type="button" [disabled]="enviando()" (click)="convocar()">
+                  <app-icon name="alert" [size]="16" /> Convocar Quarentena
+                </button>
+                <p class="muted center">
+                  A vila só entra em Quarentena <b>uma vez</b>. Prender um inocente
+                  custa caro.
+                </p>
+              }
+              @if (erro()) { <p class="aviso">{{ erro() }}</p> }
+            }
+
+            @case ('QUARENTENA_DEBATE') {
+              <div class="qtag">Quarentena · Debate</div>
+              <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div>
+              <div class="feed feed--alto">
+                @for (m of p.debate; track m.id) {
+                  <p class="rumor"><strong>{{ m.autorNome }}</strong> {{ m.texto }}</p>
+                }
+              </div>
+              @if (!foraDaVila()) {
+                <form class="composer" (submit)="debater($event)">
+                  <textarea
+                    class="tichr-input"
+                    rows="2"
+                    maxlength="240"
+                    [value]="debateTexto()"
+                    (input)="debateTexto.set($any($event.target).value)"
+                    placeholder="Acuse, defenda-se, aponte quem concordou com o rumor…"
+                  ></textarea>
+                  <button class="btn-iso" type="submit" [disabled]="enviando() || !debateTexto().trim()">
+                    Falar
+                  </button>
+                </form>
+              } @else {
+                <p class="muted center">Quem saiu da vila não participa do debate.</p>
+              }
+            }
+
+            @case ('QUARENTENA_VOTO') {
+              <div class="qtag">Quarentena · Veredito</div>
+              <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div>
+              @if (foraDaVila()) {
+                <p class="muted center">Quem saiu da vila não vota.</p>
+              } @else if (votei()) {
+                <p class="muted center">Voto depositado. Aguardando os outros habitantes…</p>
+              } @else {
+                <p class="muted center">Toque no habitante que deve ser isolado.</p>
+                <div class="suspeitos">
+                  @for (h of vivos(p); track h.id) {
+                    <button class="suspeito" type="button" [disabled]="enviando()" (click)="votar(h.id)">
+                      <app-icon name="user" [size]="16" />
+                      {{ h.nome }}
+                      @if (h.id === painel()?.habitanteId) { <span class="eu">você</span> }
+                    </button>
+                  }
+                </div>
+              }
+            }
+
+            @case ('ENCERRADO') {
+              @if (p.veredito; as v) {
+                <div class="fim" [class.fim--ganhei]="ganhei(v.lado)">
+                  <app-icon [name]="v.lado === 'VILA' ? 'trophy' : 'alien'" [size]="34" />
+                  <strong>{{ ganhei(v.lado) ? 'Você venceu!' : 'Você perdeu.' }}</strong>
+                  <p>{{ v.motivo }}</p>
+                </div>
+              }
+              @if (minhaPosicao(p); as eu) {
+                <p class="lead center">
+                  Você terminou em {{ eu.posicao }}º com <b>{{ eu.pontos }}</b> pontos,
+                  somados ao seu XP do portal.
+                </p>
+              }
+              <a class="btn-outline full sair" routerLink="/aluno/dashboard">Voltar ao início</a>
+            }
+
             @default {
               <p class="lead">Aguardando o Comando Central…</p>
             }
@@ -309,6 +402,22 @@ const REVELACAO_MS = 3000;
     .composer__lbl { font-size: 0.78rem; font-weight: 800; color: var(--text-muted); }
     .composer textarea { resize: vertical; font: inherit; }
     .center { text-align: center; }
+    /* Quarentena */
+    .card-global { padding: 0.9rem; border-radius: 12px; font-weight: 800; font-size: 0.95rem; text-align: center; color: #fff; background: var(--danger); }
+    .card-global--ok { background: var(--success); }
+    .btn-quarentena { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; width: 100%; padding: 0.9rem 1.2rem; border: none; border-radius: 12px; cursor: pointer; font: inherit; font-weight: 800; color: #fff; background: var(--danger); }
+    .btn-quarentena:disabled { opacity: 0.55; cursor: not-allowed; }
+    .qtag { align-self: center; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--danger); }
+    .feed--alto { max-height: 260px; }
+    .suspeitos { display: flex; flex-direction: column; gap: 0.5rem; }
+    .suspeito { display: flex; align-items: center; gap: 0.5rem; padding: 0.85rem 1rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); font: inherit; font-weight: 700; text-align: left; color: var(--text); cursor: pointer; }
+    .suspeito:hover:not(:disabled) { border-color: var(--danger); color: var(--danger); }
+    .eu { margin-left: auto; font-size: 0.72rem; font-weight: 700; color: var(--text-muted); }
+    .fim { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1.5rem 1.25rem; border-radius: 16px; text-align: center; color: #fff; background: linear-gradient(135deg, #64748b, #334155); }
+    .fim--ganhei { background: linear-gradient(135deg, #84cc16, #4d7c0f); }
+    .fim strong { font-size: 1.35rem; font-weight: 900; }
+    .fim p { margin: 0; opacity: 0.95; line-height: 1.5; }
+    .sair { display: block; text-align: center; text-decoration: none; margin-top: 0.5rem; }
   `,
 })
 export class StudentIsolateusPage {
@@ -337,6 +446,8 @@ export class StudentIsolateusPage {
   protected readonly respostaIndex = signal<number | null>(null);
   protected readonly rumorTexto = signal('');
   protected readonly sinalTexto = signal('');
+  protected readonly debateTexto = signal('');
+  protected readonly votei = signal(false);
   private readonly relogio = signal(Date.now());
 
   /**
@@ -353,15 +464,25 @@ export class StudentIsolateusPage {
     return !!h && (!h.vivo || h.preso);
   });
 
-  /** Segundos restantes da questão. */
+  /**
+   * Segundos restantes da fase cronometrada (questão, debate ou votação). Os
+   * limites da Quarentena espelham as constantes `ISOLATEUS` do backend.
+   */
   protected readonly restante = computed(() => {
     const p = this.partida();
-    if (!p || p.status !== 'QUESTAO_ATIVA' || !p.faseIniciadaEm) {
-      return p?.duracaoSegundos ?? 0;
-    }
-    const fim = Date.parse(p.faseIniciadaEm) + p.duracaoSegundos * 1000;
+    if (!p || !p.faseIniciadaEm) return 0;
+    const limite =
+      p.status === 'QUESTAO_ATIVA'
+        ? p.duracaoSegundos
+        : p.status === 'QUARENTENA_DEBATE'
+          ? LIMITE_DEBATE_S
+          : p.status === 'QUARENTENA_VOTO'
+            ? LIMITE_VOTO_S
+            : 0;
+    if (!limite) return 0;
+    const fim = Date.parse(p.faseIniciadaEm) + limite * 1000;
     const s = Math.ceil((fim - this.relogio()) / 1000);
-    return Math.max(0, Math.min(p.duracaoSegundos, s));
+    return Math.max(0, Math.min(limite, s));
   });
 
   private partidaId: string | null = null;
@@ -554,5 +675,59 @@ export class StudentIsolateusPage {
       },
       error: () => this.enviando.set(false),
     });
+  }
+
+  // --- A Quarentena ---
+
+  protected convocar(): void {
+    if (!this.partidaId || this.enviando()) return;
+    this.enviando.set(true);
+    this.erro.set('');
+    this.api.convocarQuarentena(this.partidaId).subscribe({
+      next: () => this.enviando.set(false),
+      error: (e: { error?: { message?: string } }) => {
+        this.enviando.set(false);
+        this.erro.set(
+          e.error?.message ?? 'Não foi possível convocar a Quarentena.',
+        );
+      },
+    });
+  }
+
+  protected debater(ev: Event): void {
+    ev.preventDefault();
+    const texto = this.debateTexto().trim();
+    if (!this.partidaId || !texto || this.enviando()) return;
+    this.enviando.set(true);
+    this.api.debater(this.partidaId, texto).subscribe({
+      next: () => {
+        this.enviando.set(false);
+        this.debateTexto.set('');
+      },
+      error: () => this.enviando.set(false),
+    });
+  }
+
+  /** Otimista, como a resposta: o voto é único e o servidor é o juiz. */
+  protected votar(suspeitoId: string): void {
+    if (!this.partidaId || this.votei() || this.enviando()) return;
+    this.enviando.set(true);
+    this.votei.set(true);
+    this.api.votarSuspeito(this.partidaId, suspeitoId).subscribe({
+      next: () => this.enviando.set(false),
+      error: () => {
+        this.enviando.set(false);
+        this.votei.set(false);
+      },
+    });
+  }
+
+  /** O lado do aluno venceu? (Aldeões torcem pela Vila; a Ameaça, contra.) */
+  protected ganhei(lado: 'VILA' | 'AMEACA'): boolean {
+    return this.ehAmeaca() ? lado === 'AMEACA' : lado === 'VILA';
+  }
+
+  protected minhaPosicao(p: IsolateusMatch) {
+    return p.rankingFinal.find((r) => r.alunoId === this.meuId) ?? null;
   }
 }
