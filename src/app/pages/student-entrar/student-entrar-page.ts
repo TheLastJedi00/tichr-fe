@@ -11,6 +11,7 @@ import { HallTurma, PortalProfessor, PortalTurma } from '../../core/models';
 import { StudentAuthService } from '../../core/student-auth.service';
 import { Avatar } from '../../ui/avatar/avatar';
 import { Icon } from '../../ui/icon/icon';
+import { Logo } from '../../ui/logo/logo';
 
 type Etapa =
   | 'busca'
@@ -30,11 +31,11 @@ type Etapa =
   selector: 'app-student-entrar-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, NgTemplateOutlet, Avatar],
+  imports: [Icon, NgTemplateOutlet, Avatar, Logo],
   template: `
     <div class="wrap">
       <div class="card">
-        <span class="marca">Tichr</span>
+        <app-logo class="marca" [size]="34" />
 
         @switch (etapa()) {
           @case ('busca') {
@@ -229,7 +230,7 @@ type Etapa =
       text-align: center;
       box-shadow: 0 24px 60px rgba(2, 6, 23, 0.4);
     }
-    .marca { font-weight: 800; color: var(--primary); }
+    .marca { display: flex; justify-content: center; color: var(--text); }
     .tit { margin: 1rem 0 0.25rem; font-size: 1.4rem; font-weight: 800; }
     .sub { margin: 0 0 1.25rem; color: var(--text-muted); font-size: 0.9rem; }
     .campo { display: block; text-align: left; margin-bottom: 1rem; }

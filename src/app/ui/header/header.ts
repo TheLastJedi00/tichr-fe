@@ -4,6 +4,7 @@ import { AuthService } from '../../core/auth.service';
 import { ThemeService } from '../../core/theme.service';
 import { BetaBadge } from '../beta-badge/beta-badge';
 import { IconButton } from '../icon-button/icon-button';
+import { Logo } from '../logo/logo';
 
 /**
  * Cabecalho fixo: logo, troca de tema e botao de menu (hamburguer).
@@ -13,10 +14,12 @@ import { IconButton } from '../icon-button/icon-button';
   selector: 'app-header',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IconButton, BetaBadge, RouterLink],
+  imports: [IconButton, BetaBadge, RouterLink, Logo],
   template: `
     <header class="header">
-      <a class="header__logo" [routerLink]="auth.isAuthenticated() ? '/dashboard' : '/'">Tichr</a>
+      <a class="header__logo" [routerLink]="auth.isAuthenticated() ? '/dashboard' : '/'">
+        <app-logo [size]="30" />
+      </a>
 
       <div class="header__actions">
         <app-beta-badge />
@@ -45,11 +48,15 @@ import { IconButton } from '../icon-button/icon-button';
       background: var(--surface);
       border-bottom: 1px solid var(--border);
     }
+    /* Âncora fixa da marca: mesmo canto, mesmo tamanho, em toda tela do painel. */
     .header__logo {
-      font-size: 1.35rem;
-      font-weight: 800;
-      letter-spacing: -0.02em;
+      display: inline-flex;
       color: var(--text);
+      border-radius: var(--radius);
+    }
+    .header__logo:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 4px;
     }
     .header__actions {
       display: flex;

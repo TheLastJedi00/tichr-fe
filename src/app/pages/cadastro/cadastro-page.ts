@@ -15,6 +15,7 @@ import { Plano, PLANOS } from '../../core/planos.data';
 import { ProfileService } from '../../core/profile.service';
 import { Card } from '../../ui/card/card';
 import { LegalDoc } from '../../ui/legal-doc/legal-doc';
+import { Logo } from '../../ui/logo/logo';
 import { Modal } from '../../ui/modal/modal';
 
 /**
@@ -27,11 +28,11 @@ import { Modal } from '../../ui/modal/modal';
   selector: 'app-cadastro-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, Card, Modal, LegalDoc],
+  imports: [ReactiveFormsModule, RouterLink, Card, Modal, LegalDoc, Logo],
   template: `
     <div class="wrap">
       <a class="voltar" routerLink="/">← Voltar ao site</a>
-      <span class="logo">Tichr</span>
+      <app-logo class="logo" [size]="40" />
       <app-card title="Criar conta">
         <p class="sub">Comece agora. Só precisamos do essencial.</p>
 
@@ -140,7 +141,7 @@ import { Modal } from '../../ui/modal/modal';
   styles: `
     .wrap { max-width: 380px; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
     .voltar { display: inline-block; margin-bottom: 1.25rem; font-weight: 600; color: var(--text-muted); }
-    .logo { display: block; text-align: center; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 1.25rem; }
+    .logo { display: flex; justify-content: center; margin-bottom: 1.25rem; }
     .sub { margin: 0 0 1rem; color: var(--text-muted); font-size: 0.9rem; }
     .plano { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; padding: 0.75rem 0.9rem; border: 1px solid var(--primary); border-radius: var(--radius); background: color-mix(in srgb, var(--primary) 6%, var(--surface)); }
     .plano__info { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; flex: 1; }

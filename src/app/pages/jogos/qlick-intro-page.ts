@@ -9,6 +9,7 @@ import { Router, RouterLink } from '@angular/router';
 import { planoAtendeMinimo } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { REGRAS_JOGO } from '../../core/regras-jogo.data';
+import { GameLogo } from '../../ui/game-logo/game-logo';
 import { Icon } from '../../ui/icon/icon';
 import { Modal } from '../../ui/modal/modal';
 import { RegrasJogoView } from '../../ui/regras-jogo/regras-jogo';
@@ -22,12 +23,12 @@ import { RegrasJogoView } from '../../ui/regras-jogo/regras-jogo';
   selector: 'app-qlick-intro-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Modal, RegrasJogoView],
+  imports: [RouterLink, Icon, Modal, RegrasJogoView, GameLogo],
   template: `
     <a class="voltar" routerLink="/jogos">← Jogos</a>
 
     <header class="hero">
-      <span class="hero__icon"><app-icon name="game" [size]="34" /></span>
+      <app-game-logo class="hero__icon" game="qlick" [size]="68" />
       <h1>Tichr Qlick</h1>
       <p class="hero__sub">
         O quiz ao vivo que transforma a revisão num game show. Perguntas
@@ -105,7 +106,7 @@ import { RegrasJogoView } from '../../ui/regras-jogo/regras-jogo';
   styles: `
     .voltar { color: var(--primary); font-weight: 600; }
     .hero { text-align: center; padding: 1.5rem 0 2rem; }
-    .hero__icon { display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 18px; color: var(--primary-contrast); background: var(--primary); }
+    .hero__icon { display: inline-flex; }
     .hero h1 { margin: 0.75rem 0 0.5rem; font-size: 1.9rem; font-weight: 800; }
     .hero__sub { max-width: 34rem; margin: 0 auto 1.25rem; color: var(--text-muted); }
     .hero__cta { padding: 0.8rem 1.75rem; font-size: 1.05rem; }

@@ -4,8 +4,10 @@ import { Plano, PLANOS } from '../../core/planos.data';
 import { ThemeService } from '../../core/theme.service';
 import { Avatar } from '../../ui/avatar/avatar';
 import { Footer } from '../../ui/footer/footer';
+import { GameLogo } from '../../ui/game-logo/game-logo';
 import { Icon } from '../../ui/icon/icon';
 import { IconButton } from '../../ui/icon-button/icon-button';
+import { Logo } from '../../ui/logo/logo';
 import { Modal } from '../../ui/modal/modal';
 import { RevealDirective } from '../../ui/reveal.directive';
 
@@ -28,12 +30,12 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
   selector: 'app-landing-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, IconButton, RouterLink, RevealDirective, Modal, Footer, Avatar],
+  imports: [Icon, IconButton, RouterLink, RevealDirective, Modal, Footer, Avatar, Logo, GameLogo],
   template: `
     <!-- ===== Hero (Atenção + Value Proposition) ===== -->
     <section class="hero">
       <header class="topbar container">
-        <span class="logo">Tichr</span>
+        <app-logo class="logo" [size]="34" [onDark]="true" />
         <div class="topbar__actions">
           <a class="btn-ghost-light" routerLink="/login">Entrar</a>
           <app-icon-button
@@ -101,7 +103,7 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
         <div class="arena__grid">
           <!-- Tichr Qlick -->
           <article class="gcard gcard--qlick">
-            <span class="gcard__ic"><app-icon name="game" [size]="24" /></span>
+            <app-game-logo class="gcard__logo" game="qlick" [size]="52" />
             <span class="gcard__tag">Quiz ao vivo</span>
             <h3 class="gcard__nome">Tichr Qlick</h3>
             <p class="gcard__desc">
@@ -115,7 +117,7 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
 
           <!-- Tichr Wor -->
           <article class="gcard gcard--wor">
-            <span class="gcard__ic"><app-icon name="castle" [size]="24" /></span>
+            <app-game-logo class="gcard__logo" game="wor" [size]="52" />
             <span class="gcard__tag">Guerra de palavras</span>
             <h3 class="gcard__nome">Tichr Wor</h3>
             <p class="gcard__desc">
@@ -487,7 +489,8 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
     :host { display: block; }
     .container { width: 100%; max-width: 1080px; margin: 0 auto; padding: 0 1.25rem; }
     .container--estreito { max-width: 760px; }
-    .logo { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; }
+    /* Sobre o hero escuro, o lockup herda o #f1f5f9 da seção — só o símbolo é invariante. */
+    .logo { display: inline-flex; }
     h2 { font-size: clamp(1.6rem, 3.5vw, 2.25rem); font-weight: 800; letter-spacing: -0.02em; margin: 0 0 0.75rem; }
 
     /* ===== Hero ===== */
@@ -630,6 +633,8 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
     .gcard { display: flex; flex-direction: column; gap: 0.55rem; padding: 1.6rem 1.4rem; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); border-top: 3px solid var(--border); transition: transform 0.15s ease, box-shadow 0.2s ease; }
     .gcard:hover { transform: translateY(-4px); }
     .gcard__ic { display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 14px; }
+    /* Jogo real leva a logo do jogo; o card "Em breve" não é um jogo e fica no ícone. */
+    .gcard__logo { display: inline-flex; }
     .gcard__tag { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
     .gcard__nome { margin: 0; font-size: 1.3rem; font-weight: 800; letter-spacing: -0.01em; }
     .gcard__desc { margin: 0; color: var(--text-muted); font-size: 0.98rem; line-height: 1.55; flex: 1; }
@@ -637,12 +642,10 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
     /* Qlick — azul/primário */
     .gcard--qlick { border-top-color: var(--primary); }
     .gcard--qlick:hover { box-shadow: 0 16px 40px color-mix(in srgb, var(--primary) 22%, transparent); }
-    .gcard--qlick .gcard__ic { color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); }
     .gcard--qlick .gcard__tag { color: var(--primary); }
     /* Wor — âmbar */
     .gcard--wor { border-top-color: #b45309; }
     .gcard--wor:hover { box-shadow: 0 16px 40px color-mix(in srgb, #b45309 26%, transparent); }
-    .gcard--wor .gcard__ic { color: #b45309; background: color-mix(in srgb, #b45309 14%, transparent); }
     .gcard--wor .gcard__tag { color: #b45309; }
     .gcard__meta--phd { color: #b45309; }
     /* Em breve — apagado/tracejado */

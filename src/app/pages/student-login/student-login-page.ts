@@ -8,6 +8,7 @@ import {
 import { ActivatedRoute, Router } from '@angular/router';
 import { StudentAuthService } from '../../core/student-auth.service';
 import { Icon } from '../../ui/icon/icon';
+import { Logo } from '../../ui/logo/logo';
 import { Spinner } from '../../ui/spinner/spinner';
 
 /**
@@ -18,11 +19,11 @@ import { Spinner } from '../../ui/spinner/spinner';
   selector: 'app-student-login-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, Spinner],
+  imports: [Icon, Spinner, Logo],
   template: `
     <div class="wrap">
       <div class="card">
-        <span class="marca">Tichr</span>
+        <app-logo class="marca" [size]="34" />
 
         @if (carregando()) {
           <div class="loading"><app-spinner [size]="28" /></div>
@@ -91,7 +92,7 @@ import { Spinner } from '../../ui/spinner/spinner';
       text-align: center;
       box-shadow: 0 24px 60px rgba(2, 6, 23, 0.4);
     }
-    .marca { font-weight: 800; color: var(--primary); }
+    .marca { display: flex; justify-content: center; color: var(--text); }
     .loading { display: flex; justify-content: center; padding: 2rem 0; color: var(--primary); }
     .ola { margin: 1rem 0 0.25rem; font-size: 1.1rem; font-weight: 600; color: var(--text-muted); }
     .turma { margin: 0 0 1.25rem; font-size: 1.5rem; font-weight: 800; }
