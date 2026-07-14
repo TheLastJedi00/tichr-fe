@@ -115,10 +115,11 @@ estilo app), autenticada por **PIN** e com token próprio. O aluno entra pela jo
 | Rota | Tela | Papel |
 |---|---|---|
 | `/entrar` · `/t/:turmaId` | **Login do aluno** *(pública)* | Jornada por `@username` + PIN da turma; `/t/:turmaId` é o atalho legado direto. |
-| `/aluno/dashboard` | **Início** | Card **"O que vem por aí"** com o **tópico da próxima aula**; **barra de nível** (Prata → Diamante) + **barra de evolução da turma**; o rótulo da pontuação segue o **nome definido na turma** (ex.: "Aura"). |
+| `/aluno/dashboard` | **Início** | Card **"O que vem por aí"** com o **tópico da próxima aula**; **barra de nível** + **barra de evolução da turma**; o rótulo da pontuação segue o **nome definido na turma** (ex.: "Aura"). A **patente** (Bronze → Platina) é calculada com os **limiares da própria turma**, que chegam no login (`turma.niveis`) — sem eles a barra cairia nos defaults e mostraria um tier diferente do que o professor configurou. |
 | `/aluno/agenda` | **Agenda** | Dias letivos com status dinâmico (Concluída / Em andamento / Agendada) e o **tópico** de cada aula ("o que já vimos") — sincronizados do Plano de Aula quando o professor é PhD. |
 | `/aluno/ranking` | **Ranking** | Pódio (🥇🥈🥉) da turma, com o **card do próprio aluno destacado**. A aba **some** quando a turma desativa o ranking. |
 | `/aluno/qlick` | **Tichr Qlick** | Entra no quiz "de hoje": **lobby animado** (loader temático), alternativas **color-coded A/B/C/D** com feedback de clique (press/scale) e estado de espera, **revelação animada** (correta brilha, erradas em cinza, confete no acerto / shake no erro) e **pódio final** com os pontos somados ao XP. |
+| `/aluno/manual` | **Manual de Guerra** | Regras completas do **Tichr Wor** e do **Tichr Qlick** + a **Tabela de Recompensas** (quanto vale cada jogada), para a turma montar estratégia **antes** da partida. |
 
 ### Tichr Qlick: quiz ao vivo em tempo real (Plano PhD)
 
@@ -137,6 +138,29 @@ cliente (ver [arquitetura](#arquitetura--stack)):
 - **Comando via REST, estado por realtime:** toda escrita vai ao backend (fonte única);
   o cliente só **observa** o documento da partida via `onSnapshot`. A resposta correta
   nunca trafega durante a pergunta.
+
+### Tichr Wor: narração ao vivo (Action Cards)
+
+As jogadas de impacto da batalha são narradas **ao mesmo tempo em todas as telas** — no
+celular de cada aluno e no telão — para que quem está fora do turno não perca o que
+aconteceu:
+
+- **Os gatilhos:** ataque ao castelo rival, Risco Heroico bem-sucedido (cura), Dano Crítico
+  (arriscou e errou), Usurpação (a Horda roubou o castelo do líder) e a compra de dica.
+- **A interrupção:** o card ocupa o centro da tela por **3 segundos**, com os inputs
+  **travados** — e o **cronômetro não corre** nesse intervalo (o backend nasce a rodada 3s à
+  frente, então a equipe da vez não é punida pela narração).
+- **Ataque é da equipe:** o dano nasce da votação da rodada inteira, então o card nomeia a
+  **equipe**. Risco Heroico, Dano Crítico e Usurpação nomeiam o **aluno** — são individuais.
+
+### Transparência das regras e da economia de XP
+
+As regras e a **Tabela de Recompensas** dos dois jogos vivem numa **fonte única**
+(`core/regras-jogo.data.ts`, espelhando as constantes do backend) e aparecem em três
+lugares: nas **landings** dos jogos, no botão **"Regras e Pontuações"** acima da lista de
+batalhas/Qlicks do professor, e no **Manual de Guerra** do aluno. No Wor a tabela deixa
+explícito que as jogadas rendem **pontos de combate**, e que os pontos só viram XP **ao fim
+da partida** (campeã com o valor cheio, demais com metade).
 
 Recursos transversais: **modal global de erro** (toda falha de rede vira um aviso
 claro — exceto a cota e a **trava de @username**, tratadas *inline*), **estados de carregamento**

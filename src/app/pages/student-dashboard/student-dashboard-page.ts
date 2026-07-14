@@ -64,7 +64,7 @@ import { XpBar } from '../../ui/xp-bar/xp-bar';
       }
 
       <app-card>
-        <app-xp-bar [xp]="xp()" [unidade]="nomePontuacao()" />
+        <app-xp-bar [xp]="xp()" [unidade]="nomePontuacao()" [limiares]="niveis()" />
       </app-card>
 
       @if (progresso(); as p) {
@@ -147,6 +147,8 @@ export class StudentDashboardPage {
   protected readonly nome = signal(this.studentAuth.aluno()?.nome ?? '');
   protected readonly xp = signal(this.studentAuth.aluno()?.xpTotal ?? 0);
   protected readonly nomePontuacao = this.studentAuth.nomePontuacao;
+  /** Cortes de patente da TURMA (vêm do login) — sem eles a barra cai nos defaults. */
+  protected readonly niveis = this.studentAuth.niveis;
   protected readonly progresso = signal<ProgressoTurma | null>(null);
   protected readonly qlickDoDia = signal<QlickDoDia | null>(null);
   protected readonly worDoDia = signal<WorMatchView | null>(null);

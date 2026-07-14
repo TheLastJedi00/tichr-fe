@@ -18,6 +18,19 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.16.0',
+    data: '2026-07-14',
+    titulo: 'Batalhas narradas ao vivo, Manual de Guerra e patentes corretas',
+    itens: [
+      { categoria: 'Nova feature', texto: 'As jogadas de impacto do Tichr Wor agora são narradas ao vivo: quando uma equipe derruba HP de um castelo, quando alguém arrisca a palavra e cura (ou erra e sofre Dano Crítico), quando uma Horda rouba o castelo do líder ou quando uma equipe sacrifica o ataque para comprar uma dica, um aviso aparece no centro da tela de TODOS os alunos e no telão, ao mesmo tempo. O jogo pausa por 3 segundos durante o aviso — inclusive o cronômetro — para que ninguém perca o que aconteceu enquanto estava esperando a sua vez.' },
+      { categoria: 'Nova feature', texto: 'Os alunos ganharam a aba "Manual de Guerra": as regras completas do Tichr Wor e do Tichr Qlick e a tabela de quanto vale cada jogada, para a turma poder montar estratégia antes da partida.' },
+      { categoria: 'Nova feature', texto: 'Na sua lista de batalhas e de Qlicks, o botão "Regras e Pontuações" abre um resumo das regras e a tabela de recompensas — um guia de consulta rápida para usar durante a aula.' },
+      { categoria: 'Nova feature', texto: 'As páginas de apresentação do Tichr Wor e do Tichr Qlick passaram a mostrar a Tabela de Recompensas, para você saber exatamente quanto cada ação do jogo vale antes de montar a atividade.' },
+      { categoria: 'Correção', texto: 'A patente exibida no painel do aluno (Bronze, Prata, Ouro, Diamante, Platina) agora respeita os limiares de XP que você configurou na turma. Antes ela usava sempre os valores padrão, então um aluno podia aparecer com uma patente diferente da que a sua régua de pontuação dizia.' },
+      { categoria: 'Correção', texto: 'A apresentação do Tichr Wor dizia que errar uma letra causava dano ao próprio castelo — não é o que acontece no jogo. O texto foi corrigido.' },
+    ],
+  },
+  {
     versao: 'v0.15.0',
     data: '2026-07-12',
     titulo: 'Tichr Wor: arsenal inteiro forjado por IA',

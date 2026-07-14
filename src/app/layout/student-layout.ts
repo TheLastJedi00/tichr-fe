@@ -139,6 +139,7 @@ export class StudentLayout {
     ...(this.studentAuth.rankingAtivo()
       ? [{ label: 'Ranking', path: '/aluno/ranking', icon: 'trophy' as IconName }]
       : []),
+    { label: 'Manual', path: '/aluno/manual', icon: 'scroll' },
   ]);
 
   protected sair(): void {

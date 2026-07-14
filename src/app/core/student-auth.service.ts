@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { API_BASE_URL } from './api.config';
+import { NIVEIS_DEFAULT, normalizarLimiares } from './nivel.util';
 import {
   HallResponse,
   HallTurma,
@@ -20,6 +21,7 @@ type AlunoSessao = LoginAlunoResponse['aluno'];
 const CONFIG_PADRAO: TurmaConfigPublica = {
   nomePontuacao: 'XP',
   rankingAtivo: true,
+  niveis: NIVEIS_DEFAULT,
 };
 
 /**
@@ -40,6 +42,8 @@ export class StudentAuthService {
   readonly turmaId = computed(() => this.aluno()?.turmaId ?? null);
   readonly nomePontuacao = computed(() => this.config().nomePontuacao);
   readonly rankingAtivo = computed(() => this.config().rankingAtivo);
+  /** Cortes de patente da turma — o badge do aluno calcula em cima destes. */
+  readonly niveis = computed(() => normalizarLimiares(this.config().niveis));
 
   /** Info publica da turma (nome + nomes) para a tela de login. */
   infoTurma(turmaId: string): Observable<LoginInfoTurma> {

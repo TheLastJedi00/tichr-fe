@@ -30,7 +30,10 @@ export type IconName =
   | 'logout'
   | 'castle'
   | 'sword'
-  | 'shield';
+  | 'shield'
+  | 'flag'
+  | 'skull'
+  | 'scroll';
 
 /**
  * Componente burro de icones. Centraliza os SVGs e herda a cor do texto
@@ -193,6 +196,19 @@ export type IconName =
         }
         @case ('shield') {
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        }
+        @case ('flag') {
+          <path d="M5 22V4m0 0h11l-2 4 2 4H5" />
+        }
+        @case ('skull') {
+          <path d="M12 2a8 8 0 0 0-5 14.2V19a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-2.8A8 8 0 0 0 12 2z" />
+          <circle cx="9" cy="11" r="1.2" />
+          <circle cx="15" cy="11" r="1.2" />
+          <path d="M11 21v-3m2 3v-3" />
+        }
+        @case ('scroll') {
+          <path d="M6 3h11a2 2 0 0 1 2 2v13a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3z" />
+          <path d="M4 6h4M8 9h7M8 13h7M8 17h4" />
         }
       }
     </svg>
