@@ -217,6 +217,22 @@ export const routes: Routes = [
         pathMatch: 'full',
       },
       {
+        path: 'jogos/isolateus/novo',
+        canActivate: [exigePlano('ISOLATEUS')],
+        loadComponent: () =>
+          import('./pages/jogos/isolateus-studio-page').then(
+            (m) => m.IsolateusStudioPage,
+          ),
+      },
+      {
+        path: 'jogos/isolateus/editar/:id',
+        canActivate: [exigePlano('ISOLATEUS')],
+        loadComponent: () =>
+          import('./pages/jogos/isolateus-studio-page').then(
+            (m) => m.IsolateusStudioPage,
+          ),
+      },
+      {
         path: 'jogos/qlick/partida/:id',
         canActivate: [exigePlano('QLICK')],
         loadComponent: () =>
