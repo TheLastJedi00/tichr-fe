@@ -11,7 +11,9 @@ import { RouterLink } from '@angular/router';
 import { RealtimeService } from '../../core/realtime.service';
 import { StudentAuthService } from '../../core/student-auth.service';
 import { WorApiService } from '../../core/wor-api.service';
+import { FREEZE_MS, NarradorCards, cardNoAr } from '../../core/action-card';
 import { PlacarEquipe, ResumoRodada, WorMatch, WorTeam } from '../../core/models';
+import { ActionCard } from '../../ui/action-card/action-card';
 import { Confetti } from '../../ui/confetti/confetti';
 import { Icon } from '../../ui/icon/icon';
 import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
@@ -30,8 +32,12 @@ const LIMITE_RODADA_S = 60;
   selector: 'app-student-wor-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, Modal, LobbyLoader, Spinner, Confetti, RouterLink],
+  imports: [Icon, Modal, LobbyLoader, Spinner, Confetti, ActionCard, RouterLink],
   template: `
+    @if (narrador.card(); as c) {
+      <app-action-card [card]="c" />
+    }
+
     <div class="wrap" [class.dano]="piscar()">
       @if (resumoBanner(); as r) {
         <div class="reveal" [class.reveal--eu]="r.acao === 'ATACAR' && souEu(r.alvoEquipeId)">
@@ -122,13 +128,13 @@ const LIMITE_RODADA_S = 60;
                     <button
                       class="tecla"
                       type="button"
-                      [disabled]="ocupado() || letraUsada(l)"
+                      [disabled]="travado() || letraUsada(l)"
                       (click)="escolherLetra(l)"
                     >{{ l }}</button>
                   }
                 </div>
               }
-              <button class="btn-risco" type="button" (click)="modalRisco.set(true)">
+              <button class="btn-risco" type="button" [disabled]="travado()" (click)="modalRisco.set(true)">
                 <app-icon name="sword" [size]="16" />
                 {{ t.isHorde ? 'Tentar Invasão' : 'Arriscar a palavra' }}
               </button>
@@ -176,11 +182,11 @@ const LIMITE_RODADA_S = 60;
         </p>
         <div class="alvos">
           @for (r of rivais(); track r.id) {
-            <button class="alvo" type="button" [style.--cor]="r.cor" [disabled]="ocupado()" (click)="votarAtacar(r)">
+            <button class="alvo" type="button" [style.--cor]="r.cor" [disabled]="travado()" (click)="votarAtacar(r)">
               <app-icon name="sword" [size]="16" /> Atacar {{ r.nome }} · {{ r.hp }} HP
             </button>
           }
-          <button class="alvo alvo--dica" type="button" [disabled]="ocupado() || semCartas()" (click)="votarDica()">
+          <button class="alvo alvo--dica" type="button" [disabled]="travado() || semCartas()" (click)="votarDica()">
             <app-icon name="sparkles" [size]="16" /> Comprar dica (revelar carta)
           </button>
           @if (semCartas()) { <small class="hint">Todas as cartas já foram reveladas.</small> }
@@ -195,7 +201,7 @@ const LIMITE_RODADA_S = 60;
           Se errar, sofrerá Dano Crítico no seu castelo.
         </p>
         <input class="tichr-input" [value]="palpite()" (input)="palpite.set($any($event.target).value)" placeholder="Digite a palavra inteira" />
-        <button modal-actions class="btn-primary" type="button" [disabled]="ocupado() || !palpite().trim()" (click)="arriscar()">
+        <button modal-actions class="btn-primary" type="button" [disabled]="travado() || !palpite().trim()" (click)="arriscar()">
           Confirmar tentativa
         </button>
       </app-modal>
@@ -315,6 +321,8 @@ export class StudentWorPage {
   protected readonly resumoBanner = signal<ResumoRodada | null>(null);
   /** Modal: quem atacou o meu castelo. */
   protected readonly danoModal = signal<ResumoRodada | null>(null);
+  /** Narração global (Action Cards) — chega pelo doc da própria equipe. */
+  protected readonly narrador = new NarradorCards();
   private readonly relogio = signal(Date.now());
 
   protected readonly letras = LETRAS;
@@ -346,13 +354,20 @@ export class StudentWorPage {
   protected readonly turnoNome = computed(
     () => this.placar().find((e) => e.id === this.root()?.turnoEquipeId)?.nome ?? 'sua equipe',
   );
-  /** Segundos restantes da rodada (cronômetro de 1 min, no cliente). */
+  /**
+   * Segundos restantes da rodada. Congelado, o início vem do FUTURO (o servidor
+   * o empurra enquanto o card está no ar): o teto de 60s segura o relógio parado
+   * até o card sair, em vez de exibir 62s.
+   */
   protected readonly restante = computed(() => {
     const m = this.root();
     if (!m || m.status !== 'EM_ANDAMENTO' || !m.rodadaIniciadaEm) return LIMITE_RODADA_S;
     const fim = Date.parse(m.rodadaIniciadaEm) + LIMITE_RODADA_S * 1000;
-    return Math.max(0, Math.ceil((fim - this.relogio()) / 1000));
+    const s = Math.ceil((fim - this.relogio()) / 1000);
+    return Math.max(0, Math.min(LIMITE_RODADA_S, s));
   });
+  /** Inputs bloqueados: durante a chamada HTTP ou com um card interrompendo o jogo. */
+  protected readonly travado = computed(() => this.ocupado() || this.narrador.ativo());
 
   protected hpPct(hp: number): number {
     return Math.max(0, Math.min(100, hp / 10));
@@ -381,6 +396,7 @@ export class StudentWorPage {
     this.destroyRef.onDestroy(() => {
       clearInterval(sonda);
       clearInterval(tick);
+      this.narrador.destruir();
     });
   }
 
@@ -392,6 +408,7 @@ export class StudentWorPage {
         this.matchId.set(v.match.id);
         this.root.set(v.match);
         this.ultimoSeq = v.match.resumoRodada?.seq ?? 0; // baseline (não replay ao entrar)
+        this.narrador.ignorarAtual(v.match.lastGlobalAction);
         this.inscrito.set(v.match.inscritos.some((i) => i.alunoId === this.alunoId));
         this.resolverEquipe(v.teams);
         this.conectarRaiz(v.match.id);
@@ -414,11 +431,16 @@ export class StudentWorPage {
         if (m.status === 'ENCERRADO' && !this.todosTeams().length) {
           this.api.partidaAtual().subscribe((v) => v && this.todosTeams.set(v.teams));
         }
-        // Reveal do resultado quando uma nova rodada resolve.
+        // Reveal do resultado quando uma nova rodada resolve. Com um card no ar,
+        // o banner espera a narração terminar — os dois não disputam a tela.
         const r = m.resumoRodada;
         if (r && r.seq > this.ultimoSeq) {
           this.ultimoSeq = r.seq;
-          this.mostrarResumo(r);
+          if (cardNoAr(m.lastGlobalAction)) {
+            setTimeout(() => this.mostrarResumo(r), FREEZE_MS);
+          } else {
+            this.mostrarResumo(r);
+          }
         }
       });
   }
@@ -451,6 +473,8 @@ export class StudentWorPage {
         if (t.isHorde && !this.jaEraHorda) this.modalHorda.set(true);
         this.jaEraHorda = t.isHorde;
         this.team.set(t);
+        // O card global chega pelo doc da própria equipe (o aluno só escuta este).
+        this.narrador.receber(t.lastGlobalAction);
       });
   }
 
