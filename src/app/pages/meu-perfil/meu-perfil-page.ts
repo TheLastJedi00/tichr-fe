@@ -15,8 +15,8 @@ import {
   type ImageCroppedEvent,
 } from 'ngx-image-cropper';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
+import { Profile } from '../../core/models';
 import { ProfileService } from '../../core/profile.service';
-import { StorageService } from '../../core/storage.service';
 import { Avatar } from '../../ui/avatar/avatar';
 import { Card } from '../../ui/card/card';
 import { FormBlocker } from '../../ui/form-blocker/form-blocker';
@@ -314,7 +314,6 @@ import { ExcluirContaCard } from './excluir-conta-card';
 export class MeuPerfilPage {
   private readonly fb = inject(FormBuilder);
   private readonly profileService = inject(ProfileService);
-  private readonly storage = inject(StorageService);
 
   private readonly fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
 
@@ -426,8 +425,7 @@ export class MeuPerfilPage {
 
   protected async confirmarFoto(): Promise<void> {
     const blob = this.recorteBlob();
-    const uid = this.profileService.profile()?.uid;
-    if (!blob || !uid) return;
+    if (!blob) return;
     this.enviandoFoto.set(true);
     try {
       // Compressão silenciosa: máx. 250px, ~50KB.
@@ -438,14 +436,13 @@ export class MeuPerfilPage {
         useWebWorker: true,
         fileType: 'image/jpeg',
       });
-      const url = await this.storage.uploadAvatar(uid, comprimido);
-      await new Promise<void>((resolve, reject) =>
-        this.profileService.update({ avatarUrl: url }).subscribe({
-          next: () => resolve(),
+      const perfil = await new Promise<Profile>((resolve, reject) =>
+        this.profileService.uploadAvatar(comprimido).subscribe({
+          next: (p) => resolve(p),
           error: (err) => reject(err),
         }),
       );
-      this.avatarUrl.set(url);
+      this.avatarUrl.set(perfil.avatarUrl);
       this.cropAberto.set(false);
       this.recorteBlob.set(null);
       this.limparInput();
