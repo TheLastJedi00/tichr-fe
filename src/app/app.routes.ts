@@ -95,6 +95,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'isolateus',
+        loadComponent: () =>
+          import('./pages/student-isolateus/student-isolateus-page').then(
+            (m) => m.StudentIsolateusPage,
+          ),
+      },
+      {
         path: 'manual',
         loadComponent: () =>
           import('./pages/student-manual/student-manual-page').then(
