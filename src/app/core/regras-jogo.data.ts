@@ -7,7 +7,7 @@
  * lá, atualize aqui — é isto que o professor e o aluno leem como promessa.
  */
 
-export type JogoId = 'WOR' | 'QLICK';
+export type JogoId = 'WOR' | 'QLICK' | 'ISOLATEUS';
 
 /** Uma linha da Tabela de Recompensas. */
 export interface Recompensa {
@@ -118,4 +118,87 @@ const QLICK: RegrasJogo = {
     'No Qlick os pontos da partida viram XP do ranking na proporção de 1 para 1, direto para cada aluno.',
 };
 
-export const REGRAS_JOGO: Record<JogoId, RegrasJogo> = { WOR, QLICK };
+const ISOLATEUS: RegrasJogo = {
+  id: 'ISOLATEUS',
+  nome: 'Tichr Isolateus',
+  resumo:
+    'Dedução social numa vila isolada. Um infiltrado se esconde entre os habitantes: a turma responde questões para defender a vila e debate para descobrir quem é a Ameaça.',
+  como: [
+    {
+      titulo: 'A vila e os papéis',
+      itens: [
+        'Ninguém usa o nome verdadeiro: cada aluno entra com um nome de personagem.',
+        'Um aluno é sorteado como a Ameaça. Todos os outros são Aldeões.',
+        'Em turmas pequenas, a vila é preenchida por Habitantes Virtuais para a Ameaça ter onde se esconder. Eles nunca são a Ameaça.',
+        'São necessários pelo menos 4 investigadores reais para começar.',
+      ],
+    },
+    {
+      titulo: 'O Ciclo de Invasão',
+      itens: [
+        'A cada noite a Ameaça escolhe em segredo: sabotar um dos 6 setores da vila ou abduzir um morador.',
+        'A vila é avisada do ataque e todos respondem à questão da rodada para defender o setor.',
+        'Se a maioria acertar, a defesa resiste e nada acontece. Se a maioria errar, o ataque se concretiza e a Barra de Esperança cai.',
+        'Como os Habitantes Virtuais votam ao acaso, empates são desempatados pelo consenso dos jogadores reais — o Instinto Humano.',
+      ],
+    },
+    {
+      titulo: 'A Guerra de Frequências',
+      itens: [
+        'Durante a questão, um chat de rumores corre na tela.',
+        'A Ameaça conhece a resposta certa e pode transmitir um argumento falso, assinado com o nome de um Habitante Virtual.',
+        'Quem já foi abduzido continua respondendo e pode mandar um Sinal de Rádio anônimo tentando salvar a vila.',
+      ],
+    },
+    {
+      titulo: 'A Quarentena',
+      itens: [
+        'Entre as rodadas, a vila pode convocar a Quarentena — uma única vez na partida.',
+        'Abre um debate cronometrado e, em seguida, a votação no suspeito.',
+        'Trancou a Ameaça: a invasão é contida e a Vila vence na hora.',
+        'Trancou um inocente: a Esperança sofre dano severo e a identidade do preso continua em segredo.',
+      ],
+    },
+    {
+      titulo: 'Fim de partida',
+      itens: [
+        'A Ameaça vence se zerar a Esperança, abduzir mais da metade da vila ou destruir mais de 3 setores.',
+        'A Vila vence se prender a Ameaça, manter mais de 3 setores intactos ou resistir com mais da metade dos moradores.',
+        'O telão sempre mostra o motivo técnico da vitória.',
+      ],
+    },
+  ],
+  unidade: 'XP',
+  recompensas: [
+    { acao: 'Resposta certa na defesa do setor', valor: '+1000' },
+    {
+      acao: 'Bônus de rapidez',
+      valor: 'até +500',
+      detalhe: 'proporcional ao tempo que sobrou no relógio',
+    },
+    {
+      acao: 'Sabotagem validada (a vila errou)',
+      valor: '+1000 para a Ameaça',
+      detalhe: 'induzir a vila ao erro vale o mesmo que acertar a questão',
+    },
+    {
+      acao: 'Vitória da partida',
+      valor: '+1000',
+      detalhe: 'para todos do lado vencedor — Aldeões ou a Ameaça',
+    },
+    {
+      acao: 'Respostas de quem foi abduzido ou preso',
+      valor: 'pontuam normalmente',
+      detalhe: 'a tela hackeada continua valendo XP',
+    },
+    { acao: 'Resposta errada', valor: '0' },
+  ],
+  conversao:
+    'No Isolateus os pontos da partida viram XP do ranking na proporção de 1 para 1, direto para cada aluno — inclusive para quem foi abduzido no meio do caminho.',
+};
+
+export const REGRAS_JOGO: Record<JogoId, RegrasJogo> = {
+  WOR,
+  QLICK,
+  ISOLATEUS,
+};

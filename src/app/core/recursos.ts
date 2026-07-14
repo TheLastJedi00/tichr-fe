@@ -8,7 +8,8 @@ export type Recurso =
   | 'GAMIFICACAO'
   | 'PLANO_AULA'
   | 'QLICK'
-  | 'WOR';
+  | 'WOR'
+  | 'ISOLATEUS';
 
 /** Plano minimo exigido por recurso (ponto unico de verdade do gating). */
 export const RECURSO_PLANO_MINIMO: Record<Recurso, PlanoAtual> = {
@@ -21,6 +22,7 @@ export const RECURSO_PLANO_MINIMO: Record<Recurso, PlanoAtual> = {
   QLICK: 'PHD',
   // Padrao do ecossistema: todo jogo e exclusivo do plano PhD (criar/rodar).
   WOR: 'PHD',
+  ISOLATEUS: 'PHD',
 };
 
 /** Rotulo amigavel de cada recurso (usado nas telas de bloqueio). */
@@ -32,4 +34,5 @@ export const NOME_RECURSO: Record<Recurso, string> = {
   PLANO_AULA: 'Plano de Aula',
   QLICK: 'Tichr Qlick',
   WOR: 'Tichr Wor',
+  ISOLATEUS: 'Tichr Isolateus',
 };

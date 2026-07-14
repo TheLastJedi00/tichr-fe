@@ -33,7 +33,9 @@ export type IconName =
   | 'shield'
   | 'flag'
   | 'skull'
-  | 'scroll';
+  | 'scroll'
+  | 'alien'
+  | 'radio';
 
 /**
  * Componente burro de icones. Centraliza os SVGs e herda a cor do texto
@@ -209,6 +211,17 @@ export type IconName =
         @case ('scroll') {
           <path d="M6 3h11a2 2 0 0 1 2 2v13a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3z" />
           <path d="M4 6h4M8 9h7M8 13h7M8 17h4" />
+        }
+        @case ('alien') {
+          <path d="M12 3c-4.4 0-7 3.2-7 7.2 0 4.4 3.4 8 5.3 9.6a2.6 2.6 0 0 0 3.4 0c1.9-1.6 5.3-5.2 5.3-9.6C19 6.2 16.4 3 12 3z" />
+          <path d="M9.5 10.5c1 .3 1.6 1 1.6 1.8 0 .7-.7 1-1.5.7-1-.3-1.8-1.2-1.8-2 0-.7.7-.9 1.7-.5z" />
+          <path d="M14.5 10.5c-1 .3-1.6 1-1.6 1.8 0 .7.7 1 1.5.7 1-.3 1.8-1.2 1.8-2 0-.7-.7-.9-1.7-.5z" />
+        }
+        @case ('radio') {
+          <path d="M4 9h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1z" />
+          <path d="M16 5 8 9" />
+          <circle cx="8" cy="14.5" r="2.5" />
+          <path d="M14 13h4M14 16h4" />
         }
       }
     </svg>
