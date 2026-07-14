@@ -233,6 +233,14 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'jogos/isolateus/partida/:id',
+        canActivate: [exigePlano('ISOLATEUS')],
+        loadComponent: () =>
+          import('./pages/jogos/isolateus-projetor-page').then(
+            (m) => m.IsolateusProjetorPage,
+          ),
+      },
+      {
         path: 'jogos/qlick/partida/:id',
         canActivate: [exigePlano('QLICK')],
         loadComponent: () =>
