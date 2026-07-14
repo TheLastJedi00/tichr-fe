@@ -18,6 +18,43 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.17.0',
+    data: '2026-07-14',
+    titulo: 'Tichr Isolateus: a vila sob invasão',
+    itens: [
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Chegou o Tichr Isolateus, o terceiro jogo do ecossistema. A turma vira uma vila isolada no extremo norte, invadida por uma ameaça que se esconde entre os próprios alunos. A cada noite o infiltrado sabota um setor ou tenta abduzir um morador — e a única defesa é a turma acertar a questão da sua matéria. Errar derruba a Barra de Esperança; acertar salva o setor. É dedução e debate por cima do conteúdo da sua aula, não no lugar dele.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Ninguém joga com o nome verdadeiro: cada aluno entra com um nome de personagem, e você aprova ou veta os nomes no lobby antes de começar. Em turmas pequenas, a vila é preenchida por habitantes virtuais para o infiltrado ter onde se esconder — os alunos não conseguem distinguir quem é real e quem não é, nem inspecionando o aplicativo.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Durante cada questão corre um chat de rumores. O infiltrado sabe a resposta certa e pode transmitir um argumento falso assinado com o nome de outro habitante, tentando levar a turma ao erro. Quem já foi abduzido não sai do jogo: continua respondendo (e pontuando) numa tela hackeada, de onde pode mandar sinais de rádio anônimos para tentar salvar a vila.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Quando a desconfiança aperta, a turma convoca a Quarentena: um debate cronometrado seguido de votação no suspeito. Acertar o infiltrado encerra a partida com vitória da vila. Prender um inocente custa caro — e a identidade do preso continua em segredo, para o mistério não acabar antes da hora. A Quarentena só pode ser convocada uma vez por partida.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'As 10 questões da investigação podem ser escritas por você ou geradas pela IA a partir da disciplina e do tópico da aula, como já acontece no Qlick e no Wor. A geração continua limitada a 1 vez por dia, com cota própria — usar a IA do Isolateus não consome a dos outros jogos.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'O Manual do aluno e a tela de regras ganharam a aba do Isolateus, com o passo a passo do jogo e a Tabela de Recompensas: quanto vale acertar a defesa, o bônus de rapidez, quanto o infiltrado ganha ao enganar a vila e o bônus de vitória. Todo mundo joga sabendo exatamente o que está em disputa.',
+      },
+    ],
+  },
+  {
     versao: 'v0.16.1',
     data: '2026-07-14',
     titulo: 'Janelas longas agora rolam no celular',
