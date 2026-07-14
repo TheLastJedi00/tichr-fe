@@ -1,3 +1,5 @@
+import { LimiaresNivel } from './nivel.util';
+
 export type TipoModalidade = 'GRADE_FIXA' | 'MODULO_FECHADO';
 export type StatusSessao = 'AGENDADA' | 'CANCELADA' | 'REALIZADA';
 export type EscopoExcecao = 'GLOBAL' | 'ESCOLA' | 'PESSOAL';
@@ -341,6 +343,12 @@ export interface RankingItem {
 export interface TurmaConfigPublica {
   nomePontuacao: string;
   rankingAtivo: boolean;
+  /**
+   * Limiares de nível DA TURMA (XP para Prata/Ouro/Diamante/Platina). Vêm do
+   * login: sem eles o painel do aluno exibiria a patente dos defaults, e não a
+   * que o professor configurou.
+   */
+  niveis?: LimiaresNivel;
 }
 
 export interface LoginInfoTurma {
