@@ -203,6 +203,19 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/jogos/wor-projetor-page').then((m) => m.WorProjetorPage),
       },
+      // Isolateus: a home é aberta (descoberta → upsell); criar/rodar é PhD.
+      {
+        path: 'jogos/isolateus',
+        loadComponent: () =>
+          import('./pages/jogos/isolateus-home-page').then(
+            (m) => m.IsolateusHomePage,
+          ),
+      },
+      {
+        path: 'jogos/isolateus/meus',
+        redirectTo: 'jogos/isolateus',
+        pathMatch: 'full',
+      },
       {
         path: 'jogos/qlick/partida/:id',
         canActivate: [exigePlano('QLICK')],

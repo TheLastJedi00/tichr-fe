@@ -39,6 +39,17 @@ import { Icon } from '../../ui/icon/icon';
         <span class="jogo__cta">Conhecer →</span>
       </a>
 
+      <a class="jogo jogo--destaque jogo--iso" routerLink="/jogos/isolateus">
+        <span class="jogo__badge jogo__badge--iso">Dedução</span>
+        <span class="jogo__icon jogo__icon--iso"><app-icon name="alien" [size]="30" /></span>
+        <h2 class="jogo__nome">Tichr Isolateus</h2>
+        <p class="jogo__desc">
+          Uma vila isolada, um infiltrado disfarçado. A turma responde para
+          defender os setores e debate para descobrir quem é a Ameaça.
+        </p>
+        <span class="jogo__cta">Conhecer →</span>
+      </a>
+
       @for (j of emBreve; track j) {
         <app-card>
           <div class="soon">
@@ -72,6 +83,12 @@ import { Icon } from '../../ui/icon/icon';
     .jogo--wor .jogo__cta { color: #b45309; }
     .jogo__icon--wor { color: #b45309; background: color-mix(in srgb, #b45309 14%, transparent); }
     .jogo__badge--pvp { background: #b45309; }
+    /* Tema de quarentena do Tichr Isolateus (verde tóxico) */
+    .jogo--iso { border-color: #84cc16; }
+    .jogo--iso:hover { box-shadow: 0 16px 40px color-mix(in srgb, #84cc16 26%, transparent); }
+    .jogo--iso .jogo__cta { color: #4d7c0f; }
+    .jogo__icon--iso { color: #4d7c0f; background: color-mix(in srgb, #84cc16 18%, transparent); }
+    .jogo__badge--iso { background: #4d7c0f; }
     .soon { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; opacity: 0.7; }
     .soon__nome { font-weight: 700; }
     .soon__tag { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); background: var(--surface-alt); padding: 0.15rem 0.5rem; border-radius: 999px; }
