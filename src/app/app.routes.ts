@@ -94,6 +94,13 @@ export const routes: Routes = [
             (m) => m.StudentWorPage,
           ),
       },
+      {
+        path: 'manual',
+        loadComponent: () =>
+          import('./pages/student-manual/student-manual-page').then(
+            (m) => m.StudentManualPage,
+          ),
+      },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },
