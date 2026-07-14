@@ -327,6 +327,80 @@ animado), `app-aluno-card` (card arrastável com cargos), `app-equipe-coluna`,
 
 ---
 
+## Marca
+
+Azul da marca: **`#2563eb`**, fixo. Ele **não** acompanha o `--primary` (que muda de tom no
+tema escuro) — é a constante que torna a marca reconhecível.
+
+Dois componentes são a **fonte única**; nenhuma tela desenha a marca por conta própria:
+
+```html
+<app-logo />                             <!-- lockup (símbolo + "Tichr"), 32px -->
+<app-logo [size]="30" />                 <!-- header -->
+<app-logo variant="mark" />              <!-- só o símbolo -->
+<app-logo [onDark]="true" />             <!-- superfície escura fixa (hero, portal do aluno) -->
+
+<app-game-logo game="qlick" [size]="56" />   <!-- qlick | wor | isolateus -->
+```
+
+O padrão é o **lockup**, não o símbolo sozinho: é a repetição do par símbolo+nome que ensina
+o usuário a reconhecer o símbolo isolado depois.
+
+### Por que a marca-mãe tem par claro/escuro
+
+O glifo **sangra até a borda** do tile — a barra do "T" atravessa a largura inteira. O tile
+não tem silhueta própria: quem a define é o contraste com o campo. Aplicar a variante escura
+sobre fundo claro faz o contorno branco e a barra do "T" se fundirem com a página — o "T"
+some e sobram duas barras azuis soltas. Daí os tokens em `styles.scss`:
+
+| Superfície | Variante | `--logo-field` | `--logo-glyph` (glifo + contorno) |
+| --- | --- | --- | --- |
+| clara | Blue OL | branco | `#2563eb` |
+| escura | White OL | `#2563eb` | branco |
+
+`[onDark]="true"` força a variante escura onde a superfície é escura **independente do tema**
+(hero da landing, header do Portal do Aluno).
+
+### Logos dos jogos: variante única
+
+| Jogo | Campo |
+| --- | --- |
+| Qlick | `#2563eb` (azul da marca) |
+| Wor | `#b45309` |
+| Isolateus | `#84cc16` |
+
+Aqui o campo é colorido e sólido e o glifo **não** encosta na borda: a silhueta se sustenta
+em qualquer fundo. O contorno branco é só uma keyline — recorta o tile no escuro e some no
+claro, sem prejuízo. Uma variante resolve os dois temas.
+
+⚠️ Os retângulos de contorno dependem de `fill="none"`. Sem isso o SVG cai para preto e o
+traço cobre o campo inteiro. No componente o `fill="none"` está explícito em cada forma só de
+traço, além de na raiz.
+
+### Ícones (favicon, PWA, iOS)
+
+`favicon.svg`, `favicon.ico` (16/32/48), `apple-touch-icon.png` e `brand/icon-*.png` usam o
+glifo **sem sangria** (encolhido a 84%, ou 78% no *maskable*). É ajuste óptico, não um logo
+diferente: a 16px a barra do "T" sangrando funde com a cor da aba e o monograma vira um arco.
+Cercado pelo campo azul, o "Ti" fica legível em aba clara ou escura — e o campo sólido
+dispensa o par claro/escuro.
+
+O `icon-maskable-512` e o `apple-touch-icon` são quadrados e sem cantos arredondados **de
+propósito**: o sistema operacional aplica a própria máscara, e arredondar aqui daria canto
+duplo. O card **Open Graph** (`brand/og-image.png`, 1200×630) é o que aparece quando alguém
+compartilha o link — o `og:image` precisa de URL absoluta, senão WhatsApp e X não renderizam.
+
+### Regras de uso
+
+- **Respiro** de no mínimo 30% do lado do símbolo em volta (o componente já reserva no `gap`).
+- **Tamanho mínimo** do lockup: símbolo a 20px. Abaixo disso, use `variant="mark"`.
+- Não recolorir, girar, esticar nem aplicar sombra. Não trocar o azul pelo `--primary`.
+- **Logo ≠ ícone.** Use a logo do jogo só onde ele aparece *como produto* (vitrine de Jogos,
+  hero da mini-landing, cards da landing). Em uso funcional inline — chips, botões, rótulos de
+  equipe — continue com o `<app-icon>`. Logo repetido em toda posição vira ruído e perde força.
+
+---
+
 ## Rodando
 
 ```bash
