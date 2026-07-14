@@ -95,6 +95,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'isolateus',
+        loadComponent: () =>
+          import('./pages/student-isolateus/student-isolateus-page').then(
+            (m) => m.StudentIsolateusPage,
+          ),
+      },
+      {
         path: 'manual',
         loadComponent: () =>
           import('./pages/student-manual/student-manual-page').then(
@@ -202,6 +209,43 @@ export const routes: Routes = [
         canActivate: [exigePlano('WOR')],
         loadComponent: () =>
           import('./pages/jogos/wor-projetor-page').then((m) => m.WorProjetorPage),
+      },
+      // Isolateus: a home é aberta (descoberta → upsell); criar/rodar é PhD.
+      {
+        path: 'jogos/isolateus',
+        loadComponent: () =>
+          import('./pages/jogos/isolateus-home-page').then(
+            (m) => m.IsolateusHomePage,
+          ),
+      },
+      {
+        path: 'jogos/isolateus/meus',
+        redirectTo: 'jogos/isolateus',
+        pathMatch: 'full',
+      },
+      {
+        path: 'jogos/isolateus/novo',
+        canActivate: [exigePlano('ISOLATEUS')],
+        loadComponent: () =>
+          import('./pages/jogos/isolateus-studio-page').then(
+            (m) => m.IsolateusStudioPage,
+          ),
+      },
+      {
+        path: 'jogos/isolateus/editar/:id',
+        canActivate: [exigePlano('ISOLATEUS')],
+        loadComponent: () =>
+          import('./pages/jogos/isolateus-studio-page').then(
+            (m) => m.IsolateusStudioPage,
+          ),
+      },
+      {
+        path: 'jogos/isolateus/partida/:id',
+        canActivate: [exigePlano('ISOLATEUS')],
+        loadComponent: () =>
+          import('./pages/jogos/isolateus-projetor-page').then(
+            (m) => m.IsolateusProjetorPage,
+          ),
       },
       {
         path: 'jogos/qlick/partida/:id',

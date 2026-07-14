@@ -54,6 +54,7 @@ O diferencial visível está na **demonstração interativa da landing page** e 
 | `/turmas/:id/dinamica` | **Nova dinâmica** | Sorteio de **squads**: nº de equipes, papéis/temas em *chips*, e a **roleta** que renderiza os grupos. Recurso do **plano Mestre**. |
 | `/jogos` · `/jogos/qlick` | **Jogos / Tichr Qlick** | Vitrine de jogos e a mini-landing do **Tichr Qlick** (quiz ao vivo). Recurso do **plano PhD** (upsell nos inferiores). |
 | `/jogos/wor` · `.../novo` · `.../meus` · `.../partida/:id` | **Tichr Wor** | Guerra de castelos PvP: landing interna, **wizard de criação** (arsenal **forjado por IA** — 5 palavras com 3 dicas a partir de uma instrução —, reordenar por drag-and-drop), lista de batalhas e a **tela do projetor** (lobby → jogo, realtime). |
+| `/jogos/isolateus` · `.../novo` · `.../editar/:id` · `.../partida/:id` | **Tichr Isolateus** | Dedução social: landing de primeiro uso, **estúdio** das 10 questões (com geração por IA) e o **telão do Comando Central** — auditoria dos pseudônimos no lobby, Barra de Esperança, os 6 setores, o chat de rumores e o card de veredito. Recurso do **plano PhD**. |
 | `/aluno/wor` | **Wor (aluno)** | Cliente **mobile-first**: teclado de letras, **Dilema Tático** (atacar/comprar dica), **Risco Heroico**, **modal da Queda da Horda** e animação de dano. Escuta só o próprio castelo (realtime barato). |
 | `/jogos/qlick/meus` | **Meus Qlicks** | Lista dos quizzes do professor; **Rodar** pergunta "para qual turma?" quando o Qlick está em várias (N:N). |
 | `/jogos/qlick/novo` · `/editar/:id` | **Estúdio do Qlick** | Formulário reativo (FormArray) de perguntas → alternativas, com marcação da correta e duração. |
@@ -119,7 +120,8 @@ estilo app), autenticada por **PIN** e com token próprio. O aluno entra pela jo
 | `/aluno/agenda` | **Agenda** | Dias letivos com status dinâmico (Concluída / Em andamento / Agendada) e o **tópico** de cada aula ("o que já vimos") — sincronizados do Plano de Aula quando o professor é PhD. |
 | `/aluno/ranking` | **Ranking** | Pódio (🥇🥈🥉) da turma, com o **card do próprio aluno destacado**. A aba **some** quando a turma desativa o ranking. |
 | `/aluno/qlick` | **Tichr Qlick** | Entra no quiz "de hoje": **lobby animado** (loader temático), alternativas **color-coded A/B/C/D** com feedback de clique (press/scale) e estado de espera, **revelação animada** (correta brilha, erradas em cinza, confete no acerto / shake no erro) e **pódio final** com os pontos somados ao XP. |
-| `/aluno/manual` | **Manual de Guerra** | Regras completas do **Tichr Wor** e do **Tichr Qlick** + a **Tabela de Recompensas** (quanto vale cada jogada), para a turma montar estratégia **antes** da partida. |
+| `/aluno/isolateus` | **Tichr Isolateus** | O celular do habitante: registro do **nome de personagem**, o **Despertar** (revelação de papel — Aldeão em azul, Ameaça em verde tóxico), o turno secreto da Ameaça, a defesa do setor com **chat de rumores**, a **Quarentena** (debate + voto) e a **tela hackeada** de quem foi abduzido. |
+| `/aluno/manual` | **Manual de Guerra** | Regras completas do **Tichr Wor**, do **Tichr Qlick** e do **Tichr Isolateus** + a **Tabela de Recompensas** (quanto vale cada jogada), para a turma montar estratégia **antes** da partida. |
 
 ### Tichr Qlick: quiz ao vivo em tempo real (Plano PhD)
 
@@ -153,9 +155,35 @@ aconteceu:
 - **Ataque é da equipe:** o dano nasce da votação da rodada inteira, então o card nomeia a
   **equipe**. Risco Heroico, Dano Crítico e Usurpação nomeiam o **aluno** — são individuais.
 
+### Tichr Isolateus: dedução social sobre a sua matéria (Plano PhD)
+
+A turma vira uma **vila isolada** no extremo norte, invadida por uma ameaça que se esconde
+entre os próprios alunos. A cada noite o infiltrado **sabota um setor** ou **abduz um
+morador** — e a única defesa é a turma **acertar a questão da sua aula**. Errar derruba a
+**Barra de Esperança**; acertar salva o setor. O jogo é o embrulho; o conteúdo cobrado é o seu.
+
+- **O Voto de Silêncio:** ninguém joga com o nome real. Cada aluno entra com um nome de
+  personagem, e o professor **veta** nomes no lobby (aprovar é implícito — um fluxo de
+  aprovação um-a-um travaria a sala).
+- **A Névoa de Guerra:** em turmas pequenas, habitantes virtuais preenchem a vila para o
+  infiltrado ter onde se esconder. Os alunos **não conseguem distingui-los dos reais** — nem
+  inspecionando o app: o documento que o cliente escuta em tempo real é cego de propósito
+  (sem o papel de ninguém, sem marca de NPC, sem a alternativa correta, e **sem placar ao
+  vivo** — um ranking parcial denunciaria quem é real). O papel de cada aluno chega por uma
+  rota autenticada, recortada por pessoa.
+- **A Guerra de Frequências:** durante a questão corre um **chat de rumores**. O infiltrado
+  sabe a resposta certa e transmite um argumento falso **assinado por outro habitante**.
+  Quem foi abduzido não sai do jogo: segue respondendo (e pontuando) numa **tela hackeada**,
+  de onde manda **Sinais de Rádio** anônimos para tentar salvar a vila.
+- **A Quarentena:** um debate cronometrado seguido de votação no suspeito, disponível
+  **uma única vez** por partida. Prendeu a ameaça, a vila vence; prendeu um inocente, a
+  Esperança despenca — e a identidade do preso **continua em segredo**.
+- **As 10 questões** são escritas pelo professor ou **geradas por IA** a partir da disciplina
+  e do tópico (1×/dia, com cota própria — não consome a do Qlick nem a do Wor).
+
 ### Transparência das regras e da economia de XP
 
-As regras e a **Tabela de Recompensas** dos dois jogos vivem numa **fonte única**
+As regras e a **Tabela de Recompensas** dos três jogos vivem numa **fonte única**
 (`core/regras-jogo.data.ts`, espelhando as constantes do backend) e aparecem em três
 lugares: nas **landings** dos jogos, no botão **"Regras e Pontuações"** acima da lista de
 batalhas/Qlicks do professor, e no **Manual de Guerra** do aluno. No Wor a tabela deixa

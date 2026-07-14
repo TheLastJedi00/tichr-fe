@@ -37,7 +37,7 @@ export class TutorialService {
     },
     jogos: {
       titulo: 'Jogos',
-      texto: 'O ecossistema de jogos do Tichr para engajar a turma ao vivo — como o Tichr Qlick (quiz) e o Tichr Wor (guerra de castelos), com mais por vir.',
+      texto: 'O ecossistema de jogos do Tichr para engajar a turma ao vivo — como o Tichr Qlick (quiz), o Tichr Wor (guerra de castelos) e o Tichr Isolateus (dedução social), com mais por vir.',
       passo: 'Escolha um jogo para conhecer como ele funciona.',
     },
   };

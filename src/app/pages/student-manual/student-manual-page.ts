@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { JogoId, REGRAS_JOGO } from '../../core/regras-jogo.data';
-import { Icon } from '../../ui/icon/icon';
+import { Icon, IconName } from '../../ui/icon/icon';
 import { RegrasJogoView } from '../../ui/regras-jogo/regras-jogo';
 
 /**
@@ -29,7 +29,7 @@ import { RegrasJogoView } from '../../ui/regras-jogo/regras-jogo';
           [attr.aria-selected]="aba() === j"
           (click)="aba.set(j)"
         >
-          <app-icon [name]="j === 'WOR' ? 'castle' : 'game'" [size]="16" />
+          <app-icon [name]="iconeDe(j)" [size]="16" />
           {{ nomeDe(j) }}
         </button>
       }
@@ -69,11 +69,16 @@ import { RegrasJogoView } from '../../ui/regras-jogo/regras-jogo';
   `,
 })
 export class StudentManualPage {
-  protected readonly jogos: JogoId[] = ['WOR', 'QLICK'];
+  protected readonly jogos: JogoId[] = ['WOR', 'QLICK', 'ISOLATEUS'];
   protected readonly aba = signal<JogoId>('WOR');
 
   protected nomeDe(id: JogoId): string {
     return REGRAS_JOGO[id].nome;
+  }
+  protected iconeDe(id: JogoId): IconName {
+    if (id === 'WOR') return 'castle';
+    if (id === 'ISOLATEUS') return 'alien';
+    return 'game';
   }
   protected regrasDe(id: JogoId) {
     return REGRAS_JOGO[id];
