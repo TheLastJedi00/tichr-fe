@@ -8,8 +8,10 @@ import {
 import { Router, RouterLink } from '@angular/router';
 import { planoAtendeMinimo } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
+import { REGRAS_JOGO } from '../../core/regras-jogo.data';
 import { Icon } from '../../ui/icon/icon';
 import { Modal } from '../../ui/modal/modal';
+import { RegrasJogoView } from '../../ui/regras-jogo/regras-jogo';
 
 /**
  * Landing (in-app) do Tichr Qlick: apresenta a dinâmica e converte. É renderizada
@@ -20,7 +22,7 @@ import { Modal } from '../../ui/modal/modal';
   selector: 'app-qlick-intro-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Modal],
+  imports: [RouterLink, Icon, Modal, RegrasJogoView],
   template: `
     <a class="voltar" routerLink="/jogos">← Jogos</a>
 
@@ -69,6 +71,14 @@ import { Modal } from '../../ui/modal/modal';
           </article>
         }
       </div>
+    </section>
+
+    <section class="recompensas">
+      <h2>Tabela de Recompensas (XP)</h2>
+      <p class="recompensas__sub">
+        Quanto vale cada resposta — a turma joga sabendo o que está em disputa.
+      </p>
+      <app-regras-jogo [regras]="regras" [mostrarResumo]="false" [mostrarComo]="false" />
     </section>
 
     <div class="final">
@@ -125,6 +135,9 @@ import { Modal } from '../../ui/modal/modal';
     .benef__card p { margin: 0; color: var(--text-muted); font-size: 0.92rem; }
 
     .final { text-align: center; padding: 2.5rem 0 1rem; }
+    .recompensas { margin-top: 2.5rem; padding: 1.25rem; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
+    .recompensas h2 { margin: 0; font-size: 1.25rem; }
+    .recompensas__sub { margin: 0.35rem 0 1rem; color: var(--text-muted); font-size: 0.95rem; }
     .final .btn-primary { padding: 0.8rem 1.75rem; font-size: 1.05rem; }
     .muted { color: var(--text-muted); margin: 0; }
   `,
@@ -133,6 +146,7 @@ export class QlickIntroPage {
   private readonly profileService = inject(ProfileService);
   private readonly router = inject(Router);
   protected readonly upsell = signal(false);
+  protected readonly regras = REGRAS_JOGO.QLICK;
 
   protected readonly beneficios = [
     { icone: 'alert' as const, titulo: 'Foco total', texto: 'Cronômetro e ritmo de game show prendem a atenção da turma inteira.' },

@@ -8,8 +8,10 @@ import {
 import { Router, RouterLink } from '@angular/router';
 import { planoAtendeMinimo } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
+import { REGRAS_JOGO } from '../../core/regras-jogo.data';
 import { Icon } from '../../ui/icon/icon';
 import { Modal } from '../../ui/modal/modal';
+import { RegrasJogoView } from '../../ui/regras-jogo/regras-jogo';
 
 /**
  * Landing interna do Tichr Wor: "vende" a dinâmica ao professor antes do setup.
@@ -20,7 +22,7 @@ import { Modal } from '../../ui/modal/modal';
   selector: 'app-wor-landing-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Modal],
+  imports: [RouterLink, Icon, Modal, RegrasJogoView],
   template: `
     <a class="voltar" routerLink="/jogos">‹ Jogos</a>
 
@@ -37,8 +39,8 @@ import { Modal } from '../../ui/modal/modal';
         <span class="passo__ic"><app-icon name="sword" [size]="24" /></span>
         <h2>A Guerra</h2>
         <p>
-          Cada equipe defende um castelo. Errar a letra causa dano; acertar
-          permite atacar os rivais.
+          Cada equipe defende um castelo. Acertar as letras da palavra secreta
+          libera o ataque ao castelo rival — e a equipe vota em quem atacar.
         </p>
       </article>
       <article class="passo">
@@ -57,6 +59,14 @@ import { Modal } from '../../ui/modal/modal';
           viram Usurpadores e podem roubar a liderança.
         </p>
       </article>
+    </section>
+
+    <section class="recompensas">
+      <h2 class="recompensas__tit">Tabela de Recompensas (XP)</h2>
+      <p class="recompensas__sub">
+        Quanto vale cada jogada — a turma joga sabendo exatamente o que está em disputa.
+      </p>
+      <app-regras-jogo [regras]="regras" [mostrarResumo]="false" [mostrarComo]="false" />
     </section>
 
     <button class="btn-forjar" type="button" (click)="forjar()">
@@ -103,12 +113,16 @@ import { Modal } from '../../ui/modal/modal';
     .btn-forjar:hover { transform: translateY(-2px); }
     .btn-forjar:active { transform: translateY(0); }
     .muted { color: var(--text-muted); margin: 0; }
+    .recompensas { padding: 1.25rem; margin-bottom: 2rem; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
+    .recompensas__tit { margin: 0; font-size: 1.25rem; }
+    .recompensas__sub { margin: 0.35rem 0 1rem; color: var(--text-muted); font-size: 0.95rem; }
   `,
 })
 export class WorLandingPage {
   private readonly profileService = inject(ProfileService);
   private readonly router = inject(Router);
   protected readonly upsell = signal(false);
+  protected readonly regras = REGRAS_JOGO.WOR;
 
   private readonly ehPhd = computed(() =>
     planoAtendeMinimo(this.profileService.profile()?.planoAtual, 'PHD'),
