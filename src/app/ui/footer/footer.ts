@@ -9,19 +9,25 @@ import { RouterLink } from '@angular/router';
 import { linksPainel } from '../../core/nav-links';
 import { ProfileService } from '../../core/profile.service';
 import { Icon } from '../icon/icon';
+import { Logo } from '../logo/logo';
 
 /**
  * Rodapé global (dumb-ish): autoria, link de código e âncora para as Novidades.
  * Com `[painel]="true"` (páginas de usuário) também lista as âncoras de navegação
  * — as mesmas do menu lateral. Na landing (`painel` falso) fica só o essencial.
+ *
+ * A marca abre o rodapé nas duas variantes: junto com o header, forma o par que
+ * emoldura toda página — o usuário sai da tela vendo a mesma marca com que entrou.
  */
 @Component({
   selector: 'app-footer',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon],
+  imports: [RouterLink, Icon, Logo],
   template: `
     <footer class="footer" [class.footer--landing]="!painel()">
+      <app-logo class="footer__logo" [size]="26" />
+
       @if (painel()) {
         <nav class="footer__nav">
           @for (l of links(); track l.label) {
@@ -70,6 +76,10 @@ import { Icon } from '../icon/icon';
     /* Na landing, o CTA fixo (mobile) ocupa o rodapé — folga para não sobrepor. */
     @media (max-width: 640px) {
       .footer--landing { padding-bottom: 5.5rem; }
+    }
+    .footer__logo {
+      color: var(--text);
+      margin-bottom: 0.25rem;
     }
     .footer__nav {
       display: flex;

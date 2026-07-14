@@ -8,6 +8,7 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { StudentAuthService } from '../core/student-auth.service';
 import { ThemeService } from '../core/theme.service';
 import { Icon, IconName } from '../ui/icon/icon';
+import { Logo } from '../ui/logo/logo';
 
 interface NavItem {
   label: string;
@@ -23,10 +24,10 @@ interface NavItem {
   selector: 'app-student-layout',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icon],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icon, Logo],
   template: `
     <header class="topo">
-      <span class="topo__marca">Tichr</span>
+      <app-logo class="topo__marca" [size]="28" [onDark]="true" />
       <div class="topo__acoes">
         <button
           class="tema"
@@ -72,7 +73,8 @@ interface NavItem {
       background: linear-gradient(130deg, #0b1120, #1e3a8a);
       color: #fff;
     }
-    .topo__marca { font-weight: 800; letter-spacing: -0.02em; }
+    /* O lockup herda o #fff do header em gradiente; o símbolo continua invariante. */
+    .topo__marca { display: inline-flex; }
     .topo__acoes { display: flex; align-items: center; gap: 0.6rem; }
     .tema {
       display: inline-flex;

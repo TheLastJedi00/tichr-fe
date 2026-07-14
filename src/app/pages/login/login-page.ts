@@ -2,17 +2,18 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { Card } from '../../ui/card/card';
+import { Logo } from '../../ui/logo/logo';
 
 /** Tela de login (email/senha). MVP invite-only: sem cadastro. */
 @Component({
   selector: 'app-login-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Card, RouterLink],
+  imports: [Card, RouterLink, Logo],
   template: `
     <div class="wrap">
       <a class="voltar" routerLink="/">← Voltar ao site</a>
-      <span class="logo">Tichr</span>
+      <app-logo class="logo" [size]="40" />
       <app-card title="Entrar">
         <form (submit)="$event.preventDefault(); entrar()">
           <label class="campo">
@@ -63,11 +64,8 @@ import { Card } from '../../ui/card/card';
       color: var(--text-muted);
     }
     .logo {
-      display: block;
-      text-align: center;
-      font-size: 1.5rem;
-      font-weight: 800;
-      letter-spacing: -0.02em;
+      display: flex;
+      justify-content: center;
       margin-bottom: 1.25rem;
     }
     .campo {

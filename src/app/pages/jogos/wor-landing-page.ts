@@ -9,6 +9,7 @@ import { Router, RouterLink } from '@angular/router';
 import { planoAtendeMinimo } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { REGRAS_JOGO } from '../../core/regras-jogo.data';
+import { GameLogo } from '../../ui/game-logo/game-logo';
 import { Icon } from '../../ui/icon/icon';
 import { Modal } from '../../ui/modal/modal';
 import { RegrasJogoView } from '../../ui/regras-jogo/regras-jogo';
@@ -22,12 +23,12 @@ import { RegrasJogoView } from '../../ui/regras-jogo/regras-jogo';
   selector: 'app-wor-landing-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Modal, RegrasJogoView],
+  imports: [RouterLink, Icon, Modal, RegrasJogoView, GameLogo],
   template: `
     <a class="voltar" routerLink="/jogos">‹ Jogos</a>
 
     <header class="hero">
-      <span class="hero__ic"><app-icon name="castle" [size]="40" /></span>
+      <app-game-logo class="hero__ic" game="wor" [size]="76" />
       <h1>Tichr Wor</h1>
       <p class="hero__sub">
         Transforme a revisão da matéria em uma guerra épica de sobrevivência.
@@ -93,7 +94,7 @@ import { RegrasJogoView } from '../../ui/regras-jogo/regras-jogo';
     .voltar { display: inline-block; margin-bottom: 1rem; color: var(--text-muted); text-decoration: none; font-weight: 600; }
     .voltar:hover { color: #b45309; }
     .hero { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.6rem; margin-bottom: 2rem; }
-    .hero__ic { display: inline-flex; align-items: center; justify-content: center; width: 76px; height: 76px; border-radius: 20px; color: #b45309; background: color-mix(in srgb, #b45309 12%, transparent); }
+    .hero__ic { display: inline-flex; }
     .hero h1 { margin: 0; font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; }
     .hero__sub { margin: 0; max-width: 30rem; color: var(--text-muted); font-size: 1.05rem; }
     .como { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 2rem; }

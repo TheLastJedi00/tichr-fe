@@ -5,8 +5,31 @@
   <title>Tichr</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0f172a">
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <meta name="description" content="Transforme aulas comuns em experiências inesquecíveis. Jogos ao vivo, ranking e agenda automática para a sua turma.">
+
+  <!-- A barra do navegador já é azul-marca: a identidade começa antes do primeiro pixel da página. -->
+  <meta name="theme-color" content="#2563eb">
+
+  <!-- SVG nos navegadores modernos; .ico (16/32/48) como fallback legado. -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/x-icon" href="favicon.ico" sizes="48x48">
+  <!-- Full-bleed e sem cantos: o iOS aplica a própria máscara. -->
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+
+  <!-- Open Graph: a marca aparece toda vez que um professor compartilha o link. -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Tichr">
+  <meta property="og:title" content="Tichr — uma arena de jogos para a sala de aula">
+  <meta property="og:description" content="Transforme aulas comuns em experiências inesquecíveis. Jogos ao vivo, ranking e agenda automática para a sua turma.">
+  <!-- og:image precisa ser absoluta: WhatsApp e X não resolvem caminho relativo. -->
+  <meta property="og:url" content="https://tichr.com.br/">
+  <meta property="og:image" content="https://tichr.com.br/brand/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Tichr — transforme aulas comuns em experiências inesquecíveis">
+  <meta name="twitter:card" content="summary_large_image">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
