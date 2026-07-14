@@ -53,21 +53,38 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
       z-index: 100;
     }
     .modal {
+      /*
+       * Conteúdo alto (ex.: Regras e Pontuações) não pode estourar a tela: o
+       * card é limitado à viewport e quem rola é o corpo — título e ações ficam
+       * sempre visíveis. A altura usa dvh por causa do mobile, onde a barra do
+       * navegador some e volta (com vh o rodapé do modal fica atrás dela).
+       */
+      display: flex;
+      flex-direction: column;
       width: min(420px, 100%);
+      max-height: calc(100vh - 2rem);
+      max-height: calc(100dvh - 2rem);
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 1.25rem;
     }
     .modal__title {
+      flex: 0 0 auto;
       margin: 0 0 0.75rem;
       font-size: 1.2rem;
       font-weight: 700;
     }
     .modal__body {
+      /* O min-height zero deixa o flex item encolher — sem ele, não rola. */
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
       color: var(--text);
     }
     .modal__actions {
+      flex: 0 0 auto;
       display: flex;
       flex-wrap: wrap;
       align-items: center;

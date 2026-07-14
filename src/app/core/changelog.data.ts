@@ -18,6 +18,14 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.16.1',
+    data: '2026-07-14',
+    titulo: 'Janelas longas agora rolam no celular',
+    itens: [
+      { categoria: 'Correção', texto: 'No celular, a janela de "Regras e Pontuações" era mais alta que a tela e o final ficava inacessível — não dava para ler a tabela de recompensas inteira nem alcançar o botão de fechar. Agora o conteúdo rola dentro da janela, com o título e o botão sempre visíveis. A correção vale para todas as janelas do app com conteúdo longo.' },
+    ],
+  },
+  {
     versao: 'v0.16.0',
     data: '2026-07-14',
     titulo: 'Batalhas narradas ao vivo, Manual de Guerra e patentes corretas',
