@@ -424,6 +424,27 @@ export interface CriarWorJogoPayload {
 
 export type StatusMatch = 'LOBBY' | 'EM_ANDAMENTO' | 'ENCERRADO';
 
+/** Gatilhos narrados por um Action Card (interrupção global de 3s). */
+export type TipoAcaoGlobal =
+  | 'ATAQUE'
+  | 'CURA'
+  | 'USURPACAO'
+  | 'DANO_CRITICO'
+  | 'DICA';
+
+/**
+ * Ação de impacto narrada em todas as telas ao mesmo tempo. Chega por fan-out:
+ * na raiz (telão) e no doc de cada equipe (celular do aluno, que só escuta o seu).
+ */
+export interface LastGlobalAction {
+  /** Incrementa a cada card — é o gatilho de exibição no cliente. */
+  seq: number;
+  tipo: TipoAcaoGlobal;
+  mensagem: string;
+  duracaoMs: number;
+  em: string;
+}
+
 export interface WorTeam {
   id: string;
   matchId: string;
@@ -434,6 +455,8 @@ export interface WorTeam {
   /** Pontos de combate acumulados (dano causado + bônus). Desempata e vira XP. */
   pontos?: number;
   membros: { alunoId: string; nome: string }[];
+  /** Último Action Card (fan-out) — como a narração global alcança o aluno. */
+  lastGlobalAction?: LastGlobalAction | null;
 }
 
 export interface WorMatch {
@@ -460,6 +483,8 @@ export interface WorMatch {
   placar: PlacarEquipe[];
   /** Resultado da última rodada (reveal + quem atacou). */
   resumoRodada?: ResumoRodada | null;
+  /** Último Action Card (narração global + congelamento de 3s). */
+  lastGlobalAction?: LastGlobalAction | null;
   inscritos: { alunoId: string; nome: string }[];
   vencedorEquipeId?: string | null;
 }
