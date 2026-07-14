@@ -1,10 +1,12 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { RealtimeService } from '../../core/realtime.service';
 import { WorApiService } from '../../core/wor-api.service';
 import { TurmaApiService } from '../../core/turma-api.service';
+import { NarradorCards } from '../../core/action-card';
 import { Aluno, WorTeam } from '../../core/models';
+import { ActionCard } from '../../ui/action-card/action-card';
 import { Icon } from '../../ui/icon/icon';
 import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { Modal } from '../../ui/modal/modal';
@@ -19,8 +21,12 @@ import { Spinner } from '../../ui/spinner/spinner';
   selector: 'app-wor-projetor-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Spinner, LobbyLoader, Modal],
+  imports: [RouterLink, Icon, Spinner, LobbyLoader, Modal, ActionCard],
   template: `
+    @if (narrador.card(); as c) {
+      <app-action-card [card]="c" />
+    }
+
     <a class="voltar" routerLink="/jogos/wor">‹ Minhas batalhas</a>
 
     @if (match(); as m) {
@@ -237,6 +243,9 @@ export class WorProjetorPage {
   protected readonly ocupado = signal(false);
   protected readonly erro = signal<string | null>(null);
   protected readonly pin = signal<string | null>(null);
+  /** Narração global no telão — aqui o card chega pela raiz da partida. */
+  protected readonly narrador = new NarradorCards();
+  private conectado = false;
 
   // Assistência de acesso (lista de alunos com o PIN sob flip) — igual ao Qlick.
   protected readonly alunos = signal<Aluno[]>([]);
@@ -267,15 +276,32 @@ export class WorProjetorPage {
   protected readonly turnoNome = computed(
     () => this.teams().find((t) => t.id === this.match()?.turnoEquipeId)?.nome ?? 'equipe',
   );
-  /** Segundos restantes da rodada (cronômetro de 1 min). */
+  /**
+   * Segundos restantes da rodada. Congelada, ela começa no FUTURO (o servidor
+   * empurra o início enquanto o card está no ar): o teto de 60s segura o relógio
+   * parado durante a narração, em vez de exibir 62s.
+   */
   protected readonly restante = computed(() => {
     const m = this.match();
     if (!m || m.status !== 'EM_ANDAMENTO' || !m.rodadaIniciadaEm) return 60;
     const fim = Date.parse(m.rodadaIniciadaEm) + 60_000;
-    return Math.max(0, Math.ceil((fim - this.relogio()) / 1000));
+    const s = Math.ceil((fim - this.relogio()) / 1000);
+    return Math.max(0, Math.min(60, s));
   });
 
   constructor() {
+    // A raiz carrega o card; a primeira leitura só marca o baseline (sem replay).
+    effect(() => {
+      const m = this.match();
+      if (!m) return;
+      if (!this.conectado) {
+        this.conectado = true;
+        this.narrador.ignorarAtual(m.lastGlobalAction);
+        return;
+      }
+      this.narrador.receber(m.lastGlobalAction);
+    });
+
     // Busca o PIN da turma + roster (PINs dos alunos) uma vez, para o lobby/assistência.
     this.api.verPartida(this.matchId).subscribe((v) => {
       const turmaId = v.match.turmaId;
@@ -288,13 +314,17 @@ export class WorProjetorPage {
       this.relogio.set(Date.now());
       this.checarTempo();
     }, 1000);
-    this.destroyRef.onDestroy(() => clearInterval(tick));
+    this.destroyRef.onDestroy(() => {
+      clearInterval(tick);
+      this.narrador.destruir();
+    });
   }
 
   /** Ao zerar o cronômetro, dispara o encerramento da rodada por tempo (uma vez). */
   private checarTempo(): void {
     const m = this.match();
     if (!m || m.status !== 'EM_ANDAMENTO' || !m.rodadaIniciadaEm) return;
+    if (this.narrador.ativo()) return; // jogo congelado pelo card
     if (this.restante() > 0 || this.tempoDisparadoEm === m.rodadaIniciadaEm) return;
     this.tempoDisparadoEm = m.rodadaIniciadaEm;
     this.api.tempo(this.matchId).subscribe({ next: () => {}, error: () => {} });
