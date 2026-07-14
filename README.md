@@ -61,7 +61,7 @@ O diferencial visível está na **demonstração interativa da landing page** e 
 | `/jogos/qlick/partida/:id` | **Sala do professor** | Comanda a partida em tempo real; o **lobby** exibe o **PIN da turma em tamanho grande** + um **modal de assistência** (grid de alunos com o PIN revelado por toque, em *flip*). Depois: pergunta (timer + revelar), ranking da rodada e pódio. |
 | `/planos` | **Assinatura** | Vitrine dos 4 planos com o **plano atual em destaque** e troca de plano (mock). Destino do botão "Fazer upgrade" quando um recurso exige um plano superior. |
 | `/configuracoes` | **Hub de Configurações** | Índice da conta: cabeçalho com **avatar + nome** do professor e um menu para **Meu Perfil**, **Meu Plano** e a seção **Legal** (**Termos de Uso** e **Política de Privacidade**). |
-| `/configuracoes/perfil` | **Meu Perfil** | **Foto de perfil** (editar → recorte 1:1 → compressão → upload ao Firebase Storage), dados (nome, disciplina, bio), **@username** com disponibilidade em tempo real e **trava de 60 dias**, **disciplinas como cards** (modal para renomear/excluir) e **férias globais**. |
+| `/configuracoes/perfil` | **Meu Perfil** | **Foto de perfil** (editar → recorte 1:1 → compressão → upload pelo backend), dados (nome, disciplina, bio), **@username** com disponibilidade em tempo real e **trava de 60 dias**, **disciplinas como cards** (modal para renomear/excluir) e **férias globais**. |
 | `/configuracoes/plano` | **Meu Plano** | Resumo da assinatura atual (plano, limite, vagas avulsas, features) + **upsell** e atalho de gestão. |
 | `/novidades` | **Novidades (Changelog)** *(pública)* | Timeline das versões (Nova feature / Melhoria / Correção), alimentada por `changelog.data.ts` e espelhando o README. Linkada no **rodapé global**. |
 | `/termos` · `/privacidade` | **Documentos legais** *(públicas)* | Termos de Uso e Política de Privacidade (foco **LGPD**), a partir de `core/legal.data.ts` e do componente reutilizável `<app-legal-doc>`. Linkados no **rodapé** da landing, no hub de **Configurações** e abertos em **modais** no cadastro. |
@@ -200,12 +200,14 @@ lateral, o **card de upsell** ao atingir o limite do plano, o selo **Beta** no h
 
 ### Foto de perfil, mídia e trava de identificador
 
-- **Avatar (client-side):** ao trocar a foto, o Angular abre um **modal de recorte 1:1**
+- **Avatar:** ao trocar a foto, o Angular abre um **modal de recorte 1:1**
   (`ngx-image-cropper`), **comprime** silenciosamente para ~50KB / 250px
-  (`browser-image-compression`), sobe o micro-arquivo direto ao **Firebase Storage** e envia
-  a **URL** ao backend (`PATCH /profile`). O `<app-avatar>` mostra a foto ou um **placeholder**
-  com as iniciais. As **regras do Storage** (`storage.rules`) e do Firestore são publicadas por
-  um **workflow do GitHub** a cada merge na `main`.
+  (`browser-image-compression`) e envia o micro-arquivo por **multipart ao backend**
+  (`POST /profile/avatar`). O upload é **server-side**: o cliente não mantém sessão do
+  Firebase Auth, então o Storage nega escrita anônima — quem grava é o backend, via Admin
+  SDK, que devolve o perfil já com o `avatarUrl` novo. O `<app-avatar>` mostra a foto ou um
+  **placeholder** com as iniciais. As regras do Storage/Firestore (`storage.rules`,
+  `firestore.rules`) negam escrita ao cliente e têm **deploy manual** (`firebase deploy`).
 - **Trava de @username:** o handle só troca a cada **60 dias**; dentro do período o campo fica
   **desabilitado** com a microcópia "Você poderá alterar… em X dias" (o backend responde
   `409 USERNAME_COOLDOWN`).

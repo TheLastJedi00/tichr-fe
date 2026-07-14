@@ -3,15 +3,17 @@ rules_version = '2';
 // Regras do Firebase Storage.
 // Contexto: o frontend NÃO mantém sessão do Firebase Auth (a autenticação é
 // intermediada pelo backend), então `request.auth` é sempre nulo no cliente.
-// Por isso a escrita da foto é liberada, mas fortemente restrita: só imagens
-// pequenas na pasta `avatars/`. O backend usa o Admin SDK e ignora estas regras.
+// Toda ESCRITA passa pelo backend (Admin SDK, que ignora estas regras) — o
+// upload da foto de perfil é server-side via POST /profile/avatar. O cliente,
+// portanto, nunca grava: escrita anônima liberada aqui seria uma brecha (qualquer
+// um sobrescreveria o avatar de um uid conhecido, e o uid vai na URL pública).
+// Ao cliente resta só a LEITURA da foto, que é pública por natureza.
 service firebase.storage {
   match /b/{bucket}/o {
-    // Fotos de perfil dos professores (avatars/{uid}.jpg).
+    // Fotos de perfil dos professores (avatars/{uid}.jpg): leitura pública.
     match /avatars/{arquivo} {
       allow read: if true;
-      allow write: if request.resource.size < 300 * 1024
-        && request.resource.contentType.matches('image/.*');
+      allow write: if false;
     }
 
     // Qualquer outro caminho é negado ao cliente.

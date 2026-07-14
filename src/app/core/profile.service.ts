@@ -56,6 +56,20 @@ export class ProfileService {
       .pipe(tap((p) => this.profile.set(p)));
   }
 
+  /**
+   * Sobe a foto de perfil pela API (multipart). O upload é server-side: o cliente
+   * não tem sessão do Firebase Auth, então o Storage nega escrita anônima — quem
+   * grava é o backend. Devolve o perfil já com o `avatarUrl` novo e atualiza o
+   * signal (o avatar reflete na hora em todo o painel).
+   */
+  uploadAvatar(foto: Blob): Observable<Profile> {
+    const form = new FormData();
+    form.append('foto', foto, 'avatar.jpg');
+    return this.http
+      .post<Profile>(`${this.base}/profile/avatar`, form)
+      .pipe(tap((p) => this.profile.set(p)));
+  }
+
   /** Disponibilidade de um @username (debounce na tela de Configurações). */
   checkUsername(u: string): Observable<CheckUsernameResponse> {
     return this.http.get<CheckUsernameResponse>(
