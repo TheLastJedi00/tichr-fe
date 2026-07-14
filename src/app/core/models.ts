@@ -535,3 +535,158 @@ export interface WorMatchView {
   match: WorMatch;
   teams: WorTeam[];
 }
+
+// --- Tichr Isolateus ---
+
+export interface QuestaoIsolateus {
+  enunciado: string;
+  alternativas: string[];
+  corretaIndex: number;
+}
+
+export interface IsolateusJogo {
+  id: string;
+  professorId: string;
+  nome: string;
+  disciplina?: string;
+  topicoId?: string;
+  /** Turma única (legado). Substituída por `turmaIds` (N:N). */
+  turmaId?: string;
+  turmaIds?: string[];
+  duracaoSegundos: number;
+  questoes: QuestaoIsolateus[];
+}
+
+export interface CriarIsolateusPayload {
+  nome: string;
+  disciplina?: string;
+  topicoId?: string;
+  turmaIds?: string[];
+  duracaoSegundos?: number;
+  questoes: QuestaoIsolateus[];
+}
+
+export type StatusIsolateus =
+  | 'LOBBY'
+  | 'TURNO_AMEACA'
+  | 'QUESTAO_ATIVA'
+  | 'RESULTADO_RODADA'
+  | 'QUARENTENA_DEBATE'
+  | 'QUARENTENA_VOTO'
+  | 'ENCERRADO';
+
+/**
+ * Um habitante da vila. Real ou virtual — indistinguíveis aqui **de propósito**:
+ * o servidor nunca marca quem é NPC, senão bastava abrir o DevTools para
+ * dissolver a Névoa de Guerra. O aluno só sabe qual habitante é ele mesmo, e
+ * isso vem do painel (rota autenticada), não deste documento.
+ */
+export interface Habitante {
+  id: string;
+  nome: string;
+  vivo: boolean;
+  preso: boolean;
+}
+
+export interface SetorVila {
+  id: string;
+  nome: string;
+  intacto: boolean;
+}
+
+export interface Rumor {
+  id: string;
+  autorNome: string;
+  texto: string;
+  tipo: 'RUMOR' | 'FORJADO' | 'SINAL';
+}
+
+export interface MensagemDebate {
+  id: string;
+  autorNome: string;
+  texto: string;
+}
+
+export interface AlertaRodada {
+  tipo: 'SABOTAGEM' | 'ABDUCAO';
+  texto: string;
+}
+
+export interface ResumoRodadaIsolateus {
+  seq: number;
+  defendida: boolean;
+  texto: string;
+}
+
+export interface VereditoQuarentena {
+  presoNome: string;
+  eraAmeaca: boolean;
+  texto: string;
+}
+
+export interface VereditoIsolateus {
+  lado: 'VILA' | 'AMEACA';
+  motivo: string;
+}
+
+export interface PlacarIsolateus {
+  posicao: number;
+  alunoId: string;
+  nome: string;
+  pontos: number;
+}
+
+/** A camada pública da partida (`isolateus_partidas/{id}`), lida por snapshot. */
+export interface IsolateusMatch {
+  id: string;
+  jogoId: string;
+  professorId: string;
+  turmaId?: string;
+  nome: string;
+  status: StatusIsolateus;
+  criadaEm?: string | null;
+
+  esperanca: number;
+  setores: SetorVila[];
+  habitantes: Habitante[];
+
+  rodada: number;
+  totalRodadas: number;
+  duracaoSegundos: number;
+  /** Início da fase cronometrada (questão, debate ou votação) — base do relógio. */
+  faseIniciadaEm?: string | null;
+
+  /** A questão no ar, SEM a alternativa correta. */
+  questaoPublica?: { enunciado: string; alternativas: string[] } | null;
+  /** Só chega preenchida quando a rodada é resolvida. */
+  corretaIndex?: number | null;
+
+  alerta?: AlertaRodada | null;
+  rumores: Rumor[];
+  debate: MensagemDebate[];
+  resumoRodada?: ResumoRodadaIsolateus | null;
+
+  quarentenaUsada: boolean;
+  vereditoQuarentena?: VereditoQuarentena | null;
+  votosRecebidos: number;
+
+  /** Pseudônimos do lobby — o backend esvazia esta lista ao iniciar. */
+  inscritos: { alunoId: string; nome: string }[];
+
+  veredito?: VereditoIsolateus | null;
+  /** O placar só é publicado no encerramento (ao vivo, denunciaria os reais). */
+  rankingFinal: PlacarIsolateus[];
+}
+
+/**
+ * O que o aluno sabe sobre si mesmo. Vem por REST autenticado — **nunca** pelo
+ * snapshot. Só a Ameaça recebe `corretaIndex` e `disfarces`.
+ */
+export interface PainelIsolateus {
+  papel: 'ALDEAO' | 'AMEACA';
+  habitanteId: string;
+  vivo: boolean;
+  preso: boolean;
+  corretaIndex?: number;
+  disfarces?: string[];
+}

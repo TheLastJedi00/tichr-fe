@@ -8,7 +8,7 @@ import {
 } from 'firebase/firestore';
 import { Observable } from 'rxjs';
 import { firebaseApp } from './firebase-app';
-import { Partida, WorMatch, WorTeam } from './models';
+import { IsolateusMatch, Partida, WorMatch, WorTeam } from './models';
 
 /**
  * Único ponto de contato do frontend com o Firebase. Inicializa o app web
@@ -84,6 +84,34 @@ export class RealtimeService {
         ref,
         (snap) =>
           sub.next(snap.exists() ? ({ id: snap.id, ...snap.data() } as WorTeam) : null),
+        (err) => sub.error(err),
+      );
+      return () => unsub();
+    });
+  }
+
+  // --- Tichr Isolateus ---
+
+  /**
+   * A partida do Isolateus (`isolateus_partidas/{id}`) — um doc só, que o telão e
+   * todos os celulares escutam.
+   *
+   * Este documento é deliberadamente **cego**: nele não há quem é a Ameaça, quais
+   * habitantes são NPCs, nem a alternativa correta da questão no ar. Nenhuma
+   * inspeção de rede ou de DevTools aqui revela o mistério — o que o aluno pode
+   * saber sobre si mesmo vem do `painel()`, numa rota autenticada.
+   */
+  escutarIsolateus(partidaId: string): Observable<IsolateusMatch | null> {
+    return new Observable<IsolateusMatch | null>((sub) => {
+      const ref = doc(this.conectar(), 'isolateus_partidas', partidaId);
+      const unsub = onSnapshot(
+        ref,
+        (snap) =>
+          sub.next(
+            snap.exists()
+              ? ({ id: snap.id, ...snap.data() } as IsolateusMatch)
+              : null,
+          ),
         (err) => sub.error(err),
       );
       return () => unsub();
