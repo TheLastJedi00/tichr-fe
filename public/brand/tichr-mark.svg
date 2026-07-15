@@ -1,13 +1,10 @@
-<svg viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Tichr">
-  <!-- Marca autossuficiente: campo com gradiente azul e glifo branco com folga da
-       borda. A silhueta é do próprio tile, então funciona em aba clara ou escura sem
-       precisar do par claro/escuro. Fonte da verdade no componente app-logo. -->
-  <rect width="400" height="400" rx="80" fill="url(#favicon-grad)"/>
+<svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Tichr">
+  <rect width="400" height="400" rx="80" fill="url(#tichr-mark-grad)"/>
   <path d="M267 277C267 252.147 287.147 232 312 232H322C346.853 232 367 252.147 367 277V337C367 361.853 346.853 382 322 382H312C287.147 382 267 361.853 267 337V277Z" fill="white"/>
   <circle cx="317" cy="188" r="35" fill="white"/>
   <path d="M385 80.4996C383.598 109.957 359.433 133.191 329.943 133.436L262 134C262 134 243.789 134 234 144C224.029 154.187 224 171.899 224 172V313.472C224 353.753 190.766 386.095 150.5 385C110.235 386.095 77.0004 353.753 77.0004 313.472V172C77.0003 171.898 76.9721 153.971 67.0004 144C57.0258 134.025 39.0916 134 39.0004 134C25.78 134 15.0958 123.22 15.2127 110.001L15.4657 81.4112C15.4888 78.8071 15.7069 76.2084 16.1184 73.6369L16.3092 72.4442C21.6047 39.3473 50.1578 14.9996 83.6756 14.9996H196L296.5 14.4996H315.408C352.463 14.4996 383.038 43.4967 385 80.4996ZM150.5 128C119.296 128 94.0006 153.296 94.0004 184.5V312.5C94.0004 343.704 119.296 369 150.5 369C181.704 368.999 207 343.704 207 312.5V184.5C207 153.296 181.704 128 150.5 128ZM151 40.9996C129.461 40.9996 112.001 58.4607 112 79.9996C112 101.539 129.461 119 151 119C172.539 118.999 190 101.539 190 79.9996C190 58.4608 172.539 40.9998 151 40.9996Z" fill="white"/>
   <defs>
-    <linearGradient id="favicon-grad" x1="1" y1="0" x2="399" y2="400" gradientUnits="userSpaceOnUse">
+    <linearGradient id="tichr-mark-grad" x1="1" y1="0" x2="399" y2="400" gradientUnits="userSpaceOnUse">
       <stop stop-color="#2563EB"/>
       <stop offset="1" stop-color="#153885"/>
     </linearGradient>

@@ -35,7 +35,7 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
     <!-- ===== Hero (Atenção + Value Proposition) ===== -->
     <section class="hero">
       <header class="topbar container">
-        <app-logo class="logo" [size]="34" [onDark]="true" />
+        <app-logo class="logo" [size]="34" />
         <div class="topbar__actions">
           <a class="btn-ghost-light" routerLink="/login">Entrar</a>
           <app-icon-button

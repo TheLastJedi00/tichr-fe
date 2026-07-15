@@ -340,30 +340,23 @@ Dois componentes são a **fonte única**; nenhuma tela desenha a marca por conta
 <app-logo />                             <!-- lockup (símbolo + "Tichr"), 32px -->
 <app-logo [size]="30" />                 <!-- header -->
 <app-logo variant="mark" />              <!-- só o símbolo -->
-<app-logo [onDark]="true" />             <!-- superfície escura fixa (hero, portal do aluno) -->
 
 <app-game-logo game="qlick" [size]="56" />   <!-- qlick | wor | isolateus -->
 ```
 
 O padrão é o **lockup**, não o símbolo sozinho: é a repetição do par símbolo+nome que ensina
-o usuário a reconhecer o símbolo isolado depois.
+o usuário a reconhecer o símbolo isolado depois. A palavra "Tichr" é texto e acompanha o
+`currentColor` do contexto — clareia sobre superfície escura e escurece sobre clara sozinha.
 
-### Por que a marca-mãe tem par claro/escuro
+### Variante única: o tile é autossuficiente
 
-O glifo **sangra até a borda** do tile — a barra do "T" atravessa a largura inteira. O tile
-não tem silhueta própria: quem a define é o contraste com o campo. Aplicar a variante escura
-sobre fundo claro faz o contorno branco e a barra do "T" se fundirem com a página — o "T"
-some e sobram duas barras azuis soltas. Daí os tokens em `styles.scss`:
+O símbolo é um tile com **campo em gradiente** (`#2563eb → #153885`) e glifo branco com folga
+da borda. A silhueta é do próprio tile, então a marca recorta em qualquer superfície — clara
+ou escura — com **uma variante só**. É o mesmo princípio dos logos dos jogos, e por isso não
+há mais o par claro/escuro nem os tokens `--logo-field` / `--logo-glyph` que a marca antiga
+(glifo "T" sangrando até a borda) exigia.
 
-| Superfície | Variante | `--logo-field` | `--logo-glyph` (glifo + contorno) |
-| --- | --- | --- | --- |
-| clara | Blue OL | branco | `#2563eb` |
-| escura | White OL | `#2563eb` | branco |
-
-`[onDark]="true"` força a variante escura onde a superfície é escura **independente do tema**
-(hero da landing, header do Portal do Aluno).
-
-### Logos dos jogos: variante única
+### Logos dos jogos: mesma lógica
 
 | Jogo | Campo |
 | --- | --- |
@@ -381,16 +374,18 @@ traço, além de na raiz.
 
 ### Ícones (favicon, PWA, iOS)
 
-`favicon.svg`, `favicon.ico` (16/32/48), `apple-touch-icon.png` e `brand/icon-*.png` usam o
-glifo **sem sangria** (encolhido a 84%, ou 78% no *maskable*). É ajuste óptico, não um logo
-diferente: a 16px a barra do "T" sangrando funde com a cor da aba e o monograma vira um arco.
-Cercado pelo campo azul, o "Ti" fica legível em aba clara ou escura — e o campo sólido
-dispensa o par claro/escuro.
+`favicon.svg`, `favicon.ico` (16/32/48) e `brand/icon-*.png` usam a marca com o tile
+arredondado, direto do símbolo — o glifo já tem folga da borda, então não precisa de ajuste
+óptico. O campo em gradiente dispensa o par claro/escuro em qualquer aba.
 
-O `icon-maskable-512` e o `apple-touch-icon` são quadrados e sem cantos arredondados **de
+O `icon-maskable-512` e o `apple-touch-icon` são **full-bleed e sem cantos arredondados de
 propósito**: o sistema operacional aplica a própria máscara, e arredondar aqui daria canto
-duplo. O card **Open Graph** (`brand/og-image.png`, 1200×630) é o que aparece quando alguém
+duplo. No *maskable* o glifo ainda encolhe (~76%) para caber na **zona segura** do recorte do
+SO. O card **Open Graph** (`brand/og-image.png`, 1200×630) é o que aparece quando alguém
 compartilha o link — o `og:image` precisa de URL absoluta, senão WhatsApp e X não renderizam.
+
+Os binários (`.ico`, `.png`) são gerados a partir do próprio símbolo; para regerá-los depois
+de mudar a marca, renderize o SVG de `brand/tichr-mark.svg` nos tamanhos acima.
 
 ### Regras de uso
 
