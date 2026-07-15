@@ -20,14 +20,6 @@
   --danger: #dc2626; /* red-600 */
   --success: #16a34a; /* green-600 */
 
-  /* Marca — o par de logos (.specs/015). O glifo sangra até a borda do tile, então
-     o contraste tem de vir do campo: em superfície clara usamos a "Blue OL" (campo
-     branco + glifo azul, cujo contorno azul é o que segura a silhueta), e em
-     superfície escura a "White OL". O azul #2563eb é fixo nas duas — é a constante
-     da marca, e não acompanha o --primary do tema. */
-  --logo-field: #ffffff;
-  --logo-glyph: #2563eb;
-
   --radius: 8px;
 }
 
@@ -46,9 +38,6 @@ html[data-theme='dark'] {
 
   --danger: #ef4444; /* red-500 */
   --success: #22c55e; /* green-500 */
-
-  --logo-field: #2563eb;
-  --logo-glyph: #ffffff;
 }
 
 /* ===== Reset flat ===== */

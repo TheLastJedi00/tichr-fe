@@ -27,7 +27,7 @@ interface NavItem {
   imports: [RouterOutlet, RouterLink, RouterLinkActive, Icon, Logo],
   template: `
     <header class="topo">
-      <app-logo class="topo__marca" [size]="28" [onDark]="true" />
+      <app-logo class="topo__marca" [size]="28" />
       <div class="topo__acoes">
         <button
           class="tema"
