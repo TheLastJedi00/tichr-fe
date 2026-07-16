@@ -1,5 +1,8 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { VtArquitetura } from './vt-arquitetura';
+import { VtBackend } from './vt-backend';
+import { VtDados } from './vt-dados';
 
 /**
  * Vitrine Tecnológica — página pública de portfólio (spec 018).
@@ -22,7 +25,7 @@ import { RouterLink } from '@angular/router';
   selector: 'app-tecnologia-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink],
+  imports: [RouterLink, VtArquitetura, VtBackend, VtDados],
   template: `
     <a class="voltar" routerLink="/">← Voltar</a>
 
@@ -58,6 +61,10 @@ import { RouterLink } from '@angular/router';
         </div>
       </dl>
     </header>
+
+    <vt-arquitetura />
+    <vt-backend />
+    <vt-dados />
 
     <footer class="rodape">
       <p>
