@@ -1,8 +1,11 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { RevealDirective } from '../../ui/reveal.directive';
 import { VtArquitetura } from './vt-arquitetura';
 import { VtBackend } from './vt-backend';
 import { VtDados } from './vt-dados';
+import { VtSeguranca } from './vt-seguranca';
+import { VtTempoReal } from './vt-tempo-real';
 
 /**
  * Vitrine Tecnológica — página pública de portfólio (spec 018).
@@ -25,7 +28,15 @@ import { VtDados } from './vt-dados';
   selector: 'app-tecnologia-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, VtArquitetura, VtBackend, VtDados],
+  imports: [
+    RouterLink,
+    RevealDirective,
+    VtArquitetura,
+    VtBackend,
+    VtDados,
+    VtTempoReal,
+    VtSeguranca,
+  ],
   template: `
     <a class="voltar" routerLink="/">← Voltar</a>
 
@@ -62,9 +73,11 @@ import { VtDados } from './vt-dados';
       </dl>
     </header>
 
-    <vt-arquitetura />
-    <vt-backend />
-    <vt-dados />
+    <vt-arquitetura appReveal />
+    <vt-backend appReveal />
+    <vt-dados appReveal />
+    <vt-tempo-real appReveal />
+    <vt-seguranca appReveal />
 
     <footer class="rodape">
       <p>

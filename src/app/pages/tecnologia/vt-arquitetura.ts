@@ -111,6 +111,19 @@ import { VtNota } from './vt-nota';
       stroke: var(--vt-read);
       stroke-width: 1;
       stroke-dasharray: 4 4;
+      /*
+       * O tracejado anda: é o único lugar da página onde o dado está literalmente
+       * fluindo sem ninguém pedir, então é o único que se mexe sozinho.
+       */
+      animation: fluxo 1.1s linear infinite;
+    }
+    @keyframes fluxo {
+      to { stroke-dashoffset: -8; }
+    }
+    /* Loop infinito é gatilho vestibular — a página que se vende como bem-feita
+       é a última que pode escorregar nisso. */
+    @media (prefers-reduced-motion: reduce) {
+      .via--read { animation: none; }
     }
     .rot {
       font-family: var(--vt-mono);
