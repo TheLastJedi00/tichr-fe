@@ -64,14 +64,31 @@ const MIN_REAIS = 4;
               <p class="muted">Aguardando os primeiros nomes de personagem.</p>
             } @else {
               <p class="muted">
-                Toque em um nome para <b>vetar</b> — o aluno volta para a tela de registro.
+                Toque no nome para <b>trocar o apelido</b>, ou no × para <b>vetar</b>
+                — vetar devolve o aluno à tela de registro.
               </p>
               <ul class="inscritos">
                 @for (i of p.inscritos; track i.alunoId) {
                   <li>
-                    <button class="chip" type="button" [disabled]="ocupado()" (click)="vetar(i.alunoId, i.nome)">
-                      {{ i.nome }} <app-icon name="close" [size]="12" />
-                    </button>
+                    <span class="chip">
+                      <button
+                        class="chip__nome"
+                        type="button"
+                        [disabled]="ocupado()"
+                        (click)="renomear(i.alunoId, i.nome)"
+                      >
+                        {{ i.nome }}
+                      </button>
+                      <button
+                        class="chip__x"
+                        type="button"
+                        aria-label="Vetar {{ i.nome }}"
+                        [disabled]="ocupado()"
+                        (click)="vetar(i.alunoId, i.nome)"
+                      >
+                        <app-icon name="close" [size]="12" />
+                      </button>
+                    </span>
                   </li>
                 }
               </ul>
@@ -168,7 +185,7 @@ const MIN_REAIS = 4;
                 </p>
               }
               <div class="acoes">
-                @if (!p.quarentenaUsada) {
+                @if (podeConvocar()) {
                   <button class="btn-quarentena" type="button" [disabled]="ocupado()" (click)="quarentena()">
                     <app-icon name="alert" [size]="16" /> Convocar Quarentena
                   </button>
@@ -188,6 +205,9 @@ const MIN_REAIS = 4;
                     <p class="rumor"><strong>{{ m.autorNome }}</strong> {{ m.texto }}</p>
                   }
                 </div>
+                @if (p.pulosRecebidos) {
+                  <p class="lead">{{ p.pulosRecebidos }} já pularam o debate.</p>
+                }
               </div>
             }
 
@@ -261,8 +281,12 @@ const MIN_REAIS = 4;
     .muted { color: var(--text-muted); font-size: 0.9rem; margin: 0.25rem 0; }
     .center { text-align: center; }
     .inscritos { list-style: none; display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.6rem 0 0; padding: 0; }
-    .chip { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.7rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-alt); font-weight: 600; font-size: 0.85rem; cursor: pointer; font-family: inherit; color: var(--text); }
-    .chip:hover:not(:disabled) { border-color: var(--danger); color: var(--danger); }
+    .chip { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.7rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-alt); font-weight: 600; font-size: 0.85rem; font-family: inherit; color: var(--text); }
+    .chip:hover { border-color: var(--danger); }
+    .chip__nome, .chip__x { border: none; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; display: inline-flex; align-items: center; }
+    .chip__nome:hover:not(:disabled) { text-decoration: underline; }
+    .chip__x:hover:not(:disabled) { color: var(--danger); }
+    .chip__nome:disabled, .chip__x:disabled { cursor: not-allowed; opacity: 0.55; }
     .btn-iso { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.85rem 1.2rem; border: none; border-radius: 12px; cursor: pointer; font: inherit; font-weight: 800; color: #fff; background: linear-gradient(135deg, #84cc16, #4d7c0f); }
     .btn-iso:disabled { opacity: 0.55; cursor: not-allowed; }
     .full { width: 100%; }
@@ -342,6 +366,12 @@ export class IsolateusProjetorPage {
   private readonly relogio = signal(Date.now());
   private tempoDisparadoEm: string | null = null;
 
+  /** A Quarentena volta a cada noite, mas só cabe uma por rodada. */
+  protected readonly podeConvocar = computed(() => {
+    const p = this.partida();
+    return !!p && p.quarentenaRodada !== p.rodada;
+  });
+
   /** Segundos restantes da fase cronometrada corrente. */
   protected readonly restante = computed(() => {
     const p = this.partida();
@@ -416,6 +446,13 @@ export class IsolateusProjetorPage {
   protected vetar(alunoId: string, nome: string): void {
     if (!confirm(`Vetar o nome "${nome}"? O aluno volta para a tela de registro.`)) return;
     this.acao(this.api.vetarNome(this.matchId, alunoId));
+  }
+
+  /** Corrige um apelido sem tirar o aluno do lobby (só antes do Despertar). */
+  protected renomear(alunoId: string, nome: string): void {
+    const novo = prompt(`Novo apelido para "${nome}":`, nome)?.trim();
+    if (!novo || novo === nome) return;
+    this.acao(this.api.renomearInscrito(this.matchId, alunoId, novo));
   }
 
   protected iniciar(): void {

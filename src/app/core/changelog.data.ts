@@ -18,6 +18,38 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.17.1',
+    data: '2026-07-16',
+    titulo: 'Acertos no Wor e no Isolateus',
+    itens: [
+      {
+        categoria: 'Correção',
+        texto:
+          'No Tichr Wor, o rodízio de equipes agora continua de onde parou quando a turma vira a palavra. Antes, cada palavra nova recomeçava na equipe 1 — quem jogava por último acabava esperando duas vezes seguidas. Pular a palavra pelo telão não custa mais o turno de quem estava na vez.',
+      },
+      {
+        categoria: 'Correção',
+        texto:
+          'No Tichr Wor, o aluno agora vê os nomes dos colegas da própria equipe na tela dele, com o próprio nome em destaque. Antes dava para jogar a partida inteira sem saber com quem se estava jogando.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'No Tichr Isolateus, a Quarentena pode ser convocada depois de cada noite, e não mais uma única vez por partida. Continua cabendo uma por rodada: a vila não consegue emendar acusações até prender todo mundo, e errar segue custando Esperança.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'No Tichr Isolateus, quem já se decidiu pode pular o debate da Quarentena. Se todos pularem, a votação começa na hora, sem ninguém esperar o cronômetro à toa. A vila vê quantos já pularam, mas nunca quem — isso entregaria quem é habitante real.',
+      },
+      {
+        categoria: 'Correção',
+        texto:
+          'No Tichr Isolateus, o professor agora troca o apelido de um aluno no lobby: é só tocar no nome. Antes a única saída era vetar o nome e pedir para o aluno entrar de novo. Depois que a investigação começa o apelido fica fixo — é o que impede a turma de descobrir quem é habitante virtual.',
+      },
+    ],
+  },
+  {
     versao: 'v0.17.0',
     data: '2026-07-14',
     titulo: 'Tichr Isolateus: a vila sob invasão',

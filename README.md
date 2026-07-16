@@ -163,8 +163,9 @@ morador** — e a única defesa é a turma **acertar a questão da sua aula**. E
 **Barra de Esperança**; acertar salva o setor. O jogo é o embrulho; o conteúdo cobrado é o seu.
 
 - **O Voto de Silêncio:** ninguém joga com o nome real. Cada aluno entra com um nome de
-  personagem, e o professor **veta** nomes no lobby (aprovar é implícito — um fluxo de
-  aprovação um-a-um travaria a sala).
+  personagem, e no lobby o professor **troca o apelido** (toca no nome) ou **veta** (o aluno
+  volta ao registro) — aprovar é implícito, um fluxo de aprovação um-a-um travaria a sala.
+  Depois do Despertar o apelido fica fixo: o vínculo aluno↔personagem é apagado de propósito.
 - **A Névoa de Guerra:** em turmas pequenas, habitantes virtuais preenchem a vila para o
   infiltrado ter onde se esconder. Os alunos **não conseguem distingui-los dos reais** — nem
   inspecionando o app: o documento que o cliente escuta em tempo real é cego de propósito
@@ -176,8 +177,10 @@ morador** — e a única defesa é a turma **acertar a questão da sua aula**. E
   Quem foi abduzido não sai do jogo: segue respondendo (e pontuando) numa **tela hackeada**,
   de onde manda **Sinais de Rádio** anônimos para tentar salvar a vila.
 - **A Quarentena:** um debate cronometrado seguido de votação no suspeito, disponível
-  **uma única vez** por partida. Prendeu a ameaça, a vila vence; prendeu um inocente, a
-  Esperança despenca — e a identidade do preso **continua em segredo**.
+  **depois de cada noite** (uma por rodada — a vila não emenda acusações até prender todo
+  mundo). Quem já se decidiu **pula o debate**; se todos pularem, a votação começa na hora.
+  Prendeu a ameaça, a vila vence; prendeu um inocente, a Esperança despenca — e a identidade
+  do preso **continua em segredo**.
 - **As 10 questões** são escritas pelo professor ou **geradas por IA** a partir da disciplina
   e do tópico (1×/dia, com cota própria — não consome a do Qlick nem a do Wor).
 

@@ -666,9 +666,12 @@ export interface IsolateusMatch {
   debate: MensagemDebate[];
   resumoRodada?: ResumoRodadaIsolateus | null;
 
-  quarentenaUsada: boolean;
+  /** Rodada da última Quarentena (null = nenhuma). Cabe uma por rodada. */
+  quarentenaRodada?: number | null;
   vereditoQuarentena?: VereditoQuarentena | null;
   votosRecebidos: number;
+  /** Quantos já pularam o debate — só a contagem; quem pulou é segredo. */
+  pulosRecebidos?: number;
 
   /** Pseudônimos do lobby — o backend esvazia esta lista ao iniciar. */
   inscritos: { alunoId: string; nome: string }[];
