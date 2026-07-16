@@ -89,6 +89,17 @@ export interface Profile {
   isAdmin?: boolean;
 }
 
+/**
+ * Dados da conta de acesso (`GET /auth/conta`). Separado do `Profile` porque o
+ * e-mail não vive no documento do professor — ele existe só no Firebase Auth, e
+ * buscá-lo no `GET /profile` (que roda em quase toda navegação) custaria uma
+ * leitura extra em todas elas por causa de uma tela só.
+ */
+export interface ContaAuth {
+  email: string;
+  emailVerificado: boolean;
+}
+
 // --- Backoffice (Painel Administrativo) ---
 
 export interface AdminMetrics {
