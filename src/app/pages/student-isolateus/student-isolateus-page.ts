@@ -248,12 +248,12 @@ const LIMITE_VOTO_S = 60;
                   <b>{{ letra(p.corretaIndex) }}) {{ p.questaoPublica.alternativas[p.corretaIndex] }}</b>
                 </p>
               }
-              @if (!p.quarentenaUsada && !foraDaVila()) {
+              @if (podeConvocar() && !foraDaVila()) {
                 <button class="btn-quarentena" type="button" [disabled]="enviando()" (click)="convocar()">
                   <app-icon name="alert" [size]="16" /> Convocar Quarentena
                 </button>
                 <p class="muted center">
-                  A vila só entra em Quarentena <b>uma vez</b>. Prender um inocente
+                  Cabe <b>uma Quarentena por rodada</b>. Prender um inocente
                   custa caro.
                 </p>
               }
@@ -282,6 +282,20 @@ const LIMITE_VOTO_S = 60;
                     Falar
                   </button>
                 </form>
+                @if (jaPulei()) {
+                  <p class="muted center">
+                    Você já está pronto. Aguardando os outros
+                    ({{ p.pulosRecebidos ?? 0 }} pularam).
+                  </p>
+                } @else {
+                  <button class="btn-pular" type="button" [disabled]="enviando()" (click)="pular()">
+                    Pular o debate
+                  </button>
+                  <p class="muted center">
+                    Se todos pularem, a votação começa na hora.
+                    {{ p.pulosRecebidos ?? 0 }} já pularam.
+                  </p>
+                }
               } @else {
                 <p class="muted center">Quem saiu da vila não participa do debate.</p>
               }
@@ -407,6 +421,9 @@ const LIMITE_VOTO_S = 60;
     .card-global--ok { background: var(--success); }
     .btn-quarentena { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; width: 100%; padding: 0.9rem 1.2rem; border: none; border-radius: 12px; cursor: pointer; font: inherit; font-weight: 800; color: #fff; background: var(--danger); }
     .btn-quarentena:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-pular { width: 100%; padding: 0.7rem 1.2rem; border: 1px solid var(--border); border-radius: 12px; cursor: pointer; font: inherit; font-weight: 700; color: var(--text-muted); background: var(--surface); }
+    .btn-pular:hover:not(:disabled) { border-color: var(--danger); color: var(--danger); }
+    .btn-pular:disabled { opacity: 0.55; cursor: not-allowed; }
     .qtag { align-self: center; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--danger); }
     .feed--alto { max-height: 260px; }
     .suspeitos { display: flex; flex-direction: column; gap: 0.5rem; }
@@ -448,7 +465,15 @@ export class StudentIsolateusPage {
   protected readonly sinalTexto = signal('');
   protected readonly debateTexto = signal('');
   protected readonly votei = signal(false);
+  /** Pulei o debate desta Quarentena (otimista — o servidor é o juiz). */
+  protected readonly jaPulei = signal(false);
   private readonly relogio = signal(Date.now());
+
+  /** A Quarentena volta a cada noite, mas só cabe uma por rodada. */
+  protected readonly podeConvocar = computed(() => {
+    const p = this.partida();
+    return !!p && p.quarentenaRodada !== p.rodada;
+  });
 
   /**
    * O meu habitante, lido do snapshot — é assim que eu descubro que fui abduzido
@@ -569,6 +594,9 @@ export class StudentIsolateusPage {
       this.respostaIndex.set(null);
       this.rumorTexto.set('');
       this.sinalTexto.set('');
+      // Cabe uma Quarentena por rodada: a noite nova rearma o voto e o pulo.
+      this.votei.set(false);
+      this.jaPulei.set(false);
       if (this.ehAmeaca()) this.carregarPainel(false);
     }
   }
@@ -705,6 +733,20 @@ export class StudentIsolateusPage {
         this.debateTexto.set('');
       },
       error: () => this.enviando.set(false),
+    });
+  }
+
+  /** Abre mão do debate. Se eu for o último, a votação abre sozinha. */
+  protected pular(): void {
+    if (!this.partidaId || this.jaPulei() || this.enviando()) return;
+    this.enviando.set(true);
+    this.jaPulei.set(true);
+    this.api.pularDebate(this.partidaId).subscribe({
+      next: () => this.enviando.set(false),
+      error: () => {
+        this.enviando.set(false);
+        this.jaPulei.set(false);
+      },
     });
   }
 

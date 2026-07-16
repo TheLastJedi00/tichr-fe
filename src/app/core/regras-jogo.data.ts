@@ -153,8 +153,9 @@ const ISOLATEUS: RegrasJogo = {
     {
       titulo: 'A Quarentena',
       itens: [
-        'Entre as rodadas, a vila pode convocar a Quarentena — uma única vez na partida.',
+        'Depois de cada noite, a vila pode convocar a Quarentena — uma por rodada.',
         'Abre um debate cronometrado e, em seguida, a votação no suspeito.',
+        'Quem já se decidiu pode pular o debate: se todos pularem, a votação começa na hora.',
         'Trancou a Ameaça: a invasão é contida e a Vila vence na hora.',
         'Trancou um inocente: a Esperança sofre dano severo e a identidade do preso continua em segredo.',
       ],

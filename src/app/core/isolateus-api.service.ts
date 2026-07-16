@@ -76,6 +76,17 @@ export class IsolateusApiService {
       {},
     );
   }
+  /** Corrige o apelido de um habitante sem tirá-lo do lobby. */
+  renomearInscrito(
+    id: string,
+    alunoId: string,
+    pseudonimo: string,
+  ): Observable<IsolateusMatch> {
+    return this.http.post<IsolateusMatch>(
+      `${this.base}/isolateus/matches/${id}/renomear/${alunoId}`,
+      { pseudonimo },
+    );
+  }
   /** O Despertar: preenche a vila com NPCs e sorteia a Ameaça. */
   iniciar(id: string): Observable<IsolateusMatch> {
     return this.http.post<IsolateusMatch>(
@@ -163,6 +174,13 @@ export class IsolateusApiService {
     return this.http.post<IsolateusMatch>(
       `${this.base}/aluno/isolateus/${id}/debate`,
       { texto },
+    );
+  }
+  /** Abre mão do debate: se todos pularem, a votação começa na hora. */
+  pularDebate(id: string): Observable<IsolateusMatch> {
+    return this.http.post<IsolateusMatch>(
+      `${this.base}/aluno/isolateus/${id}/pular-debate`,
+      {},
     );
   }
   votarSuspeito(
