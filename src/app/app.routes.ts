@@ -24,6 +24,24 @@ export const routes: Routes = [
       import('./pages/cadastro/cadastro-page').then((m) => m.CadastroPage),
   },
   {
+    path: 'recuperar-senha',
+    loadComponent: () =>
+      import('./pages/recuperar-senha/recuperar-senha-page').then(
+        (m) => m.RecuperarSenhaPage,
+      ),
+  },
+  {
+    // Bloco público de propósito: quem espera confirmação TEM token válido, mas
+    // o painel está travado. Atrás do authGuard funcionaria (ele só olha o
+    // localStorage), mas o lugar certo é aqui — a tela existe justamente para
+    // quem ainda não tem acesso ao painel.
+    path: 'verificar-email',
+    loadComponent: () =>
+      import('./pages/verificar-email/verificar-email-page').then(
+        (m) => m.VerificarEmailPage,
+      ),
+  },
+  {
     path: 'novidades',
     loadComponent: () =>
       import('./pages/novidades/novidades-page').then((m) => m.NovidadesPage),
@@ -280,6 +298,11 @@ export const routes: Routes = [
           import('./pages/meu-perfil/meu-perfil-page').then(
             (m) => m.MeuPerfilPage,
           ),
+      },
+      {
+        path: 'configuracoes/seguranca',
+        loadComponent: () =>
+          import('./pages/seguranca/seguranca-page').then((m) => m.SegurancaPage),
       },
       {
         path: 'configuracoes/plano',

@@ -5,7 +5,11 @@
  */
 export const environment = {
   production: true,
-  apiBaseUrl: 'https://tichr-be.vercel.app',
+  // api.tichr.com.br, e nao tichr-be.vercel.app: o cookie HttpOnly da sessao so
+  // existe porque o front e a API compartilham o dominio registravel tichr.com.br
+  // (mesmo site -> SameSite=Lax passa). Em *.vercel.app o cookie seria
+  // third-party e morreria no Safari — vercel.app esta na Public Suffix List.
+  apiBaseUrl: 'https://api.tichr.com.br',
   // Config web pública do Firebase — usada SÓ para ler as partidas do Qlick em
   // tempo real (onSnapshot). O restante continua via API do backend.
   firebase: {

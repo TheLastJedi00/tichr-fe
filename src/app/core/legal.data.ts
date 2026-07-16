@@ -24,7 +24,7 @@ export interface DocumentoLegal {
 /** Versão vigente dos documentos (deve casar com o backend no consentimento). */
 export const VERSAO_LEGAL = 'v1';
 
-const ATUALIZADO_EM = '2026-07-09';
+const ATUALIZADO_EM = '2026-07-16';
 
 export const POLITICA_PRIVACIDADE: DocumentoLegal = {
   titulo: 'Política de Privacidade',
@@ -81,6 +81,7 @@ export const POLITICA_PRIVACIDADE: DocumentoLegal = {
       paragrafos: [
         'Os dados são armazenados na infraestrutura do Firebase (Google Cloud), com controles de acesso e regras de segurança que restringem a leitura e a escrita conforme o perfil do usuário.',
         'Adotamos medidas técnicas e organizacionais razoáveis para proteger os dados contra acesso não autorizado, perda ou alteração indevida.',
+        'Ao entrar na sua conta, guardamos no seu navegador um cookie de sessão e um código de acesso temporário. Eles servem exclusivamente para manter você conectado e evitar que a senha seja pedida a cada tela — não acompanham sua navegação fora do Tichr nem alimentam publicidade. Por serem necessários ao funcionamento do serviço que você pediu, não dependem de consentimento (art. 7º, V, da LGPD: execução de contrato). Ao sair da conta, os dois são apagados. O Tichr não usa cookies de análise, rastreamento ou marketing.',
       ],
     },
     {

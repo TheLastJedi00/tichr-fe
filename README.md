@@ -224,7 +224,12 @@ lateral, o **card de upsell** ao atingir o limite do plano, o selo **Beta** no h
   documentos em **modais**) é obrigatório — o botão **"Criar Conta"** só libera com o form
   válido e ambos marcados. Ao criar (`POST /auth/signup` com nome + aceites, plano Estagiário)
   o usuário já é autenticado; em seguida aplica o **cupom** ou faz o **upgrade** do plano
-  escolhido e cai no painel.
+  escolhido e cai em **`/verificar-email`**.
+- **Confirmação de e-mail:** a conta nasce **sem e-mail confirmado** e o painel fica travado
+  até o clique no link (o backend responde `403 EMAIL_NAO_VERIFICADO` e o interceptor traz de
+  volta para a tela de espera). A tela consulta o estado sozinha a cada 5s e tem botão de
+  **reenviar**; ao confirmar, **renova a sessão e segue direto** — sem pedir novo login,
+  porque o token novo já nasce verificado.
 - **Soft-block de perfil:** enquanto faltar **nome, @username ou foto**, o painel exibe o
   `<app-onboarding-card>` em destaque ("Falta pouco!") com um checklist e o atalho para
   concluir o perfil.
@@ -232,6 +237,23 @@ lateral, o **card de upsell** ao atingir o limite do plano, o selo **Beta** no h
   ou `/jogos`, o `DashboardLayout` escurece o fundo e mostra o `<app-tutorial-overlay>` com
   uma dica rápida e o "primeiro passo" (marca como visto no `localStorage`; respeita
   `prefers-reduced-motion`).
+
+### Conta e segurança (Configurações → Segurança)
+
+- **E-mail de acesso:** mostra o e-mail atual com selo **Confirmado**. Ao alterar, um modal
+  pede o **novo e-mail + a senha atual** (reautenticação, mesma UX do card de excluir conta).
+  A troca é em **duas etapas**: o link vai para a caixa **nova** e o e-mail atual **continua
+  valendo até o clique**. O card avisa que será preciso **entrar de novo depois de confirmar**
+  — o Firebase revoga a sessão ao completar a troca, e sem o aviso o logout pareceria um bug.
+- **Senha:** "Alterar" dispara o mesmo link de redefinição da tela pública para o e-mail da
+  conta, em vez de um formulário de troca autenticada.
+- **Esqueci minha senha** (`/recuperar-senha`, pública): um campo, e a mensagem de sucesso é
+  **genérica de propósito** — *"Se o e-mail estiver cadastrado, as instruções foram enviadas"*.
+  Confirmar se a conta existe transformaria a tela num oráculo de quem usa o Tichr.
+- **Sessão que não expira no meio da aula:** o ID token dura ~1h; o interceptor **renova**
+  sozinho no primeiro 401 e refaz a requisição, em vez de jogar o professor no `/login`. O
+  refresh vive num **cookie `HttpOnly`** — fora do alcance do JavaScript.
+- Nada disso afeta o **aluno**: ele entra por PIN, não tem e-mail e sua sessão não se renova.
 
 ### Painel Administrativo (backoffice — só admins)
 

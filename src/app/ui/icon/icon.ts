@@ -35,7 +35,8 @@ export type IconName =
   | 'skull'
   | 'scroll'
   | 'alien'
-  | 'radio';
+  | 'radio'
+  | 'mail';
 
 /**
  * Componente burro de icones. Centraliza os SVGs e herda a cor do texto
@@ -124,6 +125,10 @@ export type IconName =
         @case ('lock') {
           <rect x="3" y="11" width="18" height="11" rx="2" />
           <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+        }
+        @case ('mail') {
+          <rect x="2" y="4" width="20" height="16" rx="2" />
+          <path d="m2 7 10 6 10-6" />
         }
         @case ('info') {
           <circle cx="12" cy="12" r="10" />

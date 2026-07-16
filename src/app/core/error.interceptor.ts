@@ -31,7 +31,15 @@ function isTratadoInline(err: HttpErrorResponse): boolean {
     (err.status === 400 && code === 'CUPOM_INVALIDO') ||
     (err.status === 429 && code === 'IA_RATE_LIMIT') ||
     (err.status === 503 && code === 'IA_INDISPONIVEL') ||
-    (err.status === 400 && code === 'FORA_DO_TURNO')
+    (err.status === 400 && code === 'FORA_DO_TURNO') ||
+    // Conta e segurança: a própria tela explica o que houve.
+    // EMAIL_NAO_VERIFICADO redireciona para /verificar-email (authInterceptor) e
+    // SESSAO_EXPIRADA é logout limpo — nenhum dos dois é erro a reportar.
+    (err.status === 403 && code === 'EMAIL_NAO_VERIFICADO') ||
+    (err.status === 401 && code === 'SESSAO_EXPIRADA') ||
+    (err.status === 401 && code === 'SENHA_INVALIDA') ||
+    (err.status === 409 && code === 'EMAIL_EM_USO') ||
+    (err.status === 429 && code === 'VERIFICACAO_COOLDOWN')
   );
 }
 
@@ -47,6 +55,11 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const isFormAuth =
     req.url.endsWith('/auth/login') ||
     req.url.endsWith('/auth/signup') ||
+    req.url.endsWith('/auth/recuperar-senha') ||
+    req.url.endsWith('/auth/email') ||
+    req.url.endsWith('/auth/refresh') ||
+    req.url.endsWith('/auth/logout') ||
+    req.url.includes('/auth/verificacao') ||
     req.url.endsWith('/admin/ping');
   return next(req).pipe(
     catchError((err: HttpErrorResponse) => {
