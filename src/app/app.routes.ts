@@ -335,6 +335,14 @@ export const routes: Routes = [
             (m) => m.AdminCuponsPage,
           ),
       },
+      {
+        path: 'admin/feedbacks',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./pages/admin/admin-feedbacks-page').then(
+            (m) => m.AdminFeedbacksPage,
+          ),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

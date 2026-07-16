@@ -125,6 +125,44 @@ export interface UsuarioAdmin {
   uso: UsoProfessor;
 }
 
+// --- Feedback (canal do professor + triagem do admin) ---
+
+export type CategoriaFeedback = 'BUG' | 'SUGESTAO' | 'DUVIDA' | 'ELOGIO';
+export type StatusFeedback = 'PENDENTE' | 'EM_ANALISE' | 'RESOLVIDO';
+
+/**
+ * O que o professor manda. Identidade e timestamp não vão aqui: o backend os
+ * resolve pelo token. `rota` e `userAgent` são o que só o navegador sabe.
+ */
+export interface EnviarFeedbackPayload {
+  categoria: CategoriaFeedback;
+  mensagem: string;
+  rota: string;
+  userAgent: string;
+}
+
+export interface Feedback {
+  id: string;
+  professorId: string;
+  professorNome: string;
+  professorEmail: string;
+  categoria: CategoriaFeedback;
+  mensagem: string;
+  rota: string;
+  userAgent: string;
+  status: StatusFeedback;
+  criadoEm: string;
+  notaInterna?: string;
+  atualizadoEm?: string;
+  /** Ausente = o alerta por e-mail não saiu (chave ausente ou falha no envio). */
+  notificadoEm?: string;
+}
+
+export interface TriarFeedbackPayload {
+  status?: StatusFeedback;
+  notaInterna?: string;
+}
+
 export type TipoCupom = 'PLANO_GRATIS' | 'MESES_GRATIS';
 
 export interface Cupom {
