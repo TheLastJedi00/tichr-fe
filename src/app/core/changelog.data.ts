@@ -18,6 +18,33 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.18.0',
+    data: '2026-07-16',
+    titulo: 'Sua conta, mais segura',
+    itens: [
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Agora o Tichr confirma o seu e-mail quando você cria a conta. Assim que se cadastrar, você recebe um link — é só tocar nele para liberar o painel. A tela de espera se atualiza sozinha e tem um botão de reenviar, caso a mensagem demore ou se perca no spam.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Esqueceu a senha? A tela de login agora tem "Esqueci minha senha". Você informa o e-mail, recebe um link e cadastra uma senha nova na hora — sem precisar falar com ninguém.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Uma área de Segurança nova nas Configurações, onde você troca o e-mail de acesso ou pede a redefinição da senha. A troca de e-mail é confirmada na caixa nova antes de valer: se você errar o endereço, o e-mail antigo continua funcionando e nada se perde.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'O Tichr não desconecta mais você no meio da aula. Antes, depois de cerca de uma hora, o sistema pedia login de novo — às vezes bem na hora de rodar um jogo com a turma. Agora a sessão se renova sozinha.',
+      },
+    ],
+  },
+  {
     versao: 'v0.17.1',
     data: '2026-07-16',
     titulo: 'Acertos no Wor e no Isolateus',
