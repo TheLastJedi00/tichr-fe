@@ -24,11 +24,6 @@ import { DocumentoLegal } from '../../core/legal.data';
           }
         </section>
       }
-
-      <p class="doc__aviso">
-        Este texto é uma minuta que reflete as regras do produto e não constitui
-        aconselhamento jurídico. Em caso de dúvida, consulte um profissional do Direito.
-      </p>
     }
   `,
   styles: `
@@ -39,15 +34,6 @@ import { DocumentoLegal } from '../../core/legal.data';
     .doc__sec { margin-bottom: 1.25rem; }
     .doc__sectitulo { margin: 0 0 0.4rem; font-size: 1.05rem; font-weight: 700; }
     .doc__p { margin: 0 0 0.5rem; line-height: 1.6; }
-    .doc__aviso {
-      margin: 1.5rem 0 0;
-      padding: 0.75rem 0.9rem;
-      border: 1px dashed var(--border);
-      border-radius: var(--radius);
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      background: var(--surface-alt);
-    }
   `,
 })
 export class LegalDoc {
