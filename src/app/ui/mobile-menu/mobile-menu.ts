@@ -9,8 +9,11 @@ import {
 } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
+import { FeedbackService } from '../../core/feedback.service';
+import { CategoriaFeedback } from '../../core/models';
 import { linksPainel } from '../../core/nav-links';
 import { ProfileService } from '../../core/profile.service';
+import { FeedbackModal } from '../feedback-modal/feedback-modal';
 import { Icon } from '../icon/icon';
 import { IconButton } from '../icon-button/icon-button';
 import { Modal } from '../modal/modal';
@@ -24,7 +27,7 @@ import { QuotaTracker } from '../quota-tracker/quota-tracker';
   selector: 'app-mobile-menu',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, RouterLinkActive, Icon, IconButton, QuotaTracker, Modal],
+  imports: [RouterLink, RouterLinkActive, Icon, IconButton, QuotaTracker, Modal, FeedbackModal],
   template: `
     @if (open()) {
       <div class="overlay" animate.enter="ov-in" animate.leave="ov-out" (click)="close.emit()">
@@ -61,12 +64,25 @@ import { QuotaTracker } from '../quota-tracker/quota-tracker';
 
           <app-quota-tracker class="drawer__quota" />
 
+          <button type="button" class="drawer__feedback" (click)="abrirFeedback()">
+            <app-icon name="mail" [size]="18" /> Enviar feedback
+          </button>
+
           <button type="button" class="drawer__sair" (click)="confirmarSair.set(true)">
             <app-icon name="logout" [size]="18" /> Sair da conta
           </button>
         </nav>
       </div>
     }
+
+    <app-feedback-modal
+      [open]="feedbackAberto()"
+      [enviando]="enviandoFeedback()"
+      [enviado]="feedbackEnviado()"
+      [erro]="erroFeedback()"
+      (enviar)="enviarFeedback($event)"
+      (close)="fecharFeedback()"
+    />
 
     <app-modal [open]="confirmarSair()" title="Sair da conta" (close)="confirmarSair.set(false)">
       <p class="muted">Tem certeza que deseja sair? Você precisará entrar de novo com seu e-mail e senha.</p>
@@ -121,6 +137,22 @@ import { QuotaTracker } from '../quota-tracker/quota-tracker';
     .drawer__quota {
       margin-top: auto;
     }
+    .drawer__feedback {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      width: calc(100% - 1rem);
+      margin: 0.75rem 0.5rem 0.25rem;
+      padding: 0.75rem;
+      border-radius: var(--radius);
+      border: 1px solid color-mix(in srgb, var(--primary) 40%, var(--border));
+      background: color-mix(in srgb, var(--primary) 8%, transparent);
+      color: var(--primary);
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .drawer__feedback:hover { background: color-mix(in srgb, var(--primary) 15%, transparent); }
     .drawer__sair {
       display: flex;
       align-items: center;
@@ -170,14 +202,55 @@ export class MobileMenu {
   private readonly profileService = inject(ProfileService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly feedback = inject(FeedbackService);
   readonly open = input(false);
   readonly close = output<void>();
 
   protected readonly confirmarSair = signal(false);
 
+  protected readonly feedbackAberto = signal(false);
+  protected readonly enviandoFeedback = signal(false);
+  protected readonly feedbackEnviado = signal(false);
+  protected readonly erroFeedback = signal<string | null>(null);
+
   protected readonly links = computed(() =>
     linksPainel(this.profileService.profile()?.planoAtual),
   );
+
+  /** Fecha o drawer e abre o form — o modal cobre a tela toda no mobile. */
+  protected abrirFeedback(): void {
+    this.feedbackEnviado.set(false);
+    this.erroFeedback.set(null);
+    this.feedbackAberto.set(true);
+    this.close.emit();
+  }
+
+  protected fecharFeedback(): void {
+    this.feedbackAberto.set(false);
+  }
+
+  protected enviarFeedback(dados: { categoria: CategoriaFeedback; mensagem: string }): void {
+    this.enviandoFeedback.set(true);
+    this.erroFeedback.set(null);
+    // Rota e User-Agent lidos no clique: é o contexto do problema, não o de
+    // quando a aba foi aberta.
+    this.feedback
+      .enviar({
+        ...dados,
+        rota: this.router.url.slice(0, 200),
+        userAgent: navigator.userAgent.slice(0, 300),
+      })
+      .subscribe({
+        next: () => {
+          this.enviandoFeedback.set(false);
+          this.feedbackEnviado.set(true);
+        },
+        error: () => {
+          this.enviandoFeedback.set(false);
+          this.erroFeedback.set('Não conseguimos enviar agora. Tente de novo em instantes.');
+        },
+      });
+  }
 
   /** Encerra a sessão do professor e volta para o login. */
   protected sair(): void {
