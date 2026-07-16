@@ -4,7 +4,7 @@ import { AuthService } from '../../core/auth.service';
 import { Card } from '../../ui/card/card';
 import { Logo } from '../../ui/logo/logo';
 
-/** Tela de login (email/senha). MVP invite-only: sem cadastro. */
+/** Tela de login (email/senha), com saídas para cadastro, recuperação e portal do aluno. */
 @Component({
   selector: 'app-login-page',
   standalone: true,
@@ -47,6 +47,7 @@ import { Logo } from '../../ui/logo/logo';
         </form>
       </app-card>
 
+      <a class="esqueci" routerLink="/recuperar-senha">Esqueci minha senha</a>
       <a class="criar" routerLink="/cadastro">Criar conta grátis</a>
       <a class="aluno" routerLink="/entrar">Entrar como aluno</a>
     </div>
@@ -86,6 +87,7 @@ import { Logo } from '../../ui/logo/logo';
       color: var(--danger);
       margin: 0 0 0.75rem;
     }
+    .esqueci,
     .criar,
     .aluno {
       display: block;
@@ -94,8 +96,9 @@ import { Logo } from '../../ui/logo/logo';
       font-weight: 600;
       color: var(--primary);
     }
-    .criar {
+    .esqueci {
       margin-top: 1.25rem;
+      color: var(--text-muted);
     }
   `,
 })
