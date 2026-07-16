@@ -30,6 +30,23 @@ export const CHANGELOG: VersaoChangelog[] = [
     ],
   },
   {
+    versao: 'v0.19.0',
+    data: '2026-07-16',
+    titulo: 'Fale com a gente',
+    itens: [
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Achou um bug, teve uma ideia ou ficou com uma dúvida? Agora tem um botão "Enviar feedback" no menu, em qualquer tela. Você escolhe o assunto — bug, sugestão, dúvida ou elogio —, escreve, e pronto: chega direto em quem desenvolve o Tichr.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Você não precisa explicar onde estava nem qual aparelho usa: o Tichr anexa isso sozinho ao seu relato. Assim dá para reproduzir o problema no mesmo lugar em que ele aconteceu, em vez de ficar num vai e vem de perguntas.',
+      },
+    ],
+  },
+  {
     versao: 'v0.18.0',
     data: '2026-07-16',
     titulo: 'Sua conta, mais segura',

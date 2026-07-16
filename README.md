@@ -258,11 +258,13 @@ lateral, o **card de upsell** ao atingir o limite do plano, o selo **Beta** no h
 ### Painel Administrativo (backoffice — só admins)
 
 - Atalho **"Painel Admin"** nas Configurações, exibido só quando o perfil é admin (o
-  `adminGuard` confirma pelo `GET /admin/ping`). Rotas isoladas `/admin`, `/admin/usuarios`
-  e `/admin/cupons`.
+  `adminGuard` confirma pelo `GET /admin/ping`). Rotas isoladas `/admin`, `/admin/usuarios`,
+  `/admin/cupons` e `/admin/feedbacks`.
 - **Dashboard** com métricas (total, ativos, distribuição por plano); **CRM** com busca de
   professores e uso (turmas/alunos/Qlicks) e um modal de ações (redefinir senha, limpar dados,
-  desativar/excluir, override de plano, conceder/revogar admin); **Cupons** (CRUD).
+  desativar/excluir, override de plano, conceder/revogar admin); **Cupons** (CRUD);
+  **Feedbacks** (caixa de entrada dos relatos dos professores — ver [Feedback e
+  suporte](#feedback-e-suporte)).
 - **Resgate de cupom** em "Meu Plano": o professor digita o código e ganha desconto/meses
   grátis (`POST /checkout/cupom`).
 
@@ -282,6 +284,21 @@ lateral, o **card de upsell** ao atingir o limite do plano, o selo **Beta** no h
   cobertura) que ficariam erradas no primeiro commit seguinte.
 - Limitação conhecida: o `<title>` da aba é o global do app. *Link preview* decente exigiria
   SSR ou pré-render, que é outra spec.
+
+### Feedback e suporte
+
+- **Botão "Enviar feedback"** no menu, disponível de qualquer tela do painel (acima de "Sair
+  da conta"). Abre um modal com **categoria** (Relato de Bug, Sugestão de Melhoria, Dúvida
+  Técnica, Elogio) e a mensagem; o botão só habilita com os dois preenchidos.
+- **Contexto invisível:** o professor não precisa dizer onde estava nem qual aparelho usa — a
+  **rota** e o **navegador** vão junto, lidos no clique de enviar. A identidade **não** é
+  anexada pelo cliente: o backend a resolve pelo token (dado do cliente é spoofável).
+- Não é um FAB: `nav-links.ts` é a fonte única do menu e todo item de lá é uma **rota** —
+  feedback é modal. O botão mora no `mobile-menu`, que já é o dono do estado do drawer.
+- **Triagem** em `/admin/feedbacks` (só admins): lista com **badges** de categoria e status,
+  detalhe com o relato completo e os metadados, três botões de status e uma **nota interna**
+  (invisível para o professor). A tela tem **botão "Atualizar"** em vez de tempo real —
+  a coleção é privada e não é lida pelo cliente (ver o README do backend).
 
 ### Feedback de carregamento e performance
 

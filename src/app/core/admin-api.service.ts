@@ -6,7 +6,9 @@ import {
   AdminMetrics,
   CriarCupomPayload,
   Cupom,
+  Feedback,
   PlanoAtual,
+  TriarFeedbackPayload,
   UsuarioAdmin,
 } from './models';
 
@@ -89,5 +91,20 @@ export class AdminApiService {
 
   removerCupom(id: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/admin/cupons/${id}`);
+  }
+
+  // --- Feedbacks ---
+  //
+  // REST, e não onSnapshot como as partidas dos jogos: `feedbacks` carrega
+  // e-mail, nome e texto de todo professor, e as Firestore Rules não conseguem
+  // proteger a coleção — o front não tem sessão do Firebase Auth, então
+  // `request.auth` é sempre null lá e só restaria `if true` (público).
+
+  feedbacks(): Observable<Feedback[]> {
+    return this.http.get<Feedback[]>(`${this.base}/admin/feedbacks`);
+  }
+
+  triarFeedback(id: string, payload: TriarFeedbackPayload): Observable<Feedback> {
+    return this.http.patch<Feedback>(`${this.base}/admin/feedbacks/${id}`, payload);
   }
 }

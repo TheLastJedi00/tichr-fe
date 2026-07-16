@@ -51,8 +51,15 @@ function isTratadoInline(err: HttpErrorResponse): boolean {
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const errorService = inject(ErrorService);
   // Telas de login/cadastro mostram o erro inline; o ping do admin é uma sonda
-  // silenciosa do guard (403 = usuário comum, não é erro a exibir).
+  // silenciosa do guard (403 = usuário comum, não é erro a exibir); e o envio de
+  // feedback explica a falha dentro do próprio modal — sem isto, a mensagem
+  // apareceria no modal E o modal global de erro subiria por cima dele.
+  // O `!includes('/admin/')` importa: `/admin/feedbacks` também termina em
+  // `/feedbacks`, e uma falha ao carregar a inbox é erro de verdade, a reportar.
+  const isEnvioFeedback =
+    req.url.endsWith('/feedbacks') && !req.url.includes('/admin/');
   const isFormAuth =
+    isEnvioFeedback ||
     req.url.endsWith('/auth/login') ||
     req.url.endsWith('/auth/signup') ||
     req.url.endsWith('/auth/recuperar-senha') ||
