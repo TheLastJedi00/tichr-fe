@@ -47,6 +47,11 @@ export const routes: Routes = [
       import('./pages/novidades/novidades-page').then((m) => m.NovidadesPage),
   },
   {
+    path: 'tecnologia',
+    loadComponent: () =>
+      import('./pages/tecnologia/tecnologia-page').then((m) => m.TecnologiaPage),
+  },
+  {
     path: 'termos',
     loadComponent: () =>
       import('./pages/termos/termos-page').then((m) => m.TermosPage),

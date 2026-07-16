@@ -18,6 +18,18 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.20.0',
+    data: '2026-07-16',
+    titulo: 'Por dentro do Tichr',
+    itens: [
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Tem uma página nova no rodapé, a "Vitrine técnica", que mostra como o Tichr é construído por dentro: como as suas turmas e os seus jogos ficam guardados, por que os jogos ao vivo respondem na hora e o que impede um aluno de burlar a pontuação. É leitura para quem tem curiosidade — nada muda no seu dia a dia.',
+      },
+    ],
+  },
+  {
     versao: 'v0.19.0',
     data: '2026-07-16',
     titulo: 'Fale com a gente',
