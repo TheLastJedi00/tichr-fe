@@ -266,6 +266,23 @@ lateral, o **card de upsell** ao atingir o limite do plano, o selo **Beta** no h
 - **Resgate de cupom** em "Meu Plano": o professor digita o código e ganha desconto/meses
   grátis (`POST /checkout/cupom`).
 
+### Vitrine técnica (`/tecnologia`, pública)
+
+- Página de **portfólio de engenharia** no rodapé público, ao lado de "O que há de novo?".
+  É a única página cujo público não é professor: existe para um recrutador ou Tech Lead
+  entender a arquitetura sem clonar o repositório.
+- **Sai do design system de propósito** (precedente: a landing) — escura sempre, sem reagir
+  ao `data-theme`, com tokens `--vt-*` escopados no `:host` da página, que **herdam** para os
+  blocos filhos. Nada migra para o `styles.scss`.
+- **Sem biblioteca de diagrama:** SVG inline escrito à mão. Embarcar centenas de kB para
+  desenhar cinco caixas numa página cujo argumento é engenharia seria a contradição perfeita.
+- As três cores são uma **legenda**, não decoração: verde = leitura direta, azul = escrita
+  pelo juiz, laranja = selado. Valem igual em todos os diagramas.
+- Conteúdo em **nomes de módulo, fluxos e decisões** — sem contagens (endpoints, linhas,
+  cobertura) que ficariam erradas no primeiro commit seguinte.
+- Limitação conhecida: o `<title>` da aba é o global do app. *Link preview* decente exigiria
+  SSR ou pré-render, que é outra spec.
+
 ### Feedback de carregamento e performance
 
 - **Skeleton screens:** listas (Minhas Turmas, Meus Qlicks) renderizam **silhuetas com shimmer**
@@ -308,6 +325,9 @@ lateral, o **card de upsell** ao atingir o limite do plano, o selo **Beta** no h
 ---
 
 ## Arquitetura & stack
+
+> A versão navegável desta seção é a **[Vitrine técnica](#vitrine-técnica-tecnologia-pública)**
+> (`/tecnologia`), com os diagramas do fluxo de dados.
 
 - **Angular 20** *standalone* + **Signals** (estado reativo, sem NgRx). Componentes
   *OnPush*. **Angular CDK** (`@angular/cdk/drag-drop`) sustenta o quadro de equipes.
