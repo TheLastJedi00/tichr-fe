@@ -87,6 +87,11 @@ const LIMITE_RODADA_S = 60;
             <span class="fort__pontos"><app-icon name="trophy" [size]="14" /> {{ t.pontos ?? 0 }} pts</span>
             <span class="hpbar"><span [style.width.%]="hpPct(t.hp)"></span></span>
             <span class="hp">{{ t.hp }} HP</span>
+            <span class="fort__membros">
+              @for (mb of meusMembros(); track mb.alunoId) {
+                <span class="membro" [class.membro--eu]="mb.eu">{{ mb.nome }}</span>
+              }
+            </span>
             <span class="fort__dica">O dano vira pontos: desempata e vale ranking.</span>
           </header>
 
@@ -245,6 +250,9 @@ const LIMITE_RODADA_S = 60;
     .fort__nome { display: flex; align-items: center; gap: 0.4rem; font-weight: 800; }
     .fort__pontos { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 1.05rem; font-weight: 800; color: var(--cor); font-variant-numeric: tabular-nums; }
     .fort__dica { font-size: 0.72rem; color: var(--text-muted); }
+    .fort__membros { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+    .membro { padding: 0.15rem 0.5rem; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--cor) 35%, var(--border)); background: var(--surface); font-size: 0.72rem; font-weight: 700; color: var(--text-muted); }
+    .membro--eu { border-color: var(--cor); background: color-mix(in srgb, var(--cor) 18%, var(--surface)); color: var(--text); }
     .hpbar { height: 12px; border-radius: 999px; background: var(--surface-alt); overflow: hidden; }
     .hpbar span { display: block; height: 100%; background: var(--cor); transition: width 0.4s ease; }
     .hp { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); }
@@ -330,6 +338,13 @@ export class StudentWorPage {
   private ultimoHp = Infinity;
   private jaEraHorda = false;
   private ultimoSeq = 0;
+
+  /** Membros da minha equipe, comigo em primeiro e marcado. */
+  protected readonly meusMembros = computed(() =>
+    (this.team()?.membros ?? [])
+      .map((m) => ({ ...m, eu: m.alunoId === this.alunoId }))
+      .sort((a, b) => Number(b.eu) - Number(a.eu)),
+  );
 
   protected readonly ehMeuTurno = computed(
     () => !!this.myTeamId && this.root()?.turnoEquipeId === this.myTeamId,
