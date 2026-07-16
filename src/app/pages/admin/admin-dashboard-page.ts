@@ -83,6 +83,10 @@ const PLANOS: PlanoAtual[] = ['ESTAGIARIO', 'GRADUADO', 'MESTRE', 'PHD'];
           <app-icon name="sparkles" [size]="22" />
           <span>Cupons</span>
         </a>
+        <a class="atalho" routerLink="/admin/feedbacks">
+          <app-icon name="mail" [size]="22" />
+          <span>Feedbacks</span>
+        </a>
       </nav>
     }
   `,
@@ -131,7 +135,9 @@ const PLANOS: PlanoAtual[] = ['ESTAGIARIO', 'GRADUADO', 'MESTRE', 'PHD'];
     .meu__msg { margin: 0.6rem 0 0; color: var(--success); font-size: 0.85rem; font-weight: 600; }
     .atalhos {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      /* auto-fit em vez de 1fr 1fr: com 3 atalhos o terceiro ficaria sozinho
+         em meia-linha, e o proximo exigiria decidir o grid de novo. */
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
       gap: 0.75rem;
       margin-top: 1rem;
     }
