@@ -300,6 +300,11 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'configuracoes/seguranca',
+        loadComponent: () =>
+          import('./pages/seguranca/seguranca-page').then((m) => m.SegurancaPage),
+      },
+      {
         path: 'configuracoes/plano',
         loadComponent: () =>
           import('./pages/meu-plano/meu-plano-page').then(

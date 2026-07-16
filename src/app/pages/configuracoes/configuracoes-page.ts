@@ -43,6 +43,14 @@ import { Spinner } from '../../ui/spinner/spinner';
           </span>
           <span class="menu__go" aria-hidden="true">›</span>
         </a>
+        <a class="menu__item" routerLink="/configuracoes/seguranca">
+          <span class="menu__ic"><app-icon name="lock" [size]="22" /></span>
+          <span class="menu__txt">
+            <strong>Segurança</strong>
+            <small>E-mail de acesso e senha</small>
+          </span>
+          <span class="menu__go" aria-hidden="true">›</span>
+        </a>
         <a class="menu__item" routerLink="/configuracoes/plano">
           <span class="menu__ic"><app-icon name="rocket" [size]="22" /></span>
           <span class="menu__txt">
