@@ -11,7 +11,6 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { POLITICA_PRIVACIDADE, TERMOS_DE_USO } from '../../core/legal.data';
 import { PlanoAtual } from '../../core/models';
-import { PLANO_PENDENTE_KEY } from '../../core/plano.util';
 import { Plano, PLANOS } from '../../core/planos.data';
 import { ProfileService } from '../../core/profile.service';
 import { Card } from '../../ui/card/card';
@@ -228,6 +227,12 @@ export class CadastroPage {
       return;
     }
     const raw = this.form.getRawValue();
+    const cupom = raw.cupom.trim();
+    // Plano pago SEM cupom vira planoPretendido no servidor (leva ao checkout
+    // após verificar o e-mail). Com cupom de cortesia, o plano é concedido sem
+    // pagamento — não marca pretendido.
+    const planoPretendido =
+      !this.ehGratuito() && !cupom ? this.planoSelecionado() : undefined;
     this.criando.set(true);
     this.erro.set(null);
     this.auth
@@ -237,6 +242,7 @@ export class CadastroPage {
         password: raw.senha,
         aceiteTermos: raw.aceiteTermos,
         aceitePrivacidade: raw.aceitePrivacidade,
+        planoPretendido,
       })
       .subscribe({
         next: () => this.posSignup(),
@@ -252,31 +258,20 @@ export class CadastroPage {
   }
 
   /**
-   * Conta criada e autenticada. A ordem é: **confirmar o e-mail primeiro** (a
-   * conta só se torna utilizável depois disso) e **então pagar**. Por isso o
-   * plano pago não vai direto ao checkout — ele viaja como `?plano=` para a tela
-   * de verificação, que ao confirmar leva ao `/checkout`. Cupom de cortesia
-   * concede sem pagamento (aplica na hora); Estagiário só verifica.
+   * Conta criada e autenticada — vai confirmar o e-mail. O "plano pretendido" já
+   * foi persistido no servidor no cadastro (quando pago), então o `authGuard`
+   * leva ao `/checkout` assim que o e-mail é confirmado. Cupom de cortesia
+   * concede o plano sem pagamento (aplica na hora); depois, só verifica o e-mail.
    */
   private posSignup(): void {
     const cupom = this.form.controls.cupom.value.trim();
-    const plano = this.planoSelecionado();
+    const ir = () => this.router.navigateByUrl('/verificar-email');
 
     if (!this.ehGratuito() && cupom) {
-      const ir = () => this.router.navigateByUrl('/verificar-email');
       this.profile.aplicarCupom(cupom).subscribe({ next: ir, error: ir });
       return;
     }
 
-    if (plano !== 'ESTAGIARIO') {
-      // Plano pago: verifica o e-mail e SÓ DEPOIS o checkout. O plano pretendido
-      // vai no localStorage (não no query param): o redirect do interceptor no
-      // 403 EMAIL_NAO_VERIFICADO apagaria o param — o localStorage sobrevive.
-      localStorage.setItem(PLANO_PENDENTE_KEY, plano);
-      this.router.navigateByUrl('/verificar-email');
-      return;
-    }
-
-    this.router.navigateByUrl('/verificar-email');
+    ir();
   }
 }

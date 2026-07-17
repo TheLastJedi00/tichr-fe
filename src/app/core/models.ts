@@ -118,6 +118,8 @@ export interface Profile {
   statusAssinatura?: StatusAssinatura;
   /** Vencimento da assinatura paga (ISO), se houver. */
   assinaturaAte?: string;
+  /** Plano pago escolhido no cadastro e ainda não pago (leva ao checkout). */
+  planoPretendido?: PlanoAtual;
   slotsAdicionaisComprados?: number;
   /** Trava de identificador: false = @username bloqueado no cooldown. */
   podeAlterarUsername?: boolean;
