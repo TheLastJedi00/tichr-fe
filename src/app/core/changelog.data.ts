@@ -18,6 +18,23 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.21.0',
+    data: '2026-07-17',
+    titulo: 'Pagamentos de verdade',
+    itens: [
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Agora dá para assinar e trocar de plano pagando de verdade, com PIX ou cartão. No PIX, o QR Code e o copia-e-cola aparecem na própria tela e o plano é liberado assim que o pagamento cai; no cartão, você é levado a um checkout seguro. A compra de vaga avulsa de turma também passou a funcionar assim.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Se a assinatura vencer, seus dados ficam intactos — turmas, jogos e histórico continuam salvos. O acesso aos recursos do plano só fica pausado até você renovar, com um aviso e um botão de renovação em "Meu Plano".',
+      },
+    ],
+  },
+  {
     versao: 'v0.20.0',
     data: '2026-07-16',
     titulo: 'Por dentro do Tichr',

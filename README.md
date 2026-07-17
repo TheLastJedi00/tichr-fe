@@ -84,6 +84,13 @@ O teto de **99 turmas** vale para todos os planos pagos: o **PIN da turma é de 
 `limiteDoPlano` soma slots avulsos limitando a esse teto. Criar turma respeita a cota (com
 *upsell* ao estourar).
 
+**Pagamento real (Abacate Pay).** Assinar ou trocar de plano (e comprar vaga avulsa) passa pela
+tela `/checkout`: escolhe-se **PIX** (QR + copia-e-cola, confirmação por *polling*) ou **cartão**
+(redireciona para o checkout hospedado). O plano só é liberado **após o pagamento** — nada de
+concessão instantânea. Plano **vencido** preserva os dados (turmas, jogos, histórico) e apenas
+rebaixa o acesso na interface, com banner e CTA de renovar em **Meu Plano**. Admin é isento.
+Cupom de cortesia (`Meu Plano`) segue concedendo sem pagamento.
+
 ### Equipes, cargos e gating (aba Equipes)
 
 A aba **Equipes** é um quadro visual, recurso do **plano Mestre** (planos inferiores veem
