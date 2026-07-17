@@ -76,3 +76,10 @@ export function turmaContaComoAtiva(turma: Turma, hoje = hojeISO()): boolean {
   }
   return true;
 }
+
+/**
+ * Chave do localStorage que guarda o plano pretendido entre o cadastro e o
+ * checkout. Necessária porque o redirect do interceptor no 403
+ * EMAIL_NAO_VERIFICADO descarta query params — o localStorage sobrevive.
+ */
+export const PLANO_PENDENTE_KEY = 'tichr-plano-pendente';
