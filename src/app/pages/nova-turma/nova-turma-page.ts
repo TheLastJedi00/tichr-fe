@@ -55,7 +55,6 @@ export class NovaTurmaPage {
 
   protected readonly salvando = signal(false);
   protected readonly bloqueado = signal(false);
-  private readonly ultimoPayload = signal<CriarTurmaPayload | null>(null);
 
   /** Proximo nivel a oferecer no upsell, conforme o plano atual. */
   private readonly planoAlvo = computed<PlanoAtual>(() =>
@@ -74,7 +73,6 @@ export class NovaTurmaPage {
   );
 
   protected criar(payload: CriarTurmaPayload): void {
-    this.ultimoPayload.set(payload);
     this.salvando.set(true);
     this.api.criarTurma(payload).subscribe({
       next: () => this.router.navigateByUrl('/dashboard'),
@@ -87,31 +85,15 @@ export class NovaTurmaPage {
     });
   }
 
-  /** Compra uma vaga avulsa e retenta o cadastro. */
+  /** Leva à tela de pagamento para comprar uma vaga avulsa. */
   protected comprarSlot(): void {
-    this.salvando.set(true);
-    this.profileService.comprarSlotAvulso().subscribe({
-      next: () => this.retentar(),
-      error: () => this.salvando.set(false),
-    });
+    this.router.navigate(['/checkout'], { queryParams: { tipo: 'slot' } });
   }
 
-  /** Faz upgrade para o proximo plano e retenta o cadastro. */
+  /** Leva à tela de pagamento para subir de plano. */
   protected fazerUpgrade(): void {
-    this.salvando.set(true);
-    this.profileService.upgradePlano(this.planoAlvo()).subscribe({
-      next: () => this.retentar(),
-      error: () => this.salvando.set(false),
+    this.router.navigate(['/checkout'], {
+      queryParams: { tipo: 'upgrade', plano: this.planoAlvo() },
     });
-  }
-
-  /** Apos ampliar a cota, reenvia o ultimo payload de criacao. */
-  private retentar(): void {
-    const payload = this.ultimoPayload();
-    this.bloqueado.set(false);
-    this.salvando.set(false);
-    if (payload) {
-      this.criar(payload);
-    }
   }
 }
