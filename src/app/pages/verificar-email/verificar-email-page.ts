@@ -7,7 +7,6 @@ import {
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
-import { PLANO_PENDENTE_KEY } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { Card } from '../../ui/card/card';
 import { Icon } from '../../ui/icon/icon';
@@ -194,20 +193,13 @@ export class VerificarEmailPage implements OnDestroy {
   }
 
   /**
-   * Depois de confirmar o e-mail: se o cadastro escolheu um plano pago (guardado
-   * no localStorage), a etapa de pagamento começa agora (checkout). Senão, painel.
-   * Lê e limpa a chave — não pode sobrar para um próximo login/verificação.
+   * Depois de confirmar o e-mail, vai para o painel. Se houver um plano pago
+   * pendente do cadastro (localStorage), o `authGuard` intercepta a entrada
+   * autenticada e leva ao `/checkout` — mesma regra que cobre o retorno pelo
+   * link do e-mail (que cai em /login → dashboard).
    */
   private seguir(): void {
-    const plano = localStorage.getItem(PLANO_PENDENTE_KEY);
-    localStorage.removeItem(PLANO_PENDENTE_KEY);
-    if (plano && plano !== 'ESTAGIARIO') {
-      void this.router.navigate(['/checkout'], {
-        queryParams: { tipo: 'upgrade', plano },
-      });
-    } else {
-      void this.router.navigateByUrl('/dashboard');
-    }
+    void this.router.navigateByUrl('/dashboard');
   }
 
   protected reenviar(): void {
