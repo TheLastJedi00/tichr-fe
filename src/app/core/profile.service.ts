@@ -5,8 +5,11 @@ import { API_BASE_URL } from './api.config';
 import {
   CheckUsernameResponse,
   HomePayload,
+  IniciarCheckout,
+  MetodoPagamento,
   PlanoAtual,
   Profile,
+  StatusCobranca,
   UpdateProfilePayload,
 } from './models';
 
@@ -78,18 +81,54 @@ export class ProfileService {
     );
   }
 
-  /** Compra uma vaga avulsa (+1 slot); atualiza o perfil reativo. */
-  comprarSlotAvulso(): Observable<Profile> {
+  /**
+   * Inicia a compra de uma vaga avulsa. Não concede na hora: devolve a cobrança
+   * pendente (PIX/cartão) para a tela de pagamento — exceto admin, que recebe
+   * `{ concedido: true }` e tem o perfil recarregado.
+   */
+  comprarSlotAvulso(metodo: MetodoPagamento): Observable<IniciarCheckout> {
     return this.http
-      .post<Profile>(`${this.base}/checkout/slot-avulso`, {})
-      .pipe(tap((p) => this.profile.set(p)));
+      .post<IniciarCheckout>(`${this.base}/checkout/slot-avulso`, { metodo })
+      .pipe(tap((r) => this.aoConceder(r)));
   }
 
-  /** Faz upgrade do plano; atualiza o perfil reativo. */
-  upgradePlano(plano: PlanoAtual): Observable<Profile> {
+  /**
+   * Inicia a troca de plano. Devolve a cobrança pendente para a tela de
+   * pagamento; admin/destino gratuito voltam `{ concedido: true }` (aplicado
+   * na hora, perfil recarregado).
+   */
+  upgradePlano(
+    plano: PlanoAtual,
+    metodo: MetodoPagamento,
+    cupom?: string,
+  ): Observable<IniciarCheckout> {
     return this.http
-      .post<Profile>(`${this.base}/checkout/upgrade`, { plano })
-      .pipe(tap((p) => this.profile.set(p)));
+      .post<IniciarCheckout>(`${this.base}/checkout/upgrade`, {
+        plano,
+        metodo,
+        ...(cupom ? { cupom } : {}),
+      })
+      .pipe(tap((r) => this.aoConceder(r)));
+  }
+
+  /** Status de uma cobrança (polling da tela de pagamento até PAID/EXPIRED). */
+  statusCobranca(billingId: string): Observable<{ status: StatusCobranca }> {
+    return this.http.get<{ status: StatusCobranca }>(
+      `${this.base}/checkout/status/${billingId}`,
+    );
+  }
+
+  /** Simula o pagamento (só existe em ambiente de testes/devMode). */
+  simularPagamento(billingId: string): Observable<{ status: StatusCobranca }> {
+    return this.http.post<{ status: StatusCobranca }>(
+      `${this.base}/checkout/simular/${billingId}`,
+      {},
+    );
+  }
+
+  /** Recarrega o perfil quando o backend concede na hora (admin/gratuito). */
+  private aoConceder(r: IniciarCheckout): void {
+    if (r.concedido) this.load().subscribe();
   }
 
   /**

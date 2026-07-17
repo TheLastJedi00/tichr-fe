@@ -3,9 +3,8 @@ import {
   Component,
   computed,
   inject,
-  signal,
 } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { PlanoAtual } from '../../core/models';
 import { NOME_PLANO } from '../../core/plano.util';
 import { PLANOS } from '../../core/planos.data';
@@ -15,18 +14,16 @@ import {
   RECURSO_PLANO_MINIMO,
   Recurso,
 } from '../../core/recursos';
-import { Icon } from '../../ui/icon/icon';
 
 /**
- * Painel de assinatura (smart): vitrine dos planos com destaque no plano atual
- * e troca de plano (mock via checkout). Acessado pelo atalho das Configuracoes
- * ou por redirecionamento quando um recurso exige upgrade (?recurso=...).
+ * Painel de assinatura (smart): vitrine dos planos com destaque no plano atual.
+ * Trocar de plano leva à tela de pagamento (/checkout). Acessado pelo atalho das
+ * Configuracoes ou por redirecionamento quando um recurso exige upgrade (?recurso=...).
  */
 @Component({
   selector: 'app-planos-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon],
   template: `
     <h1 class="title">Planos</h1>
 
@@ -35,10 +32,6 @@ import { Icon } from '../../ui/icon/icon';
         <strong>{{ aviso.nome }}</strong> faz parte do plano
         <strong>{{ aviso.plano }}</strong>. Faça upgrade para desbloquear.
       </div>
-    }
-
-    @if (sucesso()) {
-      <p class="ok"><app-icon name="check" [size]="15" /> Plano atualizado!</p>
     }
 
     <div class="grid">
@@ -62,13 +55,11 @@ import { Icon } from '../../ui/icon/icon';
           <button
             class="btn-primary plano__cta"
             type="button"
-            [disabled]="p.plano === planoAtual() || processando() !== null"
+            [disabled]="p.plano === planoAtual()"
             (click)="mudar(p.plano)"
           >
             @if (p.plano === planoAtual()) {
               Seu plano
-            } @else if (processando() === p.plano) {
-              Mudando…
             } @else {
               Mudar para {{ nomePlano(p.plano) }}
             }
@@ -146,10 +137,9 @@ import { Icon } from '../../ui/icon/icon';
 export class PlanosPage {
   private readonly profileService = inject(ProfileService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   protected readonly planos = PLANOS;
-  protected readonly processando = signal<PlanoAtual | null>(null);
-  protected readonly sucesso = signal(false);
 
   protected readonly planoAtual = computed<PlanoAtual>(
     () => this.profileService.profile()?.planoAtual ?? 'ESTAGIARIO',
@@ -177,18 +167,13 @@ export class PlanosPage {
     return NOME_PLANO[p];
   }
 
+  /** Leva à tela de pagamento com o plano escolhido. */
   protected mudar(plano: PlanoAtual): void {
     if (plano === this.planoAtual()) {
       return;
     }
-    this.processando.set(plano);
-    this.sucesso.set(false);
-    this.profileService.upgradePlano(plano).subscribe({
-      next: () => {
-        this.processando.set(null);
-        this.sucesso.set(true);
-      },
-      error: () => this.processando.set(null),
+    this.router.navigate(['/checkout'], {
+      queryParams: { tipo: 'upgrade', plano },
     });
   }
 }

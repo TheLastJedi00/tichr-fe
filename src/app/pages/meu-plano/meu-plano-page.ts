@@ -5,7 +5,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { PLANOS } from '../../core/planos.data';
 import { NOME_PLANO } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
@@ -26,6 +26,14 @@ import { Spinner } from '../../ui/spinner/spinner';
     @if (carregando()) {
       <div class="loading"><app-spinner [size]="32" /></div>
     } @else {
+      @if (inadimplente()) {
+        <div class="vencido" role="alert">
+          <strong>Seu plano venceu.</strong>
+          <p>Seus dados estão salvos — turmas, jogos e histórico continuam aqui. Renove para reativar o acesso.</p>
+          <button class="btn-primary" type="button" (click)="renovar()">Renovar {{ planoLabel() }}</button>
+        </div>
+      }
+
       <app-card>
         <div class="atual">
           <div>
@@ -88,10 +96,9 @@ import { Spinner } from '../../ui/spinner/spinner';
         </div>
       </app-card>
 
-      <p class="cobranca">
-        Gestão de cobrança e notas fiscais chegam em breve. Por enquanto, as trocas de plano
-        são aplicadas na hora, sem cartão.
-      </p>
+      @if (assinaturaAte(); as ate) {
+        <p class="cobranca">Sua assinatura vale até {{ ate }}. A cobrança é mensal, via PIX ou cartão.</p>
+      }
     }
   `,
   styles: `
@@ -111,6 +118,14 @@ import { Spinner } from '../../ui/spinner/spinner';
     .upsell p { margin: 0; color: var(--text-muted); }
     .upsell .btn-primary, .upsell .btn-outline { text-decoration: none; margin-top: 0.25rem; }
     .cobranca { margin: 1rem 0 0; color: var(--text-muted); font-size: 0.82rem; }
+    .vencido {
+      margin-bottom: 1rem; padding: 1rem;
+      border: 1px solid var(--danger); border-radius: var(--radius);
+      background: color-mix(in srgb, var(--danger) 8%, transparent);
+      display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem;
+    }
+    .vencido p { margin: 0; color: var(--text-muted); }
+    .vencido .btn-primary { margin-top: 0.25rem; }
     app-card + app-card { display: block; margin-top: 1rem; }
     .cupom { display: flex; flex-direction: column; gap: 0.5rem; }
     .cupom__hint { margin: 0; color: var(--text-muted); font-size: 0.85rem; }
@@ -122,23 +137,43 @@ import { Spinner } from '../../ui/spinner/spinner';
 })
 export class MeuPlanoPage {
   private readonly profileService = inject(ProfileService);
+  private readonly router = inject(Router);
 
   protected readonly profile = this.profileService.profile;
   protected readonly carregando = signal(true);
 
-  protected readonly planoLabel = computed(
-    () => NOME_PLANO[this.profile()?.planoAtual ?? 'ESTAGIARIO'],
+  /** Plano contratado (o que o professor paga) — vale mesmo se estiver vencido. */
+  private readonly planoContratado = computed(
+    () => this.profile()?.planoContratado ?? this.profile()?.planoAtual ?? 'ESTAGIARIO',
   );
-  protected readonly plano = computed(() => {
-    const atual = this.profile()?.planoAtual ?? 'ESTAGIARIO';
-    return PLANOS.find((p) => p.plano === atual);
-  });
+
+  protected readonly planoLabel = computed(() => NOME_PLANO[this.planoContratado()]);
+  protected readonly plano = computed(() =>
+    PLANOS.find((p) => p.plano === this.planoContratado()),
+  );
   protected readonly slots = computed(
     () => this.profile()?.slotsAdicionaisComprados ?? 0,
   );
-  protected readonly isPhd = computed(
-    () => this.profile()?.planoAtual === 'PHD',
+  protected readonly isPhd = computed(() => this.planoContratado() === 'PHD');
+
+  protected readonly inadimplente = computed(
+    () => this.profile()?.statusAssinatura === 'INADIMPLENTE',
   );
+
+  /** Vencimento formatado (dd/mm/aaaa), quando há assinatura paga. */
+  protected readonly assinaturaAte = computed(() => {
+    const iso = this.profile()?.assinaturaAte;
+    if (!iso) return null;
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString('pt-BR');
+  });
+
+  /** Renova o plano contratado (leva à tela de pagamento). */
+  protected renovar(): void {
+    this.router.navigate(['/checkout'], {
+      queryParams: { tipo: 'upgrade', plano: this.planoContratado() },
+    });
+  }
 
   protected readonly cupom = signal('');
   protected readonly aplicando = signal(false);

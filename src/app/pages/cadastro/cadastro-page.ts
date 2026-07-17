@@ -251,24 +251,28 @@ export class CadastroPage {
   }
 
   /**
-   * Conta criada e autenticada. Aplica o cupom (se houver) ou faz o upgrade do
-   * plano escolhido (planos pagos), e segue para a confirmação de e-mail — a
-   * conta nasce sem e-mail confirmado e o painel fica travado até o clique no
-   * link. Nem o cupom nem o upgrade bloqueiam a navegação: o professor pode
-   * ajustar depois em "Meu Plano".
+   * Conta criada e autenticada. Cupom de cortesia concede sem pagamento — aplica
+   * na hora e segue para a confirmação de e-mail. Plano pago sem cupom vai para a
+   * tela de pagamento (o guard de verificação, se ativo, leva antes ao
+   * /verificar-email; após confirmar, o professor assina). Estagiário só verifica.
    */
   private posSignup(): void {
-    const ir = () => this.router.navigateByUrl('/verificar-email');
+    const irVerificar = () => this.router.navigateByUrl('/verificar-email');
     const cupom = this.form.controls.cupom.value.trim();
     const plano = this.planoSelecionado();
     if (!this.ehGratuito() && cupom) {
-      this.profile.aplicarCupom(cupom).subscribe({ next: ir, error: ir });
+      this.profile.aplicarCupom(cupom).subscribe({
+        next: irVerificar,
+        error: irVerificar,
+      });
       return;
     }
     if (plano !== 'ESTAGIARIO') {
-      this.profile.upgradePlano(plano).subscribe({ next: ir, error: ir });
+      this.router.navigate(['/checkout'], {
+        queryParams: { tipo: 'upgrade', plano },
+      });
       return;
     }
-    ir();
+    irVerificar();
   }
 }
