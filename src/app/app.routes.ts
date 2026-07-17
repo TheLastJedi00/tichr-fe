@@ -172,6 +172,11 @@ export const routes: Routes = [
           import('./pages/planos/planos-page').then((m) => m.PlanosPage),
       },
       {
+        path: 'checkout',
+        loadComponent: () =>
+          import('./pages/checkout/checkout-page').then((m) => m.CheckoutPage),
+      },
+      {
         path: 'turmas/:id',
         loadComponent: () =>
           import('./pages/turma-detalhe/turma-detalhe-page').then(
