@@ -13,7 +13,7 @@ import {
   MetodoPagamento,
   PlanoAtual,
 } from '../../core/models';
-import { NOME_PLANO, PLANO_PENDENTE_KEY } from '../../core/plano.util';
+import { NOME_PLANO } from '../../core/plano.util';
 import { PLANOS } from '../../core/planos.data';
 import { ProfileService } from '../../core/profile.service';
 import { Card } from '../../ui/card/card';
@@ -210,10 +210,10 @@ export class CheckoutPage implements OnDestroy {
   });
 
   constructor() {
-    // Chegou ao checkout: consome o "plano pendente" do cadastro (o authGuard
-    // usa essa chave para trazer o professor até aqui). Limpar evita loop e que
-    // um abandono force o pagamento de novo na próxima navegação.
-    localStorage.removeItem(PLANO_PENDENTE_KEY);
+    // Chegou ao checkout: descarta o "plano pretendido" no servidor (o authGuard
+    // usa essa marca para trazer o professor até aqui). Descartar evita loop e
+    // que um abandono force o pagamento de novo na próxima navegação.
+    this.profileService.descartarPlanoPretendido().subscribe({ error: () => {} });
 
     const qp = this.route.snapshot.queryParamMap;
     const tipo = qp.get('tipo') === 'slot' ? 'slot' : 'upgrade';

@@ -111,6 +111,20 @@ export class ProfileService {
       .pipe(tap((r) => this.aoConceder(r)));
   }
 
+  /**
+   * Descarta o "plano pretendido" (checkout pendente do cadastro). A tela de
+   * pagamento chama ao abrir, para o professor não ser trazido de volta ao
+   * checkout a cada navegação se desistir. Limpa também o signal local.
+   */
+  descartarPlanoPretendido(): Observable<void> {
+    return this.http.delete<void>(`${this.base}/profile/plano-pretendido`).pipe(
+      tap(() => {
+        const p = this.profile();
+        if (p) this.profile.set({ ...p, planoPretendido: undefined });
+      }),
+    );
+  }
+
   /** Status de uma cobrança (polling da tela de pagamento até PAID/EXPIRED). */
   statusCobranca(billingId: string): Observable<{ status: StatusCobranca }> {
     return this.http.get<{ status: StatusCobranca }>(
