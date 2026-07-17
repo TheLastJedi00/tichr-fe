@@ -180,8 +180,8 @@ export class VerificarEmailPage implements OnDestroy {
       next: () => {
         // O perfil pode ter sido cacheado antes; recarrega para o painel abrir cheio.
         this.profile.load().subscribe({
-          next: () => this.router.navigateByUrl('/dashboard'),
-          error: () => this.router.navigateByUrl('/dashboard'),
+          next: () => this.seguir(),
+          error: () => this.seguir(),
         });
       },
       error: () => {
@@ -190,6 +190,16 @@ export class VerificarEmailPage implements OnDestroy {
         void this.router.navigateByUrl('/login');
       },
     });
+  }
+
+  /**
+   * Depois de confirmar o e-mail, vai para o painel. Se houver um plano pago
+   * pendente do cadastro (localStorage), o `authGuard` intercepta a entrada
+   * autenticada e leva ao `/checkout` — mesma regra que cobre o retorno pelo
+   * link do e-mail (que cai em /login → dashboard).
+   */
+  private seguir(): void {
+    void this.router.navigateByUrl('/dashboard');
   }
 
   protected reenviar(): void {

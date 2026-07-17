@@ -5,7 +5,10 @@ export interface Plano {
   /** Chave canonica do plano (liga o card ao estado do professor). */
   plano: PlanoAtual;
   nome: string;
+  /** Preço para exibição (ex.: "R$ 19,90"). */
   preco: string;
+  /** Preço cobrável em centavos (espelha o catálogo do backend; 0 = gratuito). */
+  precoCentavos: number;
   periodo?: string;
   limite: string;
   pitch: string;
@@ -20,6 +23,7 @@ export const PLANOS: readonly Plano[] = [
     plano: 'ESTAGIARIO',
     nome: 'Tichr Estagiário',
     preco: 'Grátis',
+    precoCentavos: 0,
     limite: 'Até 5 turmas simultâneas',
     pitch: 'O test-drive de entrada. Organize sua agenda agora mesmo.',
     cta: 'Começar grátis',
@@ -35,6 +39,7 @@ export const PLANOS: readonly Plano[] = [
     plano: 'GRADUADO',
     nome: 'Tichr Graduado',
     preco: 'R$ 19,90',
+    precoCentavos: 1990,
     periodo: '/mês',
     limite: 'Até 99 turmas simultâneas',
     pitch: 'O planejador. Automação total da grade e do plano de aula.',
@@ -51,6 +56,7 @@ export const PLANOS: readonly Plano[] = [
     plano: 'MESTRE',
     nome: 'Tichr Mestre',
     preco: 'R$ 39,90',
+    precoCentavos: 3990,
     periodo: '/mês',
     limite: 'Até 99 turmas + gestão de alunos',
     pitch: 'A orquestração pedagógica. Alunos, squads e papéis em sala.',
@@ -68,6 +74,7 @@ export const PLANOS: readonly Plano[] = [
     plano: 'PHD',
     nome: 'Tichr PhD',
     preco: 'R$ 59,90',
+    precoCentavos: 5990,
     periodo: '/mês',
     limite: 'Até 99 turmas + portal do aluno',
     pitch: 'O ecossistema multiplayer. Alunos jogam, acompanham a grade e ganham XP.',

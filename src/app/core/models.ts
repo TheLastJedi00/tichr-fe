@@ -5,6 +5,37 @@ export type StatusSessao = 'AGENDADA' | 'CANCELADA' | 'REALIZADA';
 export type EscopoExcecao = 'GLOBAL' | 'ESCOLA' | 'PESSOAL';
 export type PlanoAtual = 'ESTAGIARIO' | 'GRADUADO' | 'MESTRE' | 'PHD';
 
+/** Situação da assinatura paga (espelha o backend). */
+export type StatusAssinatura = 'ATIVA' | 'PENDENTE' | 'INADIMPLENTE' | 'CANCELADA';
+
+/** Meio de pagamento no checkout. */
+export type MetodoPagamento = 'PIX' | 'CARTAO';
+
+/** Status de uma cobrança no gateway. */
+export type StatusCobranca =
+  | 'PENDING'
+  | 'EXPIRED'
+  | 'CANCELLED'
+  | 'PAID'
+  | 'REFUNDED';
+
+/**
+ * Resposta do início de um checkout. `concedido` = aplicado na hora (admin ou
+ * destino gratuito). Caso contrário, traz os dados de pagamento: PIX inline
+ * (`brCode`/`brCodeBase64`) ou URL do checkout de cartão (`url`).
+ */
+export interface IniciarCheckout {
+  concedido?: boolean;
+  billingId?: string;
+  metodo?: MetodoPagamento;
+  status?: StatusCobranca;
+  valorCentavos?: number;
+  brCode?: string;
+  brCodeBase64?: string;
+  expiraEm?: string;
+  url?: string;
+}
+
 export interface Sessao {
   id: string;
   turmaId: string;
@@ -79,7 +110,16 @@ export interface Profile {
   disciplinas?: string[];
   username?: string;
   avatarUrl?: string;
+  /** Plano efetivo (para os gates): cai para ESTAGIARIO se a assinatura vence. */
   planoAtual?: PlanoAtual;
+  /** Plano contratado (o que o professor paga) — para a tela de plano e o CTA de renovar. */
+  planoContratado?: PlanoAtual;
+  /** Situação da assinatura (ATIVA enquanto em dia; INADIMPLENTE se venceu). */
+  statusAssinatura?: StatusAssinatura;
+  /** Vencimento da assinatura paga (ISO), se houver. */
+  assinaturaAte?: string;
+  /** Plano pago escolhido no cadastro e ainda não pago (leva ao checkout). */
+  planoPretendido?: PlanoAtual;
   slotsAdicionaisComprados?: number;
   /** Trava de identificador: false = @username bloqueado no cooldown. */
   podeAlterarUsername?: boolean;

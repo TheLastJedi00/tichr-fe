@@ -6,7 +6,13 @@ import {
   signal,
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { POLITICA_PRIVACIDADE, TERMOS_DE_USO } from '../../core/legal.data';
@@ -17,6 +23,15 @@ import { Card } from '../../ui/card/card';
 import { LegalDoc } from '../../ui/legal-doc/legal-doc';
 import { Logo } from '../../ui/logo/logo';
 import { Modal } from '../../ui/modal/modal';
+
+/** Validador de grupo: a confirmação precisa bater com a senha. */
+function senhasIguais(grupo: AbstractControl): ValidationErrors | null {
+  const senha = grupo.get('senha')?.value;
+  const confirmar = grupo.get('confirmarSenha')?.value;
+  return senha && confirmar && senha !== confirmar
+    ? { senhasDivergem: true }
+    : null;
+}
 
 /**
  * Cadastro: formulário reativo com Nome, E-mail e Senha, card do plano escolhido
@@ -61,7 +76,36 @@ import { Modal } from '../../ui/modal/modal';
           </label>
           <label class="campo">
             <span>Senha</span>
-            <input class="tichr-input" type="password" formControlName="senha" autocomplete="new-password" />
+            <div class="senha-wrap">
+              <input
+                class="tichr-input"
+                [type]="mostrarSenha() ? 'text' : 'password'"
+                formControlName="senha"
+                autocomplete="new-password"
+              />
+              <button
+                type="button"
+                class="ver-senha"
+                (click)="mostrarSenha.set(!mostrarSenha())"
+                [attr.aria-label]="mostrarSenha() ? 'Ocultar senha' : 'Mostrar senha'"
+              >
+                {{ mostrarSenha() ? 'Ocultar' : 'Mostrar' }}
+              </button>
+            </div>
+          </label>
+          <label class="campo">
+            <span>Confirmar senha</span>
+            <div class="senha-wrap">
+              <input
+                class="tichr-input"
+                [type]="mostrarSenha() ? 'text' : 'password'"
+                formControlName="confirmarSenha"
+                autocomplete="new-password"
+              />
+            </div>
+            @if (form.errors?.['senhasDivergem'] && form.controls.confirmarSenha.touched) {
+              <small class="campo__erro">As senhas não coincidem.</small>
+            }
           </label>
 
           @if (!ehGratuito()) {
@@ -153,6 +197,15 @@ import { Modal } from '../../ui/modal/modal';
     .campo { display: block; margin-bottom: 1rem; }
     .campo > span { display: block; margin-bottom: 0.375rem; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
     .campo > span small { font-weight: 500; opacity: 0.8; }
+    .senha-wrap { position: relative; }
+    .senha-wrap .tichr-input { width: 100%; padding-right: 5rem; }
+    .ver-senha {
+      position: absolute; right: 0.4rem; top: 50%; transform: translateY(-50%);
+      background: none; border: none; font: inherit; font-size: 0.8rem;
+      font-weight: 700; color: var(--text-muted); cursor: pointer; padding: 0.3rem 0.45rem;
+    }
+    .ver-senha:hover { color: var(--primary); }
+    .campo__erro { display: block; margin-top: 0.35rem; color: var(--danger); font-size: 0.8rem; font-weight: 600; }
     .cupom { text-transform: uppercase; letter-spacing: 0.05em; }
     .aceites { display: flex; flex-direction: column; gap: 0.6rem; margin: 0.5rem 0 1.25rem; }
     .aceite { display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.9rem; line-height: 1.4; }
@@ -195,14 +248,20 @@ export class CadastroPage {
     () => this.planoSelecionado() === 'ESTAGIARIO',
   );
 
-  protected readonly form = this.fb.nonNullable.group({
-    nome: ['', [Validators.required]],
-    email: ['', [Validators.required, Validators.email]],
-    senha: ['', [Validators.required, Validators.minLength(6)]],
-    cupom: [''],
-    aceiteTermos: [false, Validators.requiredTrue],
-    aceitePrivacidade: [false, Validators.requiredTrue],
-  });
+  protected readonly mostrarSenha = signal(false);
+
+  protected readonly form = this.fb.nonNullable.group(
+    {
+      nome: ['', [Validators.required]],
+      email: ['', [Validators.required, Validators.email]],
+      senha: ['', [Validators.required, Validators.minLength(6)]],
+      confirmarSenha: ['', [Validators.required]],
+      cupom: [''],
+      aceiteTermos: [false, Validators.requiredTrue],
+      aceitePrivacidade: [false, Validators.requiredTrue],
+    },
+    { validators: senhasIguais },
+  );
 
   /** Lê o plano escolhido na landing (`?plano=`); default Estagiário. */
   private planoInicial(): PlanoAtual {
@@ -227,6 +286,12 @@ export class CadastroPage {
       return;
     }
     const raw = this.form.getRawValue();
+    const cupom = raw.cupom.trim();
+    // Plano pago SEM cupom vira planoPretendido no servidor (leva ao checkout
+    // após verificar o e-mail). Com cupom de cortesia, o plano é concedido sem
+    // pagamento — não marca pretendido.
+    const planoPretendido =
+      !this.ehGratuito() && !cupom ? this.planoSelecionado() : undefined;
     this.criando.set(true);
     this.erro.set(null);
     this.auth
@@ -236,6 +301,7 @@ export class CadastroPage {
         password: raw.senha,
         aceiteTermos: raw.aceiteTermos,
         aceitePrivacidade: raw.aceitePrivacidade,
+        planoPretendido,
       })
       .subscribe({
         next: () => this.posSignup(),
@@ -251,24 +317,20 @@ export class CadastroPage {
   }
 
   /**
-   * Conta criada e autenticada. Aplica o cupom (se houver) ou faz o upgrade do
-   * plano escolhido (planos pagos), e segue para a confirmação de e-mail — a
-   * conta nasce sem e-mail confirmado e o painel fica travado até o clique no
-   * link. Nem o cupom nem o upgrade bloqueiam a navegação: o professor pode
-   * ajustar depois em "Meu Plano".
+   * Conta criada e autenticada — vai confirmar o e-mail. O "plano pretendido" já
+   * foi persistido no servidor no cadastro (quando pago), então o `authGuard`
+   * leva ao `/checkout` assim que o e-mail é confirmado. Cupom de cortesia
+   * concede o plano sem pagamento (aplica na hora); depois, só verifica o e-mail.
    */
   private posSignup(): void {
-    const ir = () => this.router.navigateByUrl('/verificar-email');
     const cupom = this.form.controls.cupom.value.trim();
-    const plano = this.planoSelecionado();
+    const ir = () => this.router.navigateByUrl('/verificar-email');
+
     if (!this.ehGratuito() && cupom) {
       this.profile.aplicarCupom(cupom).subscribe({ next: ir, error: ir });
       return;
     }
-    if (plano !== 'ESTAGIARIO') {
-      this.profile.upgradePlano(plano).subscribe({ next: ir, error: ir });
-      return;
-    }
+
     ir();
   }
 }

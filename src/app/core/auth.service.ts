@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Observable, catchError, finalize, of, shareReplay, tap } from 'rxjs';
 import { API_BASE_URL } from './api.config';
-import { ContaAuth } from './models';
+import { ContaAuth, PlanoAtual } from './models';
 
 /**
  * Sessao do professor. O `refreshToken` NAO aparece aqui de proposito: ele vive
@@ -65,6 +65,8 @@ export class AuthService {
     password: string;
     aceiteTermos: boolean;
     aceitePrivacidade: boolean;
+    /** Plano pago escolhido na vitrine — vira `planoPretendido` no servidor. */
+    planoPretendido?: PlanoAtual;
   }): Observable<LoginResponse> {
     return this.http
       .post<LoginResponse>(`${this.base}/auth/signup`, dados, {
