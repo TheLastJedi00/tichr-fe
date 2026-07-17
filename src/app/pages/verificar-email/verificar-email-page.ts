@@ -7,6 +7,7 @@ import {
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
+import { PLANO_PENDENTE_KEY } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { Card } from '../../ui/card/card';
 import { Icon } from '../../ui/icon/icon';
@@ -180,8 +181,8 @@ export class VerificarEmailPage implements OnDestroy {
       next: () => {
         // O perfil pode ter sido cacheado antes; recarrega para o painel abrir cheio.
         this.profile.load().subscribe({
-          next: () => this.router.navigateByUrl('/dashboard'),
-          error: () => this.router.navigateByUrl('/dashboard'),
+          next: () => this.seguir(),
+          error: () => this.seguir(),
         });
       },
       error: () => {
@@ -190,6 +191,23 @@ export class VerificarEmailPage implements OnDestroy {
         void this.router.navigateByUrl('/login');
       },
     });
+  }
+
+  /**
+   * Depois de confirmar o e-mail: se o cadastro escolheu um plano pago (guardado
+   * no localStorage), a etapa de pagamento começa agora (checkout). Senão, painel.
+   * Lê e limpa a chave — não pode sobrar para um próximo login/verificação.
+   */
+  private seguir(): void {
+    const plano = localStorage.getItem(PLANO_PENDENTE_KEY);
+    localStorage.removeItem(PLANO_PENDENTE_KEY);
+    if (plano && plano !== 'ESTAGIARIO') {
+      void this.router.navigate(['/checkout'], {
+        queryParams: { tipo: 'upgrade', plano },
+      });
+    } else {
+      void this.router.navigateByUrl('/dashboard');
+    }
   }
 
   protected reenviar(): void {

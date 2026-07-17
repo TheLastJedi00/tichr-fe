@@ -11,6 +11,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { POLITICA_PRIVACIDADE, TERMOS_DE_USO } from '../../core/legal.data';
 import { PlanoAtual } from '../../core/models';
+import { PLANO_PENDENTE_KEY } from '../../core/plano.util';
 import { Plano, PLANOS } from '../../core/planos.data';
 import { ProfileService } from '../../core/profile.service';
 import { Card } from '../../ui/card/card';
@@ -251,28 +252,31 @@ export class CadastroPage {
   }
 
   /**
-   * Conta criada e autenticada. Cupom de cortesia concede sem pagamento — aplica
-   * na hora e segue para a confirmação de e-mail. Plano pago sem cupom vai para a
-   * tela de pagamento (o guard de verificação, se ativo, leva antes ao
-   * /verificar-email; após confirmar, o professor assina). Estagiário só verifica.
+   * Conta criada e autenticada. A ordem é: **confirmar o e-mail primeiro** (a
+   * conta só se torna utilizável depois disso) e **então pagar**. Por isso o
+   * plano pago não vai direto ao checkout — ele viaja como `?plano=` para a tela
+   * de verificação, que ao confirmar leva ao `/checkout`. Cupom de cortesia
+   * concede sem pagamento (aplica na hora); Estagiário só verifica.
    */
   private posSignup(): void {
-    const irVerificar = () => this.router.navigateByUrl('/verificar-email');
     const cupom = this.form.controls.cupom.value.trim();
     const plano = this.planoSelecionado();
+
     if (!this.ehGratuito() && cupom) {
-      this.profile.aplicarCupom(cupom).subscribe({
-        next: irVerificar,
-        error: irVerificar,
-      });
+      const ir = () => this.router.navigateByUrl('/verificar-email');
+      this.profile.aplicarCupom(cupom).subscribe({ next: ir, error: ir });
       return;
     }
+
     if (plano !== 'ESTAGIARIO') {
-      this.router.navigate(['/checkout'], {
-        queryParams: { tipo: 'upgrade', plano },
-      });
+      // Plano pago: verifica o e-mail e SÓ DEPOIS o checkout. O plano pretendido
+      // vai no localStorage (não no query param): o redirect do interceptor no
+      // 403 EMAIL_NAO_VERIFICADO apagaria o param — o localStorage sobrevive.
+      localStorage.setItem(PLANO_PENDENTE_KEY, plano);
+      this.router.navigateByUrl('/verificar-email');
       return;
     }
-    irVerificar();
+
+    this.router.navigateByUrl('/verificar-email');
   }
 }
