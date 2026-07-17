@@ -5,8 +5,9 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Router } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
+import { PLANO_PENDENTE_KEY } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { Card } from '../../ui/card/card';
 import { Icon } from '../../ui/icon/icon';
@@ -132,7 +133,6 @@ export class VerificarEmailPage implements OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly profile = inject(ProfileService);
   private readonly router = inject(Router);
-  private readonly route = inject(ActivatedRoute);
 
   protected readonly email = signal<string | null>(null);
   protected readonly reenviando = signal(false);
@@ -194,11 +194,13 @@ export class VerificarEmailPage implements OnDestroy {
   }
 
   /**
-   * Depois de confirmar o e-mail: se o cadastro escolheu um plano pago
-   * (`?plano=`), a etapa de pagamento começa agora (checkout). Senão, painel.
+   * Depois de confirmar o e-mail: se o cadastro escolheu um plano pago (guardado
+   * no localStorage), a etapa de pagamento começa agora (checkout). Senão, painel.
+   * Lê e limpa a chave — não pode sobrar para um próximo login/verificação.
    */
   private seguir(): void {
-    const plano = this.route.snapshot.queryParamMap.get('plano');
+    const plano = localStorage.getItem(PLANO_PENDENTE_KEY);
+    localStorage.removeItem(PLANO_PENDENTE_KEY);
     if (plano && plano !== 'ESTAGIARIO') {
       void this.router.navigate(['/checkout'], {
         queryParams: { tipo: 'upgrade', plano },

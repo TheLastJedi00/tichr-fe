@@ -11,6 +11,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { POLITICA_PRIVACIDADE, TERMOS_DE_USO } from '../../core/legal.data';
 import { PlanoAtual } from '../../core/models';
+import { PLANO_PENDENTE_KEY } from '../../core/plano.util';
 import { Plano, PLANOS } from '../../core/planos.data';
 import { ProfileService } from '../../core/profile.service';
 import { Card } from '../../ui/card/card';
@@ -268,8 +269,11 @@ export class CadastroPage {
     }
 
     if (plano !== 'ESTAGIARIO') {
-      // Plano pago: verifica o e-mail e SÓ DEPOIS o checkout (com o plano guardado).
-      this.router.navigate(['/verificar-email'], { queryParams: { plano } });
+      // Plano pago: verifica o e-mail e SÓ DEPOIS o checkout. O plano pretendido
+      // vai no localStorage (não no query param): o redirect do interceptor no
+      // 403 EMAIL_NAO_VERIFICADO apagaria o param — o localStorage sobrevive.
+      localStorage.setItem(PLANO_PENDENTE_KEY, plano);
+      this.router.navigateByUrl('/verificar-email');
       return;
     }
 
