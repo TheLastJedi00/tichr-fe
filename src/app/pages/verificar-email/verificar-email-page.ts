@@ -5,7 +5,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { ProfileService } from '../../core/profile.service';
 import { Card } from '../../ui/card/card';
@@ -132,6 +132,7 @@ export class VerificarEmailPage implements OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly profile = inject(ProfileService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly email = signal<string | null>(null);
   protected readonly reenviando = signal(false);
@@ -180,8 +181,8 @@ export class VerificarEmailPage implements OnDestroy {
       next: () => {
         // O perfil pode ter sido cacheado antes; recarrega para o painel abrir cheio.
         this.profile.load().subscribe({
-          next: () => this.router.navigateByUrl('/dashboard'),
-          error: () => this.router.navigateByUrl('/dashboard'),
+          next: () => this.seguir(),
+          error: () => this.seguir(),
         });
       },
       error: () => {
@@ -190,6 +191,21 @@ export class VerificarEmailPage implements OnDestroy {
         void this.router.navigateByUrl('/login');
       },
     });
+  }
+
+  /**
+   * Depois de confirmar o e-mail: se o cadastro escolheu um plano pago
+   * (`?plano=`), a etapa de pagamento começa agora (checkout). Senão, painel.
+   */
+  private seguir(): void {
+    const plano = this.route.snapshot.queryParamMap.get('plano');
+    if (plano && plano !== 'ESTAGIARIO') {
+      void this.router.navigate(['/checkout'], {
+        queryParams: { tipo: 'upgrade', plano },
+      });
+    } else {
+      void this.router.navigateByUrl('/dashboard');
+    }
   }
 
   protected reenviar(): void {
