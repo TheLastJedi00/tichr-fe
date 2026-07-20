@@ -87,6 +87,10 @@ const PLANOS: PlanoAtual[] = ['ESTAGIARIO', 'GRADUADO', 'MESTRE', 'PHD'];
           <app-icon name="mail" [size]="22" />
           <span>Feedbacks</span>
         </a>
+        <a class="atalho" routerLink="/admin/prompts">
+          <app-icon name="rocket" [size]="22" />
+          <span>Governança de IA</span>
+        </a>
       </nav>
     }
   `,

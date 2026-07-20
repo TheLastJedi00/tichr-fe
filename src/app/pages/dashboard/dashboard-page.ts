@@ -19,7 +19,7 @@ import {
   Turma,
   WorJogo,
 } from '../../core/models';
-import { linksPainel } from '../../core/nav-links';
+import { linksPainel, NavLink } from '../../core/nav-links';
 import { planoAtendeMinimo } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { TurmaApiService } from '../../core/turma-api.service';
@@ -60,18 +60,6 @@ interface AvisoJogo {
         Exceção
       </app-icon-button>
     </div>
-
-    <nav class="atalhos">
-      @for (l of atalhos(); track l.path) {
-        <a class="atalho" [routerLink]="l.path" [queryParams]="l.query ?? null">
-          <span class="atalho__ic"><app-icon [name]="l.icon" [size]="26" /></span>
-          <span class="atalho__lbl">
-            {{ l.label }}
-            @if (l.locked) { <app-icon class="atalho__lock" name="lock" [size]="13" /> }
-          </span>
-        </a>
-      }
-    </nav>
 
     @if (mostrarOnboarding()) {
       <app-onboarding-card
@@ -156,6 +144,18 @@ interface AvisoJogo {
 
       <a class="btn-outline ver-agenda" routerLink="/agenda">Ver agenda completa</a>
     }
+
+    <nav class="atalhos">
+      @for (l of atalhos(); track l.path) {
+        <a class="atalho" [routerLink]="l.path" [queryParams]="l.query ?? null">
+          <span class="atalho__ic"><app-icon [name]="l.icon" [size]="26" /></span>
+          <span class="atalho__lbl">
+            {{ l.label }}
+            @if (l.locked) { <app-icon class="atalho__lock" name="lock" [size]="13" /> }
+          </span>
+        </a>
+      }
+    </nav>
 
     <app-excecao-modal
       [open]="excecaoAberta()"
@@ -364,12 +364,17 @@ export class DashboardPage {
     () => !this.profileService.profile()?.avatarUrl?.trim(),
   );
 
-  /** Acesso rápido: espelha o menu lateral (mesma fonte), menos o próprio Dashboard. */
-  protected readonly atalhos = computed(() =>
-    linksPainel(this.profileService.profile()?.planoAtual).filter(
+  /**
+   * Acesso rápido: espelha o menu lateral (mesma fonte), menos o próprio
+   * Dashboard, mais o atalho de **Meu Plano** (upsell) — este só na grid da home,
+   * para reduzir o funil até a tela de assinatura sem poluir o menu lateral.
+   */
+  protected readonly atalhos = computed<NavLink[]>(() => [
+    ...linksPainel(this.profileService.profile()?.planoAtual).filter(
       (l) => l.path !== '/dashboard',
     ),
-  );
+    { label: 'Meu Plano', path: '/configuracoes/plano', icon: 'sparkles' },
+  ]);
 
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
@@ -447,32 +452,53 @@ export class DashboardPage {
   private readonly isolateusJogos = signal<IsolateusJogo[]>([]);
 
   /**
-   * Jogos (Qlick e Wor) prontos para a próxima aula. Casa por turma e, quando a
-   * próxima aula tem um tópico alocado, só notifica os jogos do MESMO tópico —
-   * assim o aviso é preciso ("o jogo daquele assunto"), em vez de repetir sempre
-   * o mesmo jogo da turma. Sem tópico conhecido, cai para os jogos da turma.
+   * Jogos (Qlick/Wor/Isolateus) da próxima aula. Regras ENH-001/002:
+   * - pertence à turma se atribuído a ela **ou** se é um jogo só-disciplina
+   *   cuja disciplina bate com a da turma;
+   * - jogo COM tópico só aparece se for o tópico alocado à próxima aula;
+   * - jogo SEM tópico só aparece se estiver **fixado na aula atual**
+   *   (`numeroAula` = número da próxima aula) — senão fica oculto (anti-poluição).
    */
   protected readonly jogosProximaAula = computed<AvisoJogo[]>(() => {
     const t = this.proximaTurma();
     if (!t) return [];
     const topico = this.topicoIdProximo();
-    const daTurma = (turmaIds: string[] | undefined, legado?: string) =>
-      legado === t.id || (turmaIds ?? []).includes(t.id);
-    const doTopico = (jogoTopico?: string) => !topico || jogoTopico === topico;
+    const numeroProx = this.proxima()?.numero;
+
+    const daTurma = (jogo: {
+      turmaId?: string;
+      turmaIds?: string[];
+      disciplina?: string;
+    }) =>
+      jogo.turmaId === t.id ||
+      (jogo.turmaIds ?? []).includes(t.id) ||
+      (!!jogo.disciplina && !!t.disciplina && jogo.disciplina === t.disciplina);
+
+    const visivel = (jogo: {
+      turmaId?: string;
+      turmaIds?: string[];
+      disciplina?: string;
+      topicoId?: string;
+      numeroAula?: number;
+    }) => {
+      if (!daTurma(jogo)) return false;
+      if (jogo.topicoId) return !!topico && jogo.topicoId === topico;
+      return jogo.numeroAula != null && jogo.numeroAula === numeroProx;
+    };
 
     const avisos: AvisoJogo[] = [];
     for (const q of this.qlicks()) {
-      if (daTurma(q.turmaIds, q.turmaId) && doTopico(q.topicoId)) {
+      if (visivel(q)) {
         avisos.push({ tipo: 'Qlick', titulo: q.titulo, rota: '/jogos/qlick' });
       }
     }
     for (const j of this.worJogos()) {
-      if (daTurma(j.turmaIds, j.turmaId) && doTopico(j.topicoId)) {
+      if (visivel(j)) {
         avisos.push({ tipo: 'Wor', titulo: j.nome, rota: '/jogos/wor' });
       }
     }
     for (const j of this.isolateusJogos()) {
-      if (daTurma(j.turmaIds, j.turmaId) && doTopico(j.topicoId)) {
+      if (visivel(j)) {
         avisos.push({
           tipo: 'Isolateus',
           titulo: j.nome,
