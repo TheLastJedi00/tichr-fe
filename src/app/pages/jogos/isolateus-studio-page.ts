@@ -60,11 +60,21 @@ import { Modal } from '../../ui/modal/modal';
                 @for (t of topicos(); track t.id) { <option [value]="t.id">{{ t.nome }}</option> }
               </select>
             </label>
+          } @else {
+            <label class="campo">
+              <span>Aula (quando não há tópicos)</span>
+              <select class="tichr-input" formControlName="numeroAula">
+                <option [ngValue]="null">— Nenhuma —</option>
+                @for (n of aulasDisponiveis(); track n) {
+                  <option [ngValue]="n">Aula {{ n }}</option>
+                }
+              </select>
+            </label>
           }
         </div>
 
         <div class="campo">
-          <span>Turmas (opcional) — pode atribuir a várias</span>
+          <span>Turmas — atribua a uma ou mais (ou informe uma disciplina acima)</span>
           @if (turmasVinculaveis().length) {
             <div class="turmas-check">
               @for (t of turmasVinculaveis(); track t.id) {
@@ -146,8 +156,17 @@ import { Modal } from '../../ui/modal/modal';
         <app-icon name="plus" [size]="16" /> Adicionar questão
       </button>
 
+      @if (semVinculo()) {
+        <p class="dica aviso-vinculo">
+          Atribua a uma turma ou informe uma disciplina para salvar.
+        </p>
+      }
       @if (erro()) { <p class="erro">{{ erro() }}</p> }
-      <button class="btn-primary full salvar" type="submit" [disabled]="salvando()">
+      <button
+        class="btn-primary full salvar"
+        type="submit"
+        [disabled]="salvando() || semVinculo()"
+      >
         {{ salvando() ? 'Salvando…' : editId ? 'Salvar alterações' : 'Criar investigação' }}
       </button>
     </form>
@@ -273,8 +292,24 @@ export class IsolateusStudioPage {
     nome: ['', Validators.required],
     disciplina: [''],
     topicoId: [''],
+    numeroAula: [null as number | null],
     duracaoSegundos: [60, [Validators.required, Validators.min(5), Validators.max(600)]],
     questoes: this.fb.array<FormGroup>([]),
+  });
+
+  /** Disciplina selecionada (signal p/ a validação "turma OU disciplina" reagir). */
+  protected readonly disciplinaSel = signal('');
+
+  /** Verdadeiro quando NENHUMA turma e NENHUMA disciplina foram escolhidas (ENH-002). */
+  protected readonly semVinculo = computed(
+    () => !this.disciplinaSel() && this.turmaIdsSel().length === 0,
+  );
+
+  /** Nº de aulas para o select "Aula N": maior `totalAulas` das turmas, ou 20. */
+  protected readonly aulasDisponiveis = computed<number[]>(() => {
+    const sel = this.turmas().filter((t) => this.turmaIdsSel().includes(t.id));
+    const max = Math.max(0, ...sel.map((t) => t.totalAulas ?? 0));
+    return Array.from({ length: max > 0 ? max : 20 }, (_, i) => i + 1);
   });
 
   protected toggleTurma(id: string): void {
@@ -358,6 +393,7 @@ export class IsolateusStudioPage {
   /** Carrega tópicos ao trocar a disciplina. */
   protected onDisciplina(): void {
     const disc = this.form.get('disciplina')!.value ?? '';
+    this.disciplinaSel.set(disc);
     this.form.get('topicoId')!.setValue('');
     if (disc) {
       this.turmasApi.getTopicos(disc).subscribe((t) => this.topicos.set(t));
@@ -371,8 +407,10 @@ export class IsolateusStudioPage {
       this.form.patchValue({
         nome: j.nome,
         disciplina: j.disciplina ?? '',
+        numeroAula: j.numeroAula ?? null,
         duracaoSegundos: j.duracaoSegundos,
       });
+      this.disciplinaSel.set(j.disciplina ?? '');
       this.turmaIdsSel.set(j.turmaIds ?? (j.turmaId ? [j.turmaId] : []));
       if (j.disciplina) {
         this.turmasApi.getTopicos(j.disciplina).subscribe((t) => {
@@ -413,7 +451,7 @@ export class IsolateusStudioPage {
         topico: this.nomeTopicoSelecionado(),
       })
       .subscribe({
-        next: ({ questoes }) => {
+        next: ({ questoes, restantes }) => {
           this.questoes.clear();
           for (const q of questoes) {
             this.questoes.push(
@@ -421,10 +459,10 @@ export class IsolateusStudioPage {
             );
           }
           this.iaLoading.set(false);
-          this.iaEsgotada.set(true); // cota diária consumida
+          this.iaEsgotada.set(restantes <= 0); // só trava quando esgota a cota
           this.iaOk.set(true);
           this.iaMsg.set(
-            `${questoes.length} questões geradas! Feche este aviso para revisar e editar.`,
+            `${questoes.length} questões geradas! ${this.textoRestantes(restantes)} Feche este aviso para revisar e editar.`,
           );
         },
         error: (e: { error?: { code?: string; message?: string } }) => {
@@ -446,10 +484,21 @@ export class IsolateusStudioPage {
       });
   }
 
+  /** Frase de saldo de gerações de IA para o dia (limite global configurável). */
+  protected textoRestantes(restantes: number): string {
+    return restantes > 0
+      ? `Você ainda tem ${restantes} geração(ões) por IA hoje.`
+      : 'Foi sua última geração por IA de hoje.';
+  }
+
   protected salvar(): void {
     if (this.form.invalid || this.questoes.length === 0) {
       this.form.markAllAsTouched();
       this.erro.set('Preencha o nome e ao menos uma questão completa.');
+      return;
+    }
+    if (this.semVinculo()) {
+      this.erro.set('Atribua a uma turma ou informe uma disciplina.');
       return;
     }
     const raw = this.form.getRawValue();
@@ -465,6 +514,7 @@ export class IsolateusStudioPage {
       })),
       ...(raw.disciplina ? { disciplina: raw.disciplina } : {}),
       ...(raw.topicoId ? { topicoId: raw.topicoId } : {}),
+      ...(raw.numeroAula ? { numeroAula: Number(raw.numeroAula) } : {}),
       turmaIds: this.turmaIdsSel(),
     };
     this.salvando.set(true);

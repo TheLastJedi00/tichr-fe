@@ -4,10 +4,13 @@ import { Observable } from 'rxjs';
 import { API_BASE_URL } from './api.config';
 import {
   AdminMetrics,
+  ConfigIaView,
   CriarCupomPayload,
   Cupom,
   Feedback,
+  JogoIa,
   PlanoAtual,
+  PromptIaView,
   TriarFeedbackPayload,
   UsuarioAdmin,
 } from './models';
@@ -106,5 +109,35 @@ export class AdminApiService {
 
   triarFeedback(id: string, payload: TriarFeedbackPayload): Observable<Feedback> {
     return this.http.patch<Feedback>(`${this.base}/admin/feedbacks/${id}`, payload);
+  }
+
+  // --- Governança de IA (prompts editáveis + limite global) ---
+
+  prompts(): Observable<PromptIaView[]> {
+    return this.http.get<PromptIaView[]>(`${this.base}/admin/ia/prompts`);
+  }
+
+  salvarPrompt(jogo: JogoIa, template: string): Observable<PromptIaView> {
+    return this.http.put<PromptIaView>(
+      `${this.base}/admin/ia/prompts/${jogo}`,
+      { template },
+    );
+  }
+
+  /** Remove o override → volta ao template default embutido no backend. */
+  restaurarPrompt(jogo: JogoIa): Observable<PromptIaView> {
+    return this.http.delete<PromptIaView>(
+      `${this.base}/admin/ia/prompts/${jogo}`,
+    );
+  }
+
+  configIa(): Observable<ConfigIaView> {
+    return this.http.get<ConfigIaView>(`${this.base}/admin/ia/config`);
+  }
+
+  definirLimiteIa(limiteGeracoesDia: number): Observable<ConfigIaView> {
+    return this.http.patch<ConfigIaView>(`${this.base}/admin/ia/config`, {
+      limiteGeracoesDia,
+    });
   }
 }

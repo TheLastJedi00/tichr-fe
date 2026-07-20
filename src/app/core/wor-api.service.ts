@@ -39,9 +39,13 @@ export class WorApiService {
     instrucao: string;
     topico?: string;
     disciplina?: string;
-  }): Observable<{ palavras: Array<{ palavra: string; dicas: string[] }> }> {
+  }): Observable<{
+    palavras: Array<{ palavra: string; dicas: string[] }>;
+    restantes: number;
+  }> {
     return this.http.post<{
       palavras: Array<{ palavra: string; dicas: string[] }>;
+      restantes: number;
     }>(`${this.base}/wor/jogos/arsenal`, payload);
   }
 

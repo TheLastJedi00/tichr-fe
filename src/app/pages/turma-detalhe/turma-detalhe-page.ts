@@ -35,6 +35,8 @@ import { EquipeForm } from '../../ui/equipe-form/equipe-form';
 import { Icon } from '../../ui/icon/icon';
 import { Modal } from '../../ui/modal/modal';
 import { RecursoBloqueado } from '../../ui/recurso-bloqueado/recurso-bloqueado';
+import { RosterInput } from '../../ui/roster-input/roster-input';
+import { PreJogoAlunosModal } from '../../ui/pre-jogo-alunos-modal/pre-jogo-alunos-modal';
 import { Spinner } from '../../ui/spinner/spinner';
 
 type Aba = 'agenda' | 'alunos' | 'equipes' | 'jogos';
@@ -61,6 +63,8 @@ type Ordenacao = 'nome' | 'pontuacao';
     EquipeForm,
     Modal,
     RecursoBloqueado,
+    RosterInput,
+    PreJogoAlunosModal,
   ],
   template: `
     @if (carregando()) {
@@ -176,17 +180,10 @@ type Ordenacao = 'nome' | 'pontuacao';
         @case ('alunos') {
           @if (podeGerenciarAlunos()) {
           <app-card>
-            <form class="add" (submit)="$event.preventDefault(); adicionar()">
-              <input
-                class="tichr-input"
-                placeholder="Nomes separados por vírgula ou quebra de linha"
-                [value]="entrada()"
-                (input)="entrada.set($any($event.target).value)"
-              />
-              <button class="btn-primary" type="submit" [disabled]="salvando()">
-                Adicionar
-              </button>
-            </form>
+            <app-roster-input
+              [salvando]="salvando()"
+              (adicionar)="adicionarNomes($event)"
+            />
 
             @if (alunos().length === 0) {
               <p class="muted vazio">Nenhum aluno ainda. Adicione nomes acima.</p>
@@ -652,6 +649,14 @@ type Ordenacao = 'nome' | 'pontuacao';
           </button>
         </div>
       </app-modal>
+
+      <app-pre-jogo-alunos-modal
+        [open]="!!qlickPendente()"
+        [turmaId]="turmaId"
+        [nomeTurma]="t.nome"
+        (adicionados)="aposCadastroPreJogo($event)"
+        (fechar)="qlickPendente.set(null)"
+      />
     } @else {
       <app-card><p class="muted">Turma não encontrada.</p></app-card>
     }
@@ -970,7 +975,6 @@ export class TurmaDetalhePage {
   });
   protected readonly migrarAberto = signal(false);
   protected readonly migrando = signal(false);
-  protected readonly entrada = signal('');
   protected readonly salvando = signal(false);
   protected readonly ordenacao = signal<Ordenacao>('nome');
   protected readonly progresso = signal<ProgressoTurma | null>(null);
@@ -978,6 +982,8 @@ export class TurmaDetalhePage {
   // Aba Jogos: Qlicks do professor (PhD) filtrados por esta turma.
   protected readonly qlicks = signal<Qlick[]>([]);
   protected readonly rodandoQlick = signal(false);
+  /** Qlick aguardando cadastro de alunos (pré-jogo, ENH-003). */
+  protected readonly qlickPendente = signal<Qlick | null>(null);
   protected readonly qlicksDaTurma = computed(() =>
     this.qlicks().filter((q) => this.qlickNaTurma(q)),
   );
@@ -1123,12 +1129,30 @@ export class TurmaDetalhePage {
 
   /** Cria a partida a partir de um Qlick e vai para a sala do professor. */
   protected rodarQlick(q: Qlick): void {
+    // ENH-003: turma sem alunos → cadastra em massa antes de abrir o lobby.
+    // A lista de alunos já está carregada aqui, então checamos direto.
+    if (this.alunos().length === 0) {
+      this.qlickPendente.set(q);
+      return;
+    }
+    this.criarPartidaQlick(q);
+  }
+
+  private criarPartidaQlick(q: Qlick): void {
     this.rodandoQlick.set(true);
     // No painel da turma a turma é implícita — sem perguntar "para qual turma?".
     this.api.criarPartida(q.id, this.turmaId).subscribe({
       next: (p) => this.router.navigate(['/jogos/qlick/partida', p.id]),
       error: () => this.rodandoQlick.set(false),
     });
+  }
+
+  /** Após cadastrar alunos no pré-jogo, segue para a partida do Qlick pendente. */
+  protected aposCadastroPreJogo(novos: Aluno[]): void {
+    this.alunos.update((atual) => [...atual, ...novos]);
+    const q = this.qlickPendente();
+    this.qlickPendente.set(null);
+    if (q) this.criarPartidaQlick(q);
   }
 
   /** Atribui um Qlick da biblioteca a esta turma (N:N) e atualiza a lista. */
@@ -1167,11 +1191,8 @@ export class TurmaDetalhePage {
     });
   }
 
-  protected adicionar(): void {
-    const nomes = this.entrada()
-      .split(/[,\n]/)
-      .map((n) => n.trim())
-      .filter((n) => n.length > 0);
+  /** Persiste os nomes já separados pelo `<app-roster-input>` (ENH-003). */
+  protected adicionarNomes(nomes: string[]): void {
     if (nomes.length === 0) {
       return;
     }
@@ -1179,7 +1200,6 @@ export class TurmaDetalhePage {
     this.api.adicionarAlunos(this.turmaId, nomes).subscribe({
       next: (novos) => {
         this.alunos.update((atual) => [...atual, ...novos]);
-        this.entrada.set('');
         this.salvando.set(false);
       },
       error: () => this.salvando.set(false),

@@ -52,8 +52,8 @@ export class IsolateusApiService {
     instrucao: string;
     disciplina?: string;
     topico?: string;
-  }): Observable<{ questoes: QuestaoIsolateus[] }> {
-    return this.http.post<{ questoes: QuestaoIsolateus[] }>(
+  }): Observable<{ questoes: QuestaoIsolateus[]; restantes: number }> {
+    return this.http.post<{ questoes: QuestaoIsolateus[]; restantes: number }>(
       `${this.base}/isolateus/jogos/questoes`,
       payload,
     );

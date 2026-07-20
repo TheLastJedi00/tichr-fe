@@ -18,6 +18,38 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.22.0',
+    data: '2026-07-20',
+    titulo: 'Menos atrito na hora do jogo',
+    itens: [
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Vai começar um jogo numa turma que ainda não tem alunos? Agora dá para cadastrar todo mundo ali mesmo, antes de abrir a partida: digite os nomes numa linha só (separados por vírgula, hífen ou quebra de linha) e a partida já começa com a turma montada.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Ao criar um jogo, agora você escolhe a turma ou a disciplina. Informando só a disciplina, o jogo fica disponível para todas as suas turmas dela. E, quando a turma não usa plano de tópicos, dá para dizer em qual aula (Aula 1, Aula 2…) o jogo deve rodar.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'O painel inicial ficou mais direto: a "Próxima aula" aparece no topo, com um novo atalho "Meu Plano". E os avisos de jogo da próxima aula agora mostram só o que é daquela aula — jogos soltos, sem tópico nem aula definida, não poluem mais o painel.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'A geração de conteúdo por IA pode liberar mais de um uso por dia (o limite é ajustável), e a tela mostra quantas gerações você ainda tem no dia.',
+      },
+      {
+        categoria: 'Correção',
+        texto:
+          'A geração de perguntas por IA no Teach War (e nos demais jogos) voltou a funcionar — ela estava falhando por um problema de configuração do modelo de IA.',
+      },
+    ],
+  },
+  {
     versao: 'v0.21.0',
     data: '2026-07-17',
     titulo: 'Pagamentos de verdade',
