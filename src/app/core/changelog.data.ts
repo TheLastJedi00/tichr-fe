@@ -43,6 +43,11 @@ export const CHANGELOG: VersaoChangelog[] = [
           'A geração de conteúdo por IA pode liberar mais de um uso por dia (o limite é ajustável), e a tela mostra quantas gerações você ainda tem no dia.',
       },
       {
+        categoria: 'Melhoria',
+        texto:
+          'Todo recurso que precisa de um plano superior agora mostra um cadeadinho no menu (não só "Plano de Aula", como antes) — inclusive os Jogos, exclusivos do PhD. O botão continua clicável para você ver do que se trata e decidir se quer fazer upgrade.',
+      },
+      {
         categoria: 'Correção',
         texto:
           'A geração de perguntas por IA no Teach War (e nos demais jogos) voltou a funcionar — ela estava falhando por um problema de configuração do modelo de IA.',
