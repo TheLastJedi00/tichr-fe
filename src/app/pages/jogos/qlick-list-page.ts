@@ -12,6 +12,7 @@ import { Card } from '../../ui/card/card';
 import { Icon } from '../../ui/icon/icon';
 import { Modal } from '../../ui/modal/modal';
 import { PinsModal } from '../../ui/pins-modal/pins-modal';
+import { PreJogoAlunosModal } from '../../ui/pre-jogo-alunos-modal/pre-jogo-alunos-modal';
 import { RegrasJogoView } from '../../ui/regras-jogo/regras-jogo';
 import { Skeleton } from '../../ui/skeleton/skeleton';
 
@@ -20,7 +21,7 @@ import { Skeleton } from '../../ui/skeleton/skeleton';
   selector: 'app-qlick-list-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Card, Icon, Skeleton, PinsModal, Modal, RegrasJogoView],
+  imports: [RouterLink, Card, Icon, Skeleton, PinsModal, Modal, RegrasJogoView, PreJogoAlunosModal],
   template: `
     <header class="head">
       <div>
@@ -108,6 +109,14 @@ import { Skeleton } from '../../ui/skeleton/skeleton';
         </button>
       </div>
     </app-modal>
+
+    <app-pre-jogo-alunos-modal
+      [open]="!!rosterPendente()"
+      [turmaId]="rosterPendente()?.turmaId ?? null"
+      [nomeTurma]="rosterPendente()?.nome ?? ''"
+      (adicionados)="aposCadastroPreJogo()"
+      (fechar)="cancelarPreJogo()"
+    />
   `,
   styles: `
     .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
@@ -148,6 +157,12 @@ export class QlickListPage {
   protected readonly turmas = signal<Turma[]>([]);
   /** Qlick aguardando a escolha de turma (quando tem várias atribuídas). */
   protected readonly escolhaTurma = signal<Qlick | null>(null);
+  /** Partida aguardando cadastro de alunos (pré-jogo, ENH-003). */
+  protected readonly rosterPendente = signal<{
+    qlickId: string;
+    turmaId: string;
+    nome: string;
+  } | null>(null);
 
   constructor() {
     this.api.getQlicks().subscribe({
@@ -192,10 +207,47 @@ export class QlickListPage {
   }
 
   private iniciarPartida(qlickId: string, turmaId?: string): void {
+    // ENH-003: se a turma escolhida não tem alunos, cadastra em massa antes.
+    if (turmaId) {
+      this.rodando.set(true);
+      this.api.getAlunos(turmaId).subscribe({
+        next: (alunos) => {
+          if (alunos.length === 0) {
+            this.rodando.set(false);
+            this.escolhaTurma.set(null);
+            this.rosterPendente.set({
+              qlickId,
+              turmaId,
+              nome: this.nomeTurma(turmaId),
+            });
+            return;
+          }
+          this.criarPartida(qlickId, turmaId);
+        },
+        // Falha ao checar o roster não deve travar: tenta criar mesmo assim.
+        error: () => this.criarPartida(qlickId, turmaId),
+      });
+      return;
+    }
+    this.criarPartida(qlickId, turmaId);
+  }
+
+  private criarPartida(qlickId: string, turmaId?: string): void {
     this.rodando.set(true);
     this.api.criarPartida(qlickId, turmaId).subscribe({
       next: (p) => this.router.navigate(['/jogos/qlick/partida', p.id]),
       error: () => this.rodando.set(false),
     });
+  }
+
+  /** Alunos cadastrados no pré-jogo → segue para a partida pendente. */
+  protected aposCadastroPreJogo(): void {
+    const pend = this.rosterPendente();
+    this.rosterPendente.set(null);
+    if (pend) this.criarPartida(pend.qlickId, pend.turmaId);
+  }
+
+  protected cancelarPreJogo(): void {
+    this.rosterPendente.set(null);
   }
 }

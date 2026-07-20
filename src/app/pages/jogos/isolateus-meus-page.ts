@@ -7,6 +7,7 @@ import { TurmaApiService } from '../../core/turma-api.service';
 import { Icon } from '../../ui/icon/icon';
 import { Modal } from '../../ui/modal/modal';
 import { PinsModal } from '../../ui/pins-modal/pins-modal';
+import { PreJogoAlunosModal } from '../../ui/pre-jogo-alunos-modal/pre-jogo-alunos-modal';
 import { RegrasJogoView } from '../../ui/regras-jogo/regras-jogo';
 import { Spinner } from '../../ui/spinner/spinner';
 
@@ -15,7 +16,7 @@ import { Spinner } from '../../ui/spinner/spinner';
   selector: 'app-isolateus-meus-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Spinner, Modal, RegrasJogoView, PinsModal],
+  imports: [RouterLink, Icon, Spinner, Modal, RegrasJogoView, PinsModal, PreJogoAlunosModal],
   template: `
     <a class="voltar" routerLink="/jogos">‹ Jogos</a>
     <header class="head">
@@ -88,6 +89,14 @@ import { Spinner } from '../../ui/spinner/spinner';
         </div>
       </app-modal>
     }
+
+    <app-pre-jogo-alunos-modal
+      [open]="!!rosterPendente()"
+      [turmaId]="rosterPendente()?.turmaId ?? null"
+      [nomeTurma]="rosterPendente()?.nome ?? ''"
+      (adicionados)="aposCadastroPreJogo()"
+      (fechar)="cancelarPreJogo()"
+    />
   `,
   styles: `
     :host { display: block; }
@@ -133,6 +142,12 @@ export class IsolateusMeusPage {
   protected readonly turmasList = signal<Turma[]>([]);
   /** Investigação aguardando a escolha de turma (quando tem várias atribuídas). */
   protected readonly escolhaTurma = signal<IsolateusJogo | null>(null);
+  /** Partida aguardando cadastro de alunos (pré-jogo, ENH-003). */
+  protected readonly rosterPendente = signal<{
+    jogoId: string;
+    turmaId: string;
+    nome: string;
+  } | null>(null);
 
   constructor() {
     this.carregar();
@@ -170,11 +185,47 @@ export class IsolateusMeusPage {
   }
 
   private iniciarPartida(jogoId: string, turmaId?: string): void {
+    // ENH-003: turma sem alunos → cadastro em massa antes do lobby.
+    if (turmaId) {
+      this.criando.set(true);
+      this.turmas.getAlunos(turmaId).subscribe({
+        next: (alunos) => {
+          if (alunos.length === 0) {
+            this.criando.set(false);
+            this.escolhaTurma.set(null);
+            this.rosterPendente.set({
+              jogoId,
+              turmaId,
+              nome: this.nomeTurma(turmaId),
+            });
+            return;
+          }
+          this.criarPartida(jogoId, turmaId);
+        },
+        error: () => this.criarPartida(jogoId, turmaId),
+      });
+      return;
+    }
+    this.criarPartida(jogoId, turmaId);
+  }
+
+  private criarPartida(jogoId: string, turmaId?: string): void {
     this.criando.set(true);
     this.api.criarPartida(jogoId, turmaId).subscribe({
       next: (m) => this.router.navigate(['/jogos/isolateus/partida', m.id]),
       error: () => this.criando.set(false),
     });
+  }
+
+  /** Alunos cadastrados no pré-jogo → segue para a partida pendente. */
+  protected aposCadastroPreJogo(): void {
+    const pend = this.rosterPendente();
+    this.rosterPendente.set(null);
+    if (pend) this.criarPartida(pend.jogoId, pend.turmaId);
+  }
+
+  protected cancelarPreJogo(): void {
+    this.rosterPendente.set(null);
   }
 
   private carregar(): void {
