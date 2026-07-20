@@ -80,7 +80,7 @@ import { Spinner } from '../../ui/spinner/spinner';
             <span class="menu__ic"><app-icon name="settings" [size]="22" /></span>
             <span class="menu__txt">
               <strong>Painel Admin</strong>
-              <small>Backoffice: métricas, usuários e cupons</small>
+              <small>Backoffice: métricas, usuários, cupons e IA</small>
             </span>
             <span class="menu__go" aria-hidden="true">›</span>
           </a>

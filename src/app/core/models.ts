@@ -142,6 +142,24 @@ export interface ContaAuth {
 
 // --- Backoffice (Painel Administrativo) ---
 
+/** Jogos com geração de conteúdo por IA (governança de prompts/limite). */
+export type JogoIa = 'qlick' | 'wor' | 'isolateus';
+
+/** Prompt de IA de um jogo, como o admin edita (template + default p/ restaurar). */
+export interface PromptIaView {
+  jogo: JogoIa;
+  template: string;
+  padrao: string;
+  personalizado: boolean;
+  atualizadoEm?: string;
+}
+
+/** Configuração global de IA (limite de gerações por dia por jogo). */
+export interface ConfigIaView {
+  limiteGeracoesDia: number;
+  atualizadoEm?: string;
+}
+
 export interface AdminMetrics {
   totalProfessores: number;
   ativos: number;

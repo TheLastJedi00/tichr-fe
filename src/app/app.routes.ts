@@ -353,6 +353,14 @@ export const routes: Routes = [
             (m) => m.AdminFeedbacksPage,
           ),
       },
+      {
+        path: 'admin/prompts',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./pages/admin/admin-prompts-page').then(
+            (m) => m.AdminPromptsPage,
+          ),
+      },
     ],
   },
   { path: '**', redirectTo: '' },
