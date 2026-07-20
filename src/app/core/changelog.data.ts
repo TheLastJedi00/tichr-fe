@@ -18,6 +18,23 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.23.0',
+    data: '2026-07-20',
+    titulo: 'Buscar turma na hora de montar o jogo',
+    itens: [
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Ao criar um jogo, a escolha da turma virou uma busca: toque em "Selecionar turma" e abre uma janela com campo de pesquisa e filtros por disciplina e por status (mostrar ou não as turmas encerradas). Cada turma aparece com a disciplina e a quantidade de alunos, e você pode atribuir várias. No celular, a janela sobe de baixo como uma gaveta.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'A janela lembra o último filtro que você usou durante a sessão — se filtrou por "Matemática", ela já abre assim no próximo jogo. E se a turma escolhida ainda não tem alunos, o cadastro rápido em massa aparece na hora, sem interromper a montagem do jogo.',
+      },
+    ],
+  },
+  {
     versao: 'v0.22.0',
     data: '2026-07-20',
     titulo: 'Menos atrito na hora do jogo',
