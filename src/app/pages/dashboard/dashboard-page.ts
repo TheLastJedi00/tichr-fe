@@ -165,8 +165,18 @@ interface AvisoJogo {
     />
   `,
   styles: `
-    .greeting {
-      margin-bottom: 1.25rem;
+    /* Gap padrão entre os blocos da página — evita cards colados (ex.: card da
+       próxima aula x grid de atalhos). Os blocos NÃO usam margin vertical
+       própria; o espaçamento é sempre este gap. */
+    :host {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+    /* O modal fica fora do fluxo (position: fixed) — não deve virar item do flex
+       nem criar um gap fantasma no fim da página. */
+    app-excecao-modal {
+      display: contents;
     }
     .greeting h1 {
       margin: 0;
@@ -182,17 +192,15 @@ interface AvisoJogo {
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      margin-bottom: 1.25rem;
       flex-wrap: wrap;
     }
     .atalhos {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 0.75rem;
-      margin-bottom: 1.5rem;
     }
     @media (min-width: 560px) { .atalhos { grid-template-columns: repeat(3, 1fr); } }
-    app-onboarding-card { display: block; margin-bottom: 1.5rem; }
+    app-onboarding-card { display: block; }
     .atalho {
       display: flex;
       flex-direction: column;
@@ -281,7 +289,6 @@ interface AvisoJogo {
     }
     .ver-agenda {
       display: inline-flex;
-      margin-top: 0.875rem;
       text-decoration: none;
     }
     .detalhes-turma {
@@ -295,7 +302,6 @@ interface AvisoJogo {
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      margin-top: 0.875rem;
       padding: 0.85rem 1rem;
       border-radius: 14px;
       color: #fff;
