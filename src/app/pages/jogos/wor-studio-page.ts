@@ -67,11 +67,21 @@ import { Modal } from '../../ui/modal/modal';
                 @for (t of topicos(); track t.id) { <option [value]="t.id">{{ t.nome }}</option> }
               </select>
             </label>
+          } @else {
+            <label class="campo">
+              <span>Aula <small>(quando não há tópicos)</small></span>
+              <select class="tichr-input" formControlName="numeroAula">
+                <option [ngValue]="null">— Nenhuma —</option>
+                @for (n of aulasDisponiveis(); track n) {
+                  <option [ngValue]="n">Aula {{ n }}</option>
+                }
+              </select>
+            </label>
           }
         </div>
 
         <div class="campo">
-          <span>Turmas <small>(opcional) — pode atribuir a várias</small></span>
+          <span>Turmas <small>— atribua a uma ou mais (ou informe uma disciplina)</small></span>
           @if (turmasVinculaveis().length) {
             <div class="turmas-check">
               @for (t of turmasVinculaveis(); track t.id) {
@@ -123,10 +133,13 @@ import { Modal } from '../../ui/modal/modal';
         </button>
       </section>
 
+      @if (semVinculo()) {
+        <p class="dica">Atribua a uma turma ou informe uma disciplina para salvar.</p>
+      }
       @if (erro()) { <p class="erro">{{ erro() }}</p> }
 
       <div class="rodape">
-        <button class="btn-primary" type="submit" [disabled]="salvando()">
+        <button class="btn-primary" type="submit" [disabled]="salvando() || semVinculo()">
           {{ salvando() ? 'Guardando…' : 'Salvar e Guardar no Arsenal' }}
         </button>
       </div>
@@ -258,7 +271,23 @@ export class WorStudioPage {
     nome: ['', [Validators.required, Validators.maxLength(80)]],
     disciplina: [''],
     topicoId: [''],
+    numeroAula: [null as number | null],
     palavras: this.fb.array([this.novaPalavra()]),
+  });
+
+  /** Disciplina selecionada (signal p/ a validação "turma OU disciplina" reagir). */
+  protected readonly disciplinaSel = signal('');
+
+  /** Verdadeiro quando NENHUMA turma e NENHUMA disciplina foram escolhidas (ENH-002). */
+  protected readonly semVinculo = computed(
+    () => !this.disciplinaSel() && this.turmaIdsSel().length === 0,
+  );
+
+  /** Nº de aulas para o select "Aula N": maior `totalAulas` das turmas, ou 20. */
+  protected readonly aulasDisponiveis = computed<number[]>(() => {
+    const sel = this.turmas().filter((t) => this.turmaIdsSel().includes(t.id));
+    const max = Math.max(0, ...sel.map((t) => t.totalAulas ?? 0));
+    return Array.from({ length: max > 0 ? max : 20 }, (_, i) => i + 1);
   });
 
   get palavras(): FormArray {
@@ -298,6 +327,7 @@ export class WorStudioPage {
   /** Carrega os tópicos do plano de aula ao trocar a disciplina. */
   protected onDisciplina(): void {
     const disc = this.form.get('disciplina')!.value ?? '';
+    this.disciplinaSel.set(disc);
     this.form.get('topicoId')!.setValue('');
     if (disc) {
       this.turmaApi.getTopicos(disc).subscribe((t) => this.topicos.set(t));
@@ -314,7 +344,12 @@ export class WorStudioPage {
   }
 
   private preencher(j: WorJogo): void {
-    this.form.patchValue({ nome: j.nome, disciplina: j.disciplina ?? '' });
+    this.form.patchValue({
+      nome: j.nome,
+      disciplina: j.disciplina ?? '',
+      numeroAula: j.numeroAula ?? null,
+    });
+    this.disciplinaSel.set(j.disciplina ?? '');
     this.turmaIdsSel.set(j.turmaIds ?? (j.turmaId ? [j.turmaId] : []));
     if (j.disciplina) {
       this.turmaApi.getTopicos(j.disciplina).subscribe((t) => {
@@ -401,11 +436,16 @@ export class WorStudioPage {
       this.form.markAllAsTouched();
       return;
     }
+    if (this.semVinculo()) {
+      this.erro.set('Atribua a uma turma ou informe uma disciplina.');
+      return;
+    }
     const v = this.form.getRawValue();
     const payload = {
       nome: v.nome!,
       ...(v.disciplina ? { disciplina: v.disciplina } : {}),
       ...(v.topicoId ? { topicoId: v.topicoId } : {}),
+      ...(v.numeroAula ? { numeroAula: Number(v.numeroAula) } : {}),
       turmaIds: this.turmaIdsSel(),
       palavras: (v.palavras as Array<{ palavra: string; dicas: string[] }>).map((p) => ({
         palavra: p.palavra,

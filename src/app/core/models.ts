@@ -319,6 +319,8 @@ export interface Qlick {
   titulo: string;
   disciplina?: string;
   topicoId?: string;
+  /** Aula (1..N) fixada manualmente quando não há tópicos (ENH-001/002). */
+  numeroAula?: number;
   turmaId?: string;
   /** Turmas atribuídas ao Qlick (N:N). */
   turmaIds?: string[];
@@ -330,6 +332,7 @@ export interface CriarQlickPayload {
   titulo: string;
   disciplina?: string;
   topicoId?: string;
+  numeroAula?: number;
   turmaId?: string;
   turmaIds?: string[];
   duracaoSegundos?: number;
@@ -504,6 +507,8 @@ export interface WorJogo {
   disciplina?: string;
   /** Tópico do plano de aula (opcional) — referência ao `Topico` (mesmo do Qlick). */
   topicoId?: string;
+  /** Aula (1..N) fixada manualmente quando não há tópicos (ENH-001/002). */
+  numeroAula?: number;
   /** Turma única (legado). Substituída por `turmaIds` (N:N). */
   turmaId?: string;
   /** Turmas atribuídas à batalha (relação N:N). */
@@ -515,6 +520,7 @@ export interface CriarWorJogoPayload {
   nome: string;
   disciplina?: string;
   topicoId?: string;
+  numeroAula?: number;
   turmaIds?: string[];
   palavras: { palavra: string; dicas: string[] }[];
 }
@@ -639,6 +645,8 @@ export interface IsolateusJogo {
   nome: string;
   disciplina?: string;
   topicoId?: string;
+  /** Aula (1..N) fixada manualmente quando não há tópicos (ENH-001/002). */
+  numeroAula?: number;
   /** Turma única (legado). Substituída por `turmaIds` (N:N). */
   turmaId?: string;
   turmaIds?: string[];
@@ -650,6 +658,7 @@ export interface CriarIsolateusPayload {
   nome: string;
   disciplina?: string;
   topicoId?: string;
+  numeroAula?: number;
   turmaIds?: string[];
   duracaoSegundos?: number;
   questoes: QuestaoIsolateus[];

@@ -59,11 +59,21 @@ import { Modal } from '../../ui/modal/modal';
                 @for (t of topicos(); track t.id) { <option [value]="t.id">{{ t.nome }}</option> }
               </select>
             </label>
+          } @else {
+            <label class="campo">
+              <span>Aula (quando não há tópicos)</span>
+              <select class="tichr-input" formControlName="numeroAula">
+                <option [ngValue]="null">— Nenhuma —</option>
+                @for (n of aulasDisponiveis(); track n) {
+                  <option [ngValue]="n">Aula {{ n }}</option>
+                }
+              </select>
+            </label>
           }
         </div>
 
         <div class="campo">
-          <span>Turmas (opcional) — pode atribuir a várias</span>
+          <span>Turmas — atribua a uma ou mais (ou informe uma disciplina acima)</span>
           @if (turmasVinculaveis().length) {
             <div class="turmas-check">
               @for (t of turmasVinculaveis(); track t.id) {
@@ -140,8 +150,17 @@ import { Modal } from '../../ui/modal/modal';
         <app-icon name="plus" [size]="16" /> Adicionar pergunta
       </button>
 
+      @if (semVinculo()) {
+        <p class="dica aviso-vinculo">
+          Atribua a uma turma ou informe uma disciplina para salvar.
+        </p>
+      }
       @if (erro()) { <p class="erro">{{ erro() }}</p> }
-      <button class="btn-primary full salvar" type="submit" [disabled]="salvando()">
+      <button
+        class="btn-primary full salvar"
+        type="submit"
+        [disabled]="salvando() || semVinculo()"
+      >
         {{ salvando() ? 'Salvando…' : editId ? 'Salvar alterações' : 'Criar Qlick' }}
       </button>
     </form>
@@ -268,8 +287,27 @@ export class QlickStudioPage {
     titulo: ['', Validators.required],
     disciplina: [''],
     topicoId: [''],
+    numeroAula: [null as number | null],
     duracaoSegundos: [60, [Validators.required, Validators.min(5), Validators.max(600)]],
     perguntas: this.fb.array<FormGroup>([]),
+  });
+
+  /** Disciplina selecionada (signal p/ a validação "turma OU disciplina" reagir). */
+  protected readonly disciplinaSel = signal('');
+
+  /** Verdadeiro quando NENHUMA turma e NENHUMA disciplina foram escolhidas (ENH-002). */
+  protected readonly semVinculo = computed(
+    () => !this.disciplinaSel() && this.turmaIdsSel().length === 0,
+  );
+
+  /**
+   * Nº de aulas disponíveis para fixar o jogo (select "Aula N" quando não há
+   * tópicos): o maior `totalAulas` entre as turmas selecionadas, ou 20 de base.
+   */
+  protected readonly aulasDisponiveis = computed<number[]>(() => {
+    const sel = this.turmas().filter((t) => this.turmaIdsSel().includes(t.id));
+    const max = Math.max(0, ...sel.map((t) => t.totalAulas ?? 0));
+    return Array.from({ length: max > 0 ? max : 20 }, (_, i) => i + 1);
   });
 
   /** Marca/desmarca uma turma na atribuição N:N do Qlick. */
@@ -354,6 +392,7 @@ export class QlickStudioPage {
   /** Carrega tópicos ao trocar a disciplina (Mestre+ têm tópicos). */
   protected onDisciplina(): void {
     const disc = this.form.get('disciplina')!.value ?? '';
+    this.disciplinaSel.set(disc);
     this.form.get('topicoId')!.setValue('');
     if (disc) {
       this.api.getTopicos(disc).subscribe((t) => this.topicos.set(t));
@@ -367,8 +406,10 @@ export class QlickStudioPage {
       this.form.patchValue({
         titulo: q.titulo,
         disciplina: q.disciplina ?? '',
+        numeroAula: q.numeroAula ?? null,
         duracaoSegundos: q.duracaoSegundos,
       });
+      this.disciplinaSel.set(q.disciplina ?? '');
       this.turmaIdsSel.set(q.turmaIds ?? (q.turmaId ? [q.turmaId] : []));
       if (q.disciplina) {
         this.api.getTopicos(q.disciplina).subscribe((t) => {
@@ -448,6 +489,10 @@ export class QlickStudioPage {
       this.erro.set('Preencha o título e ao menos uma pergunta completa.');
       return;
     }
+    if (this.semVinculo()) {
+      this.erro.set('Atribua a uma turma ou informe uma disciplina.');
+      return;
+    }
     const raw = this.form.getRawValue();
     const payload: CriarQlickPayload = {
       titulo: raw.titulo!.trim(),
@@ -459,6 +504,7 @@ export class QlickStudioPage {
       })),
       ...(raw.disciplina ? { disciplina: raw.disciplina } : {}),
       ...(raw.topicoId ? { topicoId: raw.topicoId } : {}),
+      ...(raw.numeroAula ? { numeroAula: Number(raw.numeroAula) } : {}),
       turmaIds: this.turmaIdsSel(),
     };
     this.salvando.set(true);
