@@ -130,6 +130,21 @@ estilo app), autenticada por **PIN** e com token próprio. O aluno entra pela jo
 | `/aluno/isolateus` | **Tichr Isolateus** | O celular do habitante: registro do **nome de personagem**, o **Despertar** (revelação de papel — Aldeão em azul, Ameaça em verde tóxico), o turno secreto da Ameaça, a defesa do setor com **chat de rumores**, a **Quarentena** (debate + voto) e a **tela hackeada** de quem foi abduzido. |
 | `/aluno/manual` | **Manual de Guerra** | Regras completas do **Tichr Wor**, do **Tichr Qlick** e do **Tichr Isolateus** + a **Tabela de Recompensas** (quanto vale cada jogada), para a turma montar estratégia **antes** da partida. |
 
+### Criando jogos e começando a partida (comum aos três jogos)
+
+- **Turma ou disciplina (obrigatório):** ao criar/editar um Qlick, Wor ou Isolateus, o
+  professor precisa atribuir **uma ou mais turmas** ou informar uma **disciplina**. Só com a
+  disciplina, o jogo vale para **todas** as turmas dela. Quando a turma não usa plano de
+  tópicos, um **select "Aula N"** deixa fixar o jogo numa aula específica.
+- **Painel enxuto:** no card da próxima aula, aparecem só os jogos **daquela aula** (pelo
+  tópico alocado ou pela aula fixada). Jogo sem tópico e sem aula definida **não** polui o
+  painel.
+- **Cadastro rápido de alunos:** mandar rodar uma partida numa turma **sem alunos** abre, antes
+  do lobby, o cadastro em massa (nomes por vírgula/hífen/linha) — cadastra na turma e já segue
+  para a partida.
+- **IA com saldo do dia:** o botão de gerar conteúdo por IA mostra quantas gerações ainda
+  restam no dia (o limite é ajustável pelo admin) em vez de travar sempre no primeiro uso.
+
 ### Tichr Qlick: quiz ao vivo em tempo real (Plano PhD)
 
 O **Tichr Qlick** é um quiz estilo Kahoot com estado **sincronizado ao vivo** entre o
@@ -266,12 +281,15 @@ lateral, o **card de upsell** ao atingir o limite do plano, o selo **Beta** no h
 
 - Atalho **"Painel Admin"** nas Configurações, exibido só quando o perfil é admin (o
   `adminGuard` confirma pelo `GET /admin/ping`). Rotas isoladas `/admin`, `/admin/usuarios`,
-  `/admin/cupons` e `/admin/feedbacks`.
+  `/admin/cupons`, `/admin/feedbacks` e `/admin/prompts`.
 - **Dashboard** com métricas (total, ativos, distribuição por plano); **CRM** com busca de
   professores e uso (turmas/alunos/Qlicks) e um modal de ações (redefinir senha, limpar dados,
   desativar/excluir, override de plano, conceder/revogar admin); **Cupons** (CRUD);
   **Feedbacks** (caixa de entrada dos relatos dos professores — ver [Feedback e
   suporte](#feedback-e-suporte)).
+- **Governança de IA** (`/admin/prompts`): edita o *prompt* que instrui a IA de cada jogo
+  (salvo no banco, sem novo deploy — dá para restaurar o padrão) e ajusta o **limite global de
+  gerações por dia**. Some daí a manutenção do conteúdo gerado sem tocar no código.
 - **Resgate de cupom** em "Meu Plano": o professor digita o código e ganha desconto/meses
   grátis (`POST /checkout/cupom`).
 
