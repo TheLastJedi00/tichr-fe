@@ -19,7 +19,7 @@ import {
   Turma,
   WorJogo,
 } from '../../core/models';
-import { linksPainel } from '../../core/nav-links';
+import { linksPainel, NavLink } from '../../core/nav-links';
 import { planoAtendeMinimo } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { TurmaApiService } from '../../core/turma-api.service';
@@ -60,18 +60,6 @@ interface AvisoJogo {
         Exceção
       </app-icon-button>
     </div>
-
-    <nav class="atalhos">
-      @for (l of atalhos(); track l.path) {
-        <a class="atalho" [routerLink]="l.path" [queryParams]="l.query ?? null">
-          <span class="atalho__ic"><app-icon [name]="l.icon" [size]="26" /></span>
-          <span class="atalho__lbl">
-            {{ l.label }}
-            @if (l.locked) { <app-icon class="atalho__lock" name="lock" [size]="13" /> }
-          </span>
-        </a>
-      }
-    </nav>
 
     @if (mostrarOnboarding()) {
       <app-onboarding-card
@@ -156,6 +144,18 @@ interface AvisoJogo {
 
       <a class="btn-outline ver-agenda" routerLink="/agenda">Ver agenda completa</a>
     }
+
+    <nav class="atalhos">
+      @for (l of atalhos(); track l.path) {
+        <a class="atalho" [routerLink]="l.path" [queryParams]="l.query ?? null">
+          <span class="atalho__ic"><app-icon [name]="l.icon" [size]="26" /></span>
+          <span class="atalho__lbl">
+            {{ l.label }}
+            @if (l.locked) { <app-icon class="atalho__lock" name="lock" [size]="13" /> }
+          </span>
+        </a>
+      }
+    </nav>
 
     <app-excecao-modal
       [open]="excecaoAberta()"
@@ -364,12 +364,17 @@ export class DashboardPage {
     () => !this.profileService.profile()?.avatarUrl?.trim(),
   );
 
-  /** Acesso rápido: espelha o menu lateral (mesma fonte), menos o próprio Dashboard. */
-  protected readonly atalhos = computed(() =>
-    linksPainel(this.profileService.profile()?.planoAtual).filter(
+  /**
+   * Acesso rápido: espelha o menu lateral (mesma fonte), menos o próprio
+   * Dashboard, mais o atalho de **Meu Plano** (upsell) — este só na grid da home,
+   * para reduzir o funil até a tela de assinatura sem poluir o menu lateral.
+   */
+  protected readonly atalhos = computed<NavLink[]>(() => [
+    ...linksPainel(this.profileService.profile()?.planoAtual).filter(
       (l) => l.path !== '/dashboard',
     ),
-  );
+    { label: 'Meu Plano', path: '/configuracoes/plano', icon: 'sparkles' },
+  ]);
 
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
