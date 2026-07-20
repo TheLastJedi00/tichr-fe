@@ -450,7 +450,7 @@ export class QlickStudioPage {
         topico: this.nomeTopicoSelecionado(),
       })
       .subscribe({
-        next: ({ perguntas }) => {
+        next: ({ perguntas, restantes }) => {
           this.perguntas.clear();
           for (const p of perguntas) {
             this.perguntas.push(
@@ -458,10 +458,10 @@ export class QlickStudioPage {
             );
           }
           this.iaLoading.set(false);
-          this.iaEsgotada.set(true); // cota diária consumida
+          this.iaEsgotada.set(restantes <= 0); // só trava quando esgota a cota
           this.iaOk.set(true);
           this.iaMsg.set(
-            `${perguntas.length} perguntas geradas! Feche este aviso para revisar e editar.`,
+            `${perguntas.length} perguntas geradas! ${this.textoRestantes(restantes)} Feche este aviso para revisar e editar.`,
           );
         },
         error: (e: { error?: { code?: string; message?: string } }) => {
@@ -481,6 +481,13 @@ export class QlickStudioPage {
           }
         },
       });
+  }
+
+  /** Frase de saldo de gerações de IA para o dia (limite global configurável). */
+  protected textoRestantes(restantes: number): string {
+    return restantes > 0
+      ? `Você ainda tem ${restantes} geração(ões) por IA hoje.`
+      : 'Foi sua última geração por IA de hoje.';
   }
 
   protected salvar(): void {

@@ -451,7 +451,7 @@ export class IsolateusStudioPage {
         topico: this.nomeTopicoSelecionado(),
       })
       .subscribe({
-        next: ({ questoes }) => {
+        next: ({ questoes, restantes }) => {
           this.questoes.clear();
           for (const q of questoes) {
             this.questoes.push(
@@ -459,10 +459,10 @@ export class IsolateusStudioPage {
             );
           }
           this.iaLoading.set(false);
-          this.iaEsgotada.set(true); // cota diária consumida
+          this.iaEsgotada.set(restantes <= 0); // só trava quando esgota a cota
           this.iaOk.set(true);
           this.iaMsg.set(
-            `${questoes.length} questões geradas! Feche este aviso para revisar e editar.`,
+            `${questoes.length} questões geradas! ${this.textoRestantes(restantes)} Feche este aviso para revisar e editar.`,
           );
         },
         error: (e: { error?: { code?: string; message?: string } }) => {
@@ -482,6 +482,13 @@ export class IsolateusStudioPage {
           }
         },
       });
+  }
+
+  /** Frase de saldo de gerações de IA para o dia (limite global configurável). */
+  protected textoRestantes(restantes: number): string {
+    return restantes > 0
+      ? `Você ainda tem ${restantes} geração(ões) por IA hoje.`
+      : 'Foi sua última geração por IA de hoje.';
   }
 
   protected salvar(): void {

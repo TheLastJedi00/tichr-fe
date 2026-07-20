@@ -399,16 +399,16 @@ export class WorStudioPage {
         disciplina: this.form.get('disciplina')?.value || undefined,
       })
       .subscribe({
-        next: ({ palavras }) => {
+        next: ({ palavras, restantes }) => {
           this.palavras.clear();
           palavras.forEach((p) =>
             this.palavras.push(this.novaPalavra(p.palavra, p.dicas)),
           );
           this.iaLoading.set(false);
-          this.iaEsgotada.set(true); // cota diária consumida
+          this.iaEsgotada.set(restantes <= 0); // só trava quando esgota a cota
           this.iaOk.set(true);
           this.iaMsg.set(
-            `${palavras.length} palavras forjadas! Feche este aviso para revisar e editar.`,
+            `${palavras.length} palavras forjadas! ${this.textoRestantes(restantes)} Feche este aviso para revisar e editar.`,
           );
         },
         error: (e: { error?: { code?: string; message?: string } }) => {
@@ -428,6 +428,13 @@ export class WorStudioPage {
           }
         },
       });
+  }
+
+  /** Frase de saldo de gerações de IA para o dia (limite global configurável). */
+  protected textoRestantes(restantes: number): string {
+    return restantes > 0
+      ? `Você ainda tem ${restantes} geração(ões) por IA hoje.`
+      : 'Foi sua última geração por IA de hoje.';
   }
 
   protected salvar(): void {

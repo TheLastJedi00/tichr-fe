@@ -366,8 +366,8 @@ export class TurmaApiService {
     instrucao: string;
     disciplina?: string;
     topico?: string;
-  }): Observable<{ perguntas: PerguntaQlick[] }> {
-    return this.http.post<{ perguntas: PerguntaQlick[] }>(
+  }): Observable<{ perguntas: PerguntaQlick[]; restantes: number }> {
+    return this.http.post<{ perguntas: PerguntaQlick[]; restantes: number }>(
       `${this.base}/qlicks/ia/perguntas`,
       payload,
     );
