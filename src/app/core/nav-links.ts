@@ -12,11 +12,16 @@ export interface NavLink {
 }
 
 /**
- * Links do painel do professor. Plano de Aula exige Graduado — para o
- * Estagiário o item vira cadeado e aponta para o upsell (`/planos`).
+ * Links do painel do professor. O **cadeado é sistêmico** (BUG-007): qualquer
+ * item de recurso fora do plano vigente recebe `locked` — nunca `disabled`, para
+ * o clique ainda levar ao upsell.
+ * - **Plano de Aula** exige **Graduado** (Estagiário → cadeado + `/planos`).
+ * - **Jogos** (Qlick/Wor/Isolateus) é **exclusivo do PhD** → cadeado para quem
+ *   não é PhD; o clique segue para `/jogos` (a vitrine já faz o upsell por jogo).
  */
 export function linksPainel(plano: PlanoAtual | undefined): NavLink[] {
   const podePlano = planoAtendeMinimo(plano, 'GRADUADO');
+  const podeJogos = planoAtendeMinimo(plano, 'PHD');
   return [
     { label: 'Dashboard', path: '/dashboard', icon: 'home' },
     { label: 'Minha Agenda', path: '/agenda', icon: 'calendar' },
@@ -30,7 +35,7 @@ export function linksPainel(plano: PlanoAtual | undefined): NavLink[] {
           locked: true,
           query: { recurso: 'PLANO_AULA' },
         },
-    { label: 'Jogos', path: '/jogos', icon: 'game' },
+    { label: 'Jogos', path: '/jogos', icon: 'game', locked: !podeJogos },
     { label: 'Configurações', path: '/configuracoes', icon: 'settings' },
   ];
 }
