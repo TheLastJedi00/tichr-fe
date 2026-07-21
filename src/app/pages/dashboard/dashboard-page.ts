@@ -17,6 +17,7 @@ import {
   IsolateusJogo,
   Qlick,
   Sessao,
+  TipoTurno,
   Turma,
   WorJogo,
 } from '../../core/models';
@@ -24,7 +25,7 @@ import { linksPainel, NavLink } from '../../core/nav-links';
 import { planoAtendeMinimo } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { InstituicaoApiService } from '../../core/instituicao-api.service';
-import { gradeDoTurno } from '../../core/turno.util';
+import { gradeDoTurno, periodoDoDia } from '../../core/turno.util';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { IsolateusApiService } from '../../core/isolateus-api.service';
 import { WorApiService } from '../../core/wor-api.service';
@@ -53,6 +54,9 @@ interface EntradaRegular {
   turmaId: string;
   turmaNome: string;
   cor?: string;
+  turno?: TipoTurno;
+  /** Escola com uma aula por turno → omite o "Nº horário" na mensagem. */
+  aulaUnica: boolean;
 }
 
 const DIAS_SEMANA_DASH = [
@@ -123,9 +127,15 @@ function horaEmMin(h: string): number {
         @if (proximaRegular(); as r) {
           <app-card title="Próxima aula">
             <p class="proxima-reg">
-              {{ leadRegular() }} no <strong>{{ r.periodo }}º horário</strong> na
-              escola <strong>{{ r.escola }}</strong> com a turma do
-              <strong>{{ r.serie }}</strong>.
+              {{ abreRegular() }} você
+              @if (r.aulaUnica) {
+                tem aula na escola <strong>{{ r.escola }}</strong> com a turma do
+                <strong>{{ r.serie }}</strong>.
+              } @else {
+                entra no <strong>{{ r.periodo }}º horário</strong> na escola
+                <strong>{{ r.escola }}</strong> com a turma do
+                <strong>{{ r.serie }}</strong>.
+              }
             </p>
             <div class="proxima__turma">
               <span class="dot" [style.background]="r.cor || 'var(--primary)'"></span>
@@ -569,6 +579,8 @@ export class DashboardPage {
             turmaId: t.id,
             turmaNome: t.nome,
             cor: t.cor,
+            turno: t.turno,
+            aulaUnica: !!inst.aulaUnicaPorTurno,
             ordem: `${iso}T${slot.horaInicio}`,
           });
         }
@@ -589,14 +601,19 @@ export class DashboardPage {
     return `${r.data}T${r.horaInicio}` <= mod;
   });
 
-  /** "Hoje/Amanhã/Sexta-feira você entra" conforme a data da próxima entrada. */
-  protected leadRegular(): string {
+  /** Abertura da mensagem: "Hoje à tarde" / "Amanhã de manhã" / "Sexta-feira à noite". */
+  protected abreRegular(): string {
     const r = this.proximaRegular();
     if (!r) return '';
     const hoje = isoLocal(this.relogio());
-    if (r.data === hoje) return 'Hoje você entra';
-    if (r.data === addDiasIso(hoje, 1)) return 'Amanhã você entra';
-    return `${DIAS_SEMANA_DASH[weekdayIso(r.data)]} você entra`;
+    const quando =
+      r.data === hoje
+        ? 'Hoje'
+        : r.data === addDiasIso(hoje, 1)
+          ? 'Amanhã'
+          : DIAS_SEMANA_DASH[weekdayIso(r.data)];
+    const periodo = periodoDoDia(r.turno);
+    return periodo ? `${quando} ${periodo}` : quando;
   }
 
   /** Jogos do professor (PhD): Qlick e Wor — avisos da próxima aula. */

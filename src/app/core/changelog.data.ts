@@ -18,6 +18,23 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.26.0',
+    data: '2026-07-21',
+    titulo: 'Próxima aula ainda mais clara',
+    itens: [
+      {
+        categoria: 'Melhoria',
+        texto:
+          'O painel inicial agora fala o período do dia: "Hoje à tarde você entra no 2º horário na escola X com a turma do 9º Ano".',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Ao cadastrar/editar uma escola, você pode marcar "uma aula por turno" (quando o turno inteiro é uma aula só). Nesse caso, o painel mostra apenas o período — "Hoje à tarde você tem aula com a turma do 9º Ano" — sem número de horário.',
+      },
+    ],
+  },
+  {
     versao: 'v0.25.0',
     data: '2026-07-21',
     titulo: 'Escolas com turnos',

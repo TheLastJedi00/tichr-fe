@@ -21,6 +21,20 @@ export function rotuloTurno(t?: TipoTurno | null): string {
   return TURNOS.find((x) => x.value === t)?.label ?? '';
 }
 
+/** Período do dia por extenso (para a mensagem do dashboard). */
+export function periodoDoDia(t?: TipoTurno | null): string {
+  switch (t) {
+    case 'MATUTINO':
+      return 'de manhã';
+    case 'VESPERTINO':
+      return 'à tarde';
+    case 'NOTURNO':
+      return 'à noite';
+    default:
+      return '';
+  }
+}
+
 /** Turnos que uma instituição oferece (a partir das grades calculadas). */
 export function turnosDaInstituicao(inst?: Instituicao | null): TipoTurno[] {
   return (inst?.grades ?? []).map((g) => g.turno);
