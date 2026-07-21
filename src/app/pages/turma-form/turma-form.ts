@@ -88,14 +88,58 @@ const DIAS_UTEIS = [
           }
         </label>
 
-        <fieldset class="grupo">
-          <legend>Ensino Regular (escola)</legend>
-          <label class="toggle">
-            <input type="checkbox" formControlName="ensinoRegular" />
-            <span>Esta turma é de uma escola de ensino regular</span>
-          </label>
+        <label class="campo">
+          <span>Modalidade</span>
+          <select class="tichr-input" formControlName="tipoModalidade">
+            <option value="GRADE_FIXA">Ensino Regular</option>
+            <option value="MODULO_FECHADO">Módulo fechado</option>
+          </select>
+        </label>
 
-          @if (ehRegular()) {
+        @if (isModulo()) {
+          <label class="campo">
+            <span>Total de aulas</span>
+            <input class="tichr-input" type="number" min="1" formControlName="totalAulas" />
+          </label>
+        }
+
+        <label class="campo">
+          <span>Data de início</span>
+          <input class="tichr-input" type="date" formControlName="dataInicio" />
+        </label>
+
+        @if (isModulo()) {
+          <div class="campo horarios">
+            <label>
+              <span>Início da aula</span>
+              <input class="tichr-input" type="time" formControlName="horaInicio" />
+            </label>
+            <label>
+              <span>Fim da aula</span>
+              <input class="tichr-input" type="time" formControlName="horaFim" />
+            </label>
+          </div>
+
+          <div class="campo">
+            <span>Dias da semana</span>
+            <div class="dias">
+              @for (dia of dias; track dia.value) {
+                <button
+                  type="button"
+                  class="chip"
+                  [class.is-on]="selecionados().has(dia.value)"
+                  (click)="toggleDia(dia.value)"
+                >
+                  {{ dia.label }}
+                </button>
+              }
+            </div>
+          </div>
+        }
+
+        @if (ehRegular()) {
+          <fieldset class="grupo">
+            <legend>Ensino Regular (escola)</legend>
             @if (instituicoes().length) {
               <label class="campo">
                 <span>Instituição (escola)</span>
@@ -108,8 +152,8 @@ const DIAS_UTEIS = [
               </label>
             } @else {
               <p class="hint">
-                Você ainda não tem escolas. Cadastre em
-                <a routerLink="/configuracoes/instituicoes">Configurações › Instituições</a>.
+                Você ainda não tem escolas. Cadastre uma em
+                <a routerLink="/turmas">Minhas Turmas</a>.
               </p>
             }
 
@@ -161,58 +205,7 @@ const DIAS_UTEIS = [
             } @else if (instituicaoSel()) {
               <p class="hint">A grade desta escola está vazia. Ajuste os horários na instituição.</p>
             }
-          }
-        </fieldset>
-
-        @if (!ehRegular()) {
-          <label class="campo">
-            <span>Modalidade</span>
-            <select class="tichr-input" formControlName="tipoModalidade">
-              <option value="GRADE_FIXA">Grade fixa (contínua)</option>
-              <option value="MODULO_FECHADO">Módulo fechado</option>
-            </select>
-          </label>
-
-          @if (isModulo()) {
-            <label class="campo">
-              <span>Total de aulas</span>
-              <input class="tichr-input" type="number" min="1" formControlName="totalAulas" />
-            </label>
-          }
-        }
-
-        <label class="campo">
-          <span>Data de início</span>
-          <input class="tichr-input" type="date" formControlName="dataInicio" />
-        </label>
-
-        @if (!ehRegular()) {
-          <div class="campo horarios">
-            <label>
-              <span>Início da aula</span>
-              <input class="tichr-input" type="time" formControlName="horaInicio" />
-            </label>
-            <label>
-              <span>Fim da aula</span>
-              <input class="tichr-input" type="time" formControlName="horaFim" />
-            </label>
-          </div>
-
-          <div class="campo">
-            <span>Dias da semana</span>
-            <div class="dias">
-              @for (dia of dias; track dia.value) {
-                <button
-                  type="button"
-                  class="chip"
-                  [class.is-on]="selecionados().has(dia.value)"
-                  (click)="toggleDia(dia.value)"
-                >
-                  {{ dia.label }}
-                </button>
-              }
-            </div>
-          </div>
+          </fieldset>
         }
 
         <div class="campo">
@@ -460,10 +453,8 @@ export class TurmaForm {
   protected readonly instituicoes = signal<Instituicao[]>([]);
   /** Alocações da grade: chaves 'diaSemana:periodo'. */
   protected readonly alocacoes = signal<Set<string>>(new Set());
-  private readonly ensinoRegularSig = signal(false);
   private readonly instituicaoIdSig = signal('');
   private readonly nivelSig = signal<NivelEnsino | ''>('');
-  protected readonly ehRegular = computed(() => this.ensinoRegularSig());
   protected readonly seriesDisponiveis = computed(() =>
     seriesDoNivel(this.nivelSig() || null),
   );
@@ -482,7 +473,6 @@ export class TurmaForm {
     disciplina: [''],
     horaInicio: [''],
     horaFim: [''],
-    ensinoRegular: [false],
     instituicaoId: [''],
     nivelEnsino: ['' as NivelEnsino | ''],
     anoSerie: [''],
@@ -499,6 +489,8 @@ export class TurmaForm {
 
   private readonly modalidade = signal<TipoModalidade>('GRADE_FIXA');
   protected readonly isModulo = computed(() => this.modalidade() === 'MODULO_FECHADO');
+  /** Ensino regular é a própria modalidade GRADE_FIXA (escola tradicional). */
+  protected readonly ehRegular = computed(() => this.modalidade() === 'GRADE_FIXA');
   private readonly pontuacaoAtivaSig = signal(true);
   protected readonly pontuacaoAtiva = computed(() => this.pontuacaoAtivaSig());
 
@@ -531,9 +523,6 @@ export class TurmaForm {
     this.form.controls.pontuacaoAtiva.valueChanges.subscribe((v) =>
       this.pontuacaoAtivaSig.set(v),
     );
-    this.form.controls.ensinoRegular.valueChanges.subscribe((v) =>
-      this.ensinoRegularSig.set(v),
-    );
     this.form.controls.instituicaoId.valueChanges.subscribe((v) =>
       this.instituicaoIdSig.set(v),
     );
@@ -560,7 +549,6 @@ export class TurmaForm {
         disciplina: t.disciplina ?? '',
         horaInicio: t.horaInicio ?? '',
         horaFim: t.horaFim ?? '',
-        ensinoRegular: t.ensinoRegular ?? false,
         instituicaoId: t.instituicaoId ?? '',
         nivelEnsino: t.nivelEnsino ?? '',
         anoSerie: t.anoSerie ?? '',
@@ -576,7 +564,6 @@ export class TurmaForm {
       });
       this.modalidade.set(t.tipoModalidade);
       this.pontuacaoAtivaSig.set(t.pontuacaoAtiva ?? true);
-      this.ensinoRegularSig.set(t.ensinoRegular ?? false);
       this.instituicaoIdSig.set(t.instituicaoId ?? '');
       this.nivelSig.set(t.nivelEnsino ?? '');
       this.selecionados.set(new Set(t.diasSemana));
