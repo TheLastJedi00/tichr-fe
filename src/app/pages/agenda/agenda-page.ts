@@ -13,7 +13,15 @@ import { forkJoin } from 'rxjs';
 import { formatarData } from '../../core/date-format';
 import { hojeISO } from '../../core/greeting';
 import { InstituicaoApiService } from '../../core/instituicao-api.service';
-import { Ferias, GradeSlot, Instituicao, Sessao, Turma } from '../../core/models';
+import {
+  Ferias,
+  GradeSlot,
+  Instituicao,
+  Sessao,
+  TipoTurno,
+  Turma,
+} from '../../core/models';
+import { gradeDoTurno, rotuloTurno, turnosDaInstituicao } from '../../core/turno.util';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Icon } from '../../ui/icon/icon';
 import { Modal } from '../../ui/modal/modal';
@@ -399,16 +407,32 @@ export class AgendaPage {
           (t.gradeHoraria ?? []).some((g) => g.diaSemana === w),
       );
       if (!turmasInst.length) continue;
-      const slots: SlotDia[] = inst.grade.map((slot) => {
-        if (slot.tipo === 'INTERVALO') return { slot };
-        const turma = turmasInst.find((t) =>
-          (t.gradeHoraria ?? []).some(
-            (g) => g.diaSemana === w && g.periodo === slot.periodo,
-          ),
-        );
-        return { slot, turma };
-      });
-      instituicoes.push({ nome: inst.nome, slots });
+
+      const turnos = turnosDaInstituicao(inst);
+      const mostrarTurno = turnos.length > 1;
+      // Agrupa as turmas do dia por turno (legado sem turno → 1º turno).
+      const porTurno = new Map<TipoTurno | '', Turma[]>();
+      for (const t of turmasInst) {
+        const tr: TipoTurno | '' =
+          t.turno && turnos.includes(t.turno) ? t.turno : (turnos[0] ?? '');
+        porTurno.set(tr, [...(porTurno.get(tr) ?? []), t]);
+      }
+      for (const [tr, turmasTurno] of porTurno) {
+        const slots: SlotDia[] = gradeDoTurno(inst, tr || null).map((slot) => {
+          if (slot.tipo === 'INTERVALO') return { slot };
+          const turma = turmasTurno.find((t) =>
+            (t.gradeHoraria ?? []).some(
+              (g) => g.diaSemana === w && g.periodo === slot.periodo,
+            ),
+          );
+          return { slot, turma };
+        });
+        instituicoes.push({
+          nome:
+            mostrarTurno && tr ? `${inst.nome} · ${rotuloTurno(tr)}` : inst.nome,
+          slots,
+        });
+      }
     }
 
     const modulares: ModularDia[] = this.sessoes()

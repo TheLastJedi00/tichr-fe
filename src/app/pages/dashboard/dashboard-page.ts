@@ -24,6 +24,7 @@ import { linksPainel, NavLink } from '../../core/nav-links';
 import { planoAtendeMinimo } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { InstituicaoApiService } from '../../core/instituicao-api.service';
+import { gradeDoTurno } from '../../core/turno.util';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { IsolateusApiService } from '../../core/isolateus-api.service';
 import { WorApiService } from '../../core/wor-api.service';
@@ -550,9 +551,10 @@ export class DashboardPage {
         if (iso < t.dataInicio) continue;
         const inst = instMap.get(t.instituicaoId ?? '');
         if (!inst) continue;
+        const gradeTurno = gradeDoTurno(inst, t.turno ?? null);
         for (const g of t.gradeHoraria ?? []) {
           if (g.diaSemana !== w) continue;
-          const slot = inst.grade.find(
+          const slot = gradeTurno.find(
             (s) => s.tipo === 'AULA' && s.periodo === g.periodo,
           );
           if (!slot) continue;
