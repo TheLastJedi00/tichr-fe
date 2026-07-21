@@ -18,6 +18,23 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.27.2',
+    data: '2026-07-21',
+    titulo: 'Ano em vez de série, com nível nas boas-vindas',
+    itens: [
+      {
+        categoria: 'Melhoria',
+        texto:
+          'As turmas de ensino regular passam a usar a nomenclatura de "Ano" também no Ensino Médio (1º, 2º e 3º Ano), no lugar de "Série".',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'A "Próxima aula" no painel agora sempre diz o nível da turma: "…com a turma do 1º Ano do Médio" / "…do 6º Ano do Fundamental".',
+      },
+    ],
+  },
+  {
     versao: 'v0.27.1',
     data: '2026-07-21',
     titulo: 'Disciplina na hora de criar a turma',
