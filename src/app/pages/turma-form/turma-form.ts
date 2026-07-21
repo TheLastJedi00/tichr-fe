@@ -16,6 +16,7 @@ import {
   Instituicao,
   NivelEnsino,
   TipoModalidade,
+  TipoTurno,
   Turma,
 } from '../../core/models';
 import { InstituicaoApiService } from '../../core/instituicao-api.service';
@@ -23,6 +24,11 @@ import { NIVEIS_DEFAULT } from '../../core/nivel.util';
 import { podeGamificar } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { NIVEIS_ENSINO, seriesDoNivel } from '../../core/serie.util';
+import {
+  gradeDoTurno,
+  rotuloTurno,
+  turnosDaInstituicao,
+} from '../../core/turno.util';
 import { Card } from '../../ui/card/card';
 import { FormBlocker } from '../../ui/form-blocker/form-blocker';
 import { Icon } from '../../ui/icon/icon';
@@ -155,6 +161,17 @@ const DIAS_UTEIS = [
                 Você ainda não tem escolas. Cadastre uma em
                 <a routerLink="/turmas">Minhas Turmas</a>.
               </p>
+            }
+
+            @if (turnosDisponiveis().length) {
+              <label class="campo">
+                <span>Turno</span>
+                <select class="tichr-input" formControlName="turno">
+                  @for (t of turnosDisponiveis(); track t) {
+                    <option [value]="t">{{ rotuloTurno(t) }}</option>
+                  }
+                </select>
+              </label>
             }
 
             <div class="campo rotulos">
@@ -455,14 +472,21 @@ export class TurmaForm {
   protected readonly alocacoes = signal<Set<string>>(new Set());
   private readonly instituicaoIdSig = signal('');
   private readonly nivelSig = signal<NivelEnsino | ''>('');
+  private readonly turnoSig = signal<TipoTurno | ''>('');
+  protected readonly rotuloTurno = rotuloTurno;
   protected readonly seriesDisponiveis = computed(() =>
     seriesDoNivel(this.nivelSig() || null),
   );
   protected readonly instituicaoSel = computed(() =>
     this.instituicoes().find((i) => i.id === this.instituicaoIdSig()),
   );
-  protected readonly slotsAula = computed(
-    () => this.instituicaoSel()?.grade.filter((s) => s.tipo === 'AULA') ?? [],
+  protected readonly turnosDisponiveis = computed(() =>
+    turnosDaInstituicao(this.instituicaoSel()),
+  );
+  protected readonly slotsAula = computed(() =>
+    gradeDoTurno(this.instituicaoSel(), this.turnoSig() || null).filter(
+      (s) => s.tipo === 'AULA',
+    ),
   );
 
   protected readonly form = this.fb.nonNullable.group({
@@ -474,6 +498,7 @@ export class TurmaForm {
     horaInicio: [''],
     horaFim: [''],
     instituicaoId: [''],
+    turno: ['' as TipoTurno | ''],
     nivelEnsino: ['' as NivelEnsino | ''],
     anoSerie: [''],
     pontuacaoAtiva: [true],
@@ -523,8 +548,16 @@ export class TurmaForm {
     this.form.controls.pontuacaoAtiva.valueChanges.subscribe((v) =>
       this.pontuacaoAtivaSig.set(v),
     );
-    this.form.controls.instituicaoId.valueChanges.subscribe((v) =>
-      this.instituicaoIdSig.set(v),
+    this.form.controls.instituicaoId.valueChanges.subscribe((v) => {
+      this.instituicaoIdSig.set(v);
+      // Troca de escola: garante um turno válido para a nova instituição.
+      const turnos = this.turnosDisponiveis();
+      if (turnos.length && !turnos.includes(this.turnoSig() as TipoTurno)) {
+        this.form.controls.turno.setValue(turnos[0]);
+      }
+    });
+    this.form.controls.turno.valueChanges.subscribe((v) =>
+      this.turnoSig.set(v),
     );
     this.form.controls.nivelEnsino.valueChanges.subscribe((v) => {
       this.nivelSig.set(v);
@@ -534,7 +567,14 @@ export class TurmaForm {
       }
     });
     this.instituicaoApi.getInstituicoes().subscribe({
-      next: (l) => this.instituicoes.set(l),
+      next: (l) => {
+        this.instituicoes.set(l);
+        // Turma sem turno definido (legado) assume o 1º turno da escola.
+        const turnos = this.turnosDisponiveis();
+        if (turnos.length && !turnos.includes(this.turnoSig() as TipoTurno)) {
+          this.form.controls.turno.setValue(turnos[0]);
+        }
+      },
       error: () => {},
     });
     // preenche o form quando recebe os valores iniciais (edição)
@@ -550,6 +590,7 @@ export class TurmaForm {
         horaInicio: t.horaInicio ?? '',
         horaFim: t.horaFim ?? '',
         instituicaoId: t.instituicaoId ?? '',
+        turno: t.turno ?? '',
         nivelEnsino: t.nivelEnsino ?? '',
         anoSerie: t.anoSerie ?? '',
         pontuacaoAtiva: t.pontuacaoAtiva ?? true,
@@ -565,6 +606,7 @@ export class TurmaForm {
       this.modalidade.set(t.tipoModalidade);
       this.pontuacaoAtivaSig.set(t.pontuacaoAtiva ?? true);
       this.instituicaoIdSig.set(t.instituicaoId ?? '');
+      this.turnoSig.set(t.turno ?? '');
       this.nivelSig.set(t.nivelEnsino ?? '');
       this.selecionados.set(new Set(t.diasSemana));
       this.alocacoes.set(
@@ -608,8 +650,11 @@ export class TurmaForm {
     if (!this.form.valid) return false;
     if (this.ehRegular()) {
       const raw = this.form.getRawValue();
+      const turnoOk =
+        this.turnosDisponiveis().length === 0 || !!raw.turno;
       return (
         !!raw.instituicaoId &&
+        turnoOk &&
         !!raw.nivelEnsino &&
         !!raw.anoSerie &&
         this.alocacoes().size > 0
@@ -651,6 +696,7 @@ export class TurmaForm {
         ? {
             ensinoRegular: true,
             instituicaoId: raw.instituicaoId,
+            turno: (raw.turno || this.turnosDisponiveis()[0]) as TipoTurno,
             nivelEnsino: raw.nivelEnsino as NivelEnsino,
             anoSerie: raw.anoSerie,
             gradeHoraria: grade,
