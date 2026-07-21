@@ -114,6 +114,7 @@ function horaEmMin(h: string): number {
         [faltaNome]="faltaNome()"
         [faltaUsername]="faltaUsername()"
         [faltaFoto]="faltaFoto()"
+        [faltaDisciplinas]="faltaDisciplinas()"
       />
     }
 
@@ -447,6 +448,9 @@ export class DashboardPage {
   );
   protected readonly faltaFoto = computed(
     () => !this.profileService.profile()?.avatarUrl?.trim(),
+  );
+  protected readonly faltaDisciplinas = computed(
+    () => !this.profileService.profile()?.disciplinas?.length,
   );
 
   /**

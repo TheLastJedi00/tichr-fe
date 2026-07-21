@@ -79,7 +79,7 @@ const DIAS_UTEIS = [
           <input class="tichr-input" formControlName="nome" placeholder="Ex: Redação 9º ano" />
         </label>
 
-        <label class="campo">
+        <div class="campo">
           <span>Disciplina</span>
           @if (disciplinasDisponiveis().length) {
             <select class="tichr-input" formControlName="disciplina">
@@ -89,12 +89,27 @@ const DIAS_UTEIS = [
               }
             </select>
           } @else {
-            <p class="hint">
-              Cadastre suas disciplinas em
-              <a routerLink="/configuracoes">Configurações</a> para vinculá-las.
-            </p>
+            <p class="hint">Você ainda não tem disciplinas — crie a primeira aqui:</p>
           }
-        </label>
+          <div class="nova-disc">
+            <input
+              class="tichr-input"
+              [value]="novaDisciplina()"
+              (input)="novaDisciplina.set($any($event.target).value)"
+              (keydown.enter)="$event.preventDefault(); adicionarDisciplina()"
+              placeholder="Nova disciplina (ex.: Matemática)"
+              maxlength="40"
+            />
+            <button
+              type="button"
+              class="btn-outline"
+              [disabled]="!novaDisciplina().trim() || salvandoDisc()"
+              (click)="adicionarDisciplina()"
+            >
+              {{ salvandoDisc() ? 'Salvando…' : 'Adicionar' }}
+            </button>
+          </div>
+        </div>
 
         <label class="campo">
           <span>Modalidade</span>
@@ -408,8 +423,11 @@ const DIAS_UTEIS = [
       font-weight: 600;
       color: var(--text-muted);
     }
-    .hint { margin: 0; font-size: 0.85rem; color: var(--text-muted); }
+    .hint { margin: 0 0 0.4rem; font-size: 0.85rem; color: var(--text-muted); }
     .hint a { font-weight: 600; }
+    .nova-disc { display: flex; gap: 0.5rem; margin-top: 0.4rem; }
+    .nova-disc input { flex: 1; min-width: 0; }
+    .nova-disc .btn-outline { flex: 0 0 auto; white-space: nowrap; }
     .cores { display: flex; flex-wrap: wrap; gap: 0.5rem; }
     .cor {
       width: 32px;
@@ -492,6 +510,33 @@ export class TurmaForm {
   protected readonly disciplinasDisponiveis = computed(
     () => this.profileService.profile()?.disciplinas ?? [],
   );
+  // Criar disciplina inline (sem sair da criação de turma).
+  protected readonly novaDisciplina = signal('');
+  protected readonly salvandoDisc = signal(false);
+
+  /** Cria a disciplina no perfil e já a seleciona na turma. */
+  protected adicionarDisciplina(): void {
+    const nome = this.novaDisciplina().trim();
+    if (!nome) return;
+    const atuais = this.disciplinasDisponiveis();
+    if (atuais.some((d) => d.toLowerCase() === nome.toLowerCase())) {
+      // Já existe: só seleciona.
+      this.form.controls.disciplina.setValue(
+        atuais.find((d) => d.toLowerCase() === nome.toLowerCase())!,
+      );
+      this.novaDisciplina.set('');
+      return;
+    }
+    this.salvandoDisc.set(true);
+    this.profileService.update({ disciplinas: [...atuais, nome] }).subscribe({
+      next: () => {
+        this.form.controls.disciplina.setValue(nome);
+        this.novaDisciplina.set('');
+        this.salvandoDisc.set(false);
+      },
+      error: () => this.salvandoDisc.set(false),
+    });
+  }
 
   // Ensino regular
   protected readonly instituicoes = signal<Instituicao[]>([]);

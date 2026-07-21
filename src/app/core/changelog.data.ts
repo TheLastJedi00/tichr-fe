@@ -18,6 +18,23 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.27.1',
+    data: '2026-07-21',
+    titulo: 'Disciplina na hora de criar a turma',
+    itens: [
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Não tem disciplina cadastrada ainda? Agora dá para criar uma ali mesmo, na tela de nova turma, sem precisar ir até as Configurações — e ela já fica selecionada na turma.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'O aviso de "complete seu perfil" no painel agora também lembra de cadastrar suas disciplinas.',
+      },
+    ],
+  },
+  {
     versao: 'v0.27.0',
     data: '2026-07-21',
     titulo: 'Férias por escola, sem bagunçar a agenda',
