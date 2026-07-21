@@ -12,6 +12,7 @@ import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
   CriarTurmaPayload,
+  Ferias,
   GradeHorariaItem,
   Instituicao,
   NivelEnsino,
@@ -20,6 +21,7 @@ import {
   Turma,
 } from '../../core/models';
 import { InstituicaoApiService } from '../../core/instituicao-api.service';
+import { TurmaApiService } from '../../core/turma-api.service';
 import { NIVEIS_DEFAULT } from '../../core/nivel.util';
 import { podeGamificar } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
@@ -345,6 +347,25 @@ const DIAS_UTEIS = [
         </button>
       </div>
     </app-modal>
+
+    <app-modal
+      [open]="conflitoAberto()"
+      title="Agendar durante as férias?"
+      (close)="conflitoAberto.set(false)"
+    >
+      <p class="upsell-txt">
+        Você tem certeza que deseja cadastrar esta turma no meio de um período de
+        <strong>férias ativo desta instituição</strong>?
+      </p>
+      <div modal-actions>
+        <button class="btn-outline" type="button" (click)="conflitoAberto.set(false)">
+          Cancelar
+        </button>
+        <button class="btn-primary" type="button" (click)="confirmarConflito()">
+          Sim, agendar mesmo assim
+        </button>
+      </div>
+    </app-modal>
   `,
   styles: `
     .campo { display: block; margin-bottom: 1rem; }
@@ -455,6 +476,12 @@ export class TurmaForm {
   readonly save = output<CriarTurmaPayload>();
 
   private readonly instituicaoApi = inject(InstituicaoApiService);
+  private readonly turmaApi = inject(TurmaApiService);
+
+  // Conflito com férias da instituição (interceptação no submit).
+  private readonly feriasList = signal<Ferias[]>([]);
+  protected readonly conflitoAberto = signal(false);
+  private readonly pendente = signal<CriarTurmaPayload | null>(null);
 
   protected readonly dias = DIAS;
   protected readonly diasUteis = DIAS_UTEIS;
@@ -577,6 +604,10 @@ export class TurmaForm {
       },
       error: () => {},
     });
+    this.turmaApi.getFerias().subscribe({
+      next: (f) => this.feriasList.set(f),
+      error: () => {},
+    });
     // preenche o form quando recebe os valores iniciais (edição)
     effect(() => {
       const t = this.initial();
@@ -676,7 +707,7 @@ export class TurmaForm {
       ? 'GRADE_FIXA'
       : raw.tipoModalidade;
 
-    this.save.emit({
+    const payload: CriarTurmaPayload = {
       nome: raw.nome,
       tipoModalidade,
       dataInicio: raw.dataInicio,
@@ -707,6 +738,34 @@ export class TurmaForm {
       ...(tipoModalidade === 'MODULO_FECHADO'
         ? { totalAulas: Number(raw.totalAulas) }
         : {}),
-    });
+    };
+    this.emitir(payload);
+  }
+
+  /** Intercepta o submit se a turma cai dentro das férias da instituição. */
+  private emitir(payload: CriarTurmaPayload): void {
+    if (this.conflitaFerias(payload)) {
+      this.pendente.set(payload);
+      this.conflitoAberto.set(true);
+      return;
+    }
+    this.save.emit(payload);
+  }
+
+  /** A data de início cai num período de férias da própria instituição? */
+  private conflitaFerias(p: CriarTurmaPayload): boolean {
+    if (!p.instituicaoId) return false;
+    return this.feriasList().some(
+      (f) =>
+        f.instituicaoId === p.instituicaoId &&
+        f.dataInicio <= p.dataInicio &&
+        p.dataInicio <= f.dataFim,
+    );
+  }
+
+  protected confirmarConflito(): void {
+    const p = this.pendente();
+    this.conflitoAberto.set(false);
+    if (p) this.save.emit(p);
   }
 }
