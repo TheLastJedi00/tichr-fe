@@ -18,6 +18,33 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.27.0',
+    data: '2026-07-21',
+    titulo: 'Férias por escola, sem bagunçar a agenda',
+    itens: [
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Agora dá para cadastrar férias/recesso de uma escola específica (na tela de turmas da instituição). Elas afetam só as turmas daquela escola — turmas de outras escolas continuam na agenda normalmente.',
+      },
+      {
+        categoria: 'Correção',
+        texto:
+          'Férias de uma turma ou escola não pintam mais o calendário inteiro de vermelho nem escondem as aulas de outras escolas. O destaque vermelho fica reservado para as férias globais (que valem para tudo).',
+      },
+      {
+        categoria: 'Correção',
+        texto:
+          'Aulas marcadas propositalmente dentro de um recesso voltam a aparecer no calendário — a aula prevalece sobre o indicador de férias.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Ao cadastrar uma turma cujo início cai dentro das férias da própria escola, o sistema pergunta se você tem certeza antes de agendar.',
+      },
+    ],
+  },
+  {
     versao: 'v0.26.0',
     data: '2026-07-21',
     titulo: 'Próxima aula ainda mais clara',
