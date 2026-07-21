@@ -8,13 +8,20 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormArray,
+  FormBuilder,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { InstituicaoApiService } from '../../core/instituicao-api.service';
 import {
   CriarInstituicaoPayload,
   GradeSlot,
   Instituicao,
+  IntervaloGrade,
 } from '../../core/models';
+import { Icon } from '../../ui/icon/icon';
 import { Modal } from '../../ui/modal/modal';
 
 /**
@@ -26,7 +33,7 @@ import { Modal } from '../../ui/modal/modal';
   selector: 'app-instituicao-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, Modal],
+  imports: [ReactiveFormsModule, Modal, Icon],
   template: `
     <app-modal
       [open]="open()"
@@ -52,15 +59,24 @@ import { Modal } from '../../ui/modal/modal';
           <span>Duração de cada aula (min)</span>
           <input class="tichr-input" type="number" min="5" max="240" formControlName="duracaoAula" />
         </label>
-        <div class="linha">
-          <label class="campo">
-            <span>Início do intervalo</span>
-            <input class="tichr-input" type="time" formControlName="inicioIntervalo" />
-          </label>
-          <label class="campo">
-            <span>Duração do intervalo (min)</span>
-            <input class="tichr-input" type="number" min="0" max="120" formControlName="duracaoIntervalo" />
-          </label>
+
+        <div class="campo">
+          <span>Intervalos / recreios</span>
+          <div class="intervalos" formArrayName="intervalos">
+            @for (iv of intervalos.controls; track $index; let i = $index) {
+              <div class="intervalo" [formGroupName]="i">
+                <input class="tichr-input" type="time" formControlName="inicio" aria-label="Início do intervalo" />
+                <input class="tichr-input" type="number" min="1" max="120" formControlName="duracao" aria-label="Duração (min)" />
+                <span class="intervalo__un">min</span>
+                <button type="button" class="rm" (click)="removerIntervalo(i)" aria-label="Remover intervalo">
+                  <app-icon name="x" [size]="16" />
+                </button>
+              </div>
+            }
+          </div>
+          <button type="button" class="btn-outline add-int" (click)="adicionarIntervalo()">
+            <app-icon name="plus" [size]="15" /> Adicionar intervalo
+          </button>
         </div>
 
         <div class="preview">
@@ -104,6 +120,14 @@ import { Modal } from '../../ui/modal/modal';
     .campo { display: block; margin-bottom: 0.75rem; flex: 1; }
     .campo > span { display: block; margin-bottom: 0.3rem; font-size: 0.82rem; font-weight: 600; color: var(--text-muted); }
     .linha { display: flex; gap: 0.75rem; }
+    .intervalos { display: grid; gap: 0.5rem; margin-bottom: 0.5rem; }
+    .intervalo { display: flex; align-items: center; gap: 0.5rem; }
+    .intervalo input[type='time'] { flex: 1 1 auto; }
+    .intervalo input[type='number'] { width: 5rem; }
+    .intervalo__un { font-size: 0.8rem; color: var(--text-muted); }
+    .rm { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); cursor: pointer; flex: 0 0 auto; }
+    .rm:hover { color: var(--danger); border-color: var(--danger); }
+    .add-int { display: inline-flex; align-items: center; gap: 0.4rem; }
     .preview { margin-top: 0.5rem; padding: 0.75rem; border: 1px dashed var(--border); border-radius: var(--radius); background: var(--surface-alt); }
     .preview__t { font-size: 0.82rem; font-weight: 700; color: var(--text-muted); }
     .hint { margin: 0.4rem 0 0; font-size: 0.82rem; color: var(--text-muted); }
@@ -127,9 +151,29 @@ export class InstituicaoModal {
     inicioPrimeiroPeriodo: ['07:00', Validators.required],
     fimUltimoPeriodo: ['12:00', Validators.required],
     duracaoAula: [50, [Validators.required, Validators.min(5)]],
-    inicioIntervalo: ['09:30'],
-    duracaoIntervalo: [20],
+    intervalos: this.fb.array<
+      ReturnType<InstituicaoModal['novoIntervalo']>
+    >([]),
   });
+
+  protected get intervalos(): FormArray {
+    return this.form.controls.intervalos;
+  }
+
+  private novoIntervalo(inicio = '09:30', duracao = 20) {
+    return this.fb.nonNullable.group({
+      inicio: [inicio, Validators.required],
+      duracao: [duracao, [Validators.required, Validators.min(1)]],
+    });
+  }
+
+  protected adicionarIntervalo(): void {
+    this.intervalos.push(this.novoIntervalo());
+  }
+
+  protected removerIntervalo(i: number): void {
+    this.intervalos.removeAt(i);
+  }
 
   private readonly valores = signal(this.form.getRawValue());
   protected readonly previa = computed<GradeSlot[]>(() =>
@@ -145,42 +189,31 @@ export class InstituicaoModal {
       if (!this.open()) return;
       this.erro.set('');
       const inst = this.instituicao();
-      this.form.reset(
-        inst
-          ? {
-              nome: inst.nome,
-              inicioPrimeiroPeriodo: inst.inicioPrimeiroPeriodo,
-              fimUltimoPeriodo: inst.fimUltimoPeriodo,
-              duracaoAula: inst.duracaoAula,
-              inicioIntervalo: inst.inicioIntervalo ?? '',
-              duracaoIntervalo: inst.duracaoIntervalo ?? 0,
-            }
-          : {
-              nome: '',
-              inicioPrimeiroPeriodo: '07:00',
-              fimUltimoPeriodo: '12:00',
-              duracaoAula: 50,
-              inicioIntervalo: '09:30',
-              duracaoIntervalo: 20,
-            },
-      );
+      this.intervalos.clear();
+      const lista = inst ? intervalosDaInstituicao(inst) : [{ inicio: '09:30', duracao: 20 }];
+      for (const iv of lista) {
+        this.intervalos.push(this.novoIntervalo(iv.inicio, iv.duracao));
+      }
+      this.form.patchValue({
+        nome: inst?.nome ?? '',
+        inicioPrimeiroPeriodo: inst?.inicioPrimeiroPeriodo ?? '07:00',
+        fimUltimoPeriodo: inst?.fimUltimoPeriodo ?? '12:00',
+        duracaoAula: inst?.duracaoAula ?? 50,
+      });
     });
   }
 
   private montarPayload(): CriarInstituicaoPayload {
     const v = this.form.getRawValue();
-    const temIntervalo = !!v.inicioIntervalo && Number(v.duracaoIntervalo) > 0;
+    const intervalos = v.intervalos
+      .filter((iv) => !!iv.inicio && Number(iv.duracao) > 0)
+      .map((iv) => ({ inicio: iv.inicio, duracao: Number(iv.duracao) }));
     return {
       nome: v.nome.trim(),
       inicioPrimeiroPeriodo: v.inicioPrimeiroPeriodo,
       fimUltimoPeriodo: v.fimUltimoPeriodo,
       duracaoAula: Number(v.duracaoAula),
-      ...(temIntervalo
-        ? {
-            inicioIntervalo: v.inicioIntervalo,
-            duracaoIntervalo: Number(v.duracaoIntervalo),
-          }
-        : {}),
+      intervalos,
     };
   }
 
@@ -212,8 +245,16 @@ interface GradeParams {
   inicioPrimeiroPeriodo: string;
   fimUltimoPeriodo: string;
   duracaoAula: number;
-  inicioIntervalo?: string;
-  duracaoIntervalo?: number;
+  intervalos?: IntervaloGrade[];
+}
+
+/** Intervalos de uma instituição, com fallback para o campo legado único. */
+export function intervalosDaInstituicao(inst: Instituicao): IntervaloGrade[] {
+  if (inst.intervalos?.length) return inst.intervalos;
+  if (inst.inicioIntervalo && (inst.duracaoIntervalo ?? 0) > 0) {
+    return [{ inicio: inst.inicioIntervalo, duracao: inst.duracaoIntervalo! }];
+  }
+  return [];
 }
 
 function toMin(h: string): number {
@@ -225,7 +266,7 @@ function toHora(m: number): string {
   return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
 }
 
-/** Gera a grade localmente — mesmo algoritmo do backend (fronteira do intervalo). */
+/** Gera a grade localmente — mesmo algoritmo do backend (múltiplos intervalos). */
 export function gerarGradePreview(p: GradeParams): GradeSlot[] {
   if (
     !/^\d{2}:\d{2}$/.test(p.inicioPrimeiroPeriodo || '') ||
@@ -236,26 +277,23 @@ export function gerarGradePreview(p: GradeParams): GradeSlot[] {
   const inicio = toMin(p.inicioPrimeiroPeriodo);
   const fim = toMin(p.fimUltimoPeriodo);
   const dur = Number(p.duracaoAula);
-  const temInt = !!p.inicioIntervalo && Number(p.duracaoIntervalo) > 0;
-  const intInicio = temInt ? toMin(p.inicioIntervalo!) : null;
-  const intDur = Number(p.duracaoIntervalo) || 0;
+  const intervalos = (p.intervalos ?? [])
+    .filter((iv) => /^\d{2}:\d{2}$/.test(iv.inicio || '') && Number(iv.duracao) > 0)
+    .map((iv) => ({ inicio: toMin(iv.inicio), duracao: Number(iv.duracao) }))
+    .sort((a, b) => a.inicio - b.inicio);
 
   const slots: GradeSlot[] = [];
   if (!dur || dur <= 0 || fim <= inicio) return slots;
 
   let cursor = inicio;
   let periodo = 1;
-  let intInserido = false;
+  let idx = 0;
   while (slots.length < 40) {
-    if (
-      intInicio !== null &&
-      !intInserido &&
-      cursor >= intInicio &&
-      cursor + intDur <= fim
-    ) {
-      slots.push({ ordem: slots.length, tipo: 'INTERVALO', rotulo: 'Intervalo', horaInicio: toHora(cursor), horaFim: toHora(cursor + intDur) });
-      cursor += intDur;
-      intInserido = true;
+    const prox = intervalos[idx];
+    if (prox && cursor >= prox.inicio && cursor + prox.duracao <= fim) {
+      slots.push({ ordem: slots.length, tipo: 'INTERVALO', rotulo: 'Intervalo', horaInicio: toHora(cursor), horaFim: toHora(cursor + prox.duracao) });
+      cursor += prox.duracao;
+      idx++;
       continue;
     }
     if (cursor + dur > fim) break;

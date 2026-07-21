@@ -59,6 +59,12 @@ export interface GradeSlot {
   horaFim: string;
 }
 
+/** Um intervalo/recreio da grade de uma instituição. */
+export interface IntervaloGrade {
+  inicio: string; // 'HH:mm'
+  duracao: number; // minutos
+}
+
 /** Instituição (escola) com a grade horária já calculada. */
 export interface Instituicao {
   id: string;
@@ -67,6 +73,9 @@ export interface Instituicao {
   inicioPrimeiroPeriodo: string;
   fimUltimoPeriodo: string;
   duracaoAula: number;
+  /** Intervalos/recreios (formato atual, aceita mais de um). */
+  intervalos?: IntervaloGrade[];
+  /** Legado — intervalo único. */
   inicioIntervalo?: string;
   duracaoIntervalo?: number;
   /** Grade de slots gerada pelo backend a partir dos parâmetros acima. */
@@ -78,8 +87,7 @@ export interface CriarInstituicaoPayload {
   inicioPrimeiroPeriodo: string;
   fimUltimoPeriodo: string;
   duracaoAula: number;
-  inicioIntervalo?: string;
-  duracaoIntervalo?: number;
+  intervalos?: IntervaloGrade[];
 }
 
 /** Alocação de uma turma regular num horário da grade da instituição. */
