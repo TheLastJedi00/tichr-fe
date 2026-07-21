@@ -18,6 +18,28 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.25.0',
+    data: '2026-07-21',
+    titulo: 'Escolas com turnos',
+    itens: [
+      {
+        categoria: 'Nova feature',
+        texto:
+          'As instituições agora têm turnos: marque Matutino, Vespertino e/ou Noturno e configure os horários e recreios de cada um — a grade de cada turno é montada e mostrada separadamente, com sua própria prévia.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Ao criar uma turma de ensino regular, você escolhe em qual turno da escola ela funciona, e a grade de horários passa a ser a daquele turno.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Na tela de turmas de uma escola, o seletor para trocar de instituição só aparece nas turmas que ainda não têm escola — se a turma já pertence a uma, a troca é feita ao editá-la.',
+      },
+    ],
+  },
+  {
     versao: 'v0.24.0',
     data: '2026-07-21',
     titulo: 'Turmas por escola, mais redondas',
