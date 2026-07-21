@@ -79,20 +79,24 @@ const SEM = 'sem-instituicao';
                   @else if (t.disciplina) { <span class="turma__disc">{{ t.disciplina }}</span> }
                 </span>
               </a>
-              <label class="mover">
-                <span class="mover__lbl">Escola</span>
-                <select
-                  class="tichr-input"
-                  [value]="t.instituicaoId || ''"
-                  [disabled]="movendo() === t.id"
-                  (change)="mover(t, $any($event.target).value)"
-                >
-                  <option value="">Sem instituição</option>
-                  @for (i of instituicoes(); track i.id) {
-                    <option [value]="i.id">{{ i.nome }}</option>
-                  }
-                </select>
-              </label>
+              <!-- Trocar de escola só faz sentido para turmas ainda sem
+                   instituição; se já têm, a troca é feita ao editar a turma. -->
+              @if (ehSem()) {
+                <label class="mover">
+                  <span class="mover__lbl">Escola</span>
+                  <select
+                    class="tichr-input"
+                    [value]="t.instituicaoId || ''"
+                    [disabled]="movendo() === t.id"
+                    (change)="mover(t, $any($event.target).value)"
+                  >
+                    <option value="">Sem instituição</option>
+                    @for (i of instituicoes(); track i.id) {
+                      <option [value]="i.id">{{ i.nome }}</option>
+                    }
+                  </select>
+                </label>
+              }
             </div>
           }
         </div>
