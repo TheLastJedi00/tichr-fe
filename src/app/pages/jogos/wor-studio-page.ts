@@ -22,9 +22,9 @@ import { WorApiService } from '../../core/wor-api.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { ProfileService } from '../../core/profile.service';
 import { Topico, Turma, WorJogo } from '../../core/models';
-import { turmaContaComoAtiva } from '../../core/plano.util';
 import { Icon } from '../../ui/icon/icon';
 import { Modal } from '../../ui/modal/modal';
+import { TurmaSelector } from '../../ui/turma-selector/turma-selector';
 
 /**
  * Wizard de criação do Tichr Wor (Setup + Arsenal). Mobile-first: tudo empilhado
@@ -37,7 +37,7 @@ import { Modal } from '../../ui/modal/modal';
   selector: 'app-wor-studio-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, DragDropModule, Icon, Modal],
+  imports: [ReactiveFormsModule, RouterLink, DragDropModule, Icon, Modal, TurmaSelector],
   template: `
     <a class="voltar" routerLink="/jogos/wor">‹ Tichr Wor</a>
     <h1 class="title">{{ editando() ? 'Editar batalha' : 'Forjar nova batalha' }}</h1>
@@ -82,18 +82,11 @@ import { Modal } from '../../ui/modal/modal';
 
         <div class="campo">
           <span>Turmas <small>— atribua a uma ou mais (ou informe uma disciplina)</small></span>
-          @if (turmasVinculaveis().length) {
-            <div class="turmas-check">
-              @for (t of turmasVinculaveis(); track t.id) {
-                <label class="check" [class.check--on]="turmaIdsSel().includes(t.id)">
-                  <input type="checkbox" [checked]="turmaIdsSel().includes(t.id)" (change)="toggleTurma(t.id)" />
-                  {{ t.nome }}
-                </label>
-              }
-            </div>
-          } @else {
-            <p class="dica">Nenhuma turma ativa para vincular.</p>
-          }
+          <app-turma-selector
+            [turmas]="turmas()"
+            [selecionadas]="turmaIdsSel()"
+            (selecionadasChange)="turmaIdsSel.set($event)"
+          />
         </div>
       </section>
 
@@ -252,16 +245,6 @@ export class WorStudioPage {
 
   protected readonly turmas = signal<Turma[]>([]);
   protected readonly turmaIdsSel = signal<string[]>([]);
-  /**
-   * Só faz sentido vincular uma batalha a turmas ativas. Mantém visíveis as já
-   * selecionadas (ex.: ao editar um jogo cuja turma encerrou depois) para não
-   * esconder/perder a atribuição existente.
-   */
-  protected readonly turmasVinculaveis = computed(() =>
-    this.turmas().filter(
-      (t) => turmaContaComoAtiva(t) || this.turmaIdsSel().includes(t.id),
-    ),
-  );
   protected readonly topicos = signal<Topico[]>([]);
   protected readonly disciplinas = computed(
     () => this.profileService.profile()?.disciplinas ?? [],
@@ -315,13 +298,6 @@ export class WorStudioPage {
   }
   protected dicasDe(c: unknown): FormArray {
     return (c as FormGroup).get('dicas') as FormArray;
-  }
-
-  /** Marca/desmarca uma turma na atribuição N:N da batalha. */
-  protected toggleTurma(id: string): void {
-    this.turmaIdsSel.update((sel) =>
-      sel.includes(id) ? sel.filter((x) => x !== id) : [...sel, id],
-    );
   }
 
   /** Carrega os tópicos do plano de aula ao trocar a disciplina. */

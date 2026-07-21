@@ -15,12 +15,12 @@ import {
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CriarQlickPayload, Turma } from '../../core/models';
-import { turmaContaComoAtiva } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Card } from '../../ui/card/card';
 import { Icon } from '../../ui/icon/icon';
 import { Modal } from '../../ui/modal/modal';
+import { TurmaSelector } from '../../ui/turma-selector/turma-selector';
 
 /**
  * Estúdio do Tichr Qlick (PhD): cria/edita o questionário — título, perguntas
@@ -31,7 +31,7 @@ import { Modal } from '../../ui/modal/modal';
   selector: 'app-qlick-studio-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, Card, Icon, Modal],
+  imports: [ReactiveFormsModule, RouterLink, Card, Icon, Modal, TurmaSelector],
   template: `
     <a class="voltar" routerLink="/jogos/qlick">← Tichr Qlick</a>
     <h1 class="title">{{ editId ? 'Editar Qlick' : 'Novo Qlick' }}</h1>
@@ -74,18 +74,11 @@ import { Modal } from '../../ui/modal/modal';
 
         <div class="campo">
           <span>Turmas — atribua a uma ou mais (ou informe uma disciplina acima)</span>
-          @if (turmasVinculaveis().length) {
-            <div class="turmas-check">
-              @for (t of turmasVinculaveis(); track t.id) {
-                <label class="check" [class.check--on]="turmaIdsSel().includes(t.id)">
-                  <input type="checkbox" [checked]="turmaIdsSel().includes(t.id)" (change)="toggleTurma(t.id)" />
-                  {{ t.nome }}
-                </label>
-              }
-            </div>
-          } @else {
-            <p class="dica">Nenhuma turma ativa para vincular.</p>
-          }
+          <app-turma-selector
+            [turmas]="turmas()"
+            [selecionadas]="turmaIdsSel()"
+            (selecionadasChange)="turmaIdsSel.set($event)"
+          />
         </div>
         <label class="campo">
           <span>Tempo por questão (s)</span>
@@ -260,16 +253,6 @@ export class QlickStudioPage {
   protected readonly erro = signal('');
   protected readonly turmas = signal<Turma[]>([]);
   protected readonly turmaIdsSel = signal<string[]>([]);
-  /**
-   * Só faz sentido vincular um jogo a turmas ativas. Mantém visíveis as já
-   * selecionadas (ex.: ao editar um jogo cuja turma encerrou depois) para não
-   * esconder/perder a atribuição existente.
-   */
-  protected readonly turmasVinculaveis = computed(() =>
-    this.turmas().filter(
-      (t) => turmaContaComoAtiva(t) || this.turmaIdsSel().includes(t.id),
-    ),
-  );
   protected readonly topicos = signal<Array<{ id: string; nome: string }>>([]);
   protected readonly disciplinas = computed(
     () => this.profileService.profile()?.disciplinas ?? [],
@@ -309,13 +292,6 @@ export class QlickStudioPage {
     const max = Math.max(0, ...sel.map((t) => t.totalAulas ?? 0));
     return Array.from({ length: max > 0 ? max : 20 }, (_, i) => i + 1);
   });
-
-  /** Marca/desmarca uma turma na atribuição N:N do Qlick. */
-  protected toggleTurma(id: string): void {
-    this.turmaIdsSel.update((sel) =>
-      sel.includes(id) ? sel.filter((x) => x !== id) : [...sel, id],
-    );
-  }
 
   protected get perguntas(): FormArray<FormGroup> {
     return this.form.get('perguntas') as FormArray<FormGroup>;

@@ -16,12 +16,12 @@ import {
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { IsolateusApiService } from '../../core/isolateus-api.service';
 import { CriarIsolateusPayload, Turma } from '../../core/models';
-import { turmaContaComoAtiva } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Card } from '../../ui/card/card';
 import { Icon } from '../../ui/icon/icon';
 import { Modal } from '../../ui/modal/modal';
+import { TurmaSelector } from '../../ui/turma-selector/turma-selector';
 
 /**
  * Estúdio do Tichr Isolateus (PhD): cria/edita a investigação — nome, as questões
@@ -32,7 +32,7 @@ import { Modal } from '../../ui/modal/modal';
   selector: 'app-isolateus-studio-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, Card, Icon, Modal],
+  imports: [ReactiveFormsModule, RouterLink, Card, Icon, Modal, TurmaSelector],
   template: `
     <a class="voltar" routerLink="/jogos/isolateus">← Tichr Isolateus</a>
     <h1 class="title">{{ editId ? 'Editar investigação' : 'Nova investigação' }}</h1>
@@ -75,18 +75,11 @@ import { Modal } from '../../ui/modal/modal';
 
         <div class="campo">
           <span>Turmas — atribua a uma ou mais (ou informe uma disciplina acima)</span>
-          @if (turmasVinculaveis().length) {
-            <div class="turmas-check">
-              @for (t of turmasVinculaveis(); track t.id) {
-                <label class="check" [class.check--on]="turmaIdsSel().includes(t.id)">
-                  <input type="checkbox" [checked]="turmaIdsSel().includes(t.id)" (change)="toggleTurma(t.id)" />
-                  {{ t.nome }}
-                </label>
-              }
-            </div>
-          } @else {
-            <p class="dica">Nenhuma turma ativa para vincular.</p>
-          }
+          <app-turma-selector
+            [turmas]="turmas()"
+            [selecionadas]="turmaIdsSel()"
+            (selecionadasChange)="turmaIdsSel.set($event)"
+          />
         </div>
         <label class="campo">
           <span>Tempo por defesa (s)</span>
@@ -269,12 +262,6 @@ export class IsolateusStudioPage {
   protected readonly erro = signal('');
   protected readonly turmas = signal<Turma[]>([]);
   protected readonly turmaIdsSel = signal<string[]>([]);
-  /** Mantém visíveis as turmas já selecionadas, mesmo que tenham encerrado depois. */
-  protected readonly turmasVinculaveis = computed(() =>
-    this.turmas().filter(
-      (t) => turmaContaComoAtiva(t) || this.turmaIdsSel().includes(t.id),
-    ),
-  );
   protected readonly topicos = signal<Array<{ id: string; nome: string }>>([]);
   protected readonly disciplinas = computed(
     () => this.profileService.profile()?.disciplinas ?? [],
@@ -312,11 +299,6 @@ export class IsolateusStudioPage {
     return Array.from({ length: max > 0 ? max : 20 }, (_, i) => i + 1);
   });
 
-  protected toggleTurma(id: string): void {
-    this.turmaIdsSel.update((sel) =>
-      sel.includes(id) ? sel.filter((x) => x !== id) : [...sel, id],
-    );
-  }
 
   protected get questoes(): FormArray<FormGroup> {
     return this.form.get('questoes') as FormArray<FormGroup>;
