@@ -315,13 +315,6 @@ export const routes: Routes = [
           import('./pages/seguranca/seguranca-page').then((m) => m.SegurancaPage),
       },
       {
-        path: 'configuracoes/instituicoes',
-        loadComponent: () =>
-          import('./pages/instituicoes/instituicoes-page').then(
-            (m) => m.InstituicoesPage,
-          ),
-      },
-      {
         path: 'configuracoes/plano',
         loadComponent: () =>
           import('./pages/meu-plano/meu-plano-page').then(
