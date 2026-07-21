@@ -25,12 +25,12 @@ export const CHANGELOG: VersaoChangelog[] = [
       {
         categoria: 'Nova feature',
         texto:
-          'Agora dá para cadastrar suas Escolas (em Configurações › Instituições). Você informa o horário de início e fim do dia, a duração da aula e o intervalo — e o Tichr monta a grade de horários sozinho (1º Horário, 2º Horário, Intervalo…), com uma prévia ao vivo enquanto você preenche.',
+          'Chegou a organização por Escola. Em "Minhas turmas", cadastre sua instituição informando o horário de início e fim do dia, a duração da aula e o intervalo — e o Tichr monta a grade de horários sozinho (1º Horário, 2º Horário, Intervalo…), com uma prévia ao vivo enquanto você preenche. As turmas passam a ficar agrupadas por escola.',
       },
       {
         categoria: 'Nova feature',
         texto:
-          'Ao criar uma turma, ligue o "Ensino Regular" para vinculá-la a uma escola, escolher o nível (Fundamental ou Médio), o ano/série e marcar em quais horários da grade ela tem aula em cada dia da semana.',
+          'Ao criar uma turma, escolha a modalidade "Ensino Regular" para vinculá-la a uma escola, definir o nível (Fundamental ou Médio), o ano/série e marcar em quais horários da grade ela tem aula em cada dia da semana.',
       },
       {
         categoria: 'Nova feature',
