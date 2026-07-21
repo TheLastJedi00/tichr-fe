@@ -6,8 +6,8 @@ import { Card } from '../../ui/card/card';
 import { Spinner } from '../../ui/spinner/spinner';
 
 /**
- * Gestor de períodos de férias. Sem [turmaId] gerencia as férias globais do
- * professor; com [turmaId], as férias específicas daquela turma.
+ * Gestor de períodos de férias. Escopo pelo input: `[instituicaoId]` → férias
+ * daquela escola; `[turmaId]` → daquela turma; nenhum → férias globais.
  */
 @Component({
   selector: 'app-ferias-manager',
@@ -15,7 +15,7 @@ import { Spinner } from '../../ui/spinner/spinner';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [Card, Spinner],
   template: `
-    <app-card [title]="turmaId() ? 'Férias desta turma' : 'Meus períodos de férias'">
+    <app-card [title]="titulo()">
       @if (carregando()) {
         <div class="loading"><app-spinner [size]="24" /></div>
       } @else {
@@ -81,6 +81,7 @@ import { Spinner } from '../../ui/spinner/spinner';
 export class FeriasManager {
   private readonly api = inject(TurmaApiService);
   readonly turmaId = input<string | undefined>(undefined);
+  readonly instituicaoId = input<string | undefined>(undefined);
 
   protected readonly formatarData = formatarData;
   protected readonly carregando = signal(true);
@@ -88,6 +89,12 @@ export class FeriasManager {
   protected readonly lista = signal<Ferias[]>([]);
   protected readonly de = signal('');
   protected readonly ate = signal('');
+
+  protected titulo(): string {
+    if (this.instituicaoId()) return 'Férias desta escola';
+    if (this.turmaId()) return 'Férias desta turma';
+    return 'Meus períodos de férias';
+  }
 
   constructor() {
     this.carregar();
@@ -101,9 +108,16 @@ export class FeriasManager {
     this.carregando.set(true);
     this.api.getFerias().subscribe({
       next: (todas) => {
-        const alvo = this.turmaId();
+        const inst = this.instituicaoId();
+        const turma = this.turmaId();
         this.lista.set(
-          todas.filter((f) => (alvo ? f.turmaId === alvo : !f.turmaId)),
+          todas.filter((f) =>
+            inst
+              ? f.instituicaoId === inst
+              : turma
+                ? f.turmaId === turma
+                : !f.turmaId && !f.instituicaoId,
+          ),
         );
         this.carregando.set(false);
       },
@@ -118,7 +132,11 @@ export class FeriasManager {
       .criarFerias({
         dataInicio: this.de(),
         dataFim: this.ate(),
-        ...(this.turmaId() ? { turmaId: this.turmaId() } : {}),
+        ...(this.instituicaoId()
+          ? { instituicaoId: this.instituicaoId() }
+          : this.turmaId()
+            ? { turmaId: this.turmaId() }
+            : {}),
       })
       .subscribe({
         next: () => {

@@ -586,6 +586,8 @@ export interface Ferias {
   id: string;
   professorId: string;
   turmaId?: string;
+  /** Escopo por instituição: vale só para as turmas daquela escola. */
+  instituicaoId?: string;
   dataInicio: string;
   dataFim: string;
   descricao?: string;
@@ -593,6 +595,7 @@ export interface Ferias {
 
 export interface CriarFeriasPayload {
   turmaId?: string;
+  instituicaoId?: string;
   dataInicio: string;
   dataFim: string;
   descricao?: string;

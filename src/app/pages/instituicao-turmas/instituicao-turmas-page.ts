@@ -14,6 +14,7 @@ import { InstituicaoApiService } from '../../core/instituicao-api.service';
 import { Instituicao, Turma } from '../../core/models';
 import { turmaContaComoAtiva } from '../../core/plano.util';
 import { TurmaApiService } from '../../core/turma-api.service';
+import { FeriasManager } from '../ferias/ferias-manager';
 import { Icon } from '../../ui/icon/icon';
 import { Skeleton } from '../../ui/skeleton/skeleton';
 
@@ -28,7 +29,7 @@ const SEM = 'sem-instituicao';
   selector: 'app-instituicao-turmas-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Skeleton],
+  imports: [RouterLink, Icon, Skeleton, FeriasManager],
   template: `
     <a class="voltar" routerLink="/turmas">‹ Minhas turmas</a>
 
@@ -101,6 +102,10 @@ const SEM = 'sem-instituicao';
           }
         </div>
       }
+
+      @if (!ehSem()) {
+        <app-ferias-manager class="ferias" [instituicaoId]="paramId()" />
+      }
     }
   `,
   styles: `
@@ -127,6 +132,7 @@ const SEM = 'sem-instituicao';
     .mover { display: flex; flex-direction: column; gap: 0.2rem; }
     .mover__lbl { font-size: 0.72rem; font-weight: 600; color: var(--text-muted); }
     .mover select { min-width: 11rem; }
+    .ferias { display: block; margin-top: 1.25rem; }
   `,
 })
 export class InstituicaoTurmasPage {
@@ -134,7 +140,7 @@ export class InstituicaoTurmasPage {
   private readonly instApi = inject(InstituicaoApiService);
   private readonly route = inject(ActivatedRoute);
 
-  private readonly paramId = toSignal(
+  protected readonly paramId = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('id') ?? SEM)),
     { initialValue: SEM },
   );
