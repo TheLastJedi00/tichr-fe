@@ -152,6 +152,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'instituicoes/:id/turmas',
+        loadComponent: () =>
+          import('./pages/instituicao-turmas/instituicao-turmas-page').then(
+            (m) => m.InstituicaoTurmasPage,
+          ),
+      },
+      {
         path: 'turmas/nova',
         loadComponent: () =>
           import('./pages/nova-turma/nova-turma-page').then(
