@@ -51,14 +51,6 @@ import { Spinner } from '../../ui/spinner/spinner';
           </span>
           <span class="menu__go" aria-hidden="true">›</span>
         </a>
-        <a class="menu__item" routerLink="/configuracoes/instituicoes">
-          <span class="menu__ic"><app-icon name="building" [size]="22" /></span>
-          <span class="menu__txt">
-            <strong>Instituições</strong>
-            <small>Escolas do ensino regular e suas grades de horário</small>
-          </span>
-          <span class="menu__go" aria-hidden="true">›</span>
-        </a>
         <a class="menu__item" routerLink="/configuracoes/plano">
           <span class="menu__ic"><app-icon name="rocket" [size]="22" /></span>
           <span class="menu__txt">
