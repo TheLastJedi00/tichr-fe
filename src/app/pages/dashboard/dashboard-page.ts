@@ -7,12 +7,13 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, of } from 'rxjs';
 import { formatarData } from '../../core/date-format';
 import { dataPorExtenso, saudacaoPorHora } from '../../core/greeting';
 import { statusVisual } from '../../core/status-sessao';
 import {
   CriarExcecaoPayload,
+  Instituicao,
   IsolateusJogo,
   Qlick,
   Sessao,
@@ -22,6 +23,7 @@ import {
 import { linksPainel, NavLink } from '../../core/nav-links';
 import { planoAtendeMinimo } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
+import { InstituicaoApiService } from '../../core/instituicao-api.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { IsolateusApiService } from '../../core/isolateus-api.service';
 import { WorApiService } from '../../core/wor-api.service';
@@ -37,6 +39,47 @@ interface AvisoJogo {
   tipo: 'Qlick' | 'Wor' | 'Isolateus';
   titulo: string;
   rota: string;
+}
+
+/** Próxima entrada de ensino regular (grade da escola × alocações da turma). */
+interface EntradaRegular {
+  data: string;
+  periodo: number;
+  horaInicio: string;
+  horaFim: string;
+  escola: string;
+  serie: string;
+  turmaId: string;
+  turmaNome: string;
+  cor?: string;
+}
+
+const DIAS_SEMANA_DASH = [
+  'Domingo',
+  'Segunda-feira',
+  'Terça-feira',
+  'Quarta-feira',
+  'Quinta-feira',
+  'Sexta-feira',
+  'Sábado',
+];
+
+function isoLocal(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function addDiasIso(iso: string, n: number): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + n);
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
+}
+function weekdayIso(iso: string): number {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+}
+function horaEmMin(h: string): number {
+  const [a, b] = h.split(':').map(Number);
+  return a * 60 + b;
 }
 
 /**
@@ -75,7 +118,25 @@ interface AvisoJogo {
         <span class="muted">Carregando sua agenda…</span>
       </div>
     } @else {
-      @if (proxima(); as p) {
+      @if (usarRegular()) {
+        @if (proximaRegular(); as r) {
+          <app-card title="Próxima aula">
+            <p class="proxima-reg">
+              {{ leadRegular() }} no <strong>{{ r.periodo }}º horário</strong> na
+              escola <strong>{{ r.escola }}</strong> com a turma do
+              <strong>{{ r.serie }}</strong>.
+            </p>
+            <div class="proxima__turma">
+              <span class="dot" [style.background]="r.cor || 'var(--primary)'"></span>
+              {{ r.turmaNome }}
+              <span class="proxima__hora">· {{ r.horaInicio }}–{{ r.horaFim }}</span>
+            </div>
+            <a class="btn-outline detalhes-turma" [routerLink]="['/turmas', r.turmaId]">
+              <app-icon name="building" [size]="16" /> Detalhes da turma
+            </a>
+          </app-card>
+        }
+      } @else if (proxima(); as p) {
         <app-card [title]="emAndamento() ? 'Aula em andamento' : 'Próxima aula'">
           <div class="proxima">
             <div class="proxima__info">
@@ -253,6 +314,12 @@ interface AvisoJogo {
       color: #fff;
       background: var(--success, #16a34a);
     }
+    .proxima-reg {
+      margin: 0 0 0.5rem;
+      font-size: 1.15rem;
+      line-height: 1.5;
+    }
+    .proxima-reg strong { color: var(--primary); }
     .proxima__turma {
       display: flex;
       align-items: center;
@@ -346,6 +413,7 @@ interface AvisoJogo {
 })
 export class DashboardPage {
   private readonly api = inject(TurmaApiService);
+  private readonly instApi = inject(InstituicaoApiService);
   private readonly worApi = inject(WorApiService);
   private readonly isolateusApi = inject(IsolateusApiService);
   private readonly profileService = inject(ProfileService);
@@ -420,6 +488,8 @@ export class DashboardPage {
     const turmas = this.turmas();
     const candidatas = this.sessoes()
       .filter((s) => s.status === 'AGENDADA')
+      // Turmas regulares têm card próprio (linguagem de escola) — fora daqui.
+      .filter((s) => !turmas.get(s.turmaId)?.ensinoRegular)
       .map((s) => {
         const t = turmas.get(s.turmaId);
         return { s, st: statusVisual(s, t?.horaInicio, t?.horaFim, agora) };
@@ -451,6 +521,81 @@ export class DashboardPage {
         'EM_ANDAMENTO'
     );
   });
+
+  // ===== Ensino regular: próxima entrada (linguagem de escola) =====
+  private readonly instituicoes = signal<Instituicao[]>([]);
+
+  /**
+   * Próxima entrada do ensino regular: varre os próximos 14 dias cruzando a
+   * grade da instituição com as alocações das turmas regulares e devolve o
+   * horário/escola/série mais próximo que ainda não terminou.
+   */
+  protected readonly proximaRegular = computed<EntradaRegular | null>(() => {
+    const agora = this.relogio();
+    const insts = this.instituicoes();
+    if (!insts.length) return null;
+    const regulares = [...this.turmas().values()].filter(
+      (t) => t.ensinoRegular && (t.gradeHoraria?.length ?? 0) > 0,
+    );
+    if (!regulares.length) return null;
+    const instMap = new Map(insts.map((i) => [i.id, i]));
+    const hoje = isoLocal(agora);
+    const nowMin = agora.getHours() * 60 + agora.getMinutes();
+
+    const candidatos: (EntradaRegular & { ordem: string })[] = [];
+    for (let d = 0; d < 14; d++) {
+      const iso = addDiasIso(hoje, d);
+      const w = weekdayIso(iso);
+      for (const t of regulares) {
+        if (iso < t.dataInicio) continue;
+        const inst = instMap.get(t.instituicaoId ?? '');
+        if (!inst) continue;
+        for (const g of t.gradeHoraria ?? []) {
+          if (g.diaSemana !== w) continue;
+          const slot = inst.grade.find(
+            (s) => s.tipo === 'AULA' && s.periodo === g.periodo,
+          );
+          if (!slot) continue;
+          if (d === 0 && horaEmMin(slot.horaFim) <= nowMin) continue;
+          candidatos.push({
+            data: iso,
+            periodo: g.periodo,
+            horaInicio: slot.horaInicio,
+            horaFim: slot.horaFim,
+            escola: inst.nome,
+            serie: t.anoSerie || t.nome,
+            turmaId: t.id,
+            turmaNome: t.nome,
+            cor: t.cor,
+            ordem: `${iso}T${slot.horaInicio}`,
+          });
+        }
+      }
+    }
+    candidatos.sort((a, b) => a.ordem.localeCompare(b.ordem));
+    return candidatos[0] ?? null;
+  });
+
+  /** Usa o card de escola quando a entrada regular é a mais próxima. */
+  protected readonly usarRegular = computed<boolean>(() => {
+    const r = this.proximaRegular();
+    if (!r) return false;
+    const p = this.proxima();
+    if (!p) return true;
+    const t = this.proximaTurma();
+    const mod = `${p.data}T${t?.horaInicio || '23:59'}`;
+    return `${r.data}T${r.horaInicio}` <= mod;
+  });
+
+  /** "Hoje/Amanhã/Sexta-feira você entra" conforme a data da próxima entrada. */
+  protected leadRegular(): string {
+    const r = this.proximaRegular();
+    if (!r) return '';
+    const hoje = isoLocal(this.relogio());
+    if (r.data === hoje) return 'Hoje você entra';
+    if (r.data === addDiasIso(hoje, 1)) return 'Amanhã você entra';
+    return `${DIAS_SEMANA_DASH[weekdayIso(r.data)]} você entra`;
+  }
 
   /** Jogos do professor (PhD): Qlick e Wor — avisos da próxima aula. */
   private readonly qlicks = signal<Qlick[]>([]);
@@ -528,11 +673,13 @@ export class DashboardPage {
     forkJoin({
       home: this.profileService.loadHome(),
       sessoes: this.api.getSessoesSemana(),
+      instituicoes: this.instApi.getInstituicoes().pipe(catchError(() => of([]))),
     }).subscribe({
-      next: ({ home, sessoes }) => {
+      next: ({ home, sessoes, instituicoes }) => {
         this.perfilCarregado.set(true);
         this.turmas.set(new Map(home.turmas.map((t) => [t.id, t])));
         this.sessoes.set(sessoes);
+        this.instituicoes.set(instituicoes);
         this.loading.set(false);
 
         const plano = home.profile.planoAtual;
