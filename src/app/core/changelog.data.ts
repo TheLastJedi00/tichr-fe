@@ -18,6 +18,33 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.24.0',
+    data: '2026-07-21',
+    titulo: 'Turmas por escola, mais redondas',
+    itens: [
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Cada escola agora tem a sua própria tela de turmas: toque no card da instituição em "Minhas turmas" e veja só as turmas dela, com filtro por Ativas/Encerradas e busca por nome.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Precisou mover uma turma de escola? Agora tem um seletor de instituição na própria turma — dá para trocar a escola (ou deixar sem instituição) na hora.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'As instituições passam a aceitar mais de um intervalo/recreio na grade — adicione quantos precisar ao cadastrar a escola.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Todas as telas de turma ganharam um botão de voltar para o menu anterior, deixando a navegação mais previsível.',
+      },
+    ],
+  },
+  {
     versao: 'v0.23.0',
     data: '2026-07-21',
     titulo: 'Tichr para a escola: ensino regular',
