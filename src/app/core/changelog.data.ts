@@ -18,6 +18,38 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.23.0',
+    data: '2026-07-21',
+    titulo: 'Tichr para a escola: ensino regular',
+    itens: [
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Agora dá para cadastrar suas Escolas (em Configurações › Instituições). Você informa o horário de início e fim do dia, a duração da aula e o intervalo — e o Tichr monta a grade de horários sozinho (1º Horário, 2º Horário, Intervalo…), com uma prévia ao vivo enquanto você preenche.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Ao criar uma turma, ligue o "Ensino Regular" para vinculá-la a uma escola, escolher o nível (Fundamental ou Médio), o ano/série e marcar em quais horários da grade ela tem aula em cada dia da semana.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Nova agenda diária: um deslize para o lado troca de dia (Segunda a Sexta), já abrindo no dia de hoje, com a lista de horários na vertical — 1º Horário, 2º Horário, Intervalo — mostrando a turma de cada horário ou uma janela livre.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'A agenda mensal ficou mais limpa: os dias com aula são destacados por cor e um "i" — toque no dia para abrir os horários daquele dia num quadro, sem mudar de tela.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'No painel inicial, a "Próxima aula" fala a língua da escola: "Hoje você entra no 1º horário na escola [Nome] com a turma do 9º Ano".',
+      },
+    ],
+  },
+  {
     versao: 'v0.22.0',
     data: '2026-07-20',
     titulo: 'Menos atrito na hora do jogo',

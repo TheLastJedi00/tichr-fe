@@ -1,10 +1,21 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  ElementRef,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { formatarData } from '../../core/date-format';
 import { hojeISO } from '../../core/greeting';
-import { Ferias, Sessao, Turma } from '../../core/models';
+import { InstituicaoApiService } from '../../core/instituicao-api.service';
+import { Ferias, GradeSlot, Instituicao, Sessao, Turma } from '../../core/models';
 import { TurmaApiService } from '../../core/turma-api.service';
+import { Icon } from '../../ui/icon/icon';
 import { Modal } from '../../ui/modal/modal';
 import { Skeleton } from '../../ui/skeleton/skeleton';
 
@@ -13,22 +24,36 @@ type Modo = 'calendario' | 'detalhado';
 interface DiaCal {
   iso: string;
   dia: number;
-  sessoes: Sessao[];
   hoje: boolean;
   ferias: boolean;
+  temAula: boolean;
 }
-interface AulaDet {
+/** Um horário da grade num dia: o slot + a turma que o ocupa (ou vazio = janela). */
+interface SlotDia {
+  slot: GradeSlot;
+  turma?: Turma;
+}
+interface InstDia {
+  nome: string;
+  slots: SlotDia[];
+}
+interface ModularDia {
   sessao: Sessao;
   turma?: Turma;
 }
-interface Turno {
-  nome: string;
-  aulas: AulaDet[];
+/** Agenda consolidada de um dia (ensino regular por grade + aulas modulares). */
+interface AgendaDia {
+  instituicoes: InstDia[];
+  modulares: ModularDia[];
+  ferias: boolean;
+  vazio: boolean;
 }
-interface DiaDet {
+interface Slide {
   iso: string;
-  label: string;
-  turnos: Turno[];
+  diaSemana: string;
+  dataCurta: string;
+  hoje: boolean;
+  agenda: AgendaDia;
 }
 
 const CABECALHOS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
@@ -53,14 +78,23 @@ function domingo(iso: string): string {
 }
 
 /**
- * AgendaPage (smart): duas visões — Calendário (grade de 5 semanas) e Detalhado
- * (próximos 15 dias por turnos). A escolha é memorizada no localStorage.
+ * AgendaPage (smart): duas visões.
+ * - **Calendário** (5 semanas): dias com aula ganham cor de destaque + um ícone
+ *   "i"; clicar abre um modal com a grade horária daquele dia. Sem nomes de
+ *   turma no calendário (limpeza visual — ENH-008 §3.4).
+ * - **Detalhado** (swipe): carrossel por dia da semana (Seg–Sex da semana atual),
+ *   focado em hoje, com a grade vertical do ensino regular (Horário → turma /
+ *   Janela / Intervalo) + as aulas modulares daquela data (§3.3).
+ *
+ * A agenda do ensino regular é montada cruzando a **grade da instituição** com as
+ * **alocações da turma** por dia da semana; as turmas modulares seguem baseadas
+ * nas sessões projetadas.
  */
 @Component({
   selector: 'app-agenda-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Skeleton, Modal, RouterLink],
+  imports: [Skeleton, Modal, Icon, RouterLink, NgTemplateOutlet],
   template: `
     <header class="head">
       <h1 class="title">Minha Agenda</h1>
@@ -94,7 +128,7 @@ function domingo(iso: string): string {
         @for (i of [1, 2, 3, 4, 5]; track i) {
           <div class="grid">
             @for (j of [0, 1, 2, 3, 4, 5, 6]; track j) {
-              <div class="sk-cell"><app-skeleton height="68px" radius="8px" /></div>
+              <div class="sk-cell"><app-skeleton height="60px" radius="8px" /></div>
             }
           </div>
         }
@@ -109,93 +143,124 @@ function domingo(iso: string): string {
         @for (semana of semanas(); track semana[0].iso) {
           <div class="grid">
             @for (dia of semana; track dia.iso) {
-              <div
+              <button
+                type="button"
                 class="cell"
-                [class.tem-aula]="dia.sessoes.length"
+                [class.tem-aula]="dia.temAula"
                 [class.hoje]="dia.hoje"
                 [class.ferias]="dia.ferias"
-                [class.clicavel]="dia.sessoes.length"
-                [attr.title]="dia.ferias ? 'Férias' : null"
-                (click)="dia.sessoes.length && diaSelecionado.set(dia)"
+                [class.clicavel]="dia.temAula"
+                [disabled]="!dia.temAula"
+                [attr.title]="dia.ferias ? 'Férias' : (dia.temAula ? 'Ver horários' : null)"
+                (click)="abrirDia(dia.iso)"
               >
                 <span class="cell__dia">{{ dia.dia }}</span>
-                @for (s of dia.sessoes; track s.id) {
-                  <span
-                    class="badge"
-                    [class.badge--cancelada]="s.status === 'CANCELADA'"
-                    [style.background]="s.status === 'CANCELADA' ? null : corDaTurma(s.turmaId)"
-                    [style.border-color]="s.status === 'CANCELADA' ? null : corDaTurma(s.turmaId)"
-                  >Aula {{ s.numero }}</span>
+                @if (dia.temAula) {
+                  <span class="cell__i"><app-icon name="info" [size]="14" /></span>
                 }
-              </div>
+              </button>
             }
           </div>
         }
       </div>
+      <p class="legenda">
+        <span class="leg leg--aula"></span> dia com aula &nbsp;·&nbsp;
+        Toque num dia para ver os horários.
+      </p>
     } @else {
-      @if (dias().length === 0) {
-        <p class="muted">Nenhuma aula nos próximos 15 dias.</p>
-      } @else {
-        <div class="dias">
-          @for (dia of dias(); track dia.iso) {
-            <article class="cartao">
-              <header class="cartao__head">{{ dia.label }}</header>
-              @for (turno of dia.turnos; track turno.nome) {
-                <div class="turno">
-                  <span class="turno__nome">{{ turno.nome }}</span>
-                  @for (a of turno.aulas; track a.sessao.id) {
-                    <div class="det" [class.det--cancelada]="a.sessao.status === 'CANCELADA'">
-                      <span class="dot" [style.background]="corDaTurma(a.sessao.turmaId)"></span>
-                      <div class="det__txt">
-                        <strong>{{ a.turma?.nome ?? 'Turma' }}</strong>
-                        <span class="det__meta">
-                          @if (a.turma?.disciplina) { {{ a.turma?.disciplina }} · }
-                          @if (a.turma?.horaInicio) { {{ a.turma?.horaInicio }}–{{ a.turma?.horaFim }} }
-                          @else { Aula {{ a.sessao.numero }} }
-                        </span>
-                      </div>
-                    </div>
-                  }
-                </div>
-              }
-            </article>
-          }
-        </div>
-      }
+      <div class="track" #track>
+        @for (s of slides(); track s.iso) {
+          <article class="slide" [class.is-hoje]="s.hoje" [attr.data-hoje]="s.hoje">
+            <header class="slide__head">
+              <strong>{{ s.diaSemana }}</strong>
+              <span>{{ s.dataCurta }}</span>
+              @if (s.hoje) { <span class="tag-hoje">Hoje</span> }
+            </header>
+            <div class="slide__corpo">
+              <ng-container [ngTemplateOutlet]="corpoDia" [ngTemplateOutletContext]="{ $implicit: s.agenda }" />
+            </div>
+          </article>
+        }
+      </div>
+      <p class="legenda">Arraste para o lado para ver os outros dias.</p>
     }
 
     <app-modal
-      [open]="!!diaSelecionado()"
-      [title]="diaSelecionado() ? formatarData(diaSelecionado()!.iso) : ''"
-      (close)="diaSelecionado.set(null)"
+      [open]="!!diaModal()"
+      [title]="tituloModal()"
+      (close)="diaModal.set(null)"
     >
-      @if (diaSelecionado(); as dia) {
-        <ul class="detalhes">
-          @for (s of dia.sessoes; track s.id) {
-            <li class="detli">
-              <div class="detli__top">
-                <div class="det__turma">
-                  <span class="dot" [style.background]="corDaTurma(s.turmaId)"></span>
-                  <strong>{{ turmaDe(s.turmaId)?.nome ?? 'Turma' }}</strong>
-                </div>
-                <a class="det__ver" [routerLink]="['/turmas', s.turmaId]">Ver turma ›</a>
-              </div>
-              <div class="det__meta">
-                <span>Aula {{ s.numero }}</span>
-                <span class="badge-status" [class]="'st--' + s.status.toLowerCase()">{{ s.status }}</span>
-                @if (turmaDe(s.turmaId)?.disciplina) {
-                  <span>{{ turmaDe(s.turmaId)?.disciplina }}</span>
-                }
-                @if (turmaDe(s.turmaId)?.horaInicio && turmaDe(s.turmaId)?.horaFim) {
-                  <span>{{ turmaDe(s.turmaId)?.horaInicio }}–{{ turmaDe(s.turmaId)?.horaFim }}</span>
-                }
-              </div>
-            </li>
-          }
-        </ul>
+      @if (diaModal(); as iso) {
+        <ng-container [ngTemplateOutlet]="corpoDia" [ngTemplateOutletContext]="{ $implicit: agendaDoDia(iso) }" />
       }
-      <button modal-actions class="btn-primary" type="button" (click)="diaSelecionado.set(null)">Fechar</button>
+      <button modal-actions class="btn-primary" type="button" (click)="diaModal.set(null)">Fechar</button>
     </app-modal>
+
+    <!-- Renderização compartilhada da grade de um dia (modal + swipe) -->
+    <ng-template #corpoDia let-ag>
+      @if (ag.ferias) {
+        <p class="muted">Férias — sem aulas neste dia.</p>
+      } @else if (ag.vazio) {
+        <p class="muted">Sem aulas neste dia.</p>
+      } @else {
+        @for (inst of ag.instituicoes; track inst.nome) {
+          <section class="inst">
+            <h3 class="inst__nome"><app-icon name="building" [size]="15" /> {{ inst.nome }}</h3>
+            <ul class="slots">
+              @for (s of inst.slots; track s.slot.ordem) {
+                @if (s.slot.tipo === 'INTERVALO') {
+                  <li class="slot slot--int">
+                    <span class="slot__hora">{{ s.slot.horaInicio }}</span>
+                    <span class="slot__corpo intervalo">Intervalo</span>
+                  </li>
+                } @else {
+                  <li class="slot">
+                    <span class="slot__hora">{{ s.slot.horaInicio }}</span>
+                    <span class="slot__rot">{{ s.slot.periodo }}º</span>
+                    @if (s.turma) {
+                      <a class="slot__turma" [routerLink]="['/turmas', s.turma.id]">
+                        <span class="dot" [style.background]="s.turma.cor || 'var(--primary)'"></span>
+                        {{ s.turma.anoSerie || s.turma.nome }}
+                      </a>
+                    } @else {
+                      <span class="slot__livre">Janela / Livre</span>
+                    }
+                  </li>
+                }
+              }
+            </ul>
+          </section>
+        }
+        @if (ag.modulares.length) {
+          <section class="inst">
+            @if (ag.instituicoes.length) { <h3 class="inst__nome">Outras aulas</h3> }
+            <ul class="detalhes">
+              @for (m of ag.modulares; track m.sessao.id) {
+                <li class="detli" [class.det--cancelada]="m.sessao.status === 'CANCELADA'">
+                  <div class="detli__top">
+                    <div class="det__turma">
+                      <span class="dot" [style.background]="m.turma?.cor || 'var(--primary)'"></span>
+                      <strong>{{ m.turma?.nome ?? 'Turma' }}</strong>
+                    </div>
+                    <a class="det__ver" [routerLink]="['/turmas', m.sessao.turmaId]">Ver turma ›</a>
+                  </div>
+                  <div class="det__meta">
+                    <span>Aula {{ m.sessao.numero }}</span>
+                    @if (m.sessao.status === 'CANCELADA') {
+                      <span class="badge-status st--cancelada">Cancelada</span>
+                    }
+                    @if (m.turma?.disciplina) { <span>{{ m.turma?.disciplina }}</span> }
+                    @if (m.turma?.horaInicio && m.turma?.horaFim) {
+                      <span>{{ m.turma?.horaInicio }}–{{ m.turma?.horaFim }}</span>
+                    }
+                  </div>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+      }
+    </ng-template>
   `,
   styles: `
     .head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
@@ -203,60 +268,75 @@ function domingo(iso: string): string {
     .toggle { display: inline-flex; gap: 0.25rem; padding: 0.2rem; border-radius: 999px; background: var(--surface-alt); }
     .toggle__btn { font: inherit; font-size: 0.85rem; font-weight: 600; padding: 0.35rem 0.8rem; border: none; border-radius: 999px; background: none; color: var(--text-muted); cursor: pointer; }
     .toggle__btn.is-on { background: var(--surface); color: var(--primary); }
-    .loading { display: flex; justify-content: center; padding: 3rem 0; color: var(--primary); }
-    .sk-cell { min-height: 68px; }
+    .sk-cell { min-height: 60px; }
     .muted { color: var(--text-muted); }
+    .legenda { margin: 0.9rem 0 0; font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
+    .leg { width: 12px; height: 12px; border-radius: 4px; display: inline-block; }
+    .leg--aula { background: color-mix(in srgb, var(--success) 22%, var(--surface)); border: 1px solid color-mix(in srgb, var(--success) 55%, var(--border)); }
+
+    /* ===== Calendário ===== */
     .grid-wrap { overflow-x: auto; }
     .grid { display: grid; grid-template-columns: repeat(7, minmax(44px, 1fr)); gap: 4px; }
     .grid + .grid { margin-top: 4px; }
     .col-head { text-align: center; font-weight: 700; color: var(--text-muted); padding: 0.375rem 0; }
-    .cell { min-height: 68px; padding: 0.375rem; background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius); }
-    .cell.tem-aula { background: var(--surface); border-color: var(--primary); }
+    .cell { position: relative; min-height: 60px; padding: 0.375rem; background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius); text-align: left; font: inherit; cursor: default; }
+    .cell.tem-aula { background: color-mix(in srgb, var(--success) 18%, var(--surface)); border-color: color-mix(in srgb, var(--success) 50%, var(--border)); }
     .cell.hoje { outline: 2px solid var(--primary); outline-offset: -1px; }
-    /* Férias: contorno vermelho (box-shadow inset p/ não brigar com border/outline). */
     .cell.ferias { box-shadow: inset 0 0 0 2px var(--danger); }
     .cell__dia { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
     .cell.hoje .cell__dia { color: var(--primary); }
-    .badge { display: block; margin-top: 0.25rem; padding: 0.1rem 0.3rem; font-size: 0.68rem; font-weight: 700; color: var(--primary-contrast); background: var(--primary); border-radius: 4px; white-space: nowrap; }
-    .badge--cancelada { background: var(--danger); text-decoration: line-through; }
+    .cell__i { position: absolute; right: 4px; bottom: 4px; color: var(--success); display: inline-flex; }
     .cell.clicavel { cursor: pointer; }
+    .cell.clicavel:hover { border-color: var(--primary); }
 
-    /* ===== Modo detalhado ===== */
-    .dias { display: grid; grid-template-columns: 1fr; gap: 0.75rem; }
-    @media (min-width: 720px) { .dias { grid-template-columns: 1fr 1fr; } }
-    .cartao { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: 0.85rem 1rem; }
-    .cartao__head { font-weight: 800; margin-bottom: 0.5rem; }
-    .turno { margin-bottom: 0.5rem; }
-    .turno:last-child { margin-bottom: 0; }
-    .turno__nome { display: block; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 0.3rem; }
-    .det { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0; flex-wrap: wrap; }
-    .det--cancelada { opacity: 0.55; text-decoration: line-through; }
-    .det__txt { display: flex; flex-direction: column; }
-    .det__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.8rem; font-size: 0.82rem; color: var(--text-muted); }
+    /* ===== Detalhado (swipe) ===== */
+    .track { display: flex; gap: 0.75rem; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; padding: 0.25rem 0.1rem 1rem; margin: 0 -0.1rem; scrollbar-width: thin; }
+    .slide { flex: 0 0 85%; max-width: 420px; scroll-snap-align: center; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: 0.9rem 1rem; }
+    .slide.is-hoje { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
+    @media (min-width: 760px) { .slide { flex-basis: 46%; } }
+    .slide__head { display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 0.6rem; }
+    .slide__head strong { font-size: 1.05rem; }
+    .slide__head span { color: var(--text-muted); font-size: 0.85rem; }
+    .tag-hoje { margin-left: auto; background: var(--primary); color: var(--primary-contrast); font-size: 0.68rem; font-weight: 700; padding: 0.1rem 0.5rem; border-radius: 999px; }
+
+    /* ===== Grade de um dia (compartilhado) ===== */
+    .inst + .inst { margin-top: 0.9rem; padding-top: 0.75rem; border-top: 1px solid var(--border); }
+    .inst__nome { display: flex; align-items: center; gap: 0.35rem; margin: 0 0 0.5rem; font-size: 0.85rem; font-weight: 700; color: var(--text-muted); }
+    .slots { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.3rem; }
+    .slot { display: flex; align-items: center; gap: 0.6rem; padding: 0.35rem 0.5rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-alt); }
+    .slot__hora { font-size: 0.72rem; color: var(--text-muted); flex: 0 0 2.6rem; font-variant-numeric: tabular-nums; }
+    .slot__rot { font-weight: 700; font-size: 0.8rem; flex: 0 0 1.6rem; }
+    .slot__turma { display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 600; color: inherit; text-decoration: none; }
+    .slot__turma:hover { color: var(--primary); }
+    .slot__livre { color: var(--text-muted); font-size: 0.85rem; font-style: italic; }
+    .slot--int { background: color-mix(in srgb, var(--warning) 14%, var(--surface)); border-color: color-mix(in srgb, var(--warning) 40%, var(--border)); }
+    .slot--int .intervalo { font-weight: 700; font-size: 0.82rem; color: color-mix(in srgb, var(--warning) 60%, var(--text)); }
     .dot { width: 10px; height: 10px; border-radius: 999px; display: inline-block; flex: 0 0 auto; }
 
     .detalhes { list-style: none; margin: 0; padding: 0; }
-    .detli { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.75rem 0; }
+    .detli { display: flex; flex-direction: column; gap: 0.35rem; padding: 0.5rem 0; }
     .detli + .detli { border-top: 1px solid var(--border); }
-    .detli__top { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem 0.75rem; flex-wrap: wrap; }
+    .det--cancelada { opacity: 0.55; }
+    .detli__top { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
     .det__turma { display: flex; align-items: center; gap: 0.4rem; min-width: 0; }
     .det__ver { color: var(--primary); font-weight: 600; text-decoration: none; white-space: nowrap; font-size: 0.85rem; }
     .det__ver:hover { text-decoration: underline; }
-    .badge-status { font-weight: 700; font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 999px; border: 1px solid var(--border); }
-    .st--agendada { color: var(--primary); border-color: var(--primary); }
-    .st--cancelada { color: var(--danger); border-color: var(--danger); }
-    .st--realizada { color: var(--success); border-color: var(--success); }
+    .det__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.8rem; font-size: 0.82rem; color: var(--text-muted); }
+    .badge-status { font-weight: 700; font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 999px; border: 1px solid var(--danger); color: var(--danger); }
   `,
 })
 export class AgendaPage {
   private readonly api = inject(TurmaApiService);
+  private readonly instApi = inject(InstituicaoApiService);
+  private readonly track = viewChild<ElementRef<HTMLElement>>('track');
+
   protected readonly cabecalhos = CABECALHOS;
-  protected readonly formatarData = formatarData;
   protected readonly loading = signal(true);
   protected readonly sessoes = signal<Sessao[]>([]);
-  protected readonly diaSelecionado = signal<DiaCal | null>(null);
+  protected readonly diaModal = signal<string | null>(null);
   private readonly turmasMap = signal<Map<string, Turma>>(new Map());
-  /** Períodos de férias do professor (contorno vermelho no dia). */
+  private readonly turmasRegulares = signal<Turma[]>([]);
+  private readonly instituicoes = signal<Instituicao[]>([]);
   private readonly ferias = signal<Ferias[]>([]);
 
   protected readonly modo = signal<Modo>(
@@ -266,27 +346,95 @@ export class AgendaPage {
   protected setModo(m: Modo): void {
     this.modo.set(m);
     localStorage.setItem(MODO_KEY, m);
+    if (m === 'detalhado') setTimeout(() => this.centralizarHoje(), 0);
   }
 
   protected turmaDe(turmaId: string): Turma | undefined {
     return this.turmasMap().get(turmaId);
   }
-  protected corDaTurma(turmaId: string): string {
-    return this.turmasMap().get(turmaId)?.cor ?? 'var(--primary)';
+
+  protected abrirDia(iso: string): void {
+    if (this.temAula(iso) || this.ehFerias(iso)) this.diaModal.set(iso);
   }
 
-  /** Verdadeiro se o dia (iso) cai em algum período de férias do professor. */
+  protected tituloModal(): string {
+    const iso = this.diaModal();
+    if (!iso) return '';
+    return `${DIAS_SEMANA[parse(iso).getUTCDay()]}, ${formatarData(iso)}`;
+  }
+
   private ehFerias(iso: string): boolean {
     return this.ferias().some((f) => f.dataInicio <= iso && iso <= f.dataFim);
   }
 
+  /** Há aula no dia? (turma regular alocada no dia da semana OU sessão modular.) */
+  private temAula(iso: string): boolean {
+    if (this.ehFerias(iso)) return false;
+    const w = parse(iso).getUTCDay();
+    const regular = this.turmasRegulares().some(
+      (t) =>
+        iso >= t.dataInicio &&
+        (t.gradeHoraria ?? []).some((g) => g.diaSemana === w),
+    );
+    if (regular) return true;
+    return this.sessoes().some(
+      (s) => s.data === iso && !this.turmaDe(s.turmaId)?.ensinoRegular,
+    );
+  }
+
+  /** Monta a agenda consolidada de um dia (grade regular + aulas modulares). */
+  protected agendaDoDia(iso: string): AgendaDia {
+    const ferias = this.ehFerias(iso);
+    if (ferias) {
+      return { instituicoes: [], modulares: [], ferias: true, vazio: false };
+    }
+    const w = parse(iso).getUTCDay();
+
+    const instituicoes: InstDia[] = [];
+    for (const inst of this.instituicoes()) {
+      const turmasInst = this.turmasRegulares().filter(
+        (t) =>
+          t.instituicaoId === inst.id &&
+          iso >= t.dataInicio &&
+          (t.gradeHoraria ?? []).some((g) => g.diaSemana === w),
+      );
+      if (!turmasInst.length) continue;
+      const slots: SlotDia[] = inst.grade.map((slot) => {
+        if (slot.tipo === 'INTERVALO') return { slot };
+        const turma = turmasInst.find((t) =>
+          (t.gradeHoraria ?? []).some(
+            (g) => g.diaSemana === w && g.periodo === slot.periodo,
+          ),
+        );
+        return { slot, turma };
+      });
+      instituicoes.push({ nome: inst.nome, slots });
+    }
+
+    const modulares: ModularDia[] = this.sessoes()
+      .filter((s) => s.data === iso)
+      .map((s) => ({ sessao: s, turma: this.turmaDe(s.turmaId) }))
+      .filter((m) => !m.turma?.ensinoRegular)
+      .sort((a, b) =>
+        (a.turma?.horaInicio ?? '').localeCompare(b.turma?.horaInicio ?? ''),
+      );
+
+    return {
+      instituicoes,
+      modulares,
+      ferias: false,
+      vazio: !instituicoes.length && !modulares.length,
+    };
+  }
+
   /** Calendário: semana atual + 4 seguintes (5 semanas). */
   protected readonly semanas = computed<DiaCal[][]>(() => {
+    // dependências reativas
+    this.sessoes();
+    this.turmasRegulares();
+    this.instituicoes();
+    this.ferias();
     const hoje = hojeISO(new Date());
-    const porData = new Map<string, Sessao[]>();
-    for (const s of this.sessoes()) {
-      porData.set(s.data, [...(porData.get(s.data) ?? []), s]);
-    }
     const semanas: DiaCal[][] = [];
     let cursor = domingo(hoje);
     for (let w = 0; w < 5; w++) {
@@ -295,9 +443,9 @@ export class AgendaPage {
         semana.push({
           iso: cursor,
           dia: parse(cursor).getUTCDate(),
-          sessoes: porData.get(cursor) ?? [],
           hoje: cursor === hoje,
           ferias: this.ehFerias(cursor),
+          temAula: this.temAula(cursor),
         });
         cursor = addDays(cursor, 1);
       }
@@ -306,46 +454,41 @@ export class AgendaPage {
     return semanas;
   });
 
-  /** Detalhado: hoje + 14 dias (com aulas), por turnos. */
-  protected readonly dias = computed<DiaDet[]>(() => {
+  /** Detalhado: dias da semana atual (Seg–Sex + fim de semana com aula), focando hoje. */
+  protected readonly slides = computed<Slide[]>(() => {
+    this.sessoes();
+    this.turmasRegulares();
+    this.instituicoes();
+    this.ferias();
     const hoje = hojeISO(new Date());
-    const fim = addDays(hoje, 14);
-    const porData = new Map<string, Sessao[]>();
-    for (const s of this.sessoes()) {
-      if (s.data >= hoje && s.data <= fim) {
-        porData.set(s.data, [...(porData.get(s.data) ?? []), s]);
-      }
+    const segunda = addDays(domingo(hoje), 1);
+    const slides: Slide[] = [];
+    for (let i = 0; i < 7; i++) {
+      const iso = addDays(segunda, i);
+      const w = parse(iso).getUTCDay();
+      const ehSemana = w >= 1 && w <= 5;
+      const agenda = this.agendaDoDia(iso);
+      const ativo =
+        agenda.instituicoes.length > 0 || agenda.modulares.length > 0;
+      if (!ehSemana && !ativo && iso !== hoje) continue;
+      slides.push({
+        iso,
+        diaSemana: DIAS_SEMANA[w],
+        dataCurta: `${String(parse(iso).getUTCDate()).padStart(2, '0')}/${String(parse(iso).getUTCMonth() + 1).padStart(2, '0')}`,
+        hoje: iso === hoje,
+        agenda,
+      });
     }
-    const dias: DiaDet[] = [];
-    for (let iso = hoje; iso <= fim; iso = addDays(iso, 1)) {
-      const doDia = porData.get(iso);
-      if (!doDia?.length) continue;
-      const turnos = this.montarTurnos(doDia);
-      if (turnos.length) {
-        dias.push({
-          iso,
-          label: `${DIAS_SEMANA[parse(iso).getUTCDay()]} · ${formatarData(iso)}`,
-          turnos,
-        });
-      }
-    }
-    return dias;
+    return slides;
   });
 
-  /** Agrupa aulas em Manhã/Tarde/Noite pelo horaInicio da turma. */
-  private montarTurnos(sessoes: Sessao[]): Turno[] {
-    const baldes: Record<string, AulaDet[]> = { Manhã: [], Tarde: [], Noite: [] };
-    for (const s of sessoes) {
-      const turma = this.turmasMap().get(s.turmaId);
-      const h = Number((turma?.horaInicio ?? '08:00').slice(0, 2));
-      const turno = h < 12 ? 'Manhã' : h < 18 ? 'Tarde' : 'Noite';
-      baldes[turno].push({ sessao: s, turma });
-    }
-    const ordenar = (a: AulaDet, b: AulaDet) =>
-      (a.turma?.horaInicio ?? '').localeCompare(b.turma?.horaInicio ?? '');
-    return ['Manhã', 'Tarde', 'Noite']
-      .map((nome) => ({ nome, aulas: baldes[nome].sort(ordenar) }))
-      .filter((t) => t.aulas.length > 0);
+  private centralizarHoje(): void {
+    const el = this.track()?.nativeElement;
+    if (!el) return;
+    const card = el.querySelector<HTMLElement>('.slide.is-hoje');
+    if (!card) return;
+    el.scrollLeft =
+      card.offsetLeft - (el.clientWidth - card.clientWidth) / 2;
   }
 
   constructor() {
@@ -353,12 +496,18 @@ export class AgendaPage {
       sessoes: this.api.getSessoesSemana(),
       turmas: this.api.getTurmas(),
       ferias: this.api.getFerias(),
+      instituicoes: this.instApi.getInstituicoes(),
     }).subscribe({
-      next: ({ sessoes, turmas, ferias }) => {
+      next: ({ sessoes, turmas, ferias, instituicoes }) => {
         this.turmasMap.set(new Map(turmas.map((t: Turma) => [t.id, t])));
+        this.turmasRegulares.set(turmas.filter((t) => t.ensinoRegular));
         this.sessoes.set(sessoes);
         this.ferias.set(ferias);
+        this.instituicoes.set(instituicoes);
         this.loading.set(false);
+        if (this.modo() === 'detalhado') {
+          setTimeout(() => this.centralizarHoje(), 0);
+        }
       },
       error: () => this.loading.set(false),
     });
