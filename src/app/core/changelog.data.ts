@@ -18,6 +18,72 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.27.0',
+    data: '2026-07-21',
+    titulo: 'Férias por escola, sem bagunçar a agenda',
+    itens: [
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Agora dá para cadastrar férias/recesso de uma escola específica (na tela de turmas da instituição). Elas afetam só as turmas daquela escola — turmas de outras escolas continuam na agenda normalmente.',
+      },
+      {
+        categoria: 'Correção',
+        texto:
+          'Férias de uma turma ou escola não pintam mais o calendário inteiro de vermelho nem escondem as aulas de outras escolas. O destaque vermelho fica reservado para as férias globais (que valem para tudo).',
+      },
+      {
+        categoria: 'Correção',
+        texto:
+          'Aulas marcadas propositalmente dentro de um recesso voltam a aparecer no calendário — a aula prevalece sobre o indicador de férias.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Ao cadastrar uma turma cujo início cai dentro das férias da própria escola, o sistema pergunta se você tem certeza antes de agendar.',
+      },
+    ],
+  },
+  {
+    versao: 'v0.26.0',
+    data: '2026-07-21',
+    titulo: 'Próxima aula ainda mais clara',
+    itens: [
+      {
+        categoria: 'Melhoria',
+        texto:
+          'O painel inicial agora fala o período do dia: "Hoje à tarde você entra no 2º horário na escola X com a turma do 9º Ano".',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Ao cadastrar/editar uma escola, você pode marcar "uma aula por turno" (quando o turno inteiro é uma aula só). Nesse caso, o painel mostra apenas o período — "Hoje à tarde você tem aula com a turma do 9º Ano" — sem número de horário.',
+      },
+    ],
+  },
+  {
+    versao: 'v0.25.0',
+    data: '2026-07-21',
+    titulo: 'Escolas com turnos',
+    itens: [
+      {
+        categoria: 'Nova feature',
+        texto:
+          'As instituições agora têm turnos: marque Matutino, Vespertino e/ou Noturno e configure os horários e recreios de cada um — a grade de cada turno é montada e mostrada separadamente, com sua própria prévia.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Ao criar uma turma de ensino regular, você escolhe em qual turno da escola ela funciona, e a grade de horários passa a ser a daquele turno.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Na tela de turmas de uma escola, o seletor para trocar de instituição só aparece nas turmas que ainda não têm escola — se a turma já pertence a uma, a troca é feita ao editá-la.',
+      },
+    ],
+  },
+  {
     versao: 'v0.24.0',
     data: '2026-07-21',
     titulo: 'Turmas por escola, mais redondas',

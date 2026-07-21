@@ -14,6 +14,7 @@ import { InstituicaoApiService } from '../../core/instituicao-api.service';
 import { Instituicao, Turma } from '../../core/models';
 import { turmaContaComoAtiva } from '../../core/plano.util';
 import { TurmaApiService } from '../../core/turma-api.service';
+import { FeriasManager } from '../ferias/ferias-manager';
 import { Icon } from '../../ui/icon/icon';
 import { Skeleton } from '../../ui/skeleton/skeleton';
 
@@ -28,7 +29,7 @@ const SEM = 'sem-instituicao';
   selector: 'app-instituicao-turmas-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Skeleton],
+  imports: [RouterLink, Icon, Skeleton, FeriasManager],
   template: `
     <a class="voltar" routerLink="/turmas">‹ Minhas turmas</a>
 
@@ -79,23 +80,31 @@ const SEM = 'sem-instituicao';
                   @else if (t.disciplina) { <span class="turma__disc">{{ t.disciplina }}</span> }
                 </span>
               </a>
-              <label class="mover">
-                <span class="mover__lbl">Escola</span>
-                <select
-                  class="tichr-input"
-                  [value]="t.instituicaoId || ''"
-                  [disabled]="movendo() === t.id"
-                  (change)="mover(t, $any($event.target).value)"
-                >
-                  <option value="">Sem instituição</option>
-                  @for (i of instituicoes(); track i.id) {
-                    <option [value]="i.id">{{ i.nome }}</option>
-                  }
-                </select>
-              </label>
+              <!-- Trocar de escola só faz sentido para turmas ainda sem
+                   instituição; se já têm, a troca é feita ao editar a turma. -->
+              @if (ehSem()) {
+                <label class="mover">
+                  <span class="mover__lbl">Escola</span>
+                  <select
+                    class="tichr-input"
+                    [value]="t.instituicaoId || ''"
+                    [disabled]="movendo() === t.id"
+                    (change)="mover(t, $any($event.target).value)"
+                  >
+                    <option value="">Sem instituição</option>
+                    @for (i of instituicoes(); track i.id) {
+                      <option [value]="i.id">{{ i.nome }}</option>
+                    }
+                  </select>
+                </label>
+              }
             </div>
           }
         </div>
+      }
+
+      @if (!ehSem()) {
+        <app-ferias-manager class="ferias" [instituicaoId]="paramId()" />
       }
     }
   `,
@@ -123,6 +132,7 @@ const SEM = 'sem-instituicao';
     .mover { display: flex; flex-direction: column; gap: 0.2rem; }
     .mover__lbl { font-size: 0.72rem; font-weight: 600; color: var(--text-muted); }
     .mover select { min-width: 11rem; }
+    .ferias { display: block; margin-top: 1.25rem; }
   `,
 })
 export class InstituicaoTurmasPage {
@@ -130,7 +140,7 @@ export class InstituicaoTurmasPage {
   private readonly instApi = inject(InstituicaoApiService);
   private readonly route = inject(ActivatedRoute);
 
-  private readonly paramId = toSignal(
+  protected readonly paramId = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('id') ?? SEM)),
     { initialValue: SEM },
   );

@@ -12,17 +12,25 @@ import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
   CriarTurmaPayload,
+  Ferias,
   GradeHorariaItem,
   Instituicao,
   NivelEnsino,
   TipoModalidade,
+  TipoTurno,
   Turma,
 } from '../../core/models';
 import { InstituicaoApiService } from '../../core/instituicao-api.service';
+import { TurmaApiService } from '../../core/turma-api.service';
 import { NIVEIS_DEFAULT } from '../../core/nivel.util';
 import { podeGamificar } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { NIVEIS_ENSINO, seriesDoNivel } from '../../core/serie.util';
+import {
+  gradeDoTurno,
+  rotuloTurno,
+  turnosDaInstituicao,
+} from '../../core/turno.util';
 import { Card } from '../../ui/card/card';
 import { FormBlocker } from '../../ui/form-blocker/form-blocker';
 import { Icon } from '../../ui/icon/icon';
@@ -155,6 +163,17 @@ const DIAS_UTEIS = [
                 Você ainda não tem escolas. Cadastre uma em
                 <a routerLink="/turmas">Minhas Turmas</a>.
               </p>
+            }
+
+            @if (turnosDisponiveis().length) {
+              <label class="campo">
+                <span>Turno</span>
+                <select class="tichr-input" formControlName="turno">
+                  @for (t of turnosDisponiveis(); track t) {
+                    <option [value]="t">{{ rotuloTurno(t) }}</option>
+                  }
+                </select>
+              </label>
             }
 
             <div class="campo rotulos">
@@ -328,6 +347,25 @@ const DIAS_UTEIS = [
         </button>
       </div>
     </app-modal>
+
+    <app-modal
+      [open]="conflitoAberto()"
+      title="Agendar durante as férias?"
+      (close)="conflitoAberto.set(false)"
+    >
+      <p class="upsell-txt">
+        Você tem certeza que deseja cadastrar esta turma no meio de um período de
+        <strong>férias ativo desta instituição</strong>?
+      </p>
+      <div modal-actions>
+        <button class="btn-outline" type="button" (click)="conflitoAberto.set(false)">
+          Cancelar
+        </button>
+        <button class="btn-primary" type="button" (click)="confirmarConflito()">
+          Sim, agendar mesmo assim
+        </button>
+      </div>
+    </app-modal>
   `,
   styles: `
     .campo { display: block; margin-bottom: 1rem; }
@@ -438,6 +476,12 @@ export class TurmaForm {
   readonly save = output<CriarTurmaPayload>();
 
   private readonly instituicaoApi = inject(InstituicaoApiService);
+  private readonly turmaApi = inject(TurmaApiService);
+
+  // Conflito com férias da instituição (interceptação no submit).
+  private readonly feriasList = signal<Ferias[]>([]);
+  protected readonly conflitoAberto = signal(false);
+  private readonly pendente = signal<CriarTurmaPayload | null>(null);
 
   protected readonly dias = DIAS;
   protected readonly diasUteis = DIAS_UTEIS;
@@ -455,14 +499,21 @@ export class TurmaForm {
   protected readonly alocacoes = signal<Set<string>>(new Set());
   private readonly instituicaoIdSig = signal('');
   private readonly nivelSig = signal<NivelEnsino | ''>('');
+  private readonly turnoSig = signal<TipoTurno | ''>('');
+  protected readonly rotuloTurno = rotuloTurno;
   protected readonly seriesDisponiveis = computed(() =>
     seriesDoNivel(this.nivelSig() || null),
   );
   protected readonly instituicaoSel = computed(() =>
     this.instituicoes().find((i) => i.id === this.instituicaoIdSig()),
   );
-  protected readonly slotsAula = computed(
-    () => this.instituicaoSel()?.grade.filter((s) => s.tipo === 'AULA') ?? [],
+  protected readonly turnosDisponiveis = computed(() =>
+    turnosDaInstituicao(this.instituicaoSel()),
+  );
+  protected readonly slotsAula = computed(() =>
+    gradeDoTurno(this.instituicaoSel(), this.turnoSig() || null).filter(
+      (s) => s.tipo === 'AULA',
+    ),
   );
 
   protected readonly form = this.fb.nonNullable.group({
@@ -474,6 +525,7 @@ export class TurmaForm {
     horaInicio: [''],
     horaFim: [''],
     instituicaoId: [''],
+    turno: ['' as TipoTurno | ''],
     nivelEnsino: ['' as NivelEnsino | ''],
     anoSerie: [''],
     pontuacaoAtiva: [true],
@@ -523,8 +575,16 @@ export class TurmaForm {
     this.form.controls.pontuacaoAtiva.valueChanges.subscribe((v) =>
       this.pontuacaoAtivaSig.set(v),
     );
-    this.form.controls.instituicaoId.valueChanges.subscribe((v) =>
-      this.instituicaoIdSig.set(v),
+    this.form.controls.instituicaoId.valueChanges.subscribe((v) => {
+      this.instituicaoIdSig.set(v);
+      // Troca de escola: garante um turno válido para a nova instituição.
+      const turnos = this.turnosDisponiveis();
+      if (turnos.length && !turnos.includes(this.turnoSig() as TipoTurno)) {
+        this.form.controls.turno.setValue(turnos[0]);
+      }
+    });
+    this.form.controls.turno.valueChanges.subscribe((v) =>
+      this.turnoSig.set(v),
     );
     this.form.controls.nivelEnsino.valueChanges.subscribe((v) => {
       this.nivelSig.set(v);
@@ -534,7 +594,18 @@ export class TurmaForm {
       }
     });
     this.instituicaoApi.getInstituicoes().subscribe({
-      next: (l) => this.instituicoes.set(l),
+      next: (l) => {
+        this.instituicoes.set(l);
+        // Turma sem turno definido (legado) assume o 1º turno da escola.
+        const turnos = this.turnosDisponiveis();
+        if (turnos.length && !turnos.includes(this.turnoSig() as TipoTurno)) {
+          this.form.controls.turno.setValue(turnos[0]);
+        }
+      },
+      error: () => {},
+    });
+    this.turmaApi.getFerias().subscribe({
+      next: (f) => this.feriasList.set(f),
       error: () => {},
     });
     // preenche o form quando recebe os valores iniciais (edição)
@@ -550,6 +621,7 @@ export class TurmaForm {
         horaInicio: t.horaInicio ?? '',
         horaFim: t.horaFim ?? '',
         instituicaoId: t.instituicaoId ?? '',
+        turno: t.turno ?? '',
         nivelEnsino: t.nivelEnsino ?? '',
         anoSerie: t.anoSerie ?? '',
         pontuacaoAtiva: t.pontuacaoAtiva ?? true,
@@ -565,6 +637,7 @@ export class TurmaForm {
       this.modalidade.set(t.tipoModalidade);
       this.pontuacaoAtivaSig.set(t.pontuacaoAtiva ?? true);
       this.instituicaoIdSig.set(t.instituicaoId ?? '');
+      this.turnoSig.set(t.turno ?? '');
       this.nivelSig.set(t.nivelEnsino ?? '');
       this.selecionados.set(new Set(t.diasSemana));
       this.alocacoes.set(
@@ -608,8 +681,11 @@ export class TurmaForm {
     if (!this.form.valid) return false;
     if (this.ehRegular()) {
       const raw = this.form.getRawValue();
+      const turnoOk =
+        this.turnosDisponiveis().length === 0 || !!raw.turno;
       return (
         !!raw.instituicaoId &&
+        turnoOk &&
         !!raw.nivelEnsino &&
         !!raw.anoSerie &&
         this.alocacoes().size > 0
@@ -631,7 +707,7 @@ export class TurmaForm {
       ? 'GRADE_FIXA'
       : raw.tipoModalidade;
 
-    this.save.emit({
+    const payload: CriarTurmaPayload = {
       nome: raw.nome,
       tipoModalidade,
       dataInicio: raw.dataInicio,
@@ -651,6 +727,7 @@ export class TurmaForm {
         ? {
             ensinoRegular: true,
             instituicaoId: raw.instituicaoId,
+            turno: (raw.turno || this.turnosDisponiveis()[0]) as TipoTurno,
             nivelEnsino: raw.nivelEnsino as NivelEnsino,
             anoSerie: raw.anoSerie,
             gradeHoraria: grade,
@@ -661,6 +738,34 @@ export class TurmaForm {
       ...(tipoModalidade === 'MODULO_FECHADO'
         ? { totalAulas: Number(raw.totalAulas) }
         : {}),
-    });
+    };
+    this.emitir(payload);
+  }
+
+  /** Intercepta o submit se a turma cai dentro das férias da instituição. */
+  private emitir(payload: CriarTurmaPayload): void {
+    if (this.conflitaFerias(payload)) {
+      this.pendente.set(payload);
+      this.conflitoAberto.set(true);
+      return;
+    }
+    this.save.emit(payload);
+  }
+
+  /** A data de início cai num período de férias da própria instituição? */
+  private conflitaFerias(p: CriarTurmaPayload): boolean {
+    if (!p.instituicaoId) return false;
+    return this.feriasList().some(
+      (f) =>
+        f.instituicaoId === p.instituicaoId &&
+        f.dataInicio <= p.dataInicio &&
+        p.dataInicio <= f.dataFim,
+    );
+  }
+
+  protected confirmarConflito(): void {
+    const p = this.pendente();
+    this.conflitoAberto.set(false);
+    if (p) this.save.emit(p);
   }
 }

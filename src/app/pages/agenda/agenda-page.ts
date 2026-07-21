@@ -13,7 +13,15 @@ import { forkJoin } from 'rxjs';
 import { formatarData } from '../../core/date-format';
 import { hojeISO } from '../../core/greeting';
 import { InstituicaoApiService } from '../../core/instituicao-api.service';
-import { Ferias, GradeSlot, Instituicao, Sessao, Turma } from '../../core/models';
+import {
+  Ferias,
+  GradeSlot,
+  Instituicao,
+  Sessao,
+  TipoTurno,
+  Turma,
+} from '../../core/models';
+import { gradeDoTurno, rotuloTurno, turnosDaInstituicao } from '../../core/turno.util';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Icon } from '../../ui/icon/icon';
 import { Modal } from '../../ui/modal/modal';
@@ -198,11 +206,14 @@ function domingo(iso: string): string {
 
     <!-- Renderização compartilhada da grade de um dia (modal + swipe) -->
     <ng-template #corpoDia let-ag>
-      @if (ag.ferias) {
+      @if (ag.ferias && ag.vazio) {
         <p class="muted">Férias — sem aulas neste dia.</p>
       } @else if (ag.vazio) {
         <p class="muted">Sem aulas neste dia.</p>
       } @else {
+        @if (ag.ferias) {
+          <p class="recesso">Recesso — com aula(s) agendada(s) neste dia:</p>
+        }
         @for (inst of ag.instituicoes; track inst.nome) {
           <section class="inst">
             <h3 class="inst__nome"><app-icon name="building" [size]="15" /> {{ inst.nome }}</h3>
@@ -270,6 +281,7 @@ function domingo(iso: string): string {
     .toggle__btn.is-on { background: var(--surface); color: var(--primary); }
     .sk-cell { min-height: 60px; }
     .muted { color: var(--text-muted); }
+    .recesso { margin: 0 0 0.6rem; font-size: 0.8rem; font-weight: 700; color: color-mix(in srgb, var(--danger) 70%, var(--text)); }
     .legenda { margin: 0.9rem 0 0; font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
     .leg { width: 12px; height: 12px; border-radius: 4px; display: inline-block; }
     .leg--aula { background: color-mix(in srgb, var(--success) 22%, var(--surface)); border: 1px solid color-mix(in srgb, var(--success) 55%, var(--border)); }
@@ -363,13 +375,22 @@ export class AgendaPage {
     return `${DIAS_SEMANA[parse(iso).getUTCDay()]}, ${formatarData(iso)}`;
   }
 
+  /** Só férias GLOBAIS dominam o calendário (contorno vermelho). */
   private ehFerias(iso: string): boolean {
-    return this.ferias().some((f) => f.dataInicio <= iso && iso <= f.dataFim);
+    return this.ferias().some(
+      (f) =>
+        !f.turmaId &&
+        !f.instituicaoId &&
+        f.dataInicio <= iso &&
+        iso <= f.dataFim,
+    );
   }
 
-  /** Há aula no dia? (turma regular alocada no dia da semana OU sessão modular.) */
+  /**
+   * Há aula no dia? Independe de férias — uma aula forçada no recesso deve
+   * aparecer (a aula tem peso maior que o status de férias).
+   */
   private temAula(iso: string): boolean {
-    if (this.ehFerias(iso)) return false;
     const w = parse(iso).getUTCDay();
     const regular = this.turmasRegulares().some(
       (t) =>
@@ -384,10 +405,8 @@ export class AgendaPage {
 
   /** Monta a agenda consolidada de um dia (grade regular + aulas modulares). */
   protected agendaDoDia(iso: string): AgendaDia {
+    // Férias (global) NÃO some com as aulas — elas prevalecem na renderização.
     const ferias = this.ehFerias(iso);
-    if (ferias) {
-      return { instituicoes: [], modulares: [], ferias: true, vazio: false };
-    }
     const w = parse(iso).getUTCDay();
 
     const instituicoes: InstDia[] = [];
@@ -399,16 +418,32 @@ export class AgendaPage {
           (t.gradeHoraria ?? []).some((g) => g.diaSemana === w),
       );
       if (!turmasInst.length) continue;
-      const slots: SlotDia[] = inst.grade.map((slot) => {
-        if (slot.tipo === 'INTERVALO') return { slot };
-        const turma = turmasInst.find((t) =>
-          (t.gradeHoraria ?? []).some(
-            (g) => g.diaSemana === w && g.periodo === slot.periodo,
-          ),
-        );
-        return { slot, turma };
-      });
-      instituicoes.push({ nome: inst.nome, slots });
+
+      const turnos = turnosDaInstituicao(inst);
+      const mostrarTurno = turnos.length > 1;
+      // Agrupa as turmas do dia por turno (legado sem turno → 1º turno).
+      const porTurno = new Map<TipoTurno | '', Turma[]>();
+      for (const t of turmasInst) {
+        const tr: TipoTurno | '' =
+          t.turno && turnos.includes(t.turno) ? t.turno : (turnos[0] ?? '');
+        porTurno.set(tr, [...(porTurno.get(tr) ?? []), t]);
+      }
+      for (const [tr, turmasTurno] of porTurno) {
+        const slots: SlotDia[] = gradeDoTurno(inst, tr || null).map((slot) => {
+          if (slot.tipo === 'INTERVALO') return { slot };
+          const turma = turmasTurno.find((t) =>
+            (t.gradeHoraria ?? []).some(
+              (g) => g.diaSemana === w && g.periodo === slot.periodo,
+            ),
+          );
+          return { slot, turma };
+        });
+        instituicoes.push({
+          nome:
+            mostrarTurno && tr ? `${inst.nome} · ${rotuloTurno(tr)}` : inst.nome,
+          slots,
+        });
+      }
     }
 
     const modulares: ModularDia[] = this.sessoes()
@@ -422,7 +457,7 @@ export class AgendaPage {
     return {
       instituicoes,
       modulares,
-      ferias: false,
+      ferias,
       vazio: !instituicoes.length && !modulares.length,
     };
   }

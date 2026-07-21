@@ -65,29 +65,49 @@ export interface IntervaloGrade {
   duracao: number; // minutos
 }
 
-/** Instituição (escola) com a grade horária já calculada. */
+export type TipoTurno = 'MATUTINO' | 'VESPERTINO' | 'NOTURNO';
+
+/** Um turno da escola, com seus próprios horários e recreios. */
+export interface TurnoInstituicao {
+  tipo: TipoTurno;
+  inicioPrimeiroPeriodo: string;
+  fimUltimoPeriodo: string;
+  duracaoAula: number;
+  intervalos?: IntervaloGrade[];
+}
+
+/** A grade calculada de um turno. */
+export interface GradeTurno {
+  turno: TipoTurno;
+  slots: GradeSlot[];
+}
+
+/** Instituição (escola) com as grades por turno já calculadas. */
 export interface Instituicao {
   id: string;
   professorId: string;
   nome: string;
-  inicioPrimeiroPeriodo: string;
-  fimUltimoPeriodo: string;
-  duracaoAula: number;
-  /** Intervalos/recreios (formato atual, aceita mais de um). */
+  /** Turnos da escola (formato atual). */
+  turnos?: TurnoInstituicao[];
+  /** Quando true, cada turno é uma aula única (turno inteiro). */
+  aulaUnicaPorTurno?: boolean;
+  /** Grades por turno geradas pelo backend. */
+  grades?: GradeTurno[];
+  // Legado — turno único (ainda lido).
+  inicioPrimeiroPeriodo?: string;
+  fimUltimoPeriodo?: string;
+  duracaoAula?: number;
   intervalos?: IntervaloGrade[];
-  /** Legado — intervalo único. */
   inicioIntervalo?: string;
   duracaoIntervalo?: number;
-  /** Grade de slots gerada pelo backend a partir dos parâmetros acima. */
+  /** Grade do 1º turno (compat com consumidores de grade única). */
   grade: GradeSlot[];
 }
 
 export interface CriarInstituicaoPayload {
   nome: string;
-  inicioPrimeiroPeriodo: string;
-  fimUltimoPeriodo: string;
-  duracaoAula: number;
-  intervalos?: IntervaloGrade[];
+  turnos: TurnoInstituicao[];
+  aulaUnicaPorTurno?: boolean;
 }
 
 /** Alocação de uma turma regular num horário da grade da instituição. */
@@ -131,6 +151,8 @@ export interface Turma {
   ensinoRegular?: boolean;
   nivelEnsino?: NivelEnsino;
   anoSerie?: string;
+  /** Turno da escola a que a turma pertence (grade das alocações). */
+  turno?: TipoTurno;
   gradeHoraria?: GradeHorariaItem[];
 }
 
@@ -158,6 +180,7 @@ export interface CriarTurmaPayload {
   ensinoRegular?: boolean;
   nivelEnsino?: NivelEnsino;
   anoSerie?: string;
+  turno?: TipoTurno;
   gradeHoraria?: GradeHorariaItem[];
 }
 
@@ -563,6 +586,8 @@ export interface Ferias {
   id: string;
   professorId: string;
   turmaId?: string;
+  /** Escopo por instituição: vale só para as turmas daquela escola. */
+  instituicaoId?: string;
   dataInicio: string;
   dataFim: string;
   descricao?: string;
@@ -570,6 +595,7 @@ export interface Ferias {
 
 export interface CriarFeriasPayload {
   turmaId?: string;
+  instituicaoId?: string;
   dataInicio: string;
   dataFim: string;
   descricao?: string;
