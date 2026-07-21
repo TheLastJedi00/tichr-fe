@@ -89,6 +89,8 @@ export interface Instituicao {
   nome: string;
   /** Turnos da escola (formato atual). */
   turnos?: TurnoInstituicao[];
+  /** Quando true, cada turno é uma aula única (turno inteiro). */
+  aulaUnicaPorTurno?: boolean;
   /** Grades por turno geradas pelo backend. */
   grades?: GradeTurno[];
   // Legado — turno único (ainda lido).
@@ -105,6 +107,7 @@ export interface Instituicao {
 export interface CriarInstituicaoPayload {
   nome: string;
   turnos: TurnoInstituicao[];
+  aulaUnicaPorTurno?: boolean;
 }
 
 /** Alocação de uma turma regular num horário da grade da instituição. */

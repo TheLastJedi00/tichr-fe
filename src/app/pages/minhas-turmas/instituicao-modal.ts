@@ -52,6 +52,11 @@ import { Modal } from '../../ui/modal/modal';
           <input class="tichr-input" formControlName="nome" placeholder="Ex: Escola Municipal João Silva" />
         </label>
 
+        <label class="chk">
+          <input type="checkbox" formControlName="aulaUnicaPorTurno" />
+          <span>Esta escola tem <strong>uma aula por turno</strong> (o turno inteiro é uma aula só)</span>
+        </label>
+
         <span class="secao">Turnos</span>
         <div formArrayName="turnos">
           @for (g of turnos.controls; track $index; let i = $index) {
@@ -71,28 +76,32 @@ import { Modal } from '../../ui/modal/modal';
                     <span>Fim</span>
                     <input class="tichr-input" type="time" formControlName="fimUltimoPeriodo" />
                   </label>
-                  <label class="campo campo--dur">
-                    <span>Aula (min)</span>
-                    <input class="tichr-input" type="number" min="5" max="240" formControlName="duracaoAula" />
-                  </label>
+                  @if (!aulaUnica()) {
+                    <label class="campo campo--dur">
+                      <span>Aula (min)</span>
+                      <input class="tichr-input" type="number" min="5" max="240" formControlName="duracaoAula" />
+                    </label>
+                  }
                 </div>
 
-                <div class="intervalos" formArrayName="intervalos">
-                  <span class="mini">Recreios</span>
-                  @for (iv of intervalosDe(i).controls; track $index; let k = $index) {
-                    <div class="intervalo" [formGroupName]="k">
-                      <input class="tichr-input" type="time" formControlName="inicio" aria-label="Início do recreio" />
-                      <input class="tichr-input" type="number" min="1" max="120" formControlName="duracao" aria-label="Duração (min)" />
-                      <span class="intervalo__un">min</span>
-                      <button type="button" class="rm" (click)="removerIntervalo(i, k)" aria-label="Remover recreio">
-                        <app-icon name="x" [size]="15" />
-                      </button>
-                    </div>
-                  }
-                  <button type="button" class="btn-outline add-int" (click)="adicionarIntervalo(i)">
-                    <app-icon name="plus" [size]="14" /> Recreio
-                  </button>
-                </div>
+                @if (!aulaUnica()) {
+                  <div class="intervalos" formArrayName="intervalos">
+                    <span class="mini">Recreios</span>
+                    @for (iv of intervalosDe(i).controls; track $index; let k = $index) {
+                      <div class="intervalo" [formGroupName]="k">
+                        <input class="tichr-input" type="time" formControlName="inicio" aria-label="Início do recreio" />
+                        <input class="tichr-input" type="number" min="1" max="120" formControlName="duracao" aria-label="Duração (min)" />
+                        <span class="intervalo__un">min</span>
+                        <button type="button" class="rm" (click)="removerIntervalo(i, k)" aria-label="Remover recreio">
+                          <app-icon name="x" [size]="15" />
+                        </button>
+                      </div>
+                    }
+                    <button type="button" class="btn-outline add-int" (click)="adicionarIntervalo(i)">
+                      <app-icon name="plus" [size]="14" /> Recreio
+                    </button>
+                  </div>
+                }
 
                 <div class="preview">
                   <span class="preview__t">Grade do {{ rotulo(g.value.tipo) }}</span>
@@ -135,6 +144,8 @@ import { Modal } from '../../ui/modal/modal';
     .campo > span { display: block; margin-bottom: 0.3rem; font-size: 0.82rem; font-weight: 600; color: var(--text-muted); }
     .campo--dur { flex: 0 0 5.5rem; }
     .secao { font-size: 0.82rem; font-weight: 700; color: var(--text-muted); margin-top: 0.3rem; }
+    .chk { display: flex; align-items: flex-start; gap: 0.5rem; margin: 0.25rem 0 0.5rem; font-size: 0.9rem; cursor: pointer; }
+    .chk input { width: 18px; height: 18px; margin-top: 0.1rem; flex: 0 0 auto; }
     .linha { display: flex; gap: 0.6rem; }
     .turno { border: 1px solid var(--border); border-radius: var(--radius); padding: 0.6rem 0.75rem; margin: 0 0 0.6rem; }
     .turno--on { border-color: color-mix(in srgb, var(--primary) 45%, var(--border)); }
@@ -175,8 +186,13 @@ export class InstituicaoModal {
 
   protected readonly form = this.fb.nonNullable.group({
     nome: ['', Validators.required],
+    aulaUnicaPorTurno: [false],
     turnos: this.fb.array(TURNOS.map((t) => this.novoTurno(t.value, t.value === 'MATUTINO'))),
   });
+
+  protected readonly aulaUnica = computed(
+    () => this.valores().aulaUnicaPorTurno,
+  );
 
   private novoTurno(tipo: TipoTurno, ativo: boolean) {
     const d = DEFAULTS_TURNO[tipo];
@@ -214,13 +230,15 @@ export class InstituicaoModal {
   private readonly valores = signal(this.form.getRawValue());
   /** Prévia da grade do turno i (recalcula ao vivo). */
   protected previa(i: number): GradeSlot[] {
-    const t = this.valores().turnos[i];
+    const v = this.valores();
+    const t = v.turnos[i];
     if (!t?.ativo) return [];
     return gerarGradePreview({
       inicioPrimeiroPeriodo: t.inicioPrimeiroPeriodo,
       fimUltimoPeriodo: t.fimUltimoPeriodo,
       duracaoAula: t.duracaoAula,
       intervalos: t.intervalos,
+      aulaUnica: v.aulaUnicaPorTurno,
     });
   }
 
@@ -241,6 +259,9 @@ export class InstituicaoModal {
         turnosDeInstituicao(inst).map((t) => [t.tipo, t]),
       );
       this.form.controls.nome.setValue(inst?.nome ?? '');
+      this.form.controls.aulaUnicaPorTurno.setValue(
+        inst?.aulaUnicaPorTurno ?? false,
+      );
       TURNOS.forEach((meta, i) => {
         const g = this.turnos.at(i);
         const t = porTipo.get(meta.value);
@@ -274,7 +295,11 @@ export class InstituicaoModal {
           .filter((iv) => !!iv.inicio && Number(iv.duracao) > 0)
           .map((iv) => ({ inicio: iv.inicio, duracao: Number(iv.duracao) })),
       }));
-    return { nome: v.nome.trim(), turnos };
+    return {
+      nome: v.nome.trim(),
+      turnos,
+      aulaUnicaPorTurno: v.aulaUnicaPorTurno,
+    };
   }
 
   protected salvar(): void {
@@ -332,6 +357,8 @@ interface GradeParams {
   fimUltimoPeriodo: string;
   duracaoAula: number;
   intervalos?: IntervaloGrade[];
+  /** Uma aula por turno: um slot único cobrindo o turno inteiro. */
+  aulaUnica?: boolean;
 }
 
 function toMin(h: string): number {
@@ -353,6 +380,20 @@ export function gerarGradePreview(p: GradeParams): GradeSlot[] {
   }
   const inicio = toMin(p.inicioPrimeiroPeriodo);
   const fim = toMin(p.fimUltimoPeriodo);
+  if (p.aulaUnica) {
+    return fim > inicio
+      ? [
+          {
+            ordem: 0,
+            tipo: 'AULA',
+            periodo: 1,
+            rotulo: 'Aula',
+            horaInicio: p.inicioPrimeiroPeriodo,
+            horaFim: p.fimUltimoPeriodo,
+          },
+        ]
+      : [];
+  }
   const dur = Number(p.duracaoAula);
   const intervalos = (p.intervalos ?? [])
     .filter((iv) => /^\d{2}:\d{2}$/.test(iv.inicio || '') && Number(iv.duracao) > 0)
