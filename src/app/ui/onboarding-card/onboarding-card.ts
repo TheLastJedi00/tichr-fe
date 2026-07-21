@@ -35,6 +35,10 @@ import { Icon } from '../icon/icon';
           <app-icon [name]="faltaFoto() ? 'user' : 'check'" [size]="16" />
           <span>Foto de perfil</span>
         </li>
+        <li [class.done]="!faltaDisciplinas()">
+          <app-icon [name]="faltaDisciplinas() ? 'book' : 'check'" [size]="16" />
+          <span>Suas disciplinas</span>
+        </li>
       </ul>
 
       <a class="btn-primary ob__cta" routerLink="/configuracoes/perfil">
@@ -96,4 +100,5 @@ export class OnboardingCard {
   readonly faltaNome = input(false);
   readonly faltaUsername = input(false);
   readonly faltaFoto = input(false);
+  readonly faltaDisciplinas = input(false);
 }
