@@ -6,7 +6,7 @@ import {
   signal,
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { CriarTurmaPayload, PlanoAtual } from '../../core/models';
 import { NOME_PLANO } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
@@ -23,8 +23,9 @@ import { TurmaForm } from '../turma-form/turma-form';
   selector: 'app-nova-turma-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TurmaForm, UpsellCard],
+  imports: [TurmaForm, UpsellCard, RouterLink],
   template: `
+    <a class="voltar" routerLink="/turmas">‹ Minhas turmas</a>
     <h1 class="title">Nova turma</h1>
 
     @if (bloqueado()) {
@@ -45,6 +46,7 @@ import { TurmaForm } from '../turma-form/turma-form';
     }
   `,
   styles: `
+    .voltar { display: inline-block; margin-bottom: 0.75rem; color: var(--text-muted); text-decoration: none; font-weight: 600; }
     .title { margin: 0 0 1rem; font-size: 1.5rem; font-weight: 700; }
   `,
 })

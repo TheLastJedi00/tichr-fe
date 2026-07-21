@@ -2,6 +2,7 @@ import { LimiaresNivel } from './nivel.util';
 
 export type TipoModalidade = 'GRADE_FIXA' | 'MODULO_FECHADO';
 export type StatusSessao = 'AGENDADA' | 'CANCELADA' | 'REALIZADA';
+export type NivelEnsino = 'FUNDAMENTAL' | 'MEDIO';
 export type EscopoExcecao = 'GLOBAL' | 'ESCOLA' | 'PESSOAL';
 export type PlanoAtual = 'ESTAGIARIO' | 'GRADUADO' | 'MESTRE' | 'PHD';
 
@@ -45,6 +46,58 @@ export interface Sessao {
   status: StatusSessao;
 }
 
+// --- Ensino regular (instituições/escolas) ---
+
+/** Um bloco da grade horária de uma instituição (calculado no backend). */
+export interface GradeSlot {
+  ordem: number;
+  tipo: 'AULA' | 'INTERVALO';
+  /** Número do horário (1-based); ausente no intervalo. */
+  periodo?: number;
+  rotulo: string;
+  horaInicio: string;
+  horaFim: string;
+}
+
+/** Um intervalo/recreio da grade de uma instituição. */
+export interface IntervaloGrade {
+  inicio: string; // 'HH:mm'
+  duracao: number; // minutos
+}
+
+/** Instituição (escola) com a grade horária já calculada. */
+export interface Instituicao {
+  id: string;
+  professorId: string;
+  nome: string;
+  inicioPrimeiroPeriodo: string;
+  fimUltimoPeriodo: string;
+  duracaoAula: number;
+  /** Intervalos/recreios (formato atual, aceita mais de um). */
+  intervalos?: IntervaloGrade[];
+  /** Legado — intervalo único. */
+  inicioIntervalo?: string;
+  duracaoIntervalo?: number;
+  /** Grade de slots gerada pelo backend a partir dos parâmetros acima. */
+  grade: GradeSlot[];
+}
+
+export interface CriarInstituicaoPayload {
+  nome: string;
+  inicioPrimeiroPeriodo: string;
+  fimUltimoPeriodo: string;
+  duracaoAula: number;
+  intervalos?: IntervaloGrade[];
+}
+
+/** Alocação de uma turma regular num horário da grade da instituição. */
+export interface GradeHorariaItem {
+  /** Dia da semana. 0 = Domingo .. 6 = Sábado. */
+  diaSemana: number;
+  /** Número do horário/período (1-based). */
+  periodo: number;
+}
+
 export interface Turma {
   id: string;
   professorId: string;
@@ -73,6 +126,12 @@ export interface Turma {
   nivelPlatina?: number;
   /** PIN da turma (portal do aluno): 2 díg (Smart PIN) ou 6 díg (legado). */
   pinTurma?: string;
+  // Ensino regular (escola de educação básica).
+  instituicaoId?: string;
+  ensinoRegular?: boolean;
+  nivelEnsino?: NivelEnsino;
+  anoSerie?: string;
+  gradeHoraria?: GradeHorariaItem[];
 }
 
 export interface CriarTurmaPayload {
@@ -94,6 +153,12 @@ export interface CriarTurmaPayload {
   nivelOuro?: number;
   nivelDiamante?: number;
   nivelPlatina?: number;
+  // Ensino regular.
+  instituicaoId?: string;
+  ensinoRegular?: boolean;
+  nivelEnsino?: NivelEnsino;
+  anoSerie?: string;
+  gradeHoraria?: GradeHorariaItem[];
 }
 
 export interface CriarExcecaoPayload {

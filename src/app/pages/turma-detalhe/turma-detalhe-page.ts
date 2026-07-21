@@ -67,6 +67,7 @@ type Ordenacao = 'nome' | 'pontuacao';
     PreJogoAlunosModal,
   ],
   template: `
+    <a class="voltar" routerLink="/turmas">‹ Minhas turmas</a>
     @if (carregando()) {
       <div class="loading"><app-spinner [size]="32" /></div>
     } @else if (turma(); as t) {
@@ -662,6 +663,7 @@ type Ordenacao = 'nome' | 'pontuacao';
     }
   `,
   styles: `
+    .voltar { display: inline-block; margin-bottom: 0.75rem; color: var(--text-muted); text-decoration: none; font-weight: 600; }
     .loading { display: flex; justify-content: center; padding: 3rem 0; color: var(--primary); }
     .head {
       display: flex;

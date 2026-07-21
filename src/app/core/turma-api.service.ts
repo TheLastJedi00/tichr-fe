@@ -93,6 +93,17 @@ export class TurmaApiService {
     );
   }
 
+  /** Move a turma para outra instituição (ou '' = sem instituição). */
+  moverTurmaInstituicao(
+    id: string,
+    instituicaoId: string,
+  ): Observable<{ turma: Turma; sessoes: Sessao[] }> {
+    return this.http.put<{ turma: Turma; sessoes: Sessao[] }>(
+      `${this.base}/turmas/${id}`,
+      { instituicaoId },
+    );
+  }
+
   getFerias(): Observable<Ferias[]> {
     return this.http.get<Ferias[]>(`${this.base}/ferias`);
   }

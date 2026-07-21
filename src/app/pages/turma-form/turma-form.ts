@@ -10,10 +10,19 @@ import {
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { CriarTurmaPayload, TipoModalidade, Turma } from '../../core/models';
+import {
+  CriarTurmaPayload,
+  GradeHorariaItem,
+  Instituicao,
+  NivelEnsino,
+  TipoModalidade,
+  Turma,
+} from '../../core/models';
+import { InstituicaoApiService } from '../../core/instituicao-api.service';
 import { NIVEIS_DEFAULT } from '../../core/nivel.util';
 import { podeGamificar } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
+import { NIVEIS_ENSINO, seriesDoNivel } from '../../core/serie.util';
 import { Card } from '../../ui/card/card';
 import { FormBlocker } from '../../ui/form-blocker/form-blocker';
 import { Icon } from '../../ui/icon/icon';
@@ -33,6 +42,15 @@ const DIAS = [
 const CORES = [
   '#2563eb', '#0891b2', '#059669', '#65a30d',
   '#d97706', '#dc2626', '#db2777', '#7c3aed',
+];
+
+/** Dias úteis usados na grade do ensino regular (Segunda a Sexta). */
+const DIAS_UTEIS = [
+  { value: 1, label: 'Seg' },
+  { value: 2, label: 'Ter' },
+  { value: 3, label: 'Qua' },
+  { value: 4, label: 'Qui' },
+  { value: 5, label: 'Sex' },
 ];
 
 /**
@@ -73,7 +91,7 @@ const CORES = [
         <label class="campo">
           <span>Modalidade</span>
           <select class="tichr-input" formControlName="tipoModalidade">
-            <option value="GRADE_FIXA">Grade fixa (contínua)</option>
+            <option value="GRADE_FIXA">Ensino Regular</option>
             <option value="MODULO_FECHADO">Módulo fechado</option>
           </select>
         </label>
@@ -90,32 +108,105 @@ const CORES = [
           <input class="tichr-input" type="date" formControlName="dataInicio" />
         </label>
 
-        <div class="campo horarios">
-          <label>
-            <span>Início da aula</span>
-            <input class="tichr-input" type="time" formControlName="horaInicio" />
-          </label>
-          <label>
-            <span>Fim da aula</span>
-            <input class="tichr-input" type="time" formControlName="horaFim" />
-          </label>
-        </div>
-
-        <div class="campo">
-          <span>Dias da semana</span>
-          <div class="dias">
-            @for (dia of dias; track dia.value) {
-              <button
-                type="button"
-                class="chip"
-                [class.is-on]="selecionados().has(dia.value)"
-                (click)="toggleDia(dia.value)"
-              >
-                {{ dia.label }}
-              </button>
-            }
+        @if (isModulo()) {
+          <div class="campo horarios">
+            <label>
+              <span>Início da aula</span>
+              <input class="tichr-input" type="time" formControlName="horaInicio" />
+            </label>
+            <label>
+              <span>Fim da aula</span>
+              <input class="tichr-input" type="time" formControlName="horaFim" />
+            </label>
           </div>
-        </div>
+
+          <div class="campo">
+            <span>Dias da semana</span>
+            <div class="dias">
+              @for (dia of dias; track dia.value) {
+                <button
+                  type="button"
+                  class="chip"
+                  [class.is-on]="selecionados().has(dia.value)"
+                  (click)="toggleDia(dia.value)"
+                >
+                  {{ dia.label }}
+                </button>
+              }
+            </div>
+          </div>
+        }
+
+        @if (ehRegular()) {
+          <fieldset class="grupo">
+            <legend>Ensino Regular (escola)</legend>
+            @if (instituicoes().length) {
+              <label class="campo">
+                <span>Instituição (escola)</span>
+                <select class="tichr-input" formControlName="instituicaoId">
+                  <option value="">— Selecione —</option>
+                  @for (i of instituicoes(); track i.id) {
+                    <option [value]="i.id">{{ i.nome }}</option>
+                  }
+                </select>
+              </label>
+            } @else {
+              <p class="hint">
+                Você ainda não tem escolas. Cadastre uma em
+                <a routerLink="/turmas">Minhas Turmas</a>.
+              </p>
+            }
+
+            <div class="campo rotulos">
+              <label>
+                <span>Nível</span>
+                <select class="tichr-input" formControlName="nivelEnsino">
+                  <option value="">— Selecione —</option>
+                  @for (n of niveisEnsino; track n.value) {
+                    <option [value]="n.value">{{ n.label }}</option>
+                  }
+                </select>
+              </label>
+              <label>
+                <span>Ano/Série</span>
+                <select class="tichr-input" formControlName="anoSerie" [disabled]="!seriesDisponiveis().length">
+                  <option value="">— Selecione —</option>
+                  @for (s of seriesDisponiveis(); track s) {
+                    <option [value]="s">{{ s }}</option>
+                  }
+                </select>
+              </label>
+            </div>
+
+            @if (slotsAula().length) {
+              <div class="campo">
+                <span>Horários na grade — marque quando esta turma tem aula</span>
+                <div class="grade-aloc">
+                  @for (dia of diasUteis; track dia.value) {
+                    <div class="dia-linha">
+                      <span class="dia-nome">{{ dia.label }}</span>
+                      <div class="periodos">
+                        @for (s of slotsAula(); track s.ordem) {
+                          <button
+                            type="button"
+                            class="chip pchip"
+                            [class.is-on]="temAloc(dia.value, s.periodo!)"
+                            (click)="toggleAloc(dia.value, s.periodo!)"
+                            [attr.title]="s.horaInicio + '–' + s.horaFim"
+                          >
+                            {{ s.periodo }}º
+                          </button>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            } @else if (instituicaoSel()) {
+              <p class="hint">A grade desta escola está vazia. Ajuste os horários na instituição.</p>
+            }
+          </fieldset>
+        }
 
         <div class="campo">
           <span>Cor de destaque</span>
@@ -265,6 +356,11 @@ const CORES = [
       background: var(--primary);
       border-color: var(--primary);
     }
+    .grade-aloc { display: grid; gap: 0.5rem; }
+    .dia-linha { display: flex; align-items: center; gap: 0.6rem; }
+    .dia-nome { flex: 0 0 2.4rem; font-weight: 700; font-size: 0.85rem; color: var(--text-muted); }
+    .periodos { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .pchip { padding: 0.35rem 0.6rem; border-radius: 8px; font-size: 0.85rem; min-width: 2.2rem; }
     .horarios { display: flex; gap: 0.75rem; }
     .horarios label { flex: 1; display: block; }
     .horarios label > span {
@@ -341,12 +437,32 @@ export class TurmaForm {
   readonly submitLabel = input('Salvar');
   readonly save = output<CriarTurmaPayload>();
 
+  private readonly instituicaoApi = inject(InstituicaoApiService);
+
   protected readonly dias = DIAS;
+  protected readonly diasUteis = DIAS_UTEIS;
   protected readonly cores = CORES;
+  protected readonly niveisEnsino = NIVEIS_ENSINO;
   protected readonly selecionados = signal<Set<number>>(new Set());
   protected readonly cor = signal<string>(CORES[0]);
   protected readonly disciplinasDisponiveis = computed(
     () => this.profileService.profile()?.disciplinas ?? [],
+  );
+
+  // Ensino regular
+  protected readonly instituicoes = signal<Instituicao[]>([]);
+  /** Alocações da grade: chaves 'diaSemana:periodo'. */
+  protected readonly alocacoes = signal<Set<string>>(new Set());
+  private readonly instituicaoIdSig = signal('');
+  private readonly nivelSig = signal<NivelEnsino | ''>('');
+  protected readonly seriesDisponiveis = computed(() =>
+    seriesDoNivel(this.nivelSig() || null),
+  );
+  protected readonly instituicaoSel = computed(() =>
+    this.instituicoes().find((i) => i.id === this.instituicaoIdSig()),
+  );
+  protected readonly slotsAula = computed(
+    () => this.instituicaoSel()?.grade.filter((s) => s.tipo === 'AULA') ?? [],
   );
 
   protected readonly form = this.fb.nonNullable.group({
@@ -357,6 +473,9 @@ export class TurmaForm {
     disciplina: [''],
     horaInicio: [''],
     horaFim: [''],
+    instituicaoId: [''],
+    nivelEnsino: ['' as NivelEnsino | ''],
+    anoSerie: [''],
     pontuacaoAtiva: [true],
     nomePontuacao: ['XP'],
     rankingAtivo: [true],
@@ -370,6 +489,8 @@ export class TurmaForm {
 
   private readonly modalidade = signal<TipoModalidade>('GRADE_FIXA');
   protected readonly isModulo = computed(() => this.modalidade() === 'MODULO_FECHADO');
+  /** Ensino regular é a própria modalidade GRADE_FIXA (escola tradicional). */
+  protected readonly ehRegular = computed(() => this.modalidade() === 'GRADE_FIXA');
   private readonly pontuacaoAtivaSig = signal(true);
   protected readonly pontuacaoAtiva = computed(() => this.pontuacaoAtivaSig());
 
@@ -402,6 +523,20 @@ export class TurmaForm {
     this.form.controls.pontuacaoAtiva.valueChanges.subscribe((v) =>
       this.pontuacaoAtivaSig.set(v),
     );
+    this.form.controls.instituicaoId.valueChanges.subscribe((v) =>
+      this.instituicaoIdSig.set(v),
+    );
+    this.form.controls.nivelEnsino.valueChanges.subscribe((v) => {
+      this.nivelSig.set(v);
+      // Troca de nível invalida a série escolhida (dropdown dinâmico).
+      if (v && !seriesDoNivel(v).includes(this.form.controls.anoSerie.value)) {
+        this.form.controls.anoSerie.setValue('');
+      }
+    });
+    this.instituicaoApi.getInstituicoes().subscribe({
+      next: (l) => this.instituicoes.set(l),
+      error: () => {},
+    });
     // preenche o form quando recebe os valores iniciais (edição)
     effect(() => {
       const t = this.initial();
@@ -414,6 +549,9 @@ export class TurmaForm {
         disciplina: t.disciplina ?? '',
         horaInicio: t.horaInicio ?? '',
         horaFim: t.horaFim ?? '',
+        instituicaoId: t.instituicaoId ?? '',
+        nivelEnsino: t.nivelEnsino ?? '',
+        anoSerie: t.anoSerie ?? '',
         pontuacaoAtiva: t.pontuacaoAtiva ?? true,
         nomePontuacao: t.nomePontuacao ?? 'XP',
         rankingAtivo: t.rankingAtivo ?? true,
@@ -426,7 +564,12 @@ export class TurmaForm {
       });
       this.modalidade.set(t.tipoModalidade);
       this.pontuacaoAtivaSig.set(t.pontuacaoAtiva ?? true);
+      this.instituicaoIdSig.set(t.instituicaoId ?? '');
+      this.nivelSig.set(t.nivelEnsino ?? '');
       this.selecionados.set(new Set(t.diasSemana));
+      this.alocacoes.set(
+        new Set((t.gradeHoraria ?? []).map((g) => `${g.diaSemana}:${g.periodo}`)),
+      );
       if (t.cor) this.cor.set(t.cor);
     });
   }
@@ -437,18 +580,62 @@ export class TurmaForm {
     this.selecionados.set(set);
   }
 
+  // ===== Grade do ensino regular =====
+
+  private chaveAloc(dia: number, periodo: number): string {
+    return `${dia}:${periodo}`;
+  }
+
+  protected temAloc(dia: number, periodo: number): boolean {
+    return this.alocacoes().has(this.chaveAloc(dia, periodo));
+  }
+
+  protected toggleAloc(dia: number, periodo: number): void {
+    const set = new Set(this.alocacoes());
+    const k = this.chaveAloc(dia, periodo);
+    set.has(k) ? set.delete(k) : set.add(k);
+    this.alocacoes.set(set);
+  }
+
+  private gradeHoraria(): GradeHorariaItem[] {
+    return [...this.alocacoes()].map((k) => {
+      const [diaSemana, periodo] = k.split(':').map(Number);
+      return { diaSemana, periodo };
+    });
+  }
+
   protected podeSalvar(): boolean {
-    return this.form.valid && this.selecionados().size > 0;
+    if (!this.form.valid) return false;
+    if (this.ehRegular()) {
+      const raw = this.form.getRawValue();
+      return (
+        !!raw.instituicaoId &&
+        !!raw.nivelEnsino &&
+        !!raw.anoSerie &&
+        this.alocacoes().size > 0
+      );
+    }
+    return this.selecionados().size > 0;
   }
 
   protected submeter(): void {
     if (!this.podeSalvar()) return;
     const raw = this.form.getRawValue();
+
+    // Turma regular: modalidade contínua e dias derivados das alocações.
+    const grade = this.ehRegular() ? this.gradeHoraria() : [];
+    const diasSemana = this.ehRegular()
+      ? [...new Set(grade.map((g) => g.diaSemana))].sort((a, b) => a - b)
+      : [...this.selecionados()].sort();
+    const tipoModalidade: TipoModalidade = this.ehRegular()
+      ? 'GRADE_FIXA'
+      : raw.tipoModalidade;
+
     this.save.emit({
       nome: raw.nome,
-      tipoModalidade: raw.tipoModalidade,
+      tipoModalidade,
       dataInicio: raw.dataInicio,
-      diasSemana: [...this.selecionados()].sort(),
+      diasSemana,
       cor: this.cor(),
       pontuacaoAtiva: this.podeGamif() && raw.pontuacaoAtiva,
       nomePontuacao: raw.nomePontuacao.trim() || 'XP',
@@ -460,9 +647,18 @@ export class TurmaForm {
       nivelDiamante: Number(raw.nivelDiamante) || NIVEIS_DEFAULT.diamante,
       nivelPlatina: Number(raw.nivelPlatina) || NIVEIS_DEFAULT.platina,
       ...(raw.disciplina ? { disciplina: raw.disciplina } : {}),
-      ...(raw.horaInicio ? { horaInicio: raw.horaInicio } : {}),
-      ...(raw.horaFim ? { horaFim: raw.horaFim } : {}),
-      ...(raw.tipoModalidade === 'MODULO_FECHADO'
+      ...(this.ehRegular()
+        ? {
+            ensinoRegular: true,
+            instituicaoId: raw.instituicaoId,
+            nivelEnsino: raw.nivelEnsino as NivelEnsino,
+            anoSerie: raw.anoSerie,
+            gradeHoraria: grade,
+          }
+        : { ensinoRegular: false }),
+      ...(!this.ehRegular() && raw.horaInicio ? { horaInicio: raw.horaInicio } : {}),
+      ...(!this.ehRegular() && raw.horaFim ? { horaFim: raw.horaFim } : {}),
+      ...(tipoModalidade === 'MODULO_FECHADO'
         ? { totalAulas: Number(raw.totalAulas) }
         : {}),
     });

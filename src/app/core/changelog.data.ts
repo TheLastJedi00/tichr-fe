@@ -18,19 +18,61 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
-    versao: 'v0.23.0',
-    data: '2026-07-20',
-    titulo: 'Buscar turma na hora de montar o jogo',
+    versao: 'v0.24.0',
+    data: '2026-07-21',
+    titulo: 'Turmas por escola, mais redondas',
     itens: [
       {
         categoria: 'Nova feature',
         texto:
-          'Ao criar um jogo, a escolha da turma virou uma busca: toque em "Selecionar turma" e abre uma janela com campo de pesquisa e filtros por disciplina e por status (mostrar ou não as turmas encerradas). Cada turma aparece com a disciplina e a quantidade de alunos, e você pode atribuir várias. No celular, a janela sobe de baixo como uma gaveta.',
+          'Cada escola agora tem a sua própria tela de turmas: toque no card da instituição em "Minhas turmas" e veja só as turmas dela, com filtro por Ativas/Encerradas e busca por nome.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Precisou mover uma turma de escola? Agora tem um seletor de instituição na própria turma — dá para trocar a escola (ou deixar sem instituição) na hora.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'As instituições passam a aceitar mais de um intervalo/recreio na grade — adicione quantos precisar ao cadastrar a escola.',
       },
       {
         categoria: 'Melhoria',
         texto:
-          'A janela lembra o último filtro que você usou durante a sessão — se filtrou por "Matemática", ela já abre assim no próximo jogo. E se a turma escolhida ainda não tem alunos, o cadastro rápido em massa aparece na hora, sem interromper a montagem do jogo.',
+          'Todas as telas de turma ganharam um botão de voltar para o menu anterior, deixando a navegação mais previsível.',
+      },
+    ],
+  },
+  {
+    versao: 'v0.23.0',
+    data: '2026-07-21',
+    titulo: 'Tichr para a escola: ensino regular',
+    itens: [
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Chegou a organização por Escola. Em "Minhas turmas", cadastre sua instituição informando o horário de início e fim do dia, a duração da aula e o intervalo — e o Tichr monta a grade de horários sozinho (1º Horário, 2º Horário, Intervalo…), com uma prévia ao vivo enquanto você preenche. As turmas passam a ficar agrupadas por escola.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Ao criar uma turma, escolha a modalidade "Ensino Regular" para vinculá-la a uma escola, definir o nível (Fundamental ou Médio), o ano/série e marcar em quais horários da grade ela tem aula em cada dia da semana.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Nova agenda diária: um deslize para o lado troca de dia (Segunda a Sexta), já abrindo no dia de hoje, com a lista de horários na vertical — 1º Horário, 2º Horário, Intervalo — mostrando a turma de cada horário ou uma janela livre.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'A agenda mensal ficou mais limpa: os dias com aula são destacados por cor e um "i" — toque no dia para abrir os horários daquele dia num quadro, sem mudar de tela.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'No painel inicial, a "Próxima aula" fala a língua da escola: "Hoje você entra no 1º horário na escola [Nome] com a turma do 9º Ano".',
       },
     ],
   },
