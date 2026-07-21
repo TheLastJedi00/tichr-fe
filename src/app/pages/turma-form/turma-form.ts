@@ -202,7 +202,7 @@ const DIAS_UTEIS = [
                 </select>
               </label>
               <label>
-                <span>Ano/Série</span>
+                <span>Ano</span>
                 <select class="tichr-input" formControlName="anoSerie" [disabled]="!seriesDisponiveis().length">
                   <option value="">— Selecione —</option>
                   @for (s of seriesDisponiveis(); track s) {

@@ -19,10 +19,11 @@ const SERIES_POR_NIVEL: Record<NivelEnsino, string[]> = {
     '8º Ano',
     '9º Ano',
   ],
-  MEDIO: ['1ª Série', '2ª Série', '3ª Série'],
+  // Nomenclatura por "Ano" também no Médio (1º/2º/3º Ano), não "Série".
+  MEDIO: ['1º Ano', '2º Ano', '3º Ano'],
 };
 
-/** Opções de ano/série para o nível informado (vazio se nível ausente). */
+/** Opções de ano para o nível informado (vazio se nível ausente). */
 export function seriesDoNivel(nivel?: NivelEnsino | null): string[] {
   return nivel ? SERIES_POR_NIVEL[nivel] : [];
 }
@@ -30,4 +31,16 @@ export function seriesDoNivel(nivel?: NivelEnsino | null): string[] {
 /** Rótulo por extenso de um nível de ensino. */
 export function rotuloNivel(nivel?: NivelEnsino | null): string {
   return NIVEIS_ENSINO.find((n) => n.value === nivel)?.label ?? '';
+}
+
+/** Rótulo curto do nível ('Fundamental' / 'Médio') — usado nas boas-vindas. */
+export function nivelCurto(nivel?: NivelEnsino | null): string {
+  switch (nivel) {
+    case 'FUNDAMENTAL':
+      return 'Fundamental';
+    case 'MEDIO':
+      return 'Médio';
+    default:
+      return '';
+  }
 }

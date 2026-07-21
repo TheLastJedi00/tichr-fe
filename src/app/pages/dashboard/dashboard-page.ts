@@ -26,6 +26,7 @@ import { planoAtendeMinimo } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { InstituicaoApiService } from '../../core/instituicao-api.service';
 import { gradeDoTurno, periodoDoDia } from '../../core/turno.util';
+import { nivelCurto } from '../../core/serie.util';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { IsolateusApiService } from '../../core/isolateus-api.service';
 import { WorApiService } from '../../core/wor-api.service';
@@ -55,6 +56,8 @@ interface EntradaRegular {
   turmaNome: string;
   cor?: string;
   turno?: TipoTurno;
+  /** Nível ('Fundamental' / 'Médio') destacado nas boas-vindas. */
+  nivel: string;
   /** Escola com uma aula por turno → omite o "Nº horário" na mensagem. */
   aulaUnica: boolean;
 }
@@ -131,11 +134,13 @@ function horaEmMin(h: string): number {
               {{ abreRegular() }} você
               @if (r.aulaUnica) {
                 tem aula na escola <strong>{{ r.escola }}</strong> com a turma do
-                <strong>{{ r.serie }}</strong>.
+                <strong>{{ r.serie }}</strong>@if (r.nivel) {
+                  do <strong>{{ r.nivel }}</strong>}.
               } @else {
                 entra no <strong>{{ r.periodo }}º horário</strong> na escola
                 <strong>{{ r.escola }}</strong> com a turma do
-                <strong>{{ r.serie }}</strong>.
+                <strong>{{ r.serie }}</strong>@if (r.nivel) {
+                  do <strong>{{ r.nivel }}</strong>}.
               }
             </p>
             <div class="proxima__turma">
@@ -584,6 +589,7 @@ export class DashboardPage {
             turmaNome: t.nome,
             cor: t.cor,
             turno: t.turno,
+            nivel: nivelCurto(t.nivelEnsino),
             aulaUnica: !!inst.aulaUnicaPorTurno,
             ordem: `${iso}T${slot.horaInicio}`,
           });
