@@ -27,13 +27,17 @@ export class ProfileService {
 
   /**
    * Soft-block do onboarding: perfil considerado incompleto enquanto faltar
-   * nome, @username ou foto. Usado para destacar o card de conclusão no painel.
+   * nome, @username, foto ou ao menos uma disciplina. Usado para destacar o
+   * card de conclusão no painel.
    */
   readonly perfilIncompleto = computed(() => {
     const p = this.profile();
     if (!p) return false;
     return (
-      !p.nomeExibicao?.trim() || !p.username?.trim() || !p.avatarUrl?.trim()
+      !p.nomeExibicao?.trim() ||
+      !p.username?.trim() ||
+      !p.avatarUrl?.trim() ||
+      !p.disciplinas?.length
     );
   });
 
