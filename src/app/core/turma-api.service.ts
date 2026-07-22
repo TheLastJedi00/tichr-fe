@@ -27,6 +27,7 @@ import {
   Topico,
   TopicoAula,
   Turma,
+  UnidadeAlocacao,
 } from './models';
 
 /** Service HTTP do frontend: fala com os endpoints do backend. */
@@ -450,6 +451,20 @@ export class TurmaApiService {
     return this.http.put<Alocacao | { removido: true }>(
       `${this.base}/turmas/${turmaId}/alocacoes/${numero}`,
       { topicoId },
+    );
+  }
+
+  /**
+   * Regrava o board REGULAR (Unidades Eletivas) da turma de uma só vez —
+   * envia o estado completo; o backend recalcula `unidade`+`ordem`.
+   */
+  definirAlocacoesRegulares(
+    turmaId: string,
+    unidades: UnidadeAlocacao[],
+  ): Observable<Alocacao[]> {
+    return this.http.put<Alocacao[]>(
+      `${this.base}/turmas/${turmaId}/alocacoes-regulares`,
+      { unidades },
     );
   }
 }

@@ -18,6 +18,28 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.28.0',
+    data: '2026-07-22',
+    titulo: 'Plano de aula por unidades no ensino regular',
+    itens: [
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Turmas de ensino regular agora organizam o plano de aula em um sanfona por Ano Letivo → Semestres (1º e 2º) → Unidades (1ª a 4ª), no lugar da lista sem fim de dias.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Arraste um tópico para dentro de uma Unidade e ele é empilhado e numerado automaticamente; reordene arrastando para cima ou para baixo que a numeração se atualiza na hora.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Todo o quadro é empilhado em coluna, sem rolagem lateral nem vazamento de conteúdo no celular.',
+      },
+    ],
+  },
+  {
     versao: 'v0.27.2',
     data: '2026-07-21',
     titulo: 'Ano em vez de série, com nível nas boas-vindas',
