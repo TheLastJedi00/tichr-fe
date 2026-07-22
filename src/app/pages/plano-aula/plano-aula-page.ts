@@ -289,7 +289,10 @@ interface Semestre {
     }
   `,
   styles: `
-    .title { margin: 0 0 1rem; font-size: 1.5rem; font-weight: 700; }
+    /* Gap padrão entre os blocos da página (igual ao dashboard) — os blocos não
+       usam margin vertical própria; o espaçamento é sempre este gap. */
+    :host { display: flex; flex-direction: column; gap: 1.25rem; }
+    .title { margin: 0; font-size: 1.5rem; font-weight: 700; }
     .sub { margin: 0 0 0.75rem; font-size: 1.1rem; font-weight: 700; }
     .loading { display: flex; justify-content: center; padding: 3rem 0; color: var(--primary); }
     .campo { display: block; margin-bottom: 1rem; }
@@ -302,7 +305,7 @@ interface Semestre {
     .full { width: 100%; }
     .add { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
     .add .tichr-input { flex: 1 1 240px; }
-    .micro, .regular { margin-top: 1rem; display: grid; gap: 1rem; }
+    .micro, .regular { display: grid; gap: 1rem; }
     @media (min-width: 800px) { .micro { grid-template-columns: 300px 1fr; align-items: start; } }
     @media (min-width: 800px) { .regular { grid-template-columns: 300px 1fr; align-items: start; } }
 
