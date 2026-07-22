@@ -404,8 +404,19 @@ export interface Topico {
 export interface Alocacao {
   id: string;
   turmaId: string;
-  numeroAula: number;
   topicoId: string;
+  /** Modo modular: número da aula à qual o tópico está ancorado. */
+  numeroAula?: number;
+  /** Modo regular (ensino regular): unidade eletiva (1..4). */
+  unidade?: number;
+  /** Modo regular: posição do tópico dentro da unidade (0-based). */
+  ordem?: number;
+}
+
+/** Estado de uma Unidade Eletiva no board regular: a ordem define a numeração. */
+export interface UnidadeAlocacao {
+  unidade: number;
+  topicoIds: string[];
 }
 
 export interface TopicoAula {
