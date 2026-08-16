@@ -72,6 +72,13 @@ export const MAPA: SetorMapa[] = [
   },
 ];
 
+/**
+ * O rádio da vila. É de lá, e só de lá, que se convoca a Quarentena — a regra
+ * mora no backend (`SETOR_COMUNICACAO`) e o cliente a espelha para não oferecer
+ * um botão que o servidor vai recusar.
+ */
+export const SETOR_COMUNICACAO = 'comunicacao';
+
 export function setorDoMapa(id: string): SetorMapa | undefined {
   return MAPA.find((s) => s.id === id);
 }

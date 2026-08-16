@@ -18,6 +18,38 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.29.1',
+    data: '2026-08-16',
+    titulo: 'A noite do Isolateus destravou',
+    itens: [
+      {
+        categoria: 'Correção',
+        texto:
+          'O alienígena voltou a poder sabotar e abduzir depois de se deslocar. Antes, andar fechava a noite dele e o painel de ataque sumia da tela — ele ficava com uma das duas jogadas, nunca as duas.',
+      },
+      {
+        categoria: 'Correção',
+        texto:
+          'A partida não trava mais quando o cronômetro zera. Qualquer celular da turma agora cobra o prazo vencido, e a cobrança é repetida até a rodada virar — antes o telão tinha uma única chance por fase, e bastava um tropeço de rede para a investigação parar até alguém recarregar a página.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'A janela para escolher o deslocamento subiu de 20 para 60 segundos. E quando a vila inteira já decidiu, o relógio salta em vez de correr até o fim.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'A tela do aluno mostra quanto falta para a noite cair, e ela cai sozinha: o professor não precisa mais clicar para a investigação seguir.',
+      },
+      {
+        categoria: 'Correção',
+        texto:
+          'O botão de convocar a Quarentena só aparece para quem está no Setor de Comunicação com o rádio de pé — antes aparecia para todos e o servidor recusava. A convocação é da vila: o telão passa a apenas narrar.',
+      },
+    ],
+  },
+  {
     versao: 'v0.29.0',
     data: '2026-08-16',
     titulo: 'O Isolateus ganhou um mapa',

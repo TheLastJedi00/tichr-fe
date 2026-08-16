@@ -96,12 +96,6 @@ export class IsolateusApiService {
       {},
     );
   }
-  abrirQuarentena(id: string): Observable<IsolateusMatch> {
-    return this.http.post<IsolateusMatch>(
-      `${this.base}/isolateus/matches/${id}/quarentena`,
-      {},
-    );
-  }
 
   // --- Aluno (portal) ---
   partidaAtual(): Observable<IsolateusMatch | null> {
@@ -190,6 +184,17 @@ export class IsolateusApiService {
   convocarQuarentena(id: string): Observable<IsolateusMatch> {
     return this.http.post<IsolateusMatch>(
       `${this.base}/aluno/isolateus/${id}/quarentena`,
+      {},
+    );
+  }
+  /**
+   * O celular também cobra o prazo vencido de uma fase. O telão continua sendo o
+   * cronômetro principal, mas deixou de ser o único: uma aba dormindo parava a
+   * partida inteira.
+   */
+  tempoAluno(id: string): Observable<IsolateusMatch> {
+    return this.http.post<IsolateusMatch>(
+      `${this.base}/aluno/isolateus/${id}/tempo`,
       {},
     );
   }
