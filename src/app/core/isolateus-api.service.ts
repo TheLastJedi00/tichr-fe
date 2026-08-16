@@ -96,9 +96,13 @@ export class IsolateusApiService {
       {},
     );
   }
-  abrirQuarentena(id: string): Observable<IsolateusMatch> {
+  /**
+   * Encerra a investigação no meio do jogo (o sinal da aula bateu). O veredito
+   * sai pelo estado da vila no instante da interrupção.
+   */
+  encerrar(id: string): Observable<IsolateusMatch> {
     return this.http.post<IsolateusMatch>(
-      `${this.base}/isolateus/matches/${id}/quarentena`,
+      `${this.base}/isolateus/matches/${id}/encerrar`,
       {},
     );
   }
@@ -190,6 +194,17 @@ export class IsolateusApiService {
   convocarQuarentena(id: string): Observable<IsolateusMatch> {
     return this.http.post<IsolateusMatch>(
       `${this.base}/aluno/isolateus/${id}/quarentena`,
+      {},
+    );
+  }
+  /**
+   * O celular também cobra o prazo vencido de uma fase. O telão continua sendo o
+   * cronômetro principal, mas deixou de ser o único: uma aba dormindo parava a
+   * partida inteira.
+   */
+  tempoAluno(id: string): Observable<IsolateusMatch> {
+    return this.http.post<IsolateusMatch>(
+      `${this.base}/aluno/isolateus/${id}/tempo`,
       {},
     );
   }
