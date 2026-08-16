@@ -56,40 +56,37 @@ const LIMITE_VOTO_S = 60;
             <app-lobby-loader />
             <strong>Aguardando Comando Central</strong>
             <p class="muted">
-              Você entrou como <b>{{ meuPseudonimo(p) }}</b>. O professor está
-              auditando os nomes.
+              Você está na vila. Seu <b>codinome</b> será revelado quando a
+              investigação começar.
             </p>
           </div>
         } @else {
-          <form class="registro" (submit)="entrar($event)">
-            @if (vetado()) {
-              <p class="aviso">Seu nome foi vetado pelo Comando Central. Escolha outro.</p>
+          <div class="registro">
+            @if (removido()) {
+              <p class="aviso">
+                O Comando Central tirou você desta investigação. Se foi engano,
+                entre de novo.
+              </p>
             }
-            <label class="campo">
-              <span>Seu nome de personagem</span>
-              <input
-                class="tichr-input"
-                maxlength="24"
-                [value]="pseudonimo()"
-                (input)="pseudonimo.set($any($event.target).value)"
-                placeholder="Ex: Corvo Pálido"
-              />
-            </label>
             <p class="muted">
-              Ninguém usa o nome verdadeiro. O pseudônimo evita perseguições
-              pessoais e mantém o foco na lógica.
+              Ninguém usa o nome verdadeiro aqui. Ao começar, o Comando Central
+              distribui a cada habitante um <b>codinome de cidade</b> — é por ele
+              que você será conhecido.
             </p>
             @if (erro()) { <p class="aviso">{{ erro() }}</p> }
-            <button class="btn-iso full" type="submit" [disabled]="enviando() || pseudonimo().trim().length < 2">
+            <button class="btn-iso full" type="button" [disabled]="enviando()" (click)="entrar()">
               {{ enviando() ? 'Registrando…' : 'Entrar na vila' }}
             </button>
-          </form>
+          </div>
         }
       } @else if (revelando()) {
         <!-- O Despertar -->
         <section class="revelacao" [class.revelacao--ameaca]="ehAmeaca()">
           <app-icon [name]="ehAmeaca() ? 'alien' : 'shield'" [size]="52" />
           <strong>{{ ehAmeaca() ? 'Você é a Ameaça' : 'Você é um Aldeão' }}</strong>
+          <p class="revelacao__codinome">
+            Nesta vila, você é <b>{{ meuCodinome() }}</b>
+          </p>
           <p>
             @if (ehAmeaca()) {
               Sabote os setores, abduza moradores e espalhe desinformação. Não
@@ -378,6 +375,15 @@ const LIMITE_VOTO_S = 60;
     .revelacao--ameaca { background: #4d7c0f; }
     .revelacao strong { font-size: 1.6rem; font-weight: 900; }
     .revelacao p { margin: 0; max-width: 22rem; opacity: 0.95; line-height: 1.5; }
+    /* O codinome é a segunda informação mais importante da tela, depois do papel. */
+    .revelacao__codinome {
+      font-size: 1.05rem;
+      opacity: 1 !important;
+      border-top: 2px solid rgba(255, 255, 255, 0.35);
+      border-bottom: 2px solid rgba(255, 255, 255, 0.35);
+      padding: 0.5rem 1.25rem;
+    }
+    .revelacao__codinome b { font-weight: 900; letter-spacing: 0.02em; }
     @keyframes pulsar { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.25); } }
     @media (prefers-reduced-motion: reduce) { .revelacao { animation: none; } }
     .vazio { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; padding: 3rem 1rem; text-align: center; color: #4d7c0f; }
@@ -450,9 +456,8 @@ export class StudentIsolateusPage {
   protected readonly carregando = signal(true);
   protected readonly enviando = signal(false);
   protected readonly erro = signal('');
-  protected readonly pseudonimo = signal('');
-  /** O professor vetou o pseudônimo: o aluno some dos inscritos e volta ao registro. */
-  protected readonly vetado = signal(false);
+  /** O professor removeu o aluno: ele some dos inscritos e volta ao registro. */
+  protected readonly removido = signal(false);
   protected readonly revelando = signal(false);
 
   protected readonly ehAmeaca = computed(
@@ -574,10 +579,10 @@ export class StudentIsolateusPage {
   private reagir(p: IsolateusMatch): void {
     const anterior = this.partida();
 
-    // Vetado no lobby: eu estava inscrito e sumi da lista.
+    // Removido no lobby: eu estava inscrito e sumi da lista.
     if (p.status === 'LOBBY' && this.jaEntrei && !this.inscrito(p)) {
       this.jaEntrei = false;
-      this.vetado.set(true);
+      this.removido.set(true);
     }
 
     // O Despertar: a partida saiu do lobby → busca o papel e roda a animação.
@@ -624,26 +629,25 @@ export class StudentIsolateusPage {
     return p.inscritos.some((i) => i.alunoId === this.meuId);
   }
 
-  protected meuPseudonimo(p: IsolateusMatch): string {
-    return p.inscritos.find((i) => i.alunoId === this.meuId)?.nome ?? '—';
+  /** O codinome de cidade sorteado para mim no Despertar. */
+  protected meuCodinome(): string {
+    return this.meuHabitante()?.nome ?? '—';
   }
 
-  protected entrar(ev: Event): void {
-    ev.preventDefault();
-    const nome = this.pseudonimo().trim();
-    if (!this.partidaId || nome.length < 2 || this.enviando()) return;
+  protected entrar(): void {
+    if (!this.partidaId || this.enviando()) return;
     this.enviando.set(true);
     this.erro.set('');
-    this.api.entrar(this.partidaId, nome).subscribe({
+    this.api.entrar(this.partidaId).subscribe({
       next: () => {
         this.enviando.set(false);
         this.jaEntrei = true;
-        this.vetado.set(false);
+        this.removido.set(false);
       },
       error: (e: { error?: { message?: string } }) => {
         this.enviando.set(false);
         this.erro.set(
-          e.error?.message ?? 'Não foi possível registrar esse nome.',
+          e.error?.message ?? 'Não foi possível entrar na vila.',
         );
       },
     });

@@ -61,30 +61,31 @@ const MIN_REAIS = 4;
               <app-lobby-loader class="loader-mini" />
             </div>
             @if (!p.inscritos.length) {
-              <p class="muted">Aguardando os primeiros nomes de personagem.</p>
+              <p class="muted">Aguardando os primeiros habitantes.</p>
             } @else {
+              <!--
+                O telão NÃO mostra nomes aqui de propósito: os codinomes só são
+                sorteados no Despertar. Se a turma visse a lista real enchendo,
+                saberia por eliminação quem é habitante virtual.
+              -->
               <p class="muted">
-                Toque no nome para <b>trocar o apelido</b>, ou no × para <b>vetar</b>
-                — vetar devolve o aluno à tela de registro.
+                Os <b>codinomes</b> são sorteados ao iniciar. Toque no × para tirar
+                alguém que entrou por engano.
               </p>
               <ul class="inscritos">
-                @for (i of p.inscritos; track i.alunoId) {
+                @for (i of p.inscritos; track i.alunoId; let idx = $index) {
                   <li>
                     <span class="chip">
-                      <button
-                        class="chip__nome"
-                        type="button"
-                        [disabled]="ocupado()"
-                        (click)="renomear(i.alunoId, i.nome)"
-                      >
-                        {{ i.nome }}
-                      </button>
+                      <span class="chip__nome chip__nome--anon">
+                        <app-icon name="user" [size]="12" />
+                        Habitante {{ idx + 1 }}
+                      </span>
                       <button
                         class="chip__x"
                         type="button"
-                        aria-label="Vetar {{ i.nome }}"
+                        aria-label="Remover habitante {{ idx + 1 }}"
                         [disabled]="ocupado()"
-                        (click)="vetar(i.alunoId, i.nome)"
+                        (click)="remover(i.alunoId, idx + 1)"
                       >
                         <app-icon name="close" [size]="12" />
                       </button>
@@ -285,6 +286,8 @@ const MIN_REAIS = 4;
     .chip:hover { border-color: var(--danger); }
     .chip__nome, .chip__x { border: none; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; display: inline-flex; align-items: center; }
     .chip__nome:hover:not(:disabled) { text-decoration: underline; }
+    /* Sem nome no lobby: o codinome só existe depois do Despertar. */
+    .chip__nome--anon { gap: 0.3rem; opacity: 0.8; cursor: default; }
     .chip__x:hover:not(:disabled) { color: var(--danger); }
     .chip__nome:disabled, .chip__x:disabled { cursor: not-allowed; opacity: 0.55; }
     .btn-iso { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.85rem 1.2rem; border: none; border-radius: 12px; cursor: pointer; font: inherit; font-weight: 800; color: #fff; background: linear-gradient(135deg, #84cc16, #4d7c0f); }
@@ -443,16 +446,16 @@ export class IsolateusProjetorPage {
     });
   }
 
-  protected vetar(alunoId: string, nome: string): void {
-    if (!confirm(`Vetar o nome "${nome}"? O aluno volta para a tela de registro.`)) return;
-    this.acao(this.api.vetarNome(this.matchId, alunoId));
-  }
-
-  /** Corrige um apelido sem tirar o aluno do lobby (só antes do Despertar). */
-  protected renomear(alunoId: string, nome: string): void {
-    const novo = prompt(`Novo apelido para "${nome}":`, nome)?.trim();
-    if (!novo || novo === nome) return;
-    this.acao(this.api.renomearInscrito(this.matchId, alunoId, novo));
+  /** Tira do lobby quem entrou por engano (só antes do Despertar). */
+  protected remover(alunoId: string, posicao: number): void {
+    if (
+      !confirm(
+        `Remover o habitante ${posicao}? Ele volta para a tela de entrada e pode entrar de novo.`,
+      )
+    ) {
+      return;
+    }
+    this.acao(this.api.removerInscrito(this.matchId, alunoId));
   }
 
   protected iniciar(): void {

@@ -891,8 +891,12 @@ export interface IsolateusMatch {
   /** Quantos já pularam o debate — só a contagem; quem pulou é segredo. */
   pulosRecebidos?: number;
 
-  /** Pseudônimos do lobby — o backend esvazia esta lista ao iniciar. */
-  inscritos: { alunoId: string; nome: string }[];
+  /**
+   * Quem está no lobby — só o `alunoId`. O codinome de cidade é sorteado no
+   * Despertar, para que o telão não exiba nomes reais antes dos NPCs entrarem.
+   * O backend esvazia esta lista ao iniciar.
+   */
+  inscritos: { alunoId: string }[];
 
   veredito?: VereditoIsolateus | null;
   /** O placar só é publicado no encerramento (ao vivo, denunciaria os reais). */
