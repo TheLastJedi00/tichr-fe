@@ -18,6 +18,53 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.29.0',
+    data: '2026-08-16',
+    titulo: 'O Isolateus ganhou um mapa',
+    itens: [
+      {
+        categoria: 'Nova feature',
+        texto:
+          'A vila do Isolateus virou um mapa de 6 setores ligados por estradas. Cada habitante ocupa um setor, escolhe para onde caminhar a cada noite e só enxerga quem está com ele — o resto da vila ele descobre conversando.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'O alienígena agora precisa estar no lugar para agir: ele só sabota o setor onde está e só escolhe a vítima entre quem divide o setor com ele. À distância, resta arriscar uma abdução às cegas — apostando num setor sem saber quem está lá.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Setor destruído pode ser reconstruído: alguém precisa marchar até a ruína e organizar o reparo, e é isso que abre a questão para a turma. Acertando, o setor volta de pé e a Esperança sobe.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'A Quarentena só pode ser convocada de dentro do Setor de Comunicação — e se o alienígena derrubar o rádio, a vila fica sem convocar até reconstruí-lo.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'O Diário da Vila registra tudo o que aconteceu na partida. Cada novidade aparece na tela e depois fica guardada ali, para a turma reler enquanto discute.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Ninguém digita mais o nome de personagem: ao começar a investigação, cada habitante recebe um codinome de cidade (Reykjavík, Bucareste, Nairóbi…). Isso mantém o mistério de pé — antes, a lista de nomes no telão entregava quem era jogador de verdade.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'O professor não precisa mais clicar em "Próxima noite": o jogo avança sozinho, com uma janela para a vila decidir se convoca a Quarentena. O botão continua lá para adiantar quando quiser.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'A passagem do dia para a noite virou uma cena: o sol se põe, o tema escurece e a lua sobe. A abdução também ganhou animação — a nave desce sobre o setor e leva o habitante.',
+      },
+    ],
+  },
+  {
     versao: 'v0.28.0',
     data: '2026-07-22',
     titulo: 'Plano de aula por unidades no ensino regular',
