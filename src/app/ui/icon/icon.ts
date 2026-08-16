@@ -36,6 +36,14 @@ export type IconName =
   | 'scroll'
   | 'alien'
   | 'radio'
+  // Os 6 setores da vila do Isolateus, mais a nave e a rachadura da sabotagem.
+  | 'bolt'
+  | 'megafone'
+  | 'fuel'
+  | 'loja'
+  | 'coracao'
+  | 'nave'
+  | 'rachadura'
   | 'mail';
 
 /**
@@ -227,6 +235,39 @@ export type IconName =
           <path d="M16 5 8 9" />
           <circle cx="8" cy="14.5" r="2.5" />
           <path d="M14 13h4M14 16h4" />
+        }
+        @case ('bolt') {
+          <path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5z" />
+        }
+        @case ('megafone') {
+          <path d="M11 5 6 9H3a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h3l5 4V5z" />
+          <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+          <path d="M18.5 5.5a9 9 0 0 1 0 13" />
+        }
+        @case ('fuel') {
+          <path d="M3 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16" />
+          <path d="M2 21h12" />
+          <path d="M5 8h6" />
+          <path d="M17 21v-7a2 2 0 0 0-2-2h-2" />
+          <path d="M17 14V8l3 2v6a1.5 1.5 0 0 1-3 0z" />
+        }
+        @case ('loja') {
+          <path d="M3 9h18l-1.5-5H4.5L3 9z" />
+          <path d="M4 9v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9" />
+          <path d="M9 21v-6h6v6" />
+        }
+        @case ('coracao') {
+          <path
+            d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.3l-1.7-1.7a5 5 0 1 0-7.1 7.1L12 21.5l8.8-8.8a5 5 0 0 0 0-7.1z"
+          />
+        }
+        @case ('nave') {
+          <ellipse cx="12" cy="13" rx="9" ry="3.5" />
+          <path d="M7.5 11.5A5 5 0 0 1 12 6a5 5 0 0 1 4.5 5.5" />
+          <path d="M5 16.5 3 20M19 16.5 21 20M12 16.5V21" />
+        }
+        @case ('rachadura') {
+          <path d="M13 2 9 9h5l-4 6h4l-3 7" />
         }
       }
     </svg>

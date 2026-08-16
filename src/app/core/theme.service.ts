@@ -29,6 +29,26 @@ export class ThemeService {
     localStorage.setItem(STORAGE_KEY, theme);
   }
 
+  /**
+   * Aplica um tema **sem persistir** — para o ciclo dia/noite do Isolateus, que
+   * escurece a tela quando a noite cai.
+   *
+   * A escolha do usuário fica intocada em `localStorage`: a noite é do jogo, não
+   * do app, e sair de uma partida não pode deixar o painel dele escuro para
+   * sempre. Sempre pareie com `restaurarPreferencia()` ao sair.
+   */
+  aplicarTemporario(theme: Theme): void {
+    this.theme.set(theme);
+    this.applyTheme(theme);
+  }
+
+  /** Volta ao tema que o usuário escolheu (ou ao do sistema). */
+  restaurarPreferencia(): void {
+    const preferido = this.resolveInitialTheme();
+    this.theme.set(preferido);
+    this.applyTheme(preferido);
+  }
+
   private applyTheme(theme: Theme): void {
     document.documentElement.setAttribute('data-theme', theme);
     document

@@ -69,22 +69,11 @@ export class IsolateusApiService {
   verPartida(id: string): Observable<IsolateusMatch> {
     return this.http.get<IsolateusMatch>(`${this.base}/isolateus/matches/${id}`);
   }
-  /** A auditoria do Comando Central: veta um pseudônimo no lobby. */
-  vetarNome(id: string, alunoId: string): Observable<IsolateusMatch> {
+  /** Remove um habitante do lobby (entrou na partida errada). Só no LOBBY. */
+  removerInscrito(id: string, alunoId: string): Observable<IsolateusMatch> {
     return this.http.post<IsolateusMatch>(
-      `${this.base}/isolateus/matches/${id}/vetar/${alunoId}`,
+      `${this.base}/isolateus/matches/${id}/remover/${alunoId}`,
       {},
-    );
-  }
-  /** Corrige o apelido de um habitante sem tirá-lo do lobby. */
-  renomearInscrito(
-    id: string,
-    alunoId: string,
-    pseudonimo: string,
-  ): Observable<IsolateusMatch> {
-    return this.http.post<IsolateusMatch>(
-      `${this.base}/isolateus/matches/${id}/renomear/${alunoId}`,
-      { pseudonimo },
     );
   }
   /** O Despertar: preenche a vila com NPCs e sorteia a Ameaça. */
@@ -118,10 +107,11 @@ export class IsolateusApiService {
   partidaAtual(): Observable<IsolateusMatch | null> {
     return this.http.get<IsolateusMatch | null>(`${this.base}/aluno/isolateus`);
   }
-  entrar(id: string, pseudonimo: string): Observable<IsolateusMatch> {
+  /** O Registro: declara presença. O codinome vem no Despertar. */
+  entrar(id: string): Observable<IsolateusMatch> {
     return this.http.post<IsolateusMatch>(
       `${this.base}/aluno/isolateus/${id}/entrar`,
-      { pseudonimo },
+      {},
     );
   }
   /** A Revelação: o papel do aluno (e, só para a Ameaça, a solução verdadeira). */
@@ -130,15 +120,48 @@ export class IsolateusApiService {
       `${this.base}/aluno/isolateus/${id}/painel`,
     );
   }
-  /** O Turno da Ameaça: sabotar um setor ou abduzir um morador. */
+  /** O deslocamento da noite: anda um setor pelas estradas do mapa. */
+  mover(id: string, setorId: string): Observable<IsolateusMatch> {
+    return this.http.post<IsolateusMatch>(
+      `${this.base}/aluno/isolateus/${id}/mover`,
+      { setorId },
+    );
+  }
+
+  /** "Eu fico." Fecha a jogada da noite sem sair do lugar. */
+  confirmarPosicao(id: string): Observable<IsolateusMatch> {
+    return this.http.post<IsolateusMatch>(
+      `${this.base}/aluno/isolateus/${id}/confirmar-posicao`,
+      {},
+    );
+  }
+
+  /** A Reconstrução: organiza o reparo da ruína onde você está. */
+  reparo(id: string): Observable<IsolateusMatch> {
+    return this.http.post<IsolateusMatch>(
+      `${this.base}/aluno/isolateus/${id}/reparo`,
+      {},
+    );
+  }
+
+  /**
+   * A jogada da Ameaça.
+   *
+   * `SABOTAR` não leva alvo (sabota-se onde se está). `ABDUZIR` leva **um** dos
+   * dois: `alvoId` (presencial, escolhendo a vítima) ou `setorId` (às cegas,
+   * apostando num setor distante).
+   */
   acao(
     id: string,
-    tipo: 'SABOTAR' | 'ABDUZIR',
-    alvoId: string,
+    jogada: {
+      tipo: 'SABOTAR' | 'ABDUZIR' | 'AGUARDAR';
+      alvoId?: string;
+      setorId?: string;
+    },
   ): Observable<IsolateusMatch> {
     return this.http.post<IsolateusMatch>(
       `${this.base}/aluno/isolateus/${id}/acao`,
-      { tipo, alvoId },
+      jogada,
     );
   }
   responder(
