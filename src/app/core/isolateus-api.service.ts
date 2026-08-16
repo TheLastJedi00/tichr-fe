@@ -96,6 +96,16 @@ export class IsolateusApiService {
       {},
     );
   }
+  /**
+   * Encerra a investigação no meio do jogo (o sinal da aula bateu). O veredito
+   * sai pelo estado da vila no instante da interrupção.
+   */
+  encerrar(id: string): Observable<IsolateusMatch> {
+    return this.http.post<IsolateusMatch>(
+      `${this.base}/isolateus/matches/${id}/encerrar`,
+      {},
+    );
+  }
 
   // --- Aluno (portal) ---
   partidaAtual(): Observable<IsolateusMatch | null> {

@@ -306,8 +306,40 @@ const MIN_REAIS = 4;
               [acontecimentos]="p.acontecimentos"
             />
           }
+
+          <!--
+            A saída de emergência da aula: o sinal bate no meio da noite e a
+            turma dispersa. Fica discreto e no rodapé de propósito — é uma ação
+            sem volta, não um controle de ritmo (esse é o "Adiantar noite").
+          -->
+          @if (p.status !== 'ENCERRADO') {
+            <button class="btn-encerrar" type="button" [disabled]="ocupado()" (click)="confirmarFim.set(true)">
+              <app-icon name="close" [size]="14" /> Encerrar investigação agora
+            </button>
+          }
         </section>
       }
+
+      <app-modal
+        [open]="confirmarFim()"
+        title="Encerrar a investigação?"
+        (close)="confirmarFim.set(false)"
+      >
+        <p>
+          A partida termina <b>agora</b>, para toda a turma. O veredito sai pelo
+          estado da vila neste momento — setores de pé, habitantes na vila — e o
+          XP já acumulado é creditado.
+        </p>
+        <p class="muted">Não dá para voltar atrás.</p>
+        <div modal-actions>
+          <button class="btn-outline" type="button" (click)="confirmarFim.set(false)">
+            Continuar jogando
+          </button>
+          <button class="btn-perigo" type="button" [disabled]="ocupado()" (click)="encerrar()">
+            Encerrar agora
+          </button>
+        </div>
+      </app-modal>
 
       <app-modal [open]="assistencia()" title="Alunos da turma" (close)="assistencia.set(false)">
         <p class="muted">Toque no card para revelar o PIN individual do aluno.</p>
@@ -334,6 +366,12 @@ const MIN_REAIS = 4;
   styles: `
     :host { display: block; }
     .voltar { display: inline-block; margin-bottom: 0.75rem; color: var(--text-muted); text-decoration: none; font-weight: 600; }
+    /* Discreto de propósito: é saída de emergência, não controle de ritmo. */
+    .btn-encerrar { align-self: center; display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.5rem; padding: 0.5rem 0.9rem; border: 1px solid var(--border); border-radius: 999px; background: none; font: inherit; font-size: 0.85rem; font-weight: 700; color: var(--text-muted); cursor: pointer; }
+    .btn-encerrar:hover:not(:disabled) { border-color: var(--danger); color: var(--danger); }
+    .btn-encerrar:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-perigo { padding: 0.6rem 1.1rem; border: none; border-radius: 10px; font: inherit; font-weight: 800; color: #fff; background: var(--danger); cursor: pointer; }
+    .btn-perigo:disabled { opacity: 0.55; cursor: not-allowed; }
     .title { margin: 0 0 1rem; font-size: 1.5rem; font-weight: 800; }
     .loading { display: flex; justify-content: center; padding: 4rem 0; color: #4d7c0f; }
     .lobby, .vila { display: flex; flex-direction: column; gap: 1rem; }
@@ -438,6 +476,8 @@ export class IsolateusProjetorPage {
   protected readonly ocupado = signal(false);
   protected readonly erro = signal<string | null>(null);
   protected readonly assistencia = signal(false);
+  /** Confirmação do encerramento antecipado — a ação não tem volta. */
+  protected readonly confirmarFim = signal(false);
   protected readonly pin = signal<string | null>(null);
   protected readonly alunos = signal<Aluno[]>([]);
   private readonly reveladosSet = signal<Set<string>>(new Set());
@@ -569,6 +609,11 @@ export class IsolateusProjetorPage {
   }
   protected proxima(): void {
     this.acao(this.api.proxima(this.matchId));
+  }
+  /** O sinal da aula bateu: a investigação termina onde está. */
+  protected encerrar(): void {
+    this.confirmarFim.set(false);
+    this.acao(this.api.encerrar(this.matchId));
   }
 
   private acao(obs: {

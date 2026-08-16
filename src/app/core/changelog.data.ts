@@ -47,6 +47,11 @@ export const CHANGELOG: VersaoChangelog[] = [
         texto:
           'O botão de convocar a Quarentena só aparece para quem está no Setor de Comunicação com o rádio de pé — antes aparecia para todos e o servidor recusava. A convocação é da vila: o telão passa a apenas narrar.',
       },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'O professor pode encerrar a investigação do Isolateus a qualquer momento, sem esperar as questões acabarem. Quando o sinal da aula bate, o veredito sai pelo estado da vila naquele instante e o XP já conquistado é creditado.',
+      },
     ],
   },
   {
