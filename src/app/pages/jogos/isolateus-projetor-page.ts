@@ -9,10 +9,13 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { IsolateusApiService } from '../../core/isolateus-api.service';
-import { Aluno } from '../../core/models';
+import { Aluno, IsolateusMatch } from '../../core/models';
 import { RealtimeService } from '../../core/realtime.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Icon } from '../../ui/icon/icon';
+import { IsolateusDiario } from '../../ui/isolateus-diario/isolateus-diario';
+import { IsolateusEvento } from '../../ui/isolateus-evento/isolateus-evento';
+import { IsolateusMapa } from '../../ui/isolateus-mapa/isolateus-mapa';
 import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { Modal } from '../../ui/modal/modal';
 import { Spinner } from '../../ui/spinner/spinner';
@@ -20,6 +23,8 @@ import { Spinner } from '../../ui/spinner/spinner';
 /** Janelas cronometradas — espelham as constantes `ISOLATEUS` do backend. */
 const LIMITE_DEBATE_S = 90;
 const LIMITE_VOTO_S = 60;
+const LIMITE_DESLOCAMENTO_S = 20;
+const JANELA_DECISAO_S = 15;
 /** Mínimo de investigadores reais para o Despertar (§2). */
 const MIN_REAIS = 4;
 
@@ -35,7 +40,16 @@ const MIN_REAIS = 4;
   selector: 'app-isolateus-projetor-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Spinner, LobbyLoader, Modal],
+  imports: [
+    RouterLink,
+    Icon,
+    Spinner,
+    LobbyLoader,
+    Modal,
+    IsolateusMapa,
+    IsolateusDiario,
+    IsolateusEvento,
+  ],
   template: `
     <a class="voltar" routerLink="/jogos/isolateus">‹ Minhas investigações</a>
 
@@ -61,30 +75,31 @@ const MIN_REAIS = 4;
               <app-lobby-loader class="loader-mini" />
             </div>
             @if (!p.inscritos.length) {
-              <p class="muted">Aguardando os primeiros nomes de personagem.</p>
+              <p class="muted">Aguardando os primeiros habitantes.</p>
             } @else {
+              <!--
+                O telão NÃO mostra nomes aqui de propósito: os codinomes só são
+                sorteados no Despertar. Se a turma visse a lista real enchendo,
+                saberia por eliminação quem é habitante virtual.
+              -->
               <p class="muted">
-                Toque no nome para <b>trocar o apelido</b>, ou no × para <b>vetar</b>
-                — vetar devolve o aluno à tela de registro.
+                Os <b>codinomes</b> são sorteados ao iniciar. Toque no × para tirar
+                alguém que entrou por engano.
               </p>
               <ul class="inscritos">
-                @for (i of p.inscritos; track i.alunoId) {
+                @for (i of p.inscritos; track i.alunoId; let idx = $index) {
                   <li>
                     <span class="chip">
-                      <button
-                        class="chip__nome"
-                        type="button"
-                        [disabled]="ocupado()"
-                        (click)="renomear(i.alunoId, i.nome)"
-                      >
-                        {{ i.nome }}
-                      </button>
+                      <span class="chip__nome chip__nome--anon">
+                        <app-icon name="user" [size]="12" />
+                        Habitante {{ idx + 1 }}
+                      </span>
                       <button
                         class="chip__x"
                         type="button"
-                        aria-label="Vetar {{ i.nome }}"
+                        aria-label="Remover habitante {{ idx + 1 }}"
                         [disabled]="ocupado()"
-                        (click)="vetar(i.alunoId, i.nome)"
+                        (click)="remover(i.alunoId, idx + 1)"
                       >
                         <app-icon name="close" [size]="12" />
                       </button>
@@ -114,6 +129,8 @@ const MIN_REAIS = 4;
         </section>
       } @else {
         <!-- A vila em jogo -->
+        <app-isolateus-evento [acontecimentos]="p.acontecimentos ?? []" />
+
         <section class="vila">
           <div class="esperanca">
             <span class="esperanca__lbl">Barra de Esperança</span>
@@ -123,21 +140,48 @@ const MIN_REAIS = 4;
             <span class="esperanca__val">{{ p.esperanca }}</span>
           </div>
 
+          <!--
+            O telão é a visão onisciente da turma: ele mostra o mapa inteiro,
+            com quem está em cada setor. É o oposto do celular, que só enxerga o
+            próprio setor — e é isso que faz a turma discutir olhando para cima.
+          -->
+          <app-isolateus-mapa
+            class="mapa-telao"
+            [setores]="p.setores"
+            [reparoEm]="p.reparoSetorId ?? null"
+            [noite]="ehNoite()"
+          />
+
           <div class="setores">
-            @for (s of p.setores; track s.id) {
+            @for (s of setoresComGente(p); track s.id) {
               <span class="setor" [class.setor--ruina]="!s.intacto">
                 <app-icon [name]="s.intacto ? 'shield' : 'skull'" [size]="14" />
                 {{ s.nome }}
+                <b class="setor__gente">{{ s.gente }}</b>
               </span>
             }
           </div>
 
           <p class="noite">
-            Noite {{ p.rodada + 1 }} de {{ p.totalRodadas }} ·
+            Noite {{ p.rodada + 1 }} · questão
+            {{ p.questaoIndex + 1 }} de {{ p.totalRodadas }} ·
             {{ vivos(p).length }} habitante(s) na vila
           </p>
 
           @switch (p.status) {
+            @case ('DESLOCAMENTO') {
+              <div class="aguardando">
+                <app-icon name="moon" [size]="28" />
+                <strong>A vila se movimenta na escuridão…</strong>
+                <p class="muted">
+                  Cada habitante escolhe onde passar a noite.
+                  {{ p.movimentosRecebidos ?? 0 }} já decidiram.
+                </p>
+                <div class="timer" [class.timer--fim]="restante() <= 5">{{ restante() }}s</div>
+                <app-lobby-loader />
+              </div>
+            }
+
             @case ('TURNO_AMEACA') {
               <div class="aguardando">
                 <app-icon name="alien" [size]="28" />
@@ -184,6 +228,16 @@ const MIN_REAIS = 4;
                   <b>{{ letra(p.corretaIndex) }}) {{ p.questaoPublica.alternativas[p.corretaIndex] }}</b>
                 </p>
               }
+              <!--
+                A janela de decisão: a vila lê o que aconteceu e quem estiver na
+                Comunicação pode convocar a Quarentena. Sem ela, o avanço
+                automático tornaria a Quarentena inconvocável.
+              -->
+              <div class="janela">
+                <span class="janela__lbl">A noite cai em</span>
+                <span class="timer" [class.timer--fim]="restante() <= 5">{{ restante() }}s</span>
+              </div>
+
               <div class="acoes">
                 @if (podeConvocar()) {
                   <button class="btn-quarentena" type="button" [disabled]="ocupado()" (click)="quarentena()">
@@ -191,7 +245,7 @@ const MIN_REAIS = 4;
                   </button>
                 }
                 <button class="btn-iso" type="button" [disabled]="ocupado()" (click)="proxima()">
-                  {{ ultimaNoite(p) ? 'Encerrar e ver o veredito' : 'Próxima noite' }}
+                  {{ ultimaNoite(p) ? 'Encerrar e ver o veredito' : 'Adiantar noite' }}
                 </button>
               </div>
             }
@@ -239,6 +293,14 @@ const MIN_REAIS = 4;
               </ol>
             }
           }
+
+          <!-- O Diário fica sempre à vista: é sobre ele que a turma argumenta. -->
+          @if (p.acontecimentos?.length) {
+            <app-isolateus-diario
+              class="diario-telao"
+              [acontecimentos]="p.acontecimentos"
+            />
+          }
         </section>
       }
 
@@ -285,6 +347,8 @@ const MIN_REAIS = 4;
     .chip:hover { border-color: var(--danger); }
     .chip__nome, .chip__x { border: none; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; display: inline-flex; align-items: center; }
     .chip__nome:hover:not(:disabled) { text-decoration: underline; }
+    /* Sem nome no lobby: o codinome só existe depois do Despertar. */
+    .chip__nome--anon { gap: 0.3rem; opacity: 0.8; cursor: default; }
     .chip__x:hover:not(:disabled) { color: var(--danger); }
     .chip__nome:disabled, .chip__x:disabled { cursor: not-allowed; opacity: 0.55; }
     .btn-iso { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.85rem 1.2rem; border: none; border-radius: 12px; cursor: pointer; font: inherit; font-weight: 800; color: #fff; background: linear-gradient(135deg, #84cc16, #4d7c0f); }
@@ -298,6 +362,17 @@ const MIN_REAIS = 4;
     .esperanca__bar > span { display: block; height: 100%; background: #84cc16; transition: width 0.4s ease; }
     .esperanca__bar > span.baixa { background: var(--danger); }
     .esperanca__val { font-weight: 800; min-width: 2.5ch; text-align: right; }
+    .mapa-telao { display: block; max-width: 34rem; margin: 0 auto; }
+    .diario-telao { display: block; margin-top: 1rem; }
+    .setor__gente {
+      margin-left: 0.2rem;
+      padding: 0 0.25rem;
+      border: 1px solid currentColor;
+      font-size: 0.7em;
+    }
+    .janela { display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+    .janela__lbl { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.7; }
+
     .setores { display: flex; flex-wrap: wrap; gap: 0.4rem; }
     .setor { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.6rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); font-size: 0.8rem; font-weight: 600; }
     .setor--ruina { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, var(--border)); text-decoration: line-through; opacity: 0.75; }
@@ -382,14 +457,37 @@ export class IsolateusProjetorPage {
     return Math.max(0, Math.min(limite, s));
   });
 
-  /** Duração da fase atual: a questão tem o tempo do jogo; a Quarentena, o seu. */
+  /**
+   * Duração da fase atual: a questão tem o tempo do jogo; a Quarentena, o seu.
+   *
+   * `RESULTADO_RODADA` entra aqui porque é o que faz o **avanço automático**
+   * acontecer: zerada a janela de decisão, o telão dispara `tempo()` e o
+   * backend faz a noite cair. O professor não precisa mais clicar em nada.
+   */
   private limiteDaFase(): number {
     const p = this.partida();
     if (!p) return 0;
+    if (p.status === 'DESLOCAMENTO') return LIMITE_DESLOCAMENTO_S;
+    if (p.status === 'RESULTADO_RODADA') return JANELA_DECISAO_S;
     if (p.status === 'QUESTAO_ATIVA') return p.duracaoSegundos;
     if (p.status === 'QUARENTENA_DEBATE') return LIMITE_DEBATE_S;
     if (p.status === 'QUARENTENA_VOTO') return LIMITE_VOTO_S;
     return 0;
+  }
+
+  /** É noite? Governa a paleta escura do mapa no telão. */
+  protected readonly ehNoite = computed(
+    () => this.partida()?.status === 'DESLOCAMENTO',
+  );
+
+  /** Os setores com a contagem de quem está em cada um (visão onisciente). */
+  protected setoresComGente(p: IsolateusMatch) {
+    return p.setores.map((s) => ({
+      ...s,
+      gente: p.habitantes.filter(
+        (h) => h.vivo && !h.preso && h.setorId === s.id,
+      ).length,
+    }));
   }
 
   constructor() {
@@ -427,8 +525,13 @@ export class IsolateusProjetorPage {
     return p.habitantes.filter((h) => h.vivo && !h.preso);
   }
 
-  protected ultimaNoite(p: { rodada: number; totalRodadas: number }): boolean {
-    return p.rodada >= p.totalRodadas - 1;
+  /**
+   * A última noite é a que esgota o **banco de questões** — não a contagem de
+   * noites, que deixou de ser o orçamento da partida (só há questão quando há
+   * disputa).
+   */
+  protected ultimaNoite(p: { questaoIndex: number; totalRodadas: number }): boolean {
+    return p.questaoIndex >= p.totalRodadas;
   }
 
   protected revelado(alunoId: string): boolean {
@@ -443,16 +546,16 @@ export class IsolateusProjetorPage {
     });
   }
 
-  protected vetar(alunoId: string, nome: string): void {
-    if (!confirm(`Vetar o nome "${nome}"? O aluno volta para a tela de registro.`)) return;
-    this.acao(this.api.vetarNome(this.matchId, alunoId));
-  }
-
-  /** Corrige um apelido sem tirar o aluno do lobby (só antes do Despertar). */
-  protected renomear(alunoId: string, nome: string): void {
-    const novo = prompt(`Novo apelido para "${nome}":`, nome)?.trim();
-    if (!novo || novo === nome) return;
-    this.acao(this.api.renomearInscrito(this.matchId, alunoId, novo));
+  /** Tira do lobby quem entrou por engano (só antes do Despertar). */
+  protected remover(alunoId: string, posicao: number): void {
+    if (
+      !confirm(
+        `Remover o habitante ${posicao}? Ele volta para a tela de entrada e pode entrar de novo.`,
+      )
+    ) {
+      return;
+    }
+    this.acao(this.api.removerInscrito(this.matchId, alunoId));
   }
 
   protected iniciar(): void {

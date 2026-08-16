@@ -8,19 +8,28 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
+import { Observable } from 'rxjs';
 import { IsolateusApiService } from '../../core/isolateus-api.service';
 import { IsolateusMatch, PainelIsolateus } from '../../core/models';
 import { RealtimeService } from '../../core/realtime.service';
 import { StudentAuthService } from '../../core/student-auth.service';
+import { ThemeService } from '../../core/theme.service';
 import { Icon } from '../../ui/icon/icon';
 import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
+import { IsolateusDiario } from '../../ui/isolateus-diario/isolateus-diario';
+import { IsolateusEvento } from '../../ui/isolateus-evento/isolateus-evento';
+import { IsolateusMapa } from '../../ui/isolateus-mapa/isolateus-mapa';
+import { IsolateusSetor } from '../../ui/isolateus-setor/isolateus-setor';
+import { IsolateusTransicao } from '../../ui/isolateus-transicao/isolateus-transicao';
 import { Spinner } from '../../ui/spinner/spinner';
 
 /** Duração da animação do Despertar (revelação de papéis). */
 const REVELACAO_MS = 3000;
-/** Janelas da Quarentena — espelham as constantes `ISOLATEUS` do backend. */
+/** Janelas cronometradas — espelham as constantes `ISOLATEUS` do backend. */
 const LIMITE_DEBATE_S = 90;
 const LIMITE_VOTO_S = 60;
+const LIMITE_DESLOCAMENTO_S = 20;
+const JANELA_DECISAO_S = 15;
 
 /**
  * O celular do habitante. Descobre a investigação da turma sozinho (sonda de 4s,
@@ -35,7 +44,17 @@ const LIMITE_VOTO_S = 60;
   selector: 'app-student-isolateus-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Spinner, LobbyLoader],
+  imports: [
+    RouterLink,
+    Icon,
+    Spinner,
+    LobbyLoader,
+    IsolateusMapa,
+    IsolateusSetor,
+    IsolateusDiario,
+    IsolateusTransicao,
+    IsolateusEvento,
+  ],
   template: `
     @if (carregando()) {
       <div class="loading"><app-spinner [size]="30" /></div>
@@ -56,40 +75,37 @@ const LIMITE_VOTO_S = 60;
             <app-lobby-loader />
             <strong>Aguardando Comando Central</strong>
             <p class="muted">
-              Você entrou como <b>{{ meuPseudonimo(p) }}</b>. O professor está
-              auditando os nomes.
+              Você está na vila. Seu <b>codinome</b> será revelado quando a
+              investigação começar.
             </p>
           </div>
         } @else {
-          <form class="registro" (submit)="entrar($event)">
-            @if (vetado()) {
-              <p class="aviso">Seu nome foi vetado pelo Comando Central. Escolha outro.</p>
+          <div class="registro">
+            @if (removido()) {
+              <p class="aviso">
+                O Comando Central tirou você desta investigação. Se foi engano,
+                entre de novo.
+              </p>
             }
-            <label class="campo">
-              <span>Seu nome de personagem</span>
-              <input
-                class="tichr-input"
-                maxlength="24"
-                [value]="pseudonimo()"
-                (input)="pseudonimo.set($any($event.target).value)"
-                placeholder="Ex: Corvo Pálido"
-              />
-            </label>
             <p class="muted">
-              Ninguém usa o nome verdadeiro. O pseudônimo evita perseguições
-              pessoais e mantém o foco na lógica.
+              Ninguém usa o nome verdadeiro aqui. Ao começar, o Comando Central
+              distribui a cada habitante um <b>codinome de cidade</b> — é por ele
+              que você será conhecido.
             </p>
             @if (erro()) { <p class="aviso">{{ erro() }}</p> }
-            <button class="btn-iso full" type="submit" [disabled]="enviando() || pseudonimo().trim().length < 2">
+            <button class="btn-iso full" type="button" [disabled]="enviando()" (click)="entrar()">
               {{ enviando() ? 'Registrando…' : 'Entrar na vila' }}
             </button>
-          </form>
+          </div>
         }
       } @else if (revelando()) {
         <!-- O Despertar -->
         <section class="revelacao" [class.revelacao--ameaca]="ehAmeaca()">
           <app-icon [name]="ehAmeaca() ? 'alien' : 'shield'" [size]="52" />
           <strong>{{ ehAmeaca() ? 'Você é a Ameaça' : 'Você é um Aldeão' }}</strong>
+          <p class="revelacao__codinome">
+            Nesta vila, você é <b>{{ meuCodinome() }}</b>
+          </p>
           <p>
             @if (ehAmeaca()) {
               Sabote os setores, abduza moradores e espalhe desinformação. Não
@@ -101,7 +117,10 @@ const LIMITE_VOTO_S = 60;
           </p>
         </section>
       } @else {
-        <!-- Em jogo -->
+        <!-- Em jogo. A cinemática acompanha todas as fases, fora do switch. -->
+        <app-isolateus-transicao [noite]="ehNoite()" />
+        <app-isolateus-evento [acontecimentos]="p.acontecimentos ?? []" />
+
         <div class="jogo" [class.jogo--hackeada]="foraDaVila()">
           @if (foraDaVila()) {
             <div class="hack">
@@ -115,41 +134,129 @@ const LIMITE_VOTO_S = 60;
           }
 
           @switch (p.status) {
-            @case ('TURNO_AMEACA') {
-              @if (ehAmeaca() && !foraDaVila()) {
-                <section class="turno">
-                  <h2 class="turno__tit">Seu turno, Ameaça</h2>
-                  <p class="muted">Escolha o alvo desta noite. Ninguém saberá que foi você.</p>
-
-                  <span class="grupo__lbl">Sabotar um setor</span>
-                  <div class="alvos">
-                    @for (s of p.setores; track s.id) {
-                      @if (s.intacto) {
-                        <button class="alvo" type="button" [disabled]="enviando()" (click)="agir('SABOTAR', s.id)">
-                          <app-icon name="shield" [size]="16" /> {{ s.nome }}
-                        </button>
-                      }
-                    }
-                  </div>
-
-                  <span class="grupo__lbl">Ou abduzir um morador</span>
-                  <div class="alvos">
-                    @for (h of vivos(p); track h.id) {
-                      @if (h.id !== painel()?.habitanteId) {
-                        <button class="alvo alvo--abd" type="button" [disabled]="enviando()" (click)="agir('ABDUZIR', h.id)">
-                          <app-icon name="user" [size]="16" /> {{ h.nome }}
-                        </button>
-                      }
-                    }
-                  </div>
-                  @if (erro()) { <p class="aviso">{{ erro() }}</p> }
-                </section>
-              } @else {
+            @case ('DESLOCAMENTO') {
+              @if (foraDaVila()) {
                 <section class="espera">
                   <app-lobby-loader />
                   <strong>A noite caiu…</strong>
-                  <p class="muted">Algo se move na vila. Aguarde o alarme.</p>
+                  <p class="muted">Você já não caminha por essas ruas. Aguarde o alarme.</p>
                 </section>
+              } @else {
+                <div class="noite">
+                  <div class="noite__topo">
+                    <span class="noite__tit">Noite {{ p.rodada + 1 }}</span>
+                    <span class="timer timer--peq" [class.timer--fim]="restante() <= 5">
+                      {{ restante() }}s
+                    </span>
+                  </div>
+
+                  @if (verMapa()) {
+                    <app-isolateus-mapa
+                      [setores]="p.setores"
+                      [meuSetor]="meuSetor(p)"
+                      [reparoEm]="p.reparoSetorId ?? null"
+                      [podeAndar]="!jogadaFeita()"
+                      [noite]="true"
+                      (andarPara)="mover($event)"
+                    />
+                  } @else if (meuSetorObj(p); as s) {
+                    <app-isolateus-setor
+                      [setor]="s"
+                      [habitantes]="p.habitantes"
+                      [meuHabitanteId]="painel()?.habitanteId ?? ''"
+                      [emReparo]="p.reparoSetorId === s.id"
+                      [podeAndar]="!jogadaFeita()"
+                      [noite]="true"
+                      [abduzindoId]="abduzindoNoMeuSetor(p)"
+                      (andarPara)="mover($event)"
+                    />
+                  }
+
+                  <button class="btn-mapa" type="button" (click)="verMapa.set(!verMapa())">
+                    <app-icon name="grip" [size]="14" />
+                    {{ verMapa() ? 'Voltar ao meu setor' : 'Ver o mapa da vila' }}
+                  </button>
+
+                  @if (jogadaFeita()) {
+                    <p class="muted center">
+                      Jogada fechada. Aguardando a vila…
+                      ({{ p.movimentosRecebidos ?? 0 }} já decidiram)
+                    </p>
+                  } @else {
+                    <div class="acoes-noite">
+                      <button class="btn-iso" type="button" [disabled]="enviando()" (click)="ficar()">
+                        Ficar onde estou
+                      </button>
+                      @if (podeReparar(p)) {
+                        <button class="btn-reparo" type="button" [disabled]="enviando()" (click)="reparar()">
+                          <app-icon name="sparkles" [size]="16" /> Organizar o reparo
+                        </button>
+                      }
+                    </div>
+
+                    @if (ehAmeaca()) {
+                      <section class="turno">
+                        <h2 class="turno__tit">Sua jogada, Ameaça</h2>
+                        @if (!escolhendoSetor()) {
+                          <p class="muted">
+                            Você age onde está. Ninguém saberá que foi você — mas o
+                            que você atingir dirá onde você passou a noite.
+                          </p>
+                          <div class="alvos">
+                            @if (meuSetorObj(p); as s) {
+                              @if (s.intacto) {
+                                <button class="alvo" type="button" [disabled]="enviando()" (click)="sabotar()">
+                                  <app-icon name="rachadura" [size]="16" /> Sabotar {{ s.nome }}
+                                </button>
+                              }
+                            }
+                            <button class="alvo alvo--abd" type="button" [disabled]="enviando()" (click)="escolhendoSetor.set(true)">
+                              <app-icon name="nave" [size]="16" /> Abduzir
+                            </button>
+                            <button class="alvo" type="button" [disabled]="enviando()" (click)="aguardar()">
+                              <app-icon name="moon" [size]="16" /> Passar a noite
+                            </button>
+                          </div>
+                        } @else {
+                          <p class="muted">
+                            Escolha um setor para arriscar uma <b>abdução às cegas</b> —
+                            você não sabe quem está lá. Ou aja no <b>seu setor</b>, onde
+                            você enxerga cada habitante.
+                          </p>
+                          <app-isolateus-mapa
+                            [setores]="p.setores"
+                            [meuSetor]="meuSetor(p)"
+                            [reparoEm]="null"
+                            [noite]="true"
+                          />
+                          <div class="alvos">
+                            @for (s of p.setores; track s.id) {
+                              @if (s.id !== meuSetor(p)) {
+                                <button class="alvo alvo--abd" type="button" [disabled]="enviando()" (click)="abduzirAsCegas(s.id)">
+                                  <app-icon name="nave" [size]="14" /> {{ s.nome }}
+                                </button>
+                              }
+                            }
+                          </div>
+                          <span class="grupo__lbl">No seu setor, você escolhe a vítima</span>
+                          <div class="alvos">
+                            @for (h of vizinhosDeSetor(p); track h.id) {
+                              <button class="alvo" type="button" [disabled]="enviando()" (click)="abduzirAqui(h.id)">
+                                <app-icon name="user" [size]="14" /> {{ h.nome }}
+                              </button>
+                            } @empty {
+                              <span class="muted">Ninguém ao seu alcance esta noite.</span>
+                            }
+                          </div>
+                          <button class="btn-mapa" type="button" (click)="escolhendoSetor.set(false)">
+                            Voltar
+                          </button>
+                        }
+                        @if (erro()) { <p class="aviso">{{ erro() }}</p> }
+                      </section>
+                    }
+                  }
+                </div>
               }
             }
 
@@ -241,6 +348,34 @@ const LIMITE_VOTO_S = 60;
               }
               @if (p.resumoRodada; as r) {
                 <div class="card-global" [class.card-global--ok]="r.defendida">{{ r.texto }}</div>
+              }
+
+              <!--
+                O mapa continua na tela durante a janela de decisão: é aqui que a
+                abdução se materializa (a nave desce para quem está no setor) e é
+                olhando as ruínas que a vila decide para onde marchar na próxima
+                noite.
+              -->
+              @if (!foraDaVila() && meuSetorObj(p); as s) {
+                <app-isolateus-setor
+                  [setor]="s"
+                  [habitantes]="p.habitantes"
+                  [meuHabitanteId]="painel()?.habitanteId ?? ''"
+                  [emReparo]="false"
+                  [podeAndar]="false"
+                  [abduzindoId]="abduzindoNoMeuSetor(p)"
+                />
+                <button class="btn-mapa" type="button" (click)="verMapa.set(!verMapa())">
+                  <app-icon name="grip" [size]="14" />
+                  {{ verMapa() ? 'Esconder o mapa' : 'Ver o mapa da vila' }}
+                </button>
+                @if (verMapa()) {
+                  <app-isolateus-mapa
+                    [setores]="p.setores"
+                    [meuSetor]="meuSetor(p)"
+                    [reparoEm]="null"
+                  />
+                }
               }
               @if (p.questaoPublica && p.corretaIndex !== null && p.corretaIndex !== undefined) {
                 <p class="muted center">
@@ -343,6 +478,11 @@ const LIMITE_VOTO_S = 60;
               <p class="lead">Aguardando o Comando Central…</p>
             }
           }
+
+          <!-- O Diário acompanha a partida inteira, em qualquer fase. -->
+          @if (p.acontecimentos?.length) {
+            <app-isolateus-diario class="diario" [acontecimentos]="p.acontecimentos" />
+          }
         </div>
       }
     } @else {
@@ -378,6 +518,64 @@ const LIMITE_VOTO_S = 60;
     .revelacao--ameaca { background: #4d7c0f; }
     .revelacao strong { font-size: 1.6rem; font-weight: 900; }
     .revelacao p { margin: 0; max-width: 22rem; opacity: 0.95; line-height: 1.5; }
+    /* O codinome é a segunda informação mais importante da tela, depois do papel. */
+    .revelacao__codinome {
+      font-size: 1.05rem;
+      opacity: 1 !important;
+      border-top: 2px solid rgba(255, 255, 255, 0.35);
+      border-bottom: 2px solid rgba(255, 255, 255, 0.35);
+      padding: 0.5rem 1.25rem;
+    }
+    .revelacao__codinome b { font-weight: 900; letter-spacing: 0.02em; }
+
+    /* --- A Noite --- */
+    .noite { display: flex; flex-direction: column; gap: 0.7rem; }
+    .noite__topo { display: flex; align-items: center; justify-content: space-between; }
+    .noite__tit {
+      font-size: 0.75rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      opacity: 0.75;
+    }
+    .timer--peq { font-size: 1rem; padding: 0.1rem 0.5rem; }
+
+    .btn-mapa {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      padding: 0.45rem;
+      font: inherit;
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: inherit;
+      background: none;
+      border: 2px dashed var(--border, #cbd5e1);
+      cursor: pointer;
+    }
+
+    .acoes-noite { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .acoes-noite > * { flex: 1; }
+
+    /* O reparo é a única ação de ganho do jogo: âmbar, não verde tóxico. */
+    .btn-reparo {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      padding: 0.6rem;
+      font: inherit;
+      font-weight: 800;
+      color: #7c2d12;
+      background: #fbbf24;
+      border: 2px solid #b45309;
+      box-shadow: 3px 3px 0 #b45309;
+      cursor: pointer;
+    }
+    .btn-reparo:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .diario { margin-top: 0.8rem; }
     @keyframes pulsar { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.25); } }
     @media (prefers-reduced-motion: reduce) { .revelacao { animation: none; } }
     .vazio { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; padding: 3rem 1rem; text-align: center; color: #4d7c0f; }
@@ -442,6 +640,7 @@ export class StudentIsolateusPage {
   private readonly realtime = inject(RealtimeService);
   private readonly studentAuth = inject(StudentAuthService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly tema = inject(ThemeService);
 
   private readonly meuId = this.studentAuth.aluno()?.id ?? '';
 
@@ -450,9 +649,22 @@ export class StudentIsolateusPage {
   protected readonly carregando = signal(true);
   protected readonly enviando = signal(false);
   protected readonly erro = signal('');
-  protected readonly pseudonimo = signal('');
-  /** O professor vetou o pseudônimo: o aluno some dos inscritos e volta ao registro. */
-  protected readonly vetado = signal(false);
+  /** O professor removeu o aluno: ele some dos inscritos e volta ao registro. */
+  protected readonly removido = signal(false);
+
+  /** Alterna entre a visão do próprio setor e o mapa da vila (zoom-out). */
+  protected readonly verMapa = signal(false);
+  /** A Ameaça abriu o overview para escolher onde abduzir. */
+  protected readonly escolhendoSetor = signal(false);
+  /** Já fechei minha jogada desta noite (mover, ficar, reparar ou agir). */
+  protected readonly jogadaFeita = signal(false);
+  /** Habitante sendo levado agora — dispara a nave no setor onde ele está. */
+  protected readonly abduzindoId = signal<string | null>(null);
+
+  /** É noite? Governa a cinemática e a paleta escura do mapa. */
+  protected readonly ehNoite = computed(() =>
+    this.partida()?.status === 'DESLOCAMENTO',
+  );
   protected readonly revelando = signal(false);
 
   protected readonly ehAmeaca = computed(
@@ -499,11 +711,15 @@ export class StudentIsolateusPage {
     const limite =
       p.status === 'QUESTAO_ATIVA'
         ? p.duracaoSegundos
-        : p.status === 'QUARENTENA_DEBATE'
-          ? LIMITE_DEBATE_S
-          : p.status === 'QUARENTENA_VOTO'
-            ? LIMITE_VOTO_S
-            : 0;
+        : p.status === 'DESLOCAMENTO'
+          ? LIMITE_DESLOCAMENTO_S
+          : p.status === 'RESULTADO_RODADA'
+            ? JANELA_DECISAO_S
+            : p.status === 'QUARENTENA_DEBATE'
+              ? LIMITE_DEBATE_S
+              : p.status === 'QUARENTENA_VOTO'
+                ? LIMITE_VOTO_S
+                : 0;
     if (!limite) return 0;
     const fim = Date.parse(p.faseIniciadaEm) + limite * 1000;
     const s = Math.ceil((fim - this.relogio()) / 1000);
@@ -524,6 +740,9 @@ export class StudentIsolateusPage {
     this.destroyRef.onDestroy(() => {
       clearInterval(sonda);
       clearInterval(tick);
+      // A noite é do jogo, não do app: sair da partida não pode deixar o painel
+      // do aluno escuro para sempre.
+      this.tema.restaurarPreferencia();
     });
   }
 
@@ -533,6 +752,114 @@ export class StudentIsolateusPage {
 
   protected vivos(p: IsolateusMatch) {
     return p.habitantes.filter((h) => h.vivo && !h.preso);
+  }
+
+  /**
+   * Quem sumiu da vila entre um snapshot e o outro. É o gatilho da nave.
+   *
+   * Compara `vivo` em vez de escutar um evento porque o diário é intencionalmente
+   * ambíguo: o texto de "repelida" cobre também o tiro às cegas no vazio, então
+   * ele não serve para saber se **alguém de fato** foi levado. O estado dos
+   * habitantes serve.
+   */
+  private detectarAbducao(
+    antes: IsolateusMatch | null,
+    agora: IsolateusMatch,
+  ): void {
+    if (!antes) return;
+    const eraVivo = new Map(antes.habitantes.map((h) => [h.id, h.vivo]));
+    const levado = agora.habitantes.find(
+      (h) => !h.vivo && eraVivo.get(h.id) === true,
+    );
+    if (!levado) return;
+
+    this.abduzindoId.set(levado.id);
+    // A cena dura ~2,4s; depois o avatar simplesmente não está mais na fileira.
+    setTimeout(() => this.abduzindoId.set(null), 2600);
+  }
+
+  /**
+   * O id de quem está sendo levado, **só se ele estiver no meu setor**.
+   *
+   * Fora dele, o jogador recebe apenas o card e a linha no diário: você vê o que
+   * acontece perto de você; o resto você lê no rádio.
+   */
+  protected abduzindoNoMeuSetor(p: IsolateusMatch): string | null {
+    const id = this.abduzindoId();
+    if (!id) return null;
+    const alvo = p.habitantes.find((h) => h.id === id);
+    return alvo && alvo.setorId === this.meuSetor(p) ? id : null;
+  }
+
+  // --- A Noite ---
+
+  /** Onde eu estou. Vazio antes do Despertar (ou se já saí da vila). */
+  protected meuSetor(p: IsolateusMatch): string {
+    return this.meuHabitante()?.setorId ?? '';
+  }
+
+  protected meuSetorObj(p: IsolateusMatch) {
+    return p.setores.find((s) => s.id === this.meuSetor(p));
+  }
+
+  /** Os habitantes do meu setor, exceto eu — os alvos de abdução presencial. */
+  protected vizinhosDeSetor(p: IsolateusMatch) {
+    const meu = this.meuSetor(p);
+    const eu = this.painel()?.habitanteId;
+    return this.vivos(p).filter((h) => h.setorId === meu && h.id !== eu);
+  }
+
+  /** O botão de reparo só existe dentro de uma ruína ainda não mobilizada. */
+  protected podeReparar(p: IsolateusMatch): boolean {
+    const s = this.meuSetorObj(p);
+    return !!s && !s.intacto && !p.reparoSetorId;
+  }
+
+  protected mover(setorId: string): void {
+    this.acaoDaNoite((id) => this.api.mover(id, setorId));
+  }
+  protected ficar(): void {
+    this.acaoDaNoite((id) => this.api.confirmarPosicao(id));
+  }
+  protected reparar(): void {
+    this.acaoDaNoite((id) => this.api.reparo(id));
+  }
+  protected sabotar(): void {
+    this.acaoDaNoite((id) => this.api.acao(id, { tipo: 'SABOTAR' }));
+  }
+  protected aguardar(): void {
+    this.acaoDaNoite((id) => this.api.acao(id, { tipo: 'AGUARDAR' }));
+  }
+  protected abduzirAqui(alvoId: string): void {
+    this.acaoDaNoite((id) => this.api.acao(id, { tipo: 'ABDUZIR', alvoId }));
+  }
+  protected abduzirAsCegas(setorId: string): void {
+    this.acaoDaNoite((id) => this.api.acao(id, { tipo: 'ABDUZIR', setorId }));
+  }
+
+  /**
+   * Toda ação da noite fecha a jogada localmente na hora (otimista, como o voto
+   * do Qlick): o snapshot só devolve a **contagem**, nunca quem confirmou, então
+   * nem daria para o próprio cliente descobrir pelo servidor que já jogou.
+   */
+  private acaoDaNoite(
+    chamada: (partidaId: string) => Observable<IsolateusMatch>,
+  ): void {
+    if (!this.partidaId || this.enviando()) return;
+    this.enviando.set(true);
+    this.erro.set('');
+    chamada(this.partidaId).subscribe({
+      next: () => {
+        this.enviando.set(false);
+        this.jogadaFeita.set(true);
+        this.escolhendoSetor.set(false);
+        this.verMapa.set(false);
+      },
+      error: (e: { error?: { message?: string } }) => {
+        this.enviando.set(false);
+        this.erro.set(e.error?.message ?? 'Não foi possível fazer isso agora.');
+      },
+    });
   }
 
   /** A Ameaça só intercepta a comunicação uma vez por noite. */
@@ -573,11 +900,12 @@ export class StudentIsolateusPage {
   /** Reage às transições de estado que exigem buscar o painel (o segredo). */
   private reagir(p: IsolateusMatch): void {
     const anterior = this.partida();
+    this.detectarAbducao(anterior, p);
 
-    // Vetado no lobby: eu estava inscrito e sumi da lista.
+    // Removido no lobby: eu estava inscrito e sumi da lista.
     if (p.status === 'LOBBY' && this.jaEntrei && !this.inscrito(p)) {
       this.jaEntrei = false;
-      this.vetado.set(true);
+      this.removido.set(true);
     }
 
     // O Despertar: a partida saiu do lobby → busca o papel e roda a animação.
@@ -596,7 +924,12 @@ export class StudentIsolateusPage {
       this.sinalTexto.set('');
       // Cabe uma Quarentena por rodada: a noite nova rearma o voto e o pulo.
       this.votei.set(false);
+      this.abduzindoId.set(null);
       this.jaPulei.set(false);
+      // E a jogada da noite volta a ficar em aberto.
+      this.jogadaFeita.set(false);
+      this.escolhendoSetor.set(false);
+      this.verMapa.set(false);
       if (this.ehAmeaca()) this.carregarPainel(false);
     }
   }
@@ -624,46 +957,31 @@ export class StudentIsolateusPage {
     return p.inscritos.some((i) => i.alunoId === this.meuId);
   }
 
-  protected meuPseudonimo(p: IsolateusMatch): string {
-    return p.inscritos.find((i) => i.alunoId === this.meuId)?.nome ?? '—';
+  /** O codinome de cidade sorteado para mim no Despertar. */
+  protected meuCodinome(): string {
+    return this.meuHabitante()?.nome ?? '—';
   }
 
-  protected entrar(ev: Event): void {
-    ev.preventDefault();
-    const nome = this.pseudonimo().trim();
-    if (!this.partidaId || nome.length < 2 || this.enviando()) return;
+  protected entrar(): void {
+    if (!this.partidaId || this.enviando()) return;
     this.enviando.set(true);
     this.erro.set('');
-    this.api.entrar(this.partidaId, nome).subscribe({
+    this.api.entrar(this.partidaId).subscribe({
       next: () => {
         this.enviando.set(false);
         this.jaEntrei = true;
-        this.vetado.set(false);
+        this.removido.set(false);
       },
       error: (e: { error?: { message?: string } }) => {
         this.enviando.set(false);
         this.erro.set(
-          e.error?.message ?? 'Não foi possível registrar esse nome.',
+          e.error?.message ?? 'Não foi possível entrar na vila.',
         );
       },
     });
   }
 
   // --- Em jogo ---
-
-  /** O Turno da Ameaça: sabotar um setor ou abduzir um morador. */
-  protected agir(tipo: 'SABOTAR' | 'ABDUZIR', alvoId: string): void {
-    if (!this.partidaId || this.enviando()) return;
-    this.enviando.set(true);
-    this.erro.set('');
-    this.api.acao(this.partidaId, tipo, alvoId).subscribe({
-      next: () => this.enviando.set(false),
-      error: (e: { error?: { message?: string } }) => {
-        this.enviando.set(false);
-        this.erro.set(e.error?.message ?? 'Não foi possível agir agora.');
-      },
-    });
-  }
 
   /**
    * A Defesa. Otimista: trava a UI na hora e libera de volta se o servidor
