@@ -9,6 +9,7 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { IsolateusApiService } from '../../core/isolateus-api.service';
+import { RelogioDaFase } from '../../core/isolateus-relogio';
 import { Aluno, IsolateusMatch } from '../../core/models';
 import { RealtimeService } from '../../core/realtime.service';
 import { TurmaApiService } from '../../core/turma-api.service';
@@ -23,7 +24,7 @@ import { Spinner } from '../../ui/spinner/spinner';
 /** Janelas cronometradas — espelham as constantes `ISOLATEUS` do backend. */
 const LIMITE_DEBATE_S = 90;
 const LIMITE_VOTO_S = 60;
-const LIMITE_DESLOCAMENTO_S = 20;
+const LIMITE_DESLOCAMENTO_S = 60;
 const JANELA_DECISAO_S = 15;
 /** Mínimo de investigadores reais para o Despertar (§2). */
 const MIN_REAIS = 4;
@@ -232,18 +233,22 @@ const MIN_REAIS = 4;
                 A janela de decisão: a vila lê o que aconteceu e quem estiver na
                 Comunicação pode convocar a Quarentena. Sem ela, o avanço
                 automático tornaria a Quarentena inconvocável.
+
+                O telão NÃO convoca. A convocação do professor não respeitava
+                setor nem rádio de pé — aparecia até com a Comunicação em ruínas
+                — e esvaziava justamente o que faz dela o alvo mais valioso do
+                mapa. O controle de ritmo dele continua sendo "Adiantar noite".
               -->
               <div class="janela">
                 <span class="janela__lbl">A noite cai em</span>
                 <span class="timer" [class.timer--fim]="restante() <= 5">{{ restante() }}s</span>
               </div>
+              <p class="reveal">
+                Quem estiver no Setor de Comunicação pode convocar a Quarentena
+                pelo celular.
+              </p>
 
               <div class="acoes">
-                @if (podeConvocar()) {
-                  <button class="btn-quarentena" type="button" [disabled]="ocupado()" (click)="quarentena()">
-                    <app-icon name="alert" [size]="16" /> Convocar Quarentena
-                  </button>
-                }
                 <button class="btn-iso" type="button" [disabled]="ocupado()" (click)="proxima()">
                   {{ ultimaNoite(p) ? 'Encerrar e ver o veredito' : 'Adiantar noite' }}
                 </button>
@@ -301,8 +306,40 @@ const MIN_REAIS = 4;
               [acontecimentos]="p.acontecimentos"
             />
           }
+
+          <!--
+            A saída de emergência da aula: o sinal bate no meio da noite e a
+            turma dispersa. Fica discreto e no rodapé de propósito — é uma ação
+            sem volta, não um controle de ritmo (esse é o "Adiantar noite").
+          -->
+          @if (p.status !== 'ENCERRADO') {
+            <button class="btn-encerrar" type="button" [disabled]="ocupado()" (click)="confirmarFim.set(true)">
+              <app-icon name="close" [size]="14" /> Encerrar investigação agora
+            </button>
+          }
         </section>
       }
+
+      <app-modal
+        [open]="confirmarFim()"
+        title="Encerrar a investigação?"
+        (close)="confirmarFim.set(false)"
+      >
+        <p>
+          A partida termina <b>agora</b>, para toda a turma. O veredito sai pelo
+          estado da vila neste momento — setores de pé, habitantes na vila — e o
+          XP já acumulado é creditado.
+        </p>
+        <p class="muted">Não dá para voltar atrás.</p>
+        <div modal-actions>
+          <button class="btn-outline" type="button" (click)="confirmarFim.set(false)">
+            Continuar jogando
+          </button>
+          <button class="btn-perigo" type="button" [disabled]="ocupado()" (click)="encerrar()">
+            Encerrar agora
+          </button>
+        </div>
+      </app-modal>
 
       <app-modal [open]="assistencia()" title="Alunos da turma" (close)="assistencia.set(false)">
         <p class="muted">Toque no card para revelar o PIN individual do aluno.</p>
@@ -329,6 +366,12 @@ const MIN_REAIS = 4;
   styles: `
     :host { display: block; }
     .voltar { display: inline-block; margin-bottom: 0.75rem; color: var(--text-muted); text-decoration: none; font-weight: 600; }
+    /* Discreto de propósito: é saída de emergência, não controle de ritmo. */
+    .btn-encerrar { align-self: center; display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.5rem; padding: 0.5rem 0.9rem; border: 1px solid var(--border); border-radius: 999px; background: none; font: inherit; font-size: 0.85rem; font-weight: 700; color: var(--text-muted); cursor: pointer; }
+    .btn-encerrar:hover:not(:disabled) { border-color: var(--danger); color: var(--danger); }
+    .btn-encerrar:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-perigo { padding: 0.6rem 1.1rem; border: none; border-radius: 10px; font: inherit; font-weight: 800; color: #fff; background: var(--danger); cursor: pointer; }
+    .btn-perigo:disabled { opacity: 0.55; cursor: not-allowed; }
     .title { margin: 0 0 1rem; font-size: 1.5rem; font-weight: 800; }
     .loading { display: flex; justify-content: center; padding: 4rem 0; color: #4d7c0f; }
     .lobby, .vila { display: flex; flex-direction: column; gap: 1rem; }
@@ -398,7 +441,6 @@ const MIN_REAIS = 4;
     .reveal { text-align: center; margin: 0; color: var(--text-muted); }
     .acoes { display: flex; flex-wrap: wrap; gap: 0.5rem; }
     .acoes > * { flex: 1; }
-    .btn-quarentena { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.85rem 1.2rem; border: none; border-radius: 12px; cursor: pointer; font: inherit; font-weight: 800; color: #fff; background: var(--danger); }
     .quarentena { display: flex; flex-direction: column; gap: 0.75rem; padding: 1rem; border: 2px solid var(--danger); border-radius: 16px; }
     .quarentena__tag { align-self: center; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--danger); }
     .fim { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1.5rem; border-radius: 16px; text-align: center; color: #fff; background: linear-gradient(135deg, #4d7c0f, #1a2e05); }
@@ -434,18 +476,14 @@ export class IsolateusProjetorPage {
   protected readonly ocupado = signal(false);
   protected readonly erro = signal<string | null>(null);
   protected readonly assistencia = signal(false);
+  /** Confirmação do encerramento antecipado — a ação não tem volta. */
+  protected readonly confirmarFim = signal(false);
   protected readonly pin = signal<string | null>(null);
   protected readonly alunos = signal<Aluno[]>([]);
   private readonly reveladosSet = signal<Set<string>>(new Set());
 
   private readonly relogio = signal(Date.now());
-  private tempoDisparadoEm: string | null = null;
-
-  /** A Quarentena volta a cada noite, mas só cabe uma por rodada. */
-  protected readonly podeConvocar = computed(() => {
-    const p = this.partida();
-    return !!p && p.quarentenaRodada !== p.rodada;
-  });
+  private readonly cronometro = new RelogioDaFase();
 
   /** Segundos restantes da fase cronometrada corrente. */
   protected readonly restante = computed(() => {
@@ -453,7 +491,7 @@ export class IsolateusProjetorPage {
     const limite = this.limiteDaFase();
     if (!p || !p.faseIniciadaEm || !limite) return limite;
     const fim = Date.parse(p.faseIniciadaEm) + limite * 1000;
-    const s = Math.ceil((fim - this.relogio()) / 1000);
+    const s = Math.ceil((fim - this.cronometro.agora(this.relogio())) / 1000);
     return Math.max(0, Math.min(limite, s));
   });
 
@@ -509,11 +547,19 @@ export class IsolateusProjetorPage {
     this.destroyRef.onDestroy(() => clearInterval(tick));
   }
 
+  /**
+   * Cobra do servidor a fase cujo prazo venceu — e **insiste** até a fase virar.
+   *
+   * Antes era um disparo só por fase, gravado antes da resposta e com o erro
+   * engolido: uma falha de rede, uma aba dormindo ou um relógio adiantado (que
+   * faz o cliente cobrar cedo e ouvir "ainda não") congelavam a partida até
+   * alguém recarregar a página. A retentativa transforma isso em 2s de atraso.
+   */
   private checarTempo(): void {
     const p = this.partida();
+    this.cronometro.sincronizar(p?.faseIniciadaEm ?? null);
     if (!p || !p.faseIniciadaEm || !this.limiteDaFase()) return;
-    if (this.restante() > 0 || this.tempoDisparadoEm === p.faseIniciadaEm) return;
-    this.tempoDisparadoEm = p.faseIniciadaEm;
+    if (!this.cronometro.devoCobrar(Date.now(), this.restante() <= 0)) return;
     this.api.tempo(this.matchId).subscribe({ next: () => {}, error: () => {} });
   }
 
@@ -564,8 +610,10 @@ export class IsolateusProjetorPage {
   protected proxima(): void {
     this.acao(this.api.proxima(this.matchId));
   }
-  protected quarentena(): void {
-    this.acao(this.api.abrirQuarentena(this.matchId));
+  /** O sinal da aula bateu: a investigação termina onde está. */
+  protected encerrar(): void {
+    this.confirmarFim.set(false);
+    this.acao(this.api.encerrar(this.matchId));
   }
 
   private acao(obs: {

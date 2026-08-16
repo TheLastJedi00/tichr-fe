@@ -10,6 +10,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
 import { IsolateusApiService } from '../../core/isolateus-api.service';
+import { SETOR_COMUNICACAO } from '../../core/isolateus-mapa';
+import { RelogioDaFase } from '../../core/isolateus-relogio';
 import { IsolateusMatch, PainelIsolateus } from '../../core/models';
 import { RealtimeService } from '../../core/realtime.service';
 import { StudentAuthService } from '../../core/student-auth.service';
@@ -28,7 +30,7 @@ const REVELACAO_MS = 3000;
 /** Janelas cronometradas — espelham as constantes `ISOLATEUS` do backend. */
 const LIMITE_DEBATE_S = 90;
 const LIMITE_VOTO_S = 60;
-const LIMITE_DESLOCAMENTO_S = 20;
+const LIMITE_DESLOCAMENTO_S = 60;
 const JANELA_DECISAO_S = 15;
 
 /**
@@ -155,7 +157,7 @@ const JANELA_DECISAO_S = 15;
                       [setores]="p.setores"
                       [meuSetor]="meuSetor(p)"
                       [reparoEm]="p.reparoSetorId ?? null"
-                      [podeAndar]="!jogadaFeita()"
+                      [podeAndar]="!posicaoFeita()"
                       [noite]="true"
                       (andarPara)="mover($event)"
                     />
@@ -165,7 +167,7 @@ const JANELA_DECISAO_S = 15;
                       [habitantes]="p.habitantes"
                       [meuHabitanteId]="painel()?.habitanteId ?? ''"
                       [emReparo]="p.reparoSetorId === s.id"
-                      [podeAndar]="!jogadaFeita()"
+                      [podeAndar]="!posicaoFeita()"
                       [noite]="true"
                       [abduzindoId]="abduzindoNoMeuSetor(p)"
                       (andarPara)="mover($event)"
@@ -177,9 +179,9 @@ const JANELA_DECISAO_S = 15;
                     {{ verMapa() ? 'Voltar ao meu setor' : 'Ver o mapa da vila' }}
                   </button>
 
-                  @if (jogadaFeita()) {
+                  @if (posicaoFeita()) {
                     <p class="muted center">
-                      Jogada fechada. Aguardando a vila…
+                      Posição fechada. Aguardando a vila…
                       ({{ p.movimentosRecebidos ?? 0 }} já decidiram)
                     </p>
                   } @else {
@@ -193,8 +195,24 @@ const JANELA_DECISAO_S = 15;
                         </button>
                       }
                     </div>
+                  }
+                  <!-- A Ameaça vê o erro dentro do painel dela, enquanto ele existe. -->
+                  @if (erro() && (!ehAmeaca() || acaoFeita())) {
+                    <p class="aviso">{{ erro() }}</p>
+                  }
 
-                    @if (ehAmeaca()) {
+                  <!--
+                    A jogada da Ameaça vive FORA do bloco de deslocamento: ela
+                    ataca antes ou depois de andar, na ordem que quiser. Aninhado
+                    aqui dentro, o painel sumia assim que ela se deslocava — e o
+                    alienígena passava a noite sem jogada.
+                  -->
+                  @if (ehAmeaca()) {
+                    @if (acaoFeita()) {
+                      <p class="muted center">
+                        Jogada enviada. Ninguém saberá que foi você.
+                      </p>
+                    } @else {
                       <section class="turno">
                         <h2 class="turno__tit">Sua jogada, Ameaça</h2>
                         @if (!escolhendoSetor()) {
@@ -261,6 +279,7 @@ const JANELA_DECISAO_S = 15;
             }
 
             @case ('QUESTAO_ATIVA') {
+
               @if (p.alerta; as a) {
                 <div class="alerta"><app-icon name="alert" [size]="16" /> {{ a.texto }}</div>
               }
@@ -343,6 +362,19 @@ const JANELA_DECISAO_S = 15;
             }
 
             @case ('RESULTADO_RODADA') {
+              <!--
+                A janela de decisão precisa de relógio aqui também: sem ele o
+                aluno via um card parado, sem saber que a noite ia cair sozinha
+                nem quando. E ela cai por conta própria — o avanço não espera
+                mais o clique do professor.
+              -->
+              <div class="janela">
+                <span class="janela__lbl">A noite cai em</span>
+                <span class="timer timer--peq" [class.timer--fim]="restante() <= 5">
+                  {{ restante() }}s
+                </span>
+              </div>
+
               @if (p.vereditoQuarentena; as v) {
                 <div class="card-global" [class.card-global--ok]="v.eraAmeaca">{{ v.texto }}</div>
               }
@@ -383,14 +415,24 @@ const JANELA_DECISAO_S = 15;
                   <b>{{ letra(p.corretaIndex) }}) {{ p.questaoPublica.alternativas[p.corretaIndex] }}</b>
                 </p>
               }
+              <!--
+                O botão só existe para quem o servidor vai aceitar: vivo, na
+                vila, no Setor de Comunicação e com o rádio de pé. Antes ele
+                aparecia para todos e devolvia 403 — e escondia a regra que faz
+                da Comunicação o setor mais valioso do mapa.
+              -->
               @if (podeConvocar() && !foraDaVila()) {
-                <button class="btn-quarentena" type="button" [disabled]="enviando()" (click)="convocar()">
-                  <app-icon name="alert" [size]="16" /> Convocar Quarentena
-                </button>
-                <p class="muted center">
-                  Cabe <b>uma Quarentena por rodada</b>. Prender um inocente
-                  custa caro.
-                </p>
+                @if (impedimentoQuarentena(p); as motivo) {
+                  <p class="muted center">{{ motivo }}</p>
+                } @else {
+                  <button class="btn-quarentena" type="button" [disabled]="enviando()" (click)="convocar()">
+                    <app-icon name="alert" [size]="16" /> Convocar Quarentena
+                  </button>
+                  <p class="muted center">
+                    Cabe <b>uma Quarentena por rodada</b>. Prender um inocente
+                    custa caro.
+                  </p>
+                }
               }
               @if (erro()) { <p class="aviso">{{ erro() }}</p> }
             }
@@ -597,6 +639,9 @@ const JANELA_DECISAO_S = 15;
     .alerta { display: flex; align-items: center; gap: 0.45rem; padding: 0.7rem 0.9rem; border-radius: 10px; font-weight: 800; font-size: 0.9rem; color: #fff; background: var(--danger); }
     .timer { align-self: center; font-size: 1.75rem; font-weight: 900; color: #4d7c0f; }
     .timer--fim { color: var(--danger); }
+    /* A contagem da janela de decisão: a noite cai sozinha ao fim dela. */
+    .janela { display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+    .janela__lbl { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.75; }
     .enunciado { margin: 0; font-size: 1.15rem; font-weight: 800; text-align: center; }
     .sabe { margin: 0; padding: 0.5rem 0.75rem; border-radius: 10px; font-size: 0.85rem; text-align: center; color: #1a2e05; background: color-mix(in srgb, #84cc16 35%, transparent); }
     .opts { display: grid; grid-template-columns: 1fr; gap: 0.5rem; }
@@ -656,8 +701,17 @@ export class StudentIsolateusPage {
   protected readonly verMapa = signal(false);
   /** A Ameaça abriu o overview para escolher onde abduzir. */
   protected readonly escolhendoSetor = signal(false);
-  /** Já fechei minha jogada desta noite (mover, ficar, reparar ou agir). */
-  protected readonly jogadaFeita = signal(false);
+  /**
+   * As **duas** decisões da noite, contadas separado.
+   *
+   * `posicaoFeita` é "onde eu passo a noite" (mover, ficar, reparar) e vale para
+   * todo mundo; `acaoFeita` é a jogada da Ameaça (sabotar, abduzir, aguardar).
+   * Eram um booleano só — e, como o deslocamento é a primeira coisa na tela, o
+   * alienígena andava e o painel de ataque sumia antes de ele poder usá-lo: ele
+   * ficava com uma das duas jogadas, nunca as duas.
+   */
+  protected readonly posicaoFeita = signal(false);
+  protected readonly acaoFeita = signal(false);
   /** Habitante sendo levado agora — dispara a nave no setor onde ele está. */
   protected readonly abduzindoId = signal<string | null>(null);
 
@@ -708,27 +762,29 @@ export class StudentIsolateusPage {
   protected readonly restante = computed(() => {
     const p = this.partida();
     if (!p || !p.faseIniciadaEm) return 0;
-    const limite =
-      p.status === 'QUESTAO_ATIVA'
-        ? p.duracaoSegundos
-        : p.status === 'DESLOCAMENTO'
-          ? LIMITE_DESLOCAMENTO_S
-          : p.status === 'RESULTADO_RODADA'
-            ? JANELA_DECISAO_S
-            : p.status === 'QUARENTENA_DEBATE'
-              ? LIMITE_DEBATE_S
-              : p.status === 'QUARENTENA_VOTO'
-                ? LIMITE_VOTO_S
-                : 0;
+    const limite = this.limiteDaFase();
     if (!limite) return 0;
     const fim = Date.parse(p.faseIniciadaEm) + limite * 1000;
-    const s = Math.ceil((fim - this.relogio()) / 1000);
+    const s = Math.ceil((fim - this.cronometro.agora(this.relogio())) / 1000);
     return Math.max(0, Math.min(limite, s));
   });
+
+  /** Duração da fase corrente, em segundos. `0` = fase sem relógio. */
+  private limiteDaFase(): number {
+    const p = this.partida();
+    if (!p) return 0;
+    if (p.status === 'QUESTAO_ATIVA') return p.duracaoSegundos;
+    if (p.status === 'DESLOCAMENTO') return LIMITE_DESLOCAMENTO_S;
+    if (p.status === 'RESULTADO_RODADA') return JANELA_DECISAO_S;
+    if (p.status === 'QUARENTENA_DEBATE') return LIMITE_DEBATE_S;
+    if (p.status === 'QUARENTENA_VOTO') return LIMITE_VOTO_S;
+    return 0;
+  }
 
   private partidaId: string | null = null;
   private jaEntrei = false;
   private ultimaRodada = -1;
+  private readonly cronometro = new RelogioDaFase();
 
   constructor() {
     this.buscar();
@@ -736,7 +792,10 @@ export class StudentIsolateusPage {
     const sonda = setInterval(() => {
       if (!this.partida()) this.buscar();
     }, 4000);
-    const tick = setInterval(() => this.relogio.set(Date.now()), 500);
+    const tick = setInterval(() => {
+      this.relogio.set(Date.now());
+      this.checarTempo();
+    }, 500);
     this.destroyRef.onDestroy(() => {
       clearInterval(sonda);
       clearInterval(tick);
@@ -744,6 +803,27 @@ export class StudentIsolateusPage {
       // do aluno escuro para sempre.
       this.tema.restaurarPreferencia();
     });
+  }
+
+  /**
+   * O celular também cobra o prazo vencido — o telão deixou de ser o único
+   * cronômetro da partida.
+   *
+   * Enquanto só o projetor podia, a aula parava se a aba dele dormisse, caísse a
+   * rede no segundo do vencimento ou o relógio da máquina estivesse adiantado (o
+   * servidor responde "ainda não" e o disparo, único, se perdia). Aqui a
+   * cobrança é repetida e sai com um atraso sorteado, para a turma inteira não
+   * bater no mesmo instante.
+   */
+  private checarTempo(): void {
+    const p = this.partida();
+    this.cronometro.sincronizar(p?.faseIniciadaEm ?? null);
+    if (!p || !this.partidaId || !p.faseIniciadaEm) return;
+    if (!this.limiteDaFase()) return;
+    if (!this.cronometro.devoCobrar(Date.now(), this.restante() <= 0)) return;
+    this.api
+      .tempoAluno(this.partidaId)
+      .subscribe({ next: () => {}, error: () => {} });
   }
 
   protected letra(i: number): string {
@@ -809,6 +889,24 @@ export class StudentIsolateusPage {
     return this.vivos(p).filter((h) => h.setorId === meu && h.id !== eu);
   }
 
+  /**
+   * Por que **eu** não posso convocar a Quarentena agora — ou `null` se posso.
+   *
+   * Espelha as recusas do servidor (`FORA_DA_COMUNICACAO`,
+   * `COMUNICACAO_EM_RUINAS`) e as explica: a regra é parte do jogo, e apenas
+   * esconder o botão deixaria a vila sem entender por que o rádio calou.
+   */
+  protected impedimentoQuarentena(p: IsolateusMatch): string | null {
+    if (this.meuSetor(p) !== SETOR_COMUNICACAO) {
+      return 'O rádio da vila fica no Setor de Comunicação. É de lá que se convoca a Quarentena.';
+    }
+    const radio = p.setores.find((s) => s.id === SETOR_COMUNICACAO);
+    if (!radio?.intacto) {
+      return 'O Setor de Comunicação está em ruínas. Reconstrua o rádio para convocar a Quarentena.';
+    }
+    return null;
+  }
+
   /** O botão de reparo só existe dentro de uma ruína ainda não mobilizada. */
   protected podeReparar(p: IsolateusMatch): boolean {
     const s = this.meuSetorObj(p);
@@ -825,25 +923,38 @@ export class StudentIsolateusPage {
     this.acaoDaNoite((id) => this.api.reparo(id));
   }
   protected sabotar(): void {
-    this.acaoDaNoite((id) => this.api.acao(id, { tipo: 'SABOTAR' }));
+    this.acaoDaNoite((id) => this.api.acao(id, { tipo: 'SABOTAR' }), 'acao');
   }
   protected aguardar(): void {
-    this.acaoDaNoite((id) => this.api.acao(id, { tipo: 'AGUARDAR' }));
+    this.acaoDaNoite((id) => this.api.acao(id, { tipo: 'AGUARDAR' }), 'acao');
   }
   protected abduzirAqui(alvoId: string): void {
-    this.acaoDaNoite((id) => this.api.acao(id, { tipo: 'ABDUZIR', alvoId }));
+    this.acaoDaNoite(
+      (id) => this.api.acao(id, { tipo: 'ABDUZIR', alvoId }),
+      'acao',
+    );
   }
   protected abduzirAsCegas(setorId: string): void {
-    this.acaoDaNoite((id) => this.api.acao(id, { tipo: 'ABDUZIR', setorId }));
+    this.acaoDaNoite(
+      (id) => this.api.acao(id, { tipo: 'ABDUZIR', setorId }),
+      'acao',
+    );
   }
 
   /**
-   * Toda ação da noite fecha a jogada localmente na hora (otimista, como o voto
-   * do Qlick): o snapshot só devolve a **contagem**, nunca quem confirmou, então
-   * nem daria para o próprio cliente descobrir pelo servidor que já jogou.
+   * Toda ação da noite fecha a decisão correspondente localmente na hora
+   * (otimista, como o voto do Qlick): o snapshot só devolve a **contagem**, nunca
+   * quem confirmou, então nem daria para o próprio cliente descobrir pelo
+   * servidor que já jogou.
+   *
+   * `qual` importa porque a noite tem **duas** decisões independentes: onde eu
+   * estou e — só para a Ameaça — o que eu faço. Um booleano só para as duas
+   * apagava o painel de ataque assim que ela se deslocava, e o alienígena ficava
+   * sem jogada a noite inteira.
    */
   private acaoDaNoite(
     chamada: (partidaId: string) => Observable<IsolateusMatch>,
+    qual: 'posicao' | 'acao' = 'posicao',
   ): void {
     if (!this.partidaId || this.enviando()) return;
     this.enviando.set(true);
@@ -851,15 +962,26 @@ export class StudentIsolateusPage {
     chamada(this.partidaId).subscribe({
       next: () => {
         this.enviando.set(false);
-        this.jogadaFeita.set(true);
+        this.fecharDecisao(qual);
         this.escolhendoSetor.set(false);
         this.verMapa.set(false);
       },
-      error: (e: { error?: { message?: string } }) => {
+      error: (e: { error?: { message?: string; code?: string } }) => {
         this.enviando.set(false);
+        // A jogada já estava registrada no servidor (recarreguei a página, cliquei
+        // duas vezes): reconciliar em vez de insistir num botão que não vale mais.
+        if (e.error?.code === 'JOGADA_FEITA') {
+          this.fecharDecisao(qual);
+          return;
+        }
         this.erro.set(e.error?.message ?? 'Não foi possível fazer isso agora.');
       },
     });
+  }
+
+  private fecharDecisao(qual: 'posicao' | 'acao'): void {
+    if (qual === 'acao') this.acaoFeita.set(true);
+    else this.posicaoFeita.set(true);
   }
 
   /** A Ameaça só intercepta a comunicação uma vez por noite. */
@@ -926,8 +1048,9 @@ export class StudentIsolateusPage {
       this.votei.set(false);
       this.abduzindoId.set(null);
       this.jaPulei.set(false);
-      // E a jogada da noite volta a ficar em aberto.
-      this.jogadaFeita.set(false);
+      // E as duas decisões da noite voltam a ficar em aberto.
+      this.posicaoFeita.set(false);
+      this.acaoFeita.set(false);
       this.escolhendoSetor.set(false);
       this.verMapa.set(false);
       if (this.ehAmeaca()) this.carregarPainel(false);
