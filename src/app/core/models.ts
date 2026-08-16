@@ -786,6 +786,8 @@ export interface CriarIsolateusPayload {
 
 export type StatusIsolateus =
   | 'LOBBY'
+  /** A noite: todos se deslocam e a Ameaça joga, dentro da mesma janela. */
+  | 'DESLOCAMENTO'
   | 'TURNO_AMEACA'
   | 'QUESTAO_ATIVA'
   | 'RESULTADO_RODADA'
@@ -804,6 +806,11 @@ export interface Habitante {
   nome: string;
   vivo: boolean;
   preso: boolean;
+  /**
+   * O setor que ele ocupa. Chega para todos no snapshot, mas a UI só exibe os
+   * habitantes do **seu** setor: quem está onde é a moeda do jogo.
+   */
+  setorId: string;
 }
 
 export interface SetorVila {
@@ -829,6 +836,35 @@ export interface AlertaRodada {
   tipo: 'SABOTAGEM' | 'ABDUCAO';
   texto: string;
 }
+
+/**
+ * Uma entrada do Diário da Vila.
+ *
+ * `REPELIDA` cobre **dois** casos com o mesmo texto — a defesa bem-sucedida e o
+ * tiro às cegas que caiu em setor vazio. A UI não deve tentar distingui-los:
+ * fazer isso contaria à vila de onde a Ameaça atacou.
+ */
+export interface Acontecimento {
+  id: string;
+  tipo: TipoAcontecimento;
+  texto: string;
+  /** A noite em que aconteceu. */
+  noite: number;
+  em: string;
+}
+
+export type TipoAcontecimento =
+  | 'NOITE'
+  | 'SABOTAGEM'
+  | 'ABDUCAO'
+  | 'REPELIDA'
+  | 'ESPERA'
+  | 'REPARO'
+  | 'RESTAURADO'
+  | 'REPARO_FALHOU'
+  | 'QUARENTENA'
+  | 'VEREDITO'
+  | 'FIM';
 
 export interface ResumoRodadaIsolateus {
   seq: number;
@@ -868,10 +904,18 @@ export interface IsolateusMatch {
   setores: SetorVila[];
   habitantes: Habitante[];
 
+  /** A noite corrente. Conta o ciclo, **não** a questão. */
   rodada: number;
+  /**
+   * Ponteiro no banco de questões. Só avança quando houve disputa (abdução a
+   * repelir ou reparo a fazer) — noite de pura sabotagem não gasta pergunta.
+   */
+  questaoIndex: number;
   totalRodadas: number;
   duracaoSegundos: number;
-  /** Início da fase cronometrada (questão, debate ou votação) — base do relógio. */
+  /** O setor com reparo declarado nesta noite. Sem autor, de propósito. */
+  reparoSetorId?: string | null;
+  /** Início da fase cronometrada — base do relógio do cliente. */
   faseIniciadaEm?: string | null;
 
   /** A questão no ar, SEM a alternativa correta. */
@@ -880,6 +924,8 @@ export interface IsolateusMatch {
   corretaIndex?: number | null;
 
   alerta?: AlertaRodada | null;
+  /** O Diário da Vila: histórico consultável, aparado nas últimas 60 entradas. */
+  acontecimentos: Acontecimento[];
   rumores: Rumor[];
   debate: MensagemDebate[];
   resumoRodada?: ResumoRodadaIsolateus | null;
@@ -890,6 +936,8 @@ export interface IsolateusMatch {
   votosRecebidos: number;
   /** Quantos já pularam o debate — só a contagem; quem pulou é segredo. */
   pulosRecebidos?: number;
+  /** Quantos já fecharam a jogada da noite — contagem, nunca a lista. */
+  movimentosRecebidos?: number;
 
   /**
    * Quem está no lobby — só o `alunoId`. O codinome de cidade é sorteado no
