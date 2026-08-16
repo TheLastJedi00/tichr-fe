@@ -55,7 +55,7 @@ O diferencial visível está na **demonstração interativa da landing page** e 
 | `/turmas/:id/dinamica` | **Nova dinâmica** | Sorteio de **squads**: nº de equipes, papéis/temas em *chips*, e a **roleta** que renderiza os grupos. Recurso do **plano Mestre**. |
 | `/jogos` · `/jogos/qlick` | **Jogos / Tichr Qlick** | Vitrine de jogos e a mini-landing do **Tichr Qlick** (quiz ao vivo). Recurso do **plano PhD** (upsell nos inferiores). |
 | `/jogos/wor` · `.../novo` · `.../meus` · `.../partida/:id` | **Tichr Wor** | Guerra de castelos PvP: landing interna, **wizard de criação** (arsenal **forjado por IA** — 5 palavras com 3 dicas a partir de uma instrução —, reordenar por drag-and-drop), lista de batalhas e a **tela do projetor** (lobby → jogo, realtime). |
-| `/jogos/isolateus` · `.../novo` · `.../editar/:id` · `.../partida/:id` | **Tichr Isolateus** | Dedução social: landing de primeiro uso, **estúdio** das 10 questões (com geração por IA) e o **telão do Comando Central** — lobby cego, Barra de Esperança, o **mapa da vila com quem está em cada setor** (visão onisciente, o oposto do celular), chat de rumores, Diário da Vila e card de veredito. O telão também é o relógio: fecha as fases e faz a noite cair sozinha. Recurso do **plano PhD**. |
+| `/jogos/isolateus` · `.../novo` · `.../editar/:id` · `.../partida/:id` | **Tichr Isolateus** | Dedução social: landing de primeiro uso, **estúdio** das 10 questões (com geração por IA) e o **telão do Comando Central** — lobby cego, Barra de Esperança, o **mapa da vila com quem está em cada setor** (visão onisciente, o oposto do celular), chat de rumores, Diário da Vila e card de veredito. O telão conduz o relógio — mas não sozinho: qualquer aparelho da partida cobra a fase vencida, e o professor pode **encerrar a investigação a qualquer momento**. Recurso do **plano PhD**. |
 | `/aluno/wor` | **Wor (aluno)** | Cliente **mobile-first**: teclado de letras, **Dilema Tático** (atacar/comprar dica), **Risco Heroico**, **modal da Queda da Horda** e animação de dano. Escuta só o próprio castelo (realtime barato). |
 | `/jogos/qlick/meus` | **Meus Qlicks** | Lista dos quizzes do professor; **Rodar** pergunta "para qual turma?" quando o Qlick está em várias (N:N). |
 | `/jogos/qlick/novo` · `/editar/:id` | **Estúdio do Qlick** | Formulário reativo (FormArray) de perguntas → alternativas, com marcação da correta e duração. |
@@ -212,16 +212,30 @@ O jogo é o embrulho; o conteúdo cobrado é o seu.
   Quem foi abduzido não sai do jogo: segue respondendo (e pontuando) numa **tela hackeada**,
   de onde manda **Sinais de Rádio** anônimos para tentar salvar a vila.
 - **A Quarentena:** um debate cronometrado seguido de votação no suspeito, convocado de
-  dentro do **Setor de Comunicação** — derrubar o rádio cala a vila até ela reconstruí-lo.
+  dentro do **Setor de Comunicação** — e **só de lá**, nem o telão do professor abre exceção:
+  derrubar o rádio cala a vila até ela reconstruí-lo. Quem está fora vê escrito o motivo, em vez
+  de um botão que não funciona.
   Cabe uma por noite (a vila não emenda acusações até prender todo mundo). Quem já se decidiu **pula o debate**; se todos pularem, a votação começa na hora.
   Prendeu a ameaça, a vila vence; prendeu um inocente, a Esperança despenca — e a identidade
   do preso **continua em segredo**.
 - **O Diário da Vila** guarda tudo o que aconteceu na partida. Cada novidade aparece na tela
   e depois fica ali, para a turma reler enquanto discute. O que ele **não** registra é o
   deslocamento: a lista de quem foi para onde entregaria o mapa inteiro.
+- **A noite tem duas decisões, e a Ameaça faz as duas:** todo habitante escolhe **onde passa a
+  noite** (andar um setor ou ficar) dentro de **60 segundos**; o infiltrado, além disso, escolhe
+  **o que faz** — e uma coisa não consome a outra, em qualquer ordem. Quando a vila inteira já
+  decidiu, o relógio **salta**: cai na hora se a Ameaça já jogou, ou encurta para poucos segundos
+  se ela ainda não — para todos ao mesmo tempo, sem que a tela diga quem falta (dizer entregaria o
+  alienígena por eliminação).
 - **O ciclo dia/noite corre sozinho:** o professor não precisa mais avançar a noite — o sol
   se põe, o tema escurece e a lua sobe, com uma janela para a vila decidir se convoca a
-  Quarentena. O botão continua no telão para adiantar quando a aula pedir.
+  Quarentena, cronometrada **no telão e nos celulares**. E o avanço não depende de uma tela só:
+  qualquer aparelho da partida cobra o prazo vencido, então a investigação não para se a aba do
+  professor dormir ou a rede dele oscilar. O botão continua no telão para adiantar quando a aula
+  pedir.
+- **Encerrar quando o sinal bate:** o professor termina a investigação **a qualquer momento**,
+  sem esperar as questões acabarem. O veredito sai pelo estado da vila naquele instante — setores
+  de pé, habitantes na vila — e o XP já conquistado é creditado normalmente.
 - **As 10 questões** são escritas pelo professor ou **geradas por IA** a partir da disciplina
   e do tópico (1×/dia, com cota própria — não consome a do Qlick nem a do Wor).
 
