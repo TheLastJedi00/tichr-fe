@@ -13,11 +13,14 @@ import { IsolateusApiService } from '../../core/isolateus-api.service';
 import { IsolateusMatch, PainelIsolateus } from '../../core/models';
 import { RealtimeService } from '../../core/realtime.service';
 import { StudentAuthService } from '../../core/student-auth.service';
+import { ThemeService } from '../../core/theme.service';
 import { Icon } from '../../ui/icon/icon';
 import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { IsolateusDiario } from '../../ui/isolateus-diario/isolateus-diario';
+import { IsolateusEvento } from '../../ui/isolateus-evento/isolateus-evento';
 import { IsolateusMapa } from '../../ui/isolateus-mapa/isolateus-mapa';
 import { IsolateusSetor } from '../../ui/isolateus-setor/isolateus-setor';
+import { IsolateusTransicao } from '../../ui/isolateus-transicao/isolateus-transicao';
 import { Spinner } from '../../ui/spinner/spinner';
 
 /** Duração da animação do Despertar (revelação de papéis). */
@@ -49,6 +52,8 @@ const JANELA_DECISAO_S = 15;
     IsolateusMapa,
     IsolateusSetor,
     IsolateusDiario,
+    IsolateusTransicao,
+    IsolateusEvento,
   ],
   template: `
     @if (carregando()) {
@@ -112,7 +117,10 @@ const JANELA_DECISAO_S = 15;
           </p>
         </section>
       } @else {
-        <!-- Em jogo -->
+        <!-- Em jogo. A cinemática acompanha todas as fases, fora do switch. -->
+        <app-isolateus-transicao [noite]="ehNoite()" />
+        <app-isolateus-evento [acontecimentos]="p.acontecimentos ?? []" />
+
         <div class="jogo" [class.jogo--hackeada]="foraDaVila()">
           @if (foraDaVila()) {
             <div class="hack">
@@ -159,6 +167,7 @@ const JANELA_DECISAO_S = 15;
                       [emReparo]="p.reparoSetorId === s.id"
                       [podeAndar]="!jogadaFeita()"
                       [noite]="true"
+                      [abduzindoId]="abduzindoNoMeuSetor(p)"
                       (andarPara)="mover($event)"
                     />
                   }
@@ -339,6 +348,34 @@ const JANELA_DECISAO_S = 15;
               }
               @if (p.resumoRodada; as r) {
                 <div class="card-global" [class.card-global--ok]="r.defendida">{{ r.texto }}</div>
+              }
+
+              <!--
+                O mapa continua na tela durante a janela de decisão: é aqui que a
+                abdução se materializa (a nave desce para quem está no setor) e é
+                olhando as ruínas que a vila decide para onde marchar na próxima
+                noite.
+              -->
+              @if (!foraDaVila() && meuSetorObj(p); as s) {
+                <app-isolateus-setor
+                  [setor]="s"
+                  [habitantes]="p.habitantes"
+                  [meuHabitanteId]="painel()?.habitanteId ?? ''"
+                  [emReparo]="false"
+                  [podeAndar]="false"
+                  [abduzindoId]="abduzindoNoMeuSetor(p)"
+                />
+                <button class="btn-mapa" type="button" (click)="verMapa.set(!verMapa())">
+                  <app-icon name="grip" [size]="14" />
+                  {{ verMapa() ? 'Esconder o mapa' : 'Ver o mapa da vila' }}
+                </button>
+                @if (verMapa()) {
+                  <app-isolateus-mapa
+                    [setores]="p.setores"
+                    [meuSetor]="meuSetor(p)"
+                    [reparoEm]="null"
+                  />
+                }
               }
               @if (p.questaoPublica && p.corretaIndex !== null && p.corretaIndex !== undefined) {
                 <p class="muted center">
@@ -603,6 +640,7 @@ export class StudentIsolateusPage {
   private readonly realtime = inject(RealtimeService);
   private readonly studentAuth = inject(StudentAuthService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly tema = inject(ThemeService);
 
   private readonly meuId = this.studentAuth.aluno()?.id ?? '';
 
@@ -620,6 +658,13 @@ export class StudentIsolateusPage {
   protected readonly escolhendoSetor = signal(false);
   /** Já fechei minha jogada desta noite (mover, ficar, reparar ou agir). */
   protected readonly jogadaFeita = signal(false);
+  /** Habitante sendo levado agora — dispara a nave no setor onde ele está. */
+  protected readonly abduzindoId = signal<string | null>(null);
+
+  /** É noite? Governa a cinemática e a paleta escura do mapa. */
+  protected readonly ehNoite = computed(() =>
+    this.partida()?.status === 'DESLOCAMENTO',
+  );
   protected readonly revelando = signal(false);
 
   protected readonly ehAmeaca = computed(
@@ -695,6 +740,9 @@ export class StudentIsolateusPage {
     this.destroyRef.onDestroy(() => {
       clearInterval(sonda);
       clearInterval(tick);
+      // A noite é do jogo, não do app: sair da partida não pode deixar o painel
+      // do aluno escuro para sempre.
+      this.tema.restaurarPreferencia();
     });
   }
 
@@ -704,6 +752,43 @@ export class StudentIsolateusPage {
 
   protected vivos(p: IsolateusMatch) {
     return p.habitantes.filter((h) => h.vivo && !h.preso);
+  }
+
+  /**
+   * Quem sumiu da vila entre um snapshot e o outro. É o gatilho da nave.
+   *
+   * Compara `vivo` em vez de escutar um evento porque o diário é intencionalmente
+   * ambíguo: o texto de "repelida" cobre também o tiro às cegas no vazio, então
+   * ele não serve para saber se **alguém de fato** foi levado. O estado dos
+   * habitantes serve.
+   */
+  private detectarAbducao(
+    antes: IsolateusMatch | null,
+    agora: IsolateusMatch,
+  ): void {
+    if (!antes) return;
+    const eraVivo = new Map(antes.habitantes.map((h) => [h.id, h.vivo]));
+    const levado = agora.habitantes.find(
+      (h) => !h.vivo && eraVivo.get(h.id) === true,
+    );
+    if (!levado) return;
+
+    this.abduzindoId.set(levado.id);
+    // A cena dura ~2,4s; depois o avatar simplesmente não está mais na fileira.
+    setTimeout(() => this.abduzindoId.set(null), 2600);
+  }
+
+  /**
+   * O id de quem está sendo levado, **só se ele estiver no meu setor**.
+   *
+   * Fora dele, o jogador recebe apenas o card e a linha no diário: você vê o que
+   * acontece perto de você; o resto você lê no rádio.
+   */
+  protected abduzindoNoMeuSetor(p: IsolateusMatch): string | null {
+    const id = this.abduzindoId();
+    if (!id) return null;
+    const alvo = p.habitantes.find((h) => h.id === id);
+    return alvo && alvo.setorId === this.meuSetor(p) ? id : null;
   }
 
   // --- A Noite ---
@@ -815,6 +900,7 @@ export class StudentIsolateusPage {
   /** Reage às transições de estado que exigem buscar o painel (o segredo). */
   private reagir(p: IsolateusMatch): void {
     const anterior = this.partida();
+    this.detectarAbducao(anterior, p);
 
     // Removido no lobby: eu estava inscrito e sumi da lista.
     if (p.status === 'LOBBY' && this.jaEntrei && !this.inscrito(p)) {
@@ -838,6 +924,7 @@ export class StudentIsolateusPage {
       this.sinalTexto.set('');
       // Cabe uma Quarentena por rodada: a noite nova rearma o voto e o pulo.
       this.votei.set(false);
+      this.abduzindoId.set(null);
       this.jaPulei.set(false);
       // E a jogada da noite volta a ficar em aberto.
       this.jogadaFeita.set(false);

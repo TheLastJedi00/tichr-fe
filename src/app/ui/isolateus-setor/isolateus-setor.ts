@@ -22,6 +22,18 @@ import { Icon } from '../icon/icon';
       [class.setor--reparo]="emReparo()"
       [class.setor--noite]="noite()"
     >
+      <!--
+        A nave só desce para quem está NO setor da abdução. Nos outros setores o
+        jogador recebe apenas o card e o diário: você vê o que acontece perto de
+        você; o resto você lê no rádio.
+      -->
+      @if (abduzindoId()) {
+        <div class="nave" aria-hidden="true">
+          <span class="nave__disco"><app-icon name="nave" [size]="48" /></span>
+          <span class="nave__feixe"></span>
+        </div>
+      }
+
       <!-- Quem está aqui -->
       <div class="fileira">
         @for (h of presentes(); track h.id; let i = $index) {
@@ -118,6 +130,45 @@ import { Icon } from '../icon/icon';
 
     .vazio { font-size: 0.8rem; opacity: 0.7; }
 
+    /* --- A nave (Protótipo 3) --- */
+    .nave {
+      position: absolute;
+      top: -0.5rem;
+      left: 50%;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: var(--iso, #65a30d);
+      pointer-events: none;
+      /* Chega, paira sobre a fileira e vai embora — 2,4s no total. */
+      animation: naveEntra 2400ms ease-in-out forwards;
+    }
+    .nave__disco { line-height: 0; filter: drop-shadow(0 0 8px rgba(101, 163, 13, 0.6)); }
+    .nave__feixe {
+      width: 2.2rem;
+      height: 3.2rem;
+      background: linear-gradient(
+        to bottom,
+        rgba(101, 163, 13, 0.55),
+        rgba(101, 163, 13, 0)
+      );
+      clip-path: polygon(30% 0, 70% 0, 100% 100%, 0 100%);
+      animation: feixe 2400ms ease-in-out forwards;
+    }
+
+    @keyframes naveEntra {
+      0% { opacity: 0; transform: translate(-50%, -80px); }
+      20% { opacity: 1; transform: translate(-50%, 0); }
+      70% { opacity: 1; transform: translate(-50%, 0); }
+      100% { opacity: 0; transform: translate(220px, -120px) scale(0.4); }
+    }
+    @keyframes feixe {
+      0%, 15% { opacity: 0; transform: scaleY(0); transform-origin: top; }
+      30%, 65% { opacity: 1; transform: scaleY(1); transform-origin: top; }
+      80%, 100% { opacity: 0; transform: scaleY(0); transform-origin: top; }
+    }
+
     .centro { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; padding: 1rem 0; }
     .centro__icone { position: relative; line-height: 0; color: var(--iso, #65a30d); }
     .setor--ruina .centro__icone { color: #94a3b8; }
@@ -173,6 +224,8 @@ import { Icon } from '../icon/icon';
       .hab, .setor--reparo { animation: none; }
       .hab--indo { animation: some 200ms ease-out forwards; }
       .saida:active { transform: none; }
+      .nave { animation: some 400ms ease-out forwards; }
+      .nave__feixe { display: none; }
     }
     @keyframes some { to { opacity: 0; } }
   `,
