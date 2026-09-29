@@ -37,10 +37,10 @@ const JANELA_DECISAO_S = 15;
  * O celular do habitante. Descobre a investigação da turma sozinho (sonda de 4s,
  * como o Qlick e o Wor), entra com um pseudônimo e passa pelo Despertar.
  *
- * O papel — e, para a Ameaça, a resposta correta — vem do `painel()`, uma rota
- * autenticada. **Nunca** do snapshot: o documento que este componente escuta é
- * cego de propósito, e é isso que impede um aluno com DevTools de descobrir o
- * infiltrado.
+ * O papel, a posição da noite e — para a Ameaça — o poder e as aliadas vêm do
+ * `painel()`, uma rota autenticada. **Nunca** do snapshot: o documento que este
+ * componente escuta é cego de propósito, e é isso que impede um aluno com
+ * DevTools de descobrir o infiltrado.
  */
 @Component({
   selector: 'app-student-isolateus-page',
@@ -164,7 +164,7 @@ const JANELA_DECISAO_S = 15;
                   } @else if (meuSetorObj(p); as s) {
                     <app-isolateus-setor
                       [setor]="s"
-                      [habitantes]="p.habitantes"
+                      [habitantes]="habitantesDaNoite(p)"
                       [meuHabitanteId]="painel()?.habitanteId ?? ''"
                       [emReparo]="p.reparoSetorId === s.id"
                       [podeAndar]="!posicaoFeita()"
@@ -290,8 +290,8 @@ const JANELA_DECISAO_S = 15;
 
                 @if (ehAmeaca()) {
                   <p class="sabe">
-                    Você sabe: a correta é a
-                    <b>{{ letra(painel()!.corretaIndex ?? 0) }}</b>. Induza a vila ao erro.
+                    Seu voto não defende a vila — mas, se você acertar, ganha um
+                    <b>Poder Alienígena</b>.
                   </p>
                 }
 
@@ -313,35 +313,22 @@ const JANELA_DECISAO_S = 15;
                 }
               }
 
-              <!-- O Chat de Rumores -->
+              <!--
+                Só os Sinais de Rádio de quem saiu da vila. O Chat de Rumores
+                saiu: os autores eram sempre NPCs, e a própria tela entregava
+                quem era virtual.
+              -->
               <div class="feed">
-                <span class="feed__tit">Rumores</span>
-                @for (r of p.rumores; track r.id) {
-                  <p class="rumor" [class.rumor--sinal]="r.tipo === 'SINAL'">
-                    <strong>{{ r.tipo === 'SINAL' ? '[ Sinal de Rádio ]' : r.autorNome }}</strong>
+                <span class="feed__tit">Sinais de Rádio</span>
+                @for (r of sinais(p); track r.id) {
+                  <p class="rumor rumor--sinal">
+                    <strong>[ Sinal de Rádio ]</strong>
                     {{ r.texto }}
                   </p>
                 } @empty {
                   <p class="muted">Silêncio absoluto…</p>
                 }
               </div>
-
-              @if (ehAmeaca() && !rumorEnviado(p)) {
-                <form class="composer" (submit)="forjar($event)">
-                  <span class="composer__lbl">Interceptar a comunicação (1× por noite)</span>
-                  <textarea
-                    class="tichr-input"
-                    rows="2"
-                    maxlength="240"
-                    [value]="rumorTexto()"
-                    (input)="rumorTexto.set($any($event.target).value)"
-                    placeholder="Defenda uma alternativa errada de forma convincente…"
-                  ></textarea>
-                  <button class="btn-iso" type="submit" [disabled]="enviando() || !rumorTexto().trim()">
-                    Transmitir sob nome alheio
-                  </button>
-                </form>
-              }
 
               @if (foraDaVila()) {
                 <form class="composer" (submit)="sinal($event)">
@@ -453,7 +440,7 @@ const JANELA_DECISAO_S = 15;
                     maxlength="240"
                     [value]="debateTexto()"
                     (input)="debateTexto.set($any($event.target).value)"
-                    placeholder="Acuse, defenda-se, aponte quem concordou com o rumor…"
+                    placeholder="Acuse, defenda-se, diga onde você passou a noite…"
                   ></textarea>
                   <button class="btn-iso" type="submit" [disabled]="enviando() || !debateTexto().trim()">
                     Falar
@@ -712,6 +699,8 @@ export class StudentIsolateusPage {
    */
   protected readonly posicaoFeita = signal(false);
   protected readonly acaoFeita = signal(false);
+  /** Para onde eu andei nesta noite (o doc público só muda no fechamento). */
+  protected readonly destinoNoite = signal<string | null>(null);
   /** Habitante sendo levado agora — dispara a nave no setor onde ele está. */
   protected readonly abduzindoId = signal<string | null>(null);
 
@@ -727,7 +716,6 @@ export class StudentIsolateusPage {
 
   /** Voto otimista na questão (trava a UI na hora, como no Qlick). */
   protected readonly respostaIndex = signal<number | null>(null);
-  protected readonly rumorTexto = signal('');
   protected readonly sinalTexto = signal('');
   protected readonly debateTexto = signal('');
   protected readonly votei = signal(false);
@@ -873,9 +861,26 @@ export class StudentIsolateusPage {
 
   // --- A Noite ---
 
-  /** Onde eu estou. Vazio antes do Despertar (ou se já saí da vila). */
+  /**
+   * Onde eu estou. Durante a noite, o destino que só eu (e o servidor) conheço:
+   * o doc público mantém a posição do anoitecer até a noite fechar — publicar
+   * na hora entregava quem é real, já que os NPCs só andam no fechamento.
+   * Vazio antes do Despertar (ou se já saí da vila).
+   */
   protected meuSetor(p: IsolateusMatch): string {
-    return this.meuHabitante()?.setorId ?? '';
+    const publico = this.meuHabitante()?.setorId ?? '';
+    if (p.status !== 'DESLOCAMENTO') return publico;
+    return this.destinoNoite() ?? this.painel()?.setorId ?? publico;
+  }
+
+  /**
+   * A vila vista do meu celular durante a noite: os outros onde estavam ao
+   * anoitecer, e eu onde decidi passar a noite.
+   */
+  protected habitantesDaNoite(p: IsolateusMatch) {
+    const eu = this.painel()?.habitanteId;
+    const aqui = this.meuSetor(p);
+    return p.habitantes.map((h) => (h.id === eu ? { ...h, setorId: aqui } : h));
   }
 
   protected meuSetorObj(p: IsolateusMatch) {
@@ -914,7 +919,11 @@ export class StudentIsolateusPage {
   }
 
   protected mover(setorId: string): void {
-    this.acaoDaNoite((id) => this.api.mover(id, setorId));
+    this.acaoDaNoite(
+      (id) => this.api.mover(id, setorId),
+      'posicao',
+      () => this.destinoNoite.set(setorId),
+    );
   }
   protected ficar(): void {
     this.acaoDaNoite((id) => this.api.confirmarPosicao(id));
@@ -955,6 +964,7 @@ export class StudentIsolateusPage {
   private acaoDaNoite(
     chamada: (partidaId: string) => Observable<IsolateusMatch>,
     qual: 'posicao' | 'acao' = 'posicao',
+    aoConcluir?: () => void,
   ): void {
     if (!this.partidaId || this.enviando()) return;
     this.enviando.set(true);
@@ -962,6 +972,7 @@ export class StudentIsolateusPage {
     chamada(this.partidaId).subscribe({
       next: () => {
         this.enviando.set(false);
+        aoConcluir?.();
         this.fecharDecisao(qual);
         this.escolhendoSetor.set(false);
         this.verMapa.set(false);
@@ -984,9 +995,9 @@ export class StudentIsolateusPage {
     else this.posicaoFeita.set(true);
   }
 
-  /** A Ameaça só intercepta a comunicação uma vez por noite. */
-  protected rumorEnviado(p: IsolateusMatch): boolean {
-    return p.rumores.some((r) => r.tipo === 'FORJADO');
+  /** Os Sinais de Rádio da questão (partidas antigas podem trazer rumores). */
+  protected sinais(p: IsolateusMatch) {
+    return p.rumores.filter((r) => r.tipo === 'SINAL');
   }
 
   private buscar(): void {
@@ -1042,7 +1053,6 @@ export class StudentIsolateusPage {
     if (p.rodada !== this.ultimaRodada) {
       this.ultimaRodada = p.rodada;
       this.respostaIndex.set(null);
-      this.rumorTexto.set('');
       this.sinalTexto.set('');
       // Cabe uma Quarentena por rodada: a noite nova rearma o voto e o pulo.
       this.votei.set(false);
@@ -1053,14 +1063,16 @@ export class StudentIsolateusPage {
       this.acaoFeita.set(false);
       this.escolhendoSetor.set(false);
       this.verMapa.set(false);
-      if (this.ehAmeaca()) this.carregarPainel(false);
+      this.destinoNoite.set(null);
+      // A posição e o papel vivem no painel: a noite nova rebusca para todos.
+      this.carregarPainel(false);
     }
   }
 
   /**
-   * Busca o papel do aluno. Só a Ameaça recebe a resposta correta e os disfarces
-   * — o Aldeão não recebe nada sobre os outros, então nem uma inspeção do
-   * payload lhe dá vantagem.
+   * Busca o papel do aluno e a posição dele na noite. Só a Ameaça recebe o
+   * poder, as aliadas e a fileira de onde age — o Aldeão não recebe nada sobre
+   * os outros, então nem uma inspeção do payload lhe dá vantagem.
    */
   private carregarPainel(comRevelacao: boolean): void {
     if (!this.partidaId) return;
@@ -1115,20 +1127,6 @@ export class StudentIsolateusPage {
     this.respostaIndex.set(index);
     this.api.responder(this.partidaId, index).subscribe({
       error: () => this.respostaIndex.set(null),
-    });
-  }
-
-  protected forjar(ev: Event): void {
-    ev.preventDefault();
-    const texto = this.rumorTexto().trim();
-    if (!this.partidaId || !texto || this.enviando()) return;
-    this.enviando.set(true);
-    this.api.forjarRumor(this.partidaId, texto).subscribe({
-      next: () => {
-        this.enviando.set(false);
-        this.rumorTexto.set('');
-      },
-      error: () => this.enviando.set(false),
     });
   }
 

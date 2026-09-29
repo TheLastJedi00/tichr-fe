@@ -195,13 +195,6 @@ export class IsolateusApiService {
       { alternativaIndex },
     );
   }
-  /** A Sabotagem de Frequência: o rumor falso, sob o nome de um NPC. */
-  forjarRumor(id: string, texto: string): Observable<IsolateusMatch> {
-    return this.http.post<IsolateusMatch>(
-      `${this.base}/aluno/isolateus/${id}/rumor`,
-      { texto },
-    );
-  }
   /** O Sinal Interceptado: a dica anônima de quem já foi levado. */
   sinalDeRadio(id: string, texto: string): Observable<IsolateusMatch> {
     return this.http.post<IsolateusMatch>(

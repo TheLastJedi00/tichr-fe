@@ -830,7 +830,8 @@ export interface Rumor {
   id: string;
   autorNome: string;
   texto: string;
-  tipo: 'RUMOR' | 'FORJADO' | 'SINAL';
+  /** Hoje só o SINAL (anônimo, de quem saiu da vila); RUMOR = partidas antigas. */
+  tipo: 'SINAL' | 'RUMOR';
 }
 
 export interface MensagemDebate {
@@ -972,6 +973,9 @@ export interface PainelIsolateus {
   habitanteId: string;
   vivo: boolean;
   preso: boolean;
-  corretaIndex?: number;
-  disfarces?: string[];
+  /**
+   * Onde EU estou agora. Durante a noite é o destino guardado no servidor: o
+   * doc público só recebe as posições quando a noite fecha.
+   */
+  setorId: string;
 }

@@ -217,13 +217,20 @@ const MIN_REAIS = 4;
                   }
                 </ol>
               }
+              <!--
+                Só os Sinais de quem saiu da vila. O Chat de Rumores saiu: os
+                autores eram sempre NPCs, e o telão mostrava à turma quem era
+                virtual.
+              -->
               <div class="feed">
-                <span class="feed__tit">Chat de Rumores</span>
+                <span class="feed__tit">Sinais Interceptados</span>
                 @for (r of p.rumores; track r.id) {
-                  <p class="rumor" [class.rumor--sinal]="r.tipo === 'SINAL'">
-                    <strong>{{ r.tipo === 'SINAL' ? '[ Sinal Interceptado ]' : r.autorNome }}</strong>
-                    {{ r.texto }}
-                  </p>
+                  @if (r.tipo === 'SINAL') {
+                    <p class="rumor rumor--sinal">
+                      <strong>[ Sinal Interceptado ]</strong>
+                      {{ r.texto }}
+                    </p>
+                  }
                 }
               </div>
             }
@@ -557,7 +564,14 @@ export class IsolateusProjetorPage {
     () => this.partida()?.status === 'DESLOCAMENTO',
   );
 
-  /** Os setores com a contagem de quem está em cada um (visão onisciente). */
+  /**
+   * Os setores com a contagem de quem está em cada um (visão onisciente).
+   *
+   * Durante a noite, a contagem fica como estava ao anoitecer: as posições só
+   * chegam ao doc público no fechamento, todas de uma vez. Ao vivo, ela mudava
+   * enquanto os alunos andavam — e o projetor contava à turma que quem se mexeu
+   * era real, já que os NPCs só andam no fechamento.
+   */
   protected setoresComGente(p: IsolateusMatch) {
     return p.setores.map((s) => ({
       ...s,
