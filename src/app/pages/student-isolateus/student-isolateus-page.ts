@@ -32,6 +32,8 @@ const LIMITE_DEBATE_S = 90;
 const LIMITE_VOTO_S = 60;
 const LIMITE_DESLOCAMENTO_S = 60;
 const JANELA_DECISAO_S = 15;
+/** De quanto em quanto tempo o celular rebusca o painel (papel, codinome, fileira). */
+const PAINEL_POLL_MS = 4000;
 
 /**
  * Os três Poderes Alienígenas, descritos para a Ameaça escolher ciente do que
@@ -165,6 +167,18 @@ const CARDS_DE_PODER: ReadonlyArray<{
         <app-isolateus-evento [acontecimentos]="p.acontecimentos ?? []" />
 
         <div class="jogo" [class.jogo--hackeada]="foraDaVila()">
+          @if (aviso(); as msg) {
+            <div class="aviso-papel" role="alert">
+              <app-icon name="alien" [size]="16" />
+              <span>
+                {{ msg }}
+                @if (meuHabitante(); as h) { Você é <b>{{ h.nome }}</b>. }
+              </span>
+              <button type="button" class="aviso-papel__x" aria-label="Fechar aviso" (click)="aviso.set(null)">
+                <app-icon name="close" [size]="14" />
+              </button>
+            </div>
+          }
           @if (foraDaVila()) {
             <div class="hack">
               <app-icon name="radio" [size]="16" />
@@ -755,6 +769,9 @@ const CARDS_DE_PODER: ReadonlyArray<{
     .card-global--ok { background: var(--success); }
     .btn-quarentena { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; width: 100%; padding: 0.9rem 1.2rem; border: none; border-radius: 12px; cursor: pointer; font: inherit; font-weight: 800; color: #fff; background: var(--danger); }
     .btn-quarentena:disabled { opacity: 0.55; cursor: not-allowed; }
+    .aviso-papel { display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.75rem; padding: 0.75rem 0.9rem; border: 2px solid #84cc16; border-radius: 12px; background: var(--surface); font-size: 0.88rem; line-height: 1.45; }
+    .aviso-papel span { flex: 1; }
+    .aviso-papel__x { border: none; background: none; cursor: pointer; color: var(--text-muted); padding: 0; }
     .aliadas, .controle { display: flex; align-items: center; gap: 0.35rem; margin: 0 0 0.5rem; font-size: 0.86rem; color: #4d7c0f; }
     .poderes { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem; padding: 1rem; border: 2px solid #84cc16; border-radius: 14px; background: var(--surface); }
     .poderes__tit { display: flex; align-items: center; gap: 0.4rem; margin: 0; font-size: 1rem; color: #4d7c0f; }
@@ -794,6 +811,8 @@ export class StudentIsolateusPage {
   protected readonly carregando = signal(true);
   protected readonly enviando = signal(false);
   protected readonly erro = signal('');
+  /** Aviso que só o painel traz: fui contagiado, ou meu codinome mudou. */
+  protected readonly aviso = signal<string | null>(null);
   /** O professor removeu o aluno: ele some dos inscritos e volta ao registro. */
   protected readonly removido = signal(false);
 
@@ -897,9 +916,19 @@ export class StudentIsolateusPage {
       this.relogio.set(Date.now());
       this.checarTempo();
     }, 500);
+    // O papel (Contágio), o codinome (Delírio) e a fileira ao vivo da Ameaça
+    // chegam SÓ pelo painel: nada disso passa pelo doc público, então o
+    // celular pergunta de tempos em tempos.
+    const vigia = setInterval(() => {
+      const p = this.partida();
+      if (p && p.status !== 'LOBBY' && p.status !== 'ENCERRADO') {
+        this.carregarPainel(false);
+      }
+    }, PAINEL_POLL_MS);
     this.destroyRef.onDestroy(() => {
       clearInterval(sonda);
       clearInterval(tick);
+      clearInterval(vigia);
       // A noite é do jogo, não do app: sair da partida não pode deixar o painel
       // do aluno escuro para sempre.
       this.tema.restaurarPreferencia();
@@ -1184,6 +1213,13 @@ export class StudentIsolateusPage {
       return;
     }
 
+    // O Delírio regerou os ids: o meu sumiu do snapshot. Rebusca o painel na
+    // hora em vez de esperar a próxima consulta com a tela sem "eu".
+    const eu = this.painel()?.habitanteId;
+    if (eu && p.status !== 'LOBBY' && !p.habitantes.some((h) => h.id === eu)) {
+      this.carregarPainel(false);
+    }
+
     // A questão foi apurada: se acertou, a Ameaça acabou de ganhar um poder —
     // e ele só existe no painel autenticado.
     if (
@@ -1224,6 +1260,16 @@ export class StudentIsolateusPage {
     if (!this.partidaId) return;
     this.api.painel(this.partidaId).subscribe({
       next: (pnl) => {
+        const antes = this.painel();
+        if (antes?.papel === 'ALDEAO' && pnl.papel === 'AMEACA') {
+          this.aviso.set(
+            'Você foi contagiado! Agora você é uma Ameaça: faça a sua jogada toda noite e não entregue suas aliadas.',
+          );
+        } else if (antes && antes.habitanteId !== pnl.habitanteId) {
+          this.aviso.set(
+            'Um delírio coletivo tomou a vila: todos trocaram de nome — você também. Confira o seu codinome novo.',
+          );
+        }
         this.painel.set(pnl);
         if (comRevelacao) {
           this.revelando.set(true);
