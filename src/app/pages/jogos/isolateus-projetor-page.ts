@@ -190,7 +190,7 @@ const MIN_REAIS = 4;
                   Cada habitante escolhe onde passar a noite.
                   {{ p.movimentosRecebidos ?? 0 }} já decidiram.
                 </p>
-                <div class="timer" [class.timer--fim]="restante() <= 5">{{ restante() }}s</div>
+                @if (relogioAtivo()) { <div class="timer" [class.timer--fim]="restante() <= 5">{{ restante() }}s</div> }
                 <app-lobby-loader />
               </div>
             }
@@ -209,7 +209,7 @@ const MIN_REAIS = 4;
                 <div class="alerta"><app-icon name="alert" [size]="18" /> {{ a.texto }}</div>
               }
               @if (p.questaoPublica; as q) {
-                <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div>
+                @if (relogioAtivo()) { <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div> }
                 <h2 class="enunciado">{{ q.enunciado }}</h2>
                 <ol class="alts">
                   @for (alt of q.alternativas; track $index) {
@@ -251,10 +251,12 @@ const MIN_REAIS = 4;
                 — e esvaziava justamente o que faz dela o alvo mais valioso do
                 mapa. O controle de ritmo dele continua sendo "Adiantar noite".
               -->
-              <div class="janela">
-                <span class="janela__lbl">A noite cai em</span>
-                <span class="timer" [class.timer--fim]="restante() <= 5">{{ restante() }}s</span>
-              </div>
+              @if (relogioAtivo()) {
+                <div class="janela">
+                  <span class="janela__lbl">A noite cai em</span>
+                  <span class="timer" [class.timer--fim]="restante() <= 5">{{ restante() }}s</span>
+                </div>
+              }
               <p class="reveal">
                 Quem estiver no Setor de Comunicação pode convocar a Quarentena
                 pelo celular.
@@ -264,7 +266,7 @@ const MIN_REAIS = 4;
             @case ('QUARENTENA_DEBATE') {
               <div class="quarentena">
                 <span class="quarentena__tag">Quarentena · Debate</span>
-                <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div>
+                @if (relogioAtivo()) { <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div> }
                 <div class="feed">
                   @for (m of p.debate; track m.id) {
                     <p class="rumor"><strong>{{ m.autorNome }}</strong> {{ m.texto }}</p>
@@ -279,7 +281,7 @@ const MIN_REAIS = 4;
             @case ('QUARENTENA_VOTO') {
               <div class="quarentena">
                 <span class="quarentena__tag">Quarentena · Veredito</span>
-                <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div>
+                @if (relogioAtivo()) { <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div> }
                 <p class="lead">Depositem seus votos. {{ p.votosRecebidos }} voto(s) recebido(s).</p>
                 <app-lobby-loader />
               </div>
@@ -512,6 +514,15 @@ export class IsolateusProjetorPage {
 
   private readonly relogio = signal(Date.now());
   private readonly cronometro = new RelogioDaFase();
+
+  /**
+   * A fase tem relógio correndo? Sem base (`faseIniciadaEm` nulo) o número
+   * ficaria congelado no limite — melhor não exibir timer nenhum do que um
+   * "15s" parado que parece a partida travada.
+   */
+  protected readonly relogioAtivo = computed(
+    () => !!this.partida()?.faseIniciadaEm && this.limiteDaFase() > 0,
+  );
 
   /** Segundos restantes da fase cronometrada corrente. */
   protected readonly restante = computed(() => {
