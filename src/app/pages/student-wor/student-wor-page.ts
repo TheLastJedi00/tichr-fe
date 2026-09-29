@@ -453,9 +453,15 @@ export class StudentWorPage {
   protected readonly danoCatapulta = DANO_CATAPULTA;
   protected readonly efeitoRisco = signal<EfeitoRisco>('CURAR');
   protected readonly alvoCatapulta = signal<string | null>(null);
-  /** A Catapulta só mira castelo de pé: Horda não tem o que derrubar. */
+  /**
+   * A Catapulta só mira castelo rival de pé: Horda não tem o que derrubar.
+   * Lê do placar da raiz (ao vivo) — `rivais` só é preenchido ao escolher uma
+   * letra, e quem arrisca a palavra direto via a Catapulta desabilitada.
+   */
   protected readonly alvosCatapulta = computed(() =>
-    this.rivais().filter((r) => !r.isHorde && r.hp > 0),
+    this.placar().filter(
+      (e) => e.id !== this.myTeamId && !e.isHorde && e.hp > 0,
+    ),
   );
   /** Palpite digitado e, na Catapulta, um alvo escolhido. */
   protected readonly podeArriscar = computed(
