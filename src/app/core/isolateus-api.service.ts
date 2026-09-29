@@ -7,6 +7,7 @@ import {
   IsolateusJogo,
   IsolateusMatch,
   PainelIsolateus,
+  PoderAlienigena,
   QuestaoIsolateus,
   StatusIsolateus,
 } from './models';
@@ -140,6 +141,20 @@ export class IsolateusApiService {
   painel(id: string): Observable<PainelIsolateus> {
     return this.http.get<PainelIsolateus>(
       `${this.base}/aluno/isolateus/${id}/painel`,
+    );
+  }
+  /**
+   * A Ameaça gasta o Poder Alienígena ganho no acerto. `alvoId` só no Controle
+   * Mental. Devolve o painel atualizado — o doc público não muda aqui.
+   */
+  usarPoder(
+    id: string,
+    poder: PoderAlienigena,
+    alvoId?: string,
+  ): Observable<PainelIsolateus> {
+    return this.http.post<PainelIsolateus>(
+      `${this.base}/aluno/isolateus/${id}/poder`,
+      { poder, alvoId },
     );
   }
   /** O deslocamento da noite: anda um setor pelas estradas do mapa. */

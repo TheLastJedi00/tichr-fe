@@ -871,6 +871,8 @@ export type TipoAcontecimento =
   | 'RESTAURADO'
   | 'REPARO_FALHOU'
   | 'QUARENTENA'
+  /** O Delírio Coletivo: todos trocaram de codinome (sem autor). */
+  | 'DELIRIO'
   | 'VEREDITO'
   | 'FIM';
 
@@ -978,4 +980,17 @@ export interface PainelIsolateus {
    * doc público só recebe as posições quando a noite fecha.
    */
   setorId: string;
+
+  // ===== Só para a Ameaça =====
+  /** Codinomes das outras Ameaças livres. */
+  aliados?: string[];
+  /** O poder ganho no acerto e o que ela pode escolher; `null` = sem poder. */
+  poder?: Record<PoderAlienigena, boolean> | null;
+  /** O habitante sob Controle Mental nesta rodada, se houver. */
+  controle?: { habitanteId: string; nome: string } | null;
+  /** Quem está AGORA no setor de onde ela age (o dela ou o do controlado). */
+  fileira?: { setorId: string; habitantes: { id: string; nome: string }[] };
 }
+
+/** Os Poderes Alienígenas que a Ameaça ganha ao acertar a questão. */
+export type PoderAlienigena = 'CONTROLE' | 'CONTAGIO' | 'DELIRIO';

@@ -12,7 +12,7 @@ import { Observable } from 'rxjs';
 import { IsolateusApiService } from '../../core/isolateus-api.service';
 import { SETOR_COMUNICACAO } from '../../core/isolateus-mapa';
 import { RelogioDaFase } from '../../core/isolateus-relogio';
-import { IsolateusMatch, PainelIsolateus } from '../../core/models';
+import { IsolateusMatch, PainelIsolateus, PoderAlienigena } from '../../core/models';
 import { RealtimeService } from '../../core/realtime.service';
 import { StudentAuthService } from '../../core/student-auth.service';
 import { ThemeService } from '../../core/theme.service';
@@ -32,6 +32,47 @@ const LIMITE_DEBATE_S = 90;
 const LIMITE_VOTO_S = 60;
 const LIMITE_DESLOCAMENTO_S = 60;
 const JANELA_DECISAO_S = 15;
+
+/**
+ * Os três Poderes Alienígenas, descritos para a Ameaça escolher ciente do que
+ * cada um faz (spec 024 §5.7). A regra de verdade mora no servidor.
+ */
+const CARDS_DE_PODER: ReadonlyArray<{
+  id: PoderAlienigena;
+  nome: string;
+  texto: string;
+  duracao: string;
+  vilaVe: string;
+  indisponivel: string;
+}> = [
+  {
+    id: 'CONTROLE',
+    nome: 'Controle Mental',
+    texto:
+      'Escolha um habitante. Na próxima noite, suas sabotagens e abduções partem do setor onde ELE estiver, e no dia seguinte ele carrega a suspeita no seu lugar. Ele não sabe de nada. Se a vila o prender, prende um inocente.',
+    duracao: 'uma noite e o dia seguinte',
+    vilaVe: 'nada — só o rastro no setor dele',
+    indisponivel: 'Não há ninguém para controlar.',
+  },
+  {
+    id: 'CONTAGIO',
+    nome: 'Contágio',
+    texto:
+      'Ao amanhecer, um aldeão real, sorteado, vira uma Ameaça como você: joga a própria jogada toda noite e conhece você. Cada contágio drena a Esperança da vila. Só você, a Ameaça original, pode contagiar.',
+    duracao: 'até o fim da partida',
+    vilaVe: 'a Esperança caindo, sem aviso',
+    indisponivel: 'Só a Ameaça original contagia — e é preciso haver um aldeão real livre.',
+  },
+  {
+    id: 'DELIRIO',
+    nome: 'Delírio Coletivo',
+    texto:
+      'Ao amanhecer, todos os habitantes da vila trocam de nome entre si — você também. O Diário avisa que houve um delírio, mas não quem o causou. O que disseram de cada um fica preso ao nome antigo.',
+    duracao: 'permanente',
+    vilaVe: 'que houve um delírio, sem autor',
+    indisponivel: 'Indisponível agora.',
+  },
+];
 
 /**
  * O celular do habitante. Descobre a investigação da turma sozinho (sonda de 4s,
@@ -508,6 +549,53 @@ const JANELA_DECISAO_S = 15;
             }
           }
 
+          <!--
+            O Poder Alienígena: a Ameaça que acertou a questão escolhe um dos
+            três, ciente do que cada um faz. Fica à mão da janela de decisão até
+            o fim da noite seguinte — depois disso, o servidor o descarta.
+          -->
+          @if (poderDisponivel(p); as opcoes) {
+            <section class="poderes">
+              <h2 class="poderes__tit">
+                <app-icon name="alien" [size]="18" /> Você acertou: escolha um Poder Alienígena
+              </h2>
+              @if (escolhendoControle()) {
+                <p class="muted">Escolha o habitante que você vai controlar na próxima noite.</p>
+                <div class="alvos">
+                  @for (h of controlaveis(p); track h.id) {
+                    <button class="alvo" type="button" [disabled]="enviando()" (click)="usarPoder('CONTROLE', h.id)">
+                      <app-icon name="user" [size]="14" /> {{ h.nome }}
+                    </button>
+                  } @empty {
+                    <span class="muted">Não há ninguém para controlar.</span>
+                  }
+                </div>
+                <button class="btn-mapa" type="button" (click)="escolhendoControle.set(false)">Voltar</button>
+              } @else {
+                <div class="poderes__lista">
+                  @for (card of cardsDePoder; track card.id) {
+                    <article class="poder" [class.poder--off]="!opcoes[card.id]">
+                      <strong class="poder__nome">{{ card.nome }}</strong>
+                      <p class="poder__txt">{{ card.texto }}</p>
+                      <p class="poder__meta">
+                        <span><b>Dura:</b> {{ card.duracao }}</span>
+                        <span><b>A vila vê:</b> {{ card.vilaVe }}</span>
+                      </p>
+                      @if (opcoes[card.id]) {
+                        <button class="btn-iso" type="button" [disabled]="enviando()" (click)="escolherPoder(card.id)">
+                          Usar {{ card.nome }}
+                        </button>
+                      } @else {
+                        <span class="muted">{{ card.indisponivel }}</span>
+                      }
+                    </article>
+                  }
+                </div>
+              }
+              @if (erroPoder()) { <p class="aviso">{{ erroPoder() }}</p> }
+            </section>
+          }
+
           <!-- O Diário acompanha a partida inteira, em qualquer fase. -->
           @if (p.acontecimentos?.length) {
             <app-isolateus-diario class="diario" [acontecimentos]="p.acontecimentos" />
@@ -651,6 +739,14 @@ const JANELA_DECISAO_S = 15;
     .card-global--ok { background: var(--success); }
     .btn-quarentena { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; width: 100%; padding: 0.9rem 1.2rem; border: none; border-radius: 12px; cursor: pointer; font: inherit; font-weight: 800; color: #fff; background: var(--danger); }
     .btn-quarentena:disabled { opacity: 0.55; cursor: not-allowed; }
+    .poderes { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem; padding: 1rem; border: 2px solid #84cc16; border-radius: 14px; background: var(--surface); }
+    .poderes__tit { display: flex; align-items: center; gap: 0.4rem; margin: 0; font-size: 1rem; color: #4d7c0f; }
+    .poderes__lista { display: grid; gap: 0.6rem; }
+    .poder { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.8rem; border: 1px solid var(--border); border-radius: 12px; }
+    .poder--off { opacity: 0.6; }
+    .poder__nome { font-size: 0.95rem; }
+    .poder__txt { margin: 0; font-size: 0.86rem; line-height: 1.5; }
+    .poder__meta { display: flex; flex-direction: column; gap: 0.15rem; margin: 0; font-size: 0.78rem; color: var(--text-muted); }
     .btn-pular { width: 100%; padding: 0.7rem 1.2rem; border: 1px solid var(--border); border-radius: 12px; cursor: pointer; font: inherit; font-weight: 700; color: var(--text-muted); background: var(--surface); }
     .btn-pular:hover:not(:disabled) { border-color: var(--danger); color: var(--danger); }
     .btn-pular:disabled { opacity: 0.55; cursor: not-allowed; }
@@ -1048,7 +1144,17 @@ export class StudentIsolateusPage {
       return;
     }
 
-    // Nova noite: libera o voto e os composers, e rebusca a correta da Ameaça
+    // A questão foi apurada: se acertou, a Ameaça acabou de ganhar um poder —
+    // e ele só existe no painel autenticado.
+    if (
+      this.ehAmeaca() &&
+      anterior?.status === 'QUESTAO_ATIVA' &&
+      p.status !== 'QUESTAO_ATIVA'
+    ) {
+      this.carregarPainel(false);
+    }
+
+    // Nova noite: libera o voto e os composers, e rebusca o painel
     // (a resposta muda a cada questão, e ela vive só no painel autenticado).
     if (p.rodada !== this.ultimaRodada) {
       this.ultimaRodada = p.rodada;
@@ -1199,6 +1305,59 @@ export class StudentIsolateusPage {
       error: () => {
         this.enviando.set(false);
         this.votei.set(false);
+      },
+    });
+  }
+
+  // --- Os Poderes Alienígenas ---
+
+  protected readonly cardsDePoder = CARDS_DE_PODER;
+  protected readonly escolhendoControle = signal(false);
+  protected readonly erroPoder = signal('');
+
+  /**
+   * As opções do poder ganho, ou `null` se não há o que escolher agora. Só a
+   * Ameaça ainda na vila, e só nas fases em que o poder vale (da janela de
+   * decisão até o fim da noite seguinte).
+   */
+  protected poderDisponivel(
+    p: IsolateusMatch,
+  ): Record<PoderAlienigena, boolean> | null {
+    if (!this.ehAmeaca() || this.foraDaVila()) return null;
+    if (p.status === 'LOBBY' || p.status === 'ENCERRADO') return null;
+    return this.painel()?.poder ?? null;
+  }
+
+  /** Quem pode ser controlado: qualquer um na vila, menos eu e as aliadas. */
+  protected controlaveis(p: IsolateusMatch) {
+    const eu = this.painel()?.habitanteId;
+    const aliadas = new Set(this.painel()?.aliados ?? []);
+    return this.vivos(p).filter((h) => h.id !== eu && !aliadas.has(h.nome));
+  }
+
+  protected escolherPoder(poder: PoderAlienigena): void {
+    if (poder === 'CONTROLE') {
+      this.escolhendoControle.set(true);
+      return;
+    }
+    this.usarPoder(poder);
+  }
+
+  protected usarPoder(poder: PoderAlienigena, alvoId?: string): void {
+    if (!this.partidaId || this.enviando()) return;
+    this.enviando.set(true);
+    this.erroPoder.set('');
+    this.api.usarPoder(this.partidaId, poder, alvoId).subscribe({
+      next: (pnl) => {
+        this.enviando.set(false);
+        this.escolhendoControle.set(false);
+        this.painel.set(pnl);
+      },
+      error: (e: { error?: { message?: string } }) => {
+        this.enviando.set(false);
+        this.erroPoder.set(e.error?.message ?? 'Não foi possível usar o poder.');
+        // O servidor é o juiz: rebusca o painel (o poder pode ter expirado).
+        this.carregarPainel(false);
       },
     });
   }
