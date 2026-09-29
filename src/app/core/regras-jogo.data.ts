@@ -60,7 +60,9 @@ const WOR: RegrasJogo = {
       titulo: 'Risco Heroico',
       itens: [
         'A qualquer momento do seu turno você pode arriscar a palavra inteira.',
-        'Acertou: seu castelo recupera 400 de HP e a onda avança na hora.',
+        'Acertou: a onda avança na hora e quem arriscou escolhe a recompensa da equipe —',
+        'Recuperar HP: seu castelo recupera 400 de HP.',
+        'Catapulta: 300 de dano no castelo rival que você escolher (se o HP dele zerar, ele vira Horda).',
         'Errou: seu PRÓPRIO castelo sofre 200 de Dano Crítico.',
       ],
     },
@@ -84,7 +86,8 @@ const WOR: RegrasJogo = {
   recompensas: [
     { acao: 'Ataque ao castelo rival', valor: '+100', detalhe: 'os pontos vão para a equipe atacante' },
     { acao: 'Ataque perfeito (equipe inteira acertou)', valor: '+200', detalhe: 'equipes de 2 ou mais membros' },
-    { acao: 'Risco Heroico certeiro (ou Invasão da Horda)', valor: '+300', detalhe: 'além de curar 400 de HP ou roubar o castelo' },
+    { acao: 'Risco Heroico certeiro (ou Invasão da Horda)', valor: '+300', detalhe: 'além de curar 400 de HP, disparar a Catapulta ou roubar o castelo' },
+    { acao: 'Catapulta no castelo rival', valor: '+300', detalhe: 'o dano causado vira pontos, além do bônus do Risco Heroico' },
     { acao: 'Castelo de pé no fim da batalha', valor: '+1 por HP restante', detalhe: 'terminar intacto vale até +1000' },
     { acao: 'Comprar dica', valor: '0', detalhe: 'sacrifica o ataque da rodada em troca de uma carta' },
     { acao: 'Errar a letra ou o Risco Heroico', valor: '0', detalhe: 'errar o risco ainda custa 200 de HP' },
