@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { API_BASE_URL } from './api.config';
 import {
   CriarWorJogoPayload,
+  EfeitoRisco,
   WorJogo,
   WorMatch,
   WorMatchView,
@@ -113,10 +114,20 @@ export class WorApiService {
       { letra, acao, alvoEquipeId },
     );
   }
-  arriscar(matchId: string, palavra: string): Observable<WorMatchView> {
+  /**
+   * Risco Heroico: tenta a palavra inteira. Se acertar, a equipe comum ganha o
+   * `efeito` escolhido — Recuperar HP (padrão) ou a Catapulta no castelo
+   * `alvoEquipeId`. A Horda ignora o efeito (acertar é sempre Usurpação).
+   */
+  arriscar(
+    matchId: string,
+    palavra: string,
+    efeito: EfeitoRisco = 'CURAR',
+    alvoEquipeId?: string,
+  ): Observable<WorMatchView> {
     return this.http.post<WorMatchView>(
       `${this.base}/aluno/wor/${matchId}/arriscar`,
-      { palavra },
+      { palavra, efeito, alvoEquipeId },
     );
   }
 }

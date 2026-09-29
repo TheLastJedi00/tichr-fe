@@ -668,6 +668,12 @@ export interface LastGlobalAction {
   em: string;
 }
 
+/**
+ * O que a equipe comum ganha ao acertar a palavra inteira (Risco Heroico):
+ * Recuperar HP do próprio castelo ou a Catapulta num castelo rival.
+ */
+export type EfeitoRisco = 'CURAR' | 'CATAPULTA';
+
 export interface WorTeam {
   id: string;
   matchId: string;
