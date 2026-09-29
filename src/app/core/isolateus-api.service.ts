@@ -8,6 +8,7 @@ import {
   IsolateusMatch,
   PainelIsolateus,
   QuestaoIsolateus,
+  StatusIsolateus,
 } from './models';
 
 /**
@@ -96,6 +97,17 @@ export class IsolateusApiService {
       {},
     );
   }
+  /**
+   * O professor pula o tempo restante da fase cronometrada. `status` é a fase
+   * que o telão exibia — protege contra pular duas fases num clique atrasado.
+   */
+  pularFase(id: string, status: StatusIsolateus): Observable<IsolateusMatch> {
+    return this.http.post<IsolateusMatch>(
+      `${this.base}/isolateus/matches/${id}/pular-fase`,
+      { status },
+    );
+  }
+  /** @deprecated O telão usa `pularFase`. */
   proxima(id: string): Observable<IsolateusMatch> {
     return this.http.post<IsolateusMatch>(
       `${this.base}/isolateus/matches/${id}/proxima`,

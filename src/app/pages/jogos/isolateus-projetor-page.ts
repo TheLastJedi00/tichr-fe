@@ -259,12 +259,6 @@ const MIN_REAIS = 4;
                 Quem estiver no Setor de Comunicação pode convocar a Quarentena
                 pelo celular.
               </p>
-
-              <div class="acoes">
-                <button class="btn-iso" type="button" [disabled]="ocupado()" (click)="proxima()">
-                  {{ ultimaNoite(p) ? 'Encerrar e ver o veredito' : 'Adiantar noite' }}
-                </button>
-              </div>
             }
 
             @case ('QUARENTENA_DEBATE') {
@@ -311,6 +305,19 @@ const MIN_REAIS = 4;
             }
           }
 
+          <!--
+            O controle de ritmo do professor: toda fase cronometrada pode ser
+            pulada. O clique vale pela unanimidade e o jogo segue como se o
+            relógio tivesse zerado.
+          -->
+          @if (rotuloPular(p); as rotulo) {
+            <div class="acoes">
+              <button class="btn-iso" type="button" [disabled]="ocupado()" (click)="pular(p)">
+                {{ rotulo }}
+              </button>
+            </div>
+          }
+
           <!-- O Diário fica sempre à vista: é sobre ele que a turma argumenta. -->
           @if (p.acontecimentos?.length) {
             <app-isolateus-diario
@@ -322,7 +329,7 @@ const MIN_REAIS = 4;
           <!--
             A saída de emergência da aula: o sinal bate no meio da noite e a
             turma dispersa. Fica discreto e no rodapé de propósito — é uma ação
-            sem volta, não um controle de ritmo (esse é o "Adiantar noite").
+            sem volta, não um controle de ritmo (esse é o botão de pular da fase).
           -->
           @if (p.status !== 'ENCERRADO') {
             <button class="btn-encerrar" type="button" [disabled]="ocupado()" (click)="confirmarFim.set(true)">
@@ -632,8 +639,30 @@ export class IsolateusProjetorPage {
       }),
     );
   }
-  protected proxima(): void {
-    this.acao(this.api.proxima(this.matchId));
+  /** O rótulo do pulo na fase corrente; `null` = fase sem cronômetro. */
+  protected rotuloPular(p: IsolateusMatch): string | null {
+    switch (p.status) {
+      case 'DESLOCAMENTO':
+        return 'Pular noite';
+      case 'QUESTAO_ATIVA':
+        return 'Encerrar questão';
+      case 'RESULTADO_RODADA':
+        return this.ultimaNoite(p) ? 'Encerrar e ver o veredito' : 'Adiantar noite';
+      case 'QUARENTENA_DEBATE':
+        return 'Pular debate';
+      case 'QUARENTENA_VOTO':
+        return 'Encerrar votação';
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Pula o tempo restante. Manda a fase exibida: se a partida já virou (o
+   * relógio zerou no mesmo instante), o servidor ignora o clique atrasado.
+   */
+  protected pular(p: IsolateusMatch): void {
+    this.acao(this.api.pularFase(this.matchId, p.status));
   }
   /** O sinal da aula bateu: a investigação termina onde está. */
   protected encerrar(): void {
