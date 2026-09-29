@@ -155,7 +155,9 @@ const ISOLATEUS: RegrasJogo = {
       itens: [
         'Depois de cada noite, a vila pode convocar a Quarentena — uma por rodada.',
         'Abre um debate cronometrado e, em seguida, a votação no suspeito.',
+        'O professor pode desligar o debate antes de iniciar a partida: aí a Quarentena vai direto para a votação.',
         'Quem já se decidiu pode pular o debate: se todos pularem, a votação começa na hora.',
+        'O professor controla o ritmo pelo telão: ele pode pular o tempo restante de qualquer etapa — noite, questão, debate ou votação — e o jogo segue como se o relógio tivesse zerado.',
         'Trancou a Ameaça: a invasão é contida e a Vila vence na hora.',
         'Trancou um inocente: a Esperança sofre dano severo e a identidade do preso continua em segredo.',
       ],
