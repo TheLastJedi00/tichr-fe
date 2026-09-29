@@ -256,13 +256,27 @@ const CARDS_DE_PODER: ReadonlyArray<{
                     } @else {
                       <section class="turno">
                         <h2 class="turno__tit">Sua jogada, Ameaça</h2>
+                        @if (painel()?.aliados?.length) {
+                          <p class="aliadas">
+                            <app-icon name="alien" [size]="14" />
+                            Suas aliadas: <b>{{ painel()!.aliados!.join(', ') }}</b>
+                          </p>
+                        }
+                        @if (painel()?.controle; as c) {
+                          <p class="controle">
+                            <app-icon name="radio" [size]="14" />
+                            Controle Mental: esta noite você age através de
+                            <b>{{ c.nome }}</b>, do setor onde ele estiver.
+                          </p>
+                        }
                         @if (!escolhendoSetor()) {
                           <p class="muted">
-                            Você age onde está. Ninguém saberá que foi você — mas o
-                            que você atingir dirá onde você passou a noite.
+                            Você age {{ painel()?.controle ? 'de onde o controlado está' : 'onde está' }}.
+                            Ninguém saberá que foi você — mas o que você atingir dirá
+                            de onde partiu o ataque.
                           </p>
                           <div class="alvos">
-                            @if (meuSetorObj(p); as s) {
+                            @if (setorDeAcaoObj(p); as s) {
                               @if (s.intacto) {
                                 <button class="alvo" type="button" [disabled]="enviando()" (click)="sabotar()">
                                   <app-icon name="rachadura" [size]="16" /> Sabotar {{ s.nome }}
@@ -290,16 +304,18 @@ const CARDS_DE_PODER: ReadonlyArray<{
                           />
                           <div class="alvos">
                             @for (s of p.setores; track s.id) {
-                              @if (s.id !== meuSetor(p)) {
+                              @if (s.id !== setorDeAcao(p)) {
                                 <button class="alvo alvo--abd" type="button" [disabled]="enviando()" (click)="abduzirAsCegas(s.id)">
                                   <app-icon name="nave" [size]="14" /> {{ s.nome }}
                                 </button>
                               }
                             }
                           </div>
-                          <span class="grupo__lbl">No seu setor, você escolhe a vítima</span>
+                          <span class="grupo__lbl">
+                            {{ painel()?.controle ? 'Com o controlado' : 'No seu setor' }}, você escolhe a vítima
+                          </span>
                           <div class="alvos">
-                            @for (h of vizinhosDeSetor(p); track h.id) {
+                            @for (h of alvosPresenciais(p); track h.id) {
                               <button class="alvo" type="button" [disabled]="enviando()" (click)="abduzirAqui(h.id)">
                                 <app-icon name="user" [size]="14" /> {{ h.nome }}
                               </button>
@@ -739,6 +755,7 @@ const CARDS_DE_PODER: ReadonlyArray<{
     .card-global--ok { background: var(--success); }
     .btn-quarentena { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; width: 100%; padding: 0.9rem 1.2rem; border: none; border-radius: 12px; cursor: pointer; font: inherit; font-weight: 800; color: #fff; background: var(--danger); }
     .btn-quarentena:disabled { opacity: 0.55; cursor: not-allowed; }
+    .aliadas, .controle { display: flex; align-items: center; gap: 0.35rem; margin: 0 0 0.5rem; font-size: 0.86rem; color: #4d7c0f; }
     .poderes { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem; padding: 1rem; border: 2px solid #84cc16; border-radius: 14px; background: var(--surface); }
     .poderes__tit { display: flex; align-items: center; gap: 0.4rem; margin: 0; font-size: 1rem; color: #4d7c0f; }
     .poderes__lista { display: grid; gap: 0.6rem; }
@@ -983,11 +1000,34 @@ export class StudentIsolateusPage {
     return p.setores.find((s) => s.id === this.meuSetor(p));
   }
 
-  /** Os habitantes do meu setor, exceto eu — os alvos de abdução presencial. */
-  protected vizinhosDeSetor(p: IsolateusMatch) {
-    const meu = this.meuSetor(p);
-    const eu = this.painel()?.habitanteId;
-    return this.vivos(p).filter((h) => h.setorId === meu && h.id !== eu);
+  /**
+   * De onde a Ameaça age esta noite: o setor dela, ou — sob Controle Mental —
+   * o do controlado. Vem do painel (ao vivo, pelo servidor).
+   */
+  protected setorDeAcao(p: IsolateusMatch): string {
+    return this.painel()?.fileira?.setorId ?? this.meuSetor(p);
+  }
+
+  protected setorDeAcaoObj(p: IsolateusMatch) {
+    return p.setores.find((s) => s.id === this.setorDeAcao(p));
+  }
+
+  /**
+   * Os alvos da abdução presencial: quem está AGORA no setor de onde ela age.
+   * A fileira vem do painel porque as posições da noite não estão no doc
+   * público; sem ela (painel antigo), cai no meu setor pelo snapshot. O
+   * controlado nunca é vítima, e as aliadas também não.
+   */
+  protected alvosPresenciais(p: IsolateusMatch) {
+    const painel = this.painel();
+    const aliadas = new Set(painel?.aliados ?? []);
+    const controlado = painel?.controle?.habitanteId;
+    const fileira =
+      painel?.fileira?.habitantes ??
+      this.vivos(p).filter(
+        (h) => h.setorId === this.meuSetor(p) && h.id !== painel?.habitanteId,
+      );
+    return fileira.filter((h) => h.id !== controlado && !aliadas.has(h.nome));
   }
 
   /**
