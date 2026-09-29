@@ -143,14 +143,24 @@ const ISOLATEUS: RegrasJogo = {
         'A vila é avisada do ataque e todos respondem à questão da rodada para defender o setor.',
         'Se a maioria acertar, a defesa resiste e nada acontece. Se a maioria errar, o ataque se concretiza e a Barra de Esperança cai.',
         'Como os Habitantes Virtuais votam ao acaso, empates são desempatados pelo consenso dos jogadores reais — o Instinto Humano.',
+        'O voto da Ameaça não conta na defesa: ela responde e pontua como todos, mas não decide o resultado.',
+        'Durante a noite, só você sabe para onde andou: o mapa da vila só mostra as posições novas quando a noite termina.',
       ],
     },
     {
-      titulo: 'A Guerra de Frequências',
+      titulo: 'Os Poderes Alienígenas',
       itens: [
-        'Durante a questão, um chat de rumores corre na tela.',
-        'A Ameaça conhece a resposta certa e pode transmitir um argumento falso, assinado com o nome de um Habitante Virtual.',
-        'Quem já foi abduzido continua respondendo e pode mandar um Sinal de Rádio anônimo tentando salvar a vila.',
+        'Se a Ameaça acertar a questão do dia, ganha um poder — um por acerto, válido até o fim da noite seguinte.',
+        'Controle Mental: na noite seguinte, as jogadas dela partem do setor de outro habitante, que não fica sabendo. Se a vila prender o controlado, prende um inocente.',
+        'Contágio: um aluno real, sorteado, vira uma Ameaça também — com jogada própria toda noite. A Esperança cai a cada contágio, sem aviso. Só a Ameaça original contagia.',
+        'Delírio Coletivo: todos os habitantes trocam de nome entre si. O Diário avisa, mas não diz quem causou.',
+        'Com mais de uma Ameaça, a vila só vence quando prender todas.',
+      ],
+    },
+    {
+      titulo: 'Sinais de Rádio',
+      itens: [
+        'Quem já foi abduzido ou preso continua respondendo e pode mandar um Sinal de Rádio anônimo durante a questão, tentando salvar a vila.',
       ],
     },
     {
@@ -161,7 +171,7 @@ const ISOLATEUS: RegrasJogo = {
         'O professor pode desligar o debate antes de iniciar a partida: aí a Quarentena vai direto para a votação.',
         'Quem já se decidiu pode pular o debate: se todos pularem, a votação começa na hora.',
         'O professor controla o ritmo pelo telão: ele pode pular o tempo restante de qualquer etapa — noite, questão, debate ou votação — e o jogo segue como se o relógio tivesse zerado.',
-        'Trancou a Ameaça: a invasão é contida e a Vila vence na hora.',
+        'Trancou a Ameaça: a invasão é contida e a Vila vence na hora — ou, se o Contágio deixou outra solta, a partida segue.',
         'Trancou um inocente: a Esperança sofre dano severo e a identidade do preso continua em segredo.',
       ],
     },
@@ -169,7 +179,7 @@ const ISOLATEUS: RegrasJogo = {
       titulo: 'Fim de partida',
       itens: [
         'A Ameaça vence se zerar a Esperança, abduzir mais da metade da vila ou destruir mais de 3 setores.',
-        'A Vila vence se prender a Ameaça, manter mais de 3 setores intactos ou resistir com mais da metade dos moradores.',
+        'A Vila vence se prender todas as Ameaças, manter mais de 3 setores intactos ou resistir com mais da metade dos moradores.',
         'O telão sempre mostra o motivo técnico da vitória.',
       ],
     },
