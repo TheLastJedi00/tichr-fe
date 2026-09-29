@@ -177,6 +177,9 @@ aconteceu:
   frente, então a equipe da vez não é punida pela narração).
 - **Ataque é da equipe:** o dano nasce da votação da rodada inteira, então o card nomeia a
   **equipe**. Risco Heroico, Dano Crítico e Usurpação nomeiam o **aluno** — são individuais.
+- **Recuperar HP ou Catapulta:** quem arrisca a palavra escolhe, junto do palpite, a recompensa
+  da equipe se acertar — **curar 400 de HP** do próprio castelo ou disparar a **Catapulta**, 300 de
+  dano num castelo rival de pé (que pode cair e virar Horda). A Horda continua usurpando.
 
 ### Tichr Isolateus: dedução social sobre a sua matéria (Plano PhD)
 
@@ -207,15 +210,28 @@ O jogo é o embrulho; o conteúdo cobrado é o seu.
   (sem o papel de ninguém, sem marca de NPC, sem a alternativa correta, e **sem placar ao
   vivo** — um ranking parcial denunciaria quem é real). O papel de cada aluno chega por uma
   rota autenticada, recortada por pessoa.
-- **A Guerra de Frequências:** durante a questão corre um **chat de rumores**. O infiltrado
-  sabe a resposta certa e transmite um argumento falso **assinado por outro habitante**.
-  Quem foi abduzido não sai do jogo: segue respondendo (e pontuando) numa **tela hackeada**,
-  de onde manda **Sinais de Rádio** anônimos para tentar salvar a vila.
+- **Sinais de Rádio:** quem foi abduzido não sai do jogo: segue respondendo (e pontuando) numa
+  **tela hackeada**, de onde manda Sinais anônimos para tentar salvar a vila. (O antigo chat de
+  rumores saiu: as falas automáticas saíam sempre em nome de habitantes virtuais e entregavam quem
+  era real.)
+- **A noite é só sua:** para onde você andou fica entre você e o servidor até a noite terminar —
+  o mapa e a contagem por setor do telão só mudam quando todos já decidiram. Antes, quem se mexia
+  no meio da noite se revelava jogador de verdade.
+- **O voto da Ameaça não defende a vila, e o acerto dela vale um poder:** o infiltrado responde
+  como todos, mas o voto dele não conta na defesa. Se acertar, ganha um **Poder Alienígena**,
+  escolhido em cards que explicam o que cada um faz:
+  **Controle Mental** (na noite seguinte, age a partir do setor de outro habitante, que não fica
+  sabendo — preso, ele conta como inocente), **Contágio** (um colega sorteado vira Ameaça também,
+  e a Esperança cai em silêncio; só a Ameaça original contagia) e **Delírio Coletivo** (a vila
+  inteira troca de nome entre si). Com mais de uma Ameaça, a vila só vence prendendo todas.
+- **A Ameaça não repete:** numa mesma turma, quem já foi o infiltrado só volta a ser depois que
+  todos os presentes tiverem sido.
 - **A Quarentena:** um debate cronometrado seguido de votação no suspeito, convocado de
   dentro do **Setor de Comunicação** — e **só de lá**, nem o telão do professor abre exceção:
   derrubar o rádio cala a vila até ela reconstruí-lo. Quem está fora vê escrito o motivo, em vez
   de um botão que não funciona.
   Cabe uma por noite (a vila não emenda acusações até prender todo mundo). Quem já se decidiu **pula o debate**; se todos pularem, a votação começa na hora.
+  O professor escolhe no lobby se haverá **debate** — sem ele, a Quarentena vai direto à votação.
   Prendeu a ameaça, a vila vence; prendeu um inocente, a Esperança despenca — e a identidade
   do preso **continua em segredo**.
 - **O Diário da Vila** guarda tudo o que aconteceu na partida. Cada novidade aparece na tela
@@ -231,8 +247,10 @@ O jogo é o embrulho; o conteúdo cobrado é o seu.
   se põe, o tema escurece e a lua sobe, com uma janela para a vila decidir se convoca a
   Quarentena, cronometrada **no telão e nos celulares**. E o avanço não depende de uma tela só:
   qualquer aparelho da partida cobra o prazo vencido, então a investigação não para se a aba do
-  professor dormir ou a rede dele oscilar. O botão continua no telão para adiantar quando a aula
-  pedir.
+  professor dormir ou a rede dele oscilar. E o professor **pula o tempo restante de qualquer
+  etapa** pelo telão — noite, questão, debate ou votação —, com o jogo seguindo como se o relógio
+  tivesse zerado. Depois de prender um inocente, a noite também cai sozinha (antes o cronômetro
+  travava em 15s).
 - **Encerrar quando o sinal bate:** o professor termina a investigação **a qualquer momento**,
   sem esperar as questões acabarem. O veredito sai pelo estado da vila naquele instante — setores
   de pé, habitantes na vila — e o XP já conquistado é creditado normalmente.
