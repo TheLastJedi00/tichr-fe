@@ -76,11 +76,17 @@ export class IsolateusApiService {
       {},
     );
   }
-  /** O Despertar: preenche a vila com NPCs e sorteia a Ameaça. */
-  iniciar(id: string): Observable<IsolateusMatch> {
+  /**
+   * O Despertar: preenche a vila com NPCs e sorteia a Ameaça. As opções do
+   * lobby (debate antes da votação) ficam fixas a partir daqui.
+   */
+  iniciar(
+    id: string,
+    opcoes: { debateHabilitado: boolean },
+  ): Observable<IsolateusMatch> {
     return this.http.post<IsolateusMatch>(
       `${this.base}/isolateus/matches/${id}/iniciar`,
-      {},
+      opcoes,
     );
   }
   /** Fecha a fase cronometrada (o telão dispara ao zerar o relógio). */

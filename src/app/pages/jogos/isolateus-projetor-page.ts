@@ -111,6 +111,18 @@ const MIN_REAIS = 4;
             }
           </div>
 
+          <label class="opcao">
+            <input
+              type="checkbox"
+              [checked]="debateHabilitado()"
+              (change)="debateHabilitado.set($any($event.target).checked)"
+            />
+            <span>
+              <b>Debate antes da votação</b>
+              <small>Desmarque para a Quarentena ir direto à votação.</small>
+            </span>
+          </label>
+
           <button
             class="btn-iso full"
             type="button"
@@ -384,6 +396,10 @@ const MIN_REAIS = 4;
     .lead--row { display: flex; align-items: center; gap: 0.25rem; }
     .loader-mini { transform: scale(0.5); margin: -14px -10px; }
     .muted { color: var(--text-muted); font-size: 0.9rem; margin: 0.25rem 0; }
+    .opcao { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.75rem 0.9rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); cursor: pointer; }
+    .opcao input { margin-top: 0.2rem; width: 1.1rem; height: 1.1rem; accent-color: #4d7c0f; cursor: pointer; }
+    .opcao span { display: flex; flex-direction: column; gap: 0.15rem; }
+    .opcao small { color: var(--text-muted); font-size: 0.82rem; }
     .center { text-align: center; }
     .inscritos { list-style: none; display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.6rem 0 0; padding: 0; }
     .chip { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.7rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-alt); font-weight: 600; font-size: 0.85rem; font-family: inherit; color: var(--text); }
@@ -474,6 +490,11 @@ export class IsolateusProjetorPage {
 
   protected readonly minReais = MIN_REAIS;
   protected readonly ocupado = signal(false);
+  /**
+   * Opção do lobby: local ao telão até o clique em "Iniciar" (vai no próprio
+   * Despertar — nada a sincronizar enquanto a sala enche).
+   */
+  protected readonly debateHabilitado = signal(true);
   protected readonly erro = signal<string | null>(null);
   protected readonly assistencia = signal(false);
   /** Confirmação do encerramento antecipado — a ação não tem volta. */
@@ -605,7 +626,11 @@ export class IsolateusProjetorPage {
   }
 
   protected iniciar(): void {
-    this.acao(this.api.iniciar(this.matchId));
+    this.acao(
+      this.api.iniciar(this.matchId, {
+        debateHabilitado: this.debateHabilitado(),
+      }),
+    );
   }
   protected proxima(): void {
     this.acao(this.api.proxima(this.matchId));

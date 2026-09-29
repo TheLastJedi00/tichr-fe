@@ -932,6 +932,11 @@ export interface IsolateusMatch {
 
   /** Rodada da última Quarentena (null = nenhuma). Cabe uma por rodada. */
   quarentenaRodada?: number | null;
+  /**
+   * Debate antes da votação, escolhido no lobby. Desligado, a Quarentena vai
+   * direto ao voto. Ausente = ligado (partidas anteriores à opção).
+   */
+  debateHabilitado?: boolean;
   vereditoQuarentena?: VereditoQuarentena | null;
   votosRecebidos: number;
   /** Quantos já pularam o debate — só a contagem; quem pulou é segredo. */
