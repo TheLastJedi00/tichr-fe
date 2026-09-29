@@ -6,6 +6,7 @@ import { Icon, IconName } from '../icon/icon';
 const VISUAL: Record<string, { icone: IconName; cor: string }> = {
   ATAQUE: { icone: 'sword', cor: '#dc2626' },
   CURA: { icone: 'sparkles', cor: '#16a34a' },
+  CATAPULTA: { icone: 'castle', cor: '#ea580c' },
   USURPACAO: { icone: 'flag', cor: '#7c3aed' },
   DANO_CRITICO: { icone: 'skull', cor: '#b45309' },
   DICA: { icone: 'scroll', cor: '#0891b2' },

@@ -651,6 +651,7 @@ export type StatusMatch = 'LOBBY' | 'EM_ANDAMENTO' | 'ENCERRADO';
 export type TipoAcaoGlobal =
   | 'ATAQUE'
   | 'CURA'
+  | 'CATAPULTA'
   | 'USURPACAO'
   | 'DANO_CRITICO'
   | 'DICA';
