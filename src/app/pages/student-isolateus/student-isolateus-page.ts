@@ -12,7 +12,7 @@ import { Observable } from 'rxjs';
 import { IsolateusApiService } from '../../core/isolateus-api.service';
 import { SETOR_COMUNICACAO } from '../../core/isolateus-mapa';
 import { RelogioDaFase } from '../../core/isolateus-relogio';
-import { IsolateusMatch, PainelIsolateus } from '../../core/models';
+import { IsolateusMatch, PainelIsolateus, PoderAlienigena } from '../../core/models';
 import { RealtimeService } from '../../core/realtime.service';
 import { StudentAuthService } from '../../core/student-auth.service';
 import { ThemeService } from '../../core/theme.service';
@@ -32,15 +32,58 @@ const LIMITE_DEBATE_S = 90;
 const LIMITE_VOTO_S = 60;
 const LIMITE_DESLOCAMENTO_S = 60;
 const JANELA_DECISAO_S = 15;
+/** De quanto em quanto tempo o celular rebusca o painel (papel, codinome, fileira). */
+const PAINEL_POLL_MS = 4000;
+
+/**
+ * Os três Poderes Alienígenas, descritos para a Ameaça escolher ciente do que
+ * cada um faz (spec 024 §5.7). A regra de verdade mora no servidor.
+ */
+const CARDS_DE_PODER: ReadonlyArray<{
+  id: PoderAlienigena;
+  nome: string;
+  texto: string;
+  duracao: string;
+  vilaVe: string;
+  indisponivel: string;
+}> = [
+  {
+    id: 'CONTROLE',
+    nome: 'Controle Mental',
+    texto:
+      'Escolha um habitante. Na próxima noite, suas sabotagens e abduções partem do setor onde ELE estiver, e no dia seguinte ele carrega a suspeita no seu lugar. Ele não sabe de nada. Se a vila o prender, prende um inocente.',
+    duracao: 'uma noite e o dia seguinte',
+    vilaVe: 'nada — só o rastro no setor dele',
+    indisponivel: 'Não há ninguém para controlar.',
+  },
+  {
+    id: 'CONTAGIO',
+    nome: 'Contágio',
+    texto:
+      'Ao amanhecer, um aldeão real, sorteado, vira uma Ameaça como você: joga a própria jogada toda noite e conhece você. Cada contágio drena a Esperança da vila. Só você, a Ameaça original, pode contagiar.',
+    duracao: 'até o fim da partida',
+    vilaVe: 'a Esperança caindo, sem aviso',
+    indisponivel: 'Só a Ameaça original contagia — e é preciso haver um aldeão real livre.',
+  },
+  {
+    id: 'DELIRIO',
+    nome: 'Delírio Coletivo',
+    texto:
+      'Ao amanhecer, todos os habitantes da vila trocam de nome entre si — você também. O Diário avisa que houve um delírio, mas não quem o causou. O que disseram de cada um fica preso ao nome antigo.',
+    duracao: 'permanente',
+    vilaVe: 'que houve um delírio, sem autor',
+    indisponivel: 'Indisponível agora.',
+  },
+];
 
 /**
  * O celular do habitante. Descobre a investigação da turma sozinho (sonda de 4s,
  * como o Qlick e o Wor), entra com um pseudônimo e passa pelo Despertar.
  *
- * O papel — e, para a Ameaça, a resposta correta — vem do `painel()`, uma rota
- * autenticada. **Nunca** do snapshot: o documento que este componente escuta é
- * cego de propósito, e é isso que impede um aluno com DevTools de descobrir o
- * infiltrado.
+ * O papel, a posição da noite e — para a Ameaça — o poder e as aliadas vêm do
+ * `painel()`, uma rota autenticada. **Nunca** do snapshot: o documento que este
+ * componente escuta é cego de propósito, e é isso que impede um aluno com
+ * DevTools de descobrir o infiltrado.
  */
 @Component({
   selector: 'app-student-isolateus-page',
@@ -124,6 +167,18 @@ const JANELA_DECISAO_S = 15;
         <app-isolateus-evento [acontecimentos]="p.acontecimentos ?? []" />
 
         <div class="jogo" [class.jogo--hackeada]="foraDaVila()">
+          @if (aviso(); as msg) {
+            <div class="aviso-papel" role="alert">
+              <app-icon name="alien" [size]="16" />
+              <span>
+                {{ msg }}
+                @if (meuHabitante(); as h) { Você é <b>{{ h.nome }}</b>. }
+              </span>
+              <button type="button" class="aviso-papel__x" aria-label="Fechar aviso" (click)="aviso.set(null)">
+                <app-icon name="close" [size]="14" />
+              </button>
+            </div>
+          }
           @if (foraDaVila()) {
             <div class="hack">
               <app-icon name="radio" [size]="16" />
@@ -164,7 +219,7 @@ const JANELA_DECISAO_S = 15;
                   } @else if (meuSetorObj(p); as s) {
                     <app-isolateus-setor
                       [setor]="s"
-                      [habitantes]="p.habitantes"
+                      [habitantes]="habitantesDaNoite(p)"
                       [meuHabitanteId]="painel()?.habitanteId ?? ''"
                       [emReparo]="p.reparoSetorId === s.id"
                       [podeAndar]="!posicaoFeita()"
@@ -215,13 +270,27 @@ const JANELA_DECISAO_S = 15;
                     } @else {
                       <section class="turno">
                         <h2 class="turno__tit">Sua jogada, Ameaça</h2>
+                        @if (painel()?.aliados?.length) {
+                          <p class="aliadas">
+                            <app-icon name="alien" [size]="14" />
+                            Suas aliadas: <b>{{ painel()!.aliados!.join(', ') }}</b>
+                          </p>
+                        }
+                        @if (painel()?.controle; as c) {
+                          <p class="controle">
+                            <app-icon name="radio" [size]="14" />
+                            Controle Mental: esta noite você age através de
+                            <b>{{ c.nome }}</b>, do setor onde ele estiver.
+                          </p>
+                        }
                         @if (!escolhendoSetor()) {
                           <p class="muted">
-                            Você age onde está. Ninguém saberá que foi você — mas o
-                            que você atingir dirá onde você passou a noite.
+                            Você age {{ painel()?.controle ? 'de onde o controlado está' : 'onde está' }}.
+                            Ninguém saberá que foi você — mas o que você atingir dirá
+                            de onde partiu o ataque.
                           </p>
                           <div class="alvos">
-                            @if (meuSetorObj(p); as s) {
+                            @if (setorDeAcaoObj(p); as s) {
                               @if (s.intacto) {
                                 <button class="alvo" type="button" [disabled]="enviando()" (click)="sabotar()">
                                   <app-icon name="rachadura" [size]="16" /> Sabotar {{ s.nome }}
@@ -249,16 +318,18 @@ const JANELA_DECISAO_S = 15;
                           />
                           <div class="alvos">
                             @for (s of p.setores; track s.id) {
-                              @if (s.id !== meuSetor(p)) {
+                              @if (s.id !== setorDeAcao(p)) {
                                 <button class="alvo alvo--abd" type="button" [disabled]="enviando()" (click)="abduzirAsCegas(s.id)">
                                   <app-icon name="nave" [size]="14" /> {{ s.nome }}
                                 </button>
                               }
                             }
                           </div>
-                          <span class="grupo__lbl">No seu setor, você escolhe a vítima</span>
+                          <span class="grupo__lbl">
+                            {{ painel()?.controle ? 'Com o controlado' : 'No seu setor' }}, você escolhe a vítima
+                          </span>
                           <div class="alvos">
-                            @for (h of vizinhosDeSetor(p); track h.id) {
+                            @for (h of alvosPresenciais(p); track h.id) {
                               <button class="alvo" type="button" [disabled]="enviando()" (click)="abduzirAqui(h.id)">
                                 <app-icon name="user" [size]="14" /> {{ h.nome }}
                               </button>
@@ -290,8 +361,8 @@ const JANELA_DECISAO_S = 15;
 
                 @if (ehAmeaca()) {
                   <p class="sabe">
-                    Você sabe: a correta é a
-                    <b>{{ letra(painel()!.corretaIndex ?? 0) }}</b>. Induza a vila ao erro.
+                    Seu voto não defende a vila — mas, se você acertar, ganha um
+                    <b>Poder Alienígena</b>.
                   </p>
                 }
 
@@ -313,35 +384,22 @@ const JANELA_DECISAO_S = 15;
                 }
               }
 
-              <!-- O Chat de Rumores -->
+              <!--
+                Só os Sinais de Rádio de quem saiu da vila. O Chat de Rumores
+                saiu: os autores eram sempre NPCs, e a própria tela entregava
+                quem era virtual.
+              -->
               <div class="feed">
-                <span class="feed__tit">Rumores</span>
-                @for (r of p.rumores; track r.id) {
-                  <p class="rumor" [class.rumor--sinal]="r.tipo === 'SINAL'">
-                    <strong>{{ r.tipo === 'SINAL' ? '[ Sinal de Rádio ]' : r.autorNome }}</strong>
+                <span class="feed__tit">Sinais de Rádio</span>
+                @for (r of sinais(p); track r.id) {
+                  <p class="rumor rumor--sinal">
+                    <strong>[ Sinal de Rádio ]</strong>
                     {{ r.texto }}
                   </p>
                 } @empty {
                   <p class="muted">Silêncio absoluto…</p>
                 }
               </div>
-
-              @if (ehAmeaca() && !rumorEnviado(p)) {
-                <form class="composer" (submit)="forjar($event)">
-                  <span class="composer__lbl">Interceptar a comunicação (1× por noite)</span>
-                  <textarea
-                    class="tichr-input"
-                    rows="2"
-                    maxlength="240"
-                    [value]="rumorTexto()"
-                    (input)="rumorTexto.set($any($event.target).value)"
-                    placeholder="Defenda uma alternativa errada de forma convincente…"
-                  ></textarea>
-                  <button class="btn-iso" type="submit" [disabled]="enviando() || !rumorTexto().trim()">
-                    Transmitir sob nome alheio
-                  </button>
-                </form>
-              }
 
               @if (foraDaVila()) {
                 <form class="composer" (submit)="sinal($event)">
@@ -453,7 +511,7 @@ const JANELA_DECISAO_S = 15;
                     maxlength="240"
                     [value]="debateTexto()"
                     (input)="debateTexto.set($any($event.target).value)"
-                    placeholder="Acuse, defenda-se, aponte quem concordou com o rumor…"
+                    placeholder="Acuse, defenda-se, diga onde você passou a noite…"
                   ></textarea>
                   <button class="btn-iso" type="submit" [disabled]="enviando() || !debateTexto().trim()">
                     Falar
@@ -519,6 +577,53 @@ const JANELA_DECISAO_S = 15;
             @default {
               <p class="lead">Aguardando o Comando Central…</p>
             }
+          }
+
+          <!--
+            O Poder Alienígena: a Ameaça que acertou a questão escolhe um dos
+            três, ciente do que cada um faz. Fica à mão da janela de decisão até
+            o fim da noite seguinte — depois disso, o servidor o descarta.
+          -->
+          @if (poderDisponivel(p); as opcoes) {
+            <section class="poderes">
+              <h2 class="poderes__tit">
+                <app-icon name="alien" [size]="18" /> Você acertou: escolha um Poder Alienígena
+              </h2>
+              @if (escolhendoControle()) {
+                <p class="muted">Escolha o habitante que você vai controlar na próxima noite.</p>
+                <div class="alvos">
+                  @for (h of controlaveis(p); track h.id) {
+                    <button class="alvo" type="button" [disabled]="enviando()" (click)="usarPoder('CONTROLE', h.id)">
+                      <app-icon name="user" [size]="14" /> {{ h.nome }}
+                    </button>
+                  } @empty {
+                    <span class="muted">Não há ninguém para controlar.</span>
+                  }
+                </div>
+                <button class="btn-mapa" type="button" (click)="escolhendoControle.set(false)">Voltar</button>
+              } @else {
+                <div class="poderes__lista">
+                  @for (card of cardsDePoder; track card.id) {
+                    <article class="poder" [class.poder--off]="!opcoes[card.id]">
+                      <strong class="poder__nome">{{ card.nome }}</strong>
+                      <p class="poder__txt">{{ card.texto }}</p>
+                      <p class="poder__meta">
+                        <span><b>Dura:</b> {{ card.duracao }}</span>
+                        <span><b>A vila vê:</b> {{ card.vilaVe }}</span>
+                      </p>
+                      @if (opcoes[card.id]) {
+                        <button class="btn-iso" type="button" [disabled]="enviando()" (click)="escolherPoder(card.id)">
+                          Usar {{ card.nome }}
+                        </button>
+                      } @else {
+                        <span class="muted">{{ card.indisponivel }}</span>
+                      }
+                    </article>
+                  }
+                </div>
+              }
+              @if (erroPoder()) { <p class="aviso">{{ erroPoder() }}</p> }
+            </section>
           }
 
           <!-- O Diário acompanha a partida inteira, em qualquer fase. -->
@@ -664,6 +769,18 @@ const JANELA_DECISAO_S = 15;
     .card-global--ok { background: var(--success); }
     .btn-quarentena { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; width: 100%; padding: 0.9rem 1.2rem; border: none; border-radius: 12px; cursor: pointer; font: inherit; font-weight: 800; color: #fff; background: var(--danger); }
     .btn-quarentena:disabled { opacity: 0.55; cursor: not-allowed; }
+    .aviso-papel { display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.75rem; padding: 0.75rem 0.9rem; border: 2px solid #84cc16; border-radius: 12px; background: var(--surface); font-size: 0.88rem; line-height: 1.45; }
+    .aviso-papel span { flex: 1; }
+    .aviso-papel__x { border: none; background: none; cursor: pointer; color: var(--text-muted); padding: 0; }
+    .aliadas, .controle { display: flex; align-items: center; gap: 0.35rem; margin: 0 0 0.5rem; font-size: 0.86rem; color: #4d7c0f; }
+    .poderes { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem; padding: 1rem; border: 2px solid #84cc16; border-radius: 14px; background: var(--surface); }
+    .poderes__tit { display: flex; align-items: center; gap: 0.4rem; margin: 0; font-size: 1rem; color: #4d7c0f; }
+    .poderes__lista { display: grid; gap: 0.6rem; }
+    .poder { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.8rem; border: 1px solid var(--border); border-radius: 12px; }
+    .poder--off { opacity: 0.6; }
+    .poder__nome { font-size: 0.95rem; }
+    .poder__txt { margin: 0; font-size: 0.86rem; line-height: 1.5; }
+    .poder__meta { display: flex; flex-direction: column; gap: 0.15rem; margin: 0; font-size: 0.78rem; color: var(--text-muted); }
     .btn-pular { width: 100%; padding: 0.7rem 1.2rem; border: 1px solid var(--border); border-radius: 12px; cursor: pointer; font: inherit; font-weight: 700; color: var(--text-muted); background: var(--surface); }
     .btn-pular:hover:not(:disabled) { border-color: var(--danger); color: var(--danger); }
     .btn-pular:disabled { opacity: 0.55; cursor: not-allowed; }
@@ -694,6 +811,8 @@ export class StudentIsolateusPage {
   protected readonly carregando = signal(true);
   protected readonly enviando = signal(false);
   protected readonly erro = signal('');
+  /** Aviso que só o painel traz: fui contagiado, ou meu codinome mudou. */
+  protected readonly aviso = signal<string | null>(null);
   /** O professor removeu o aluno: ele some dos inscritos e volta ao registro. */
   protected readonly removido = signal(false);
 
@@ -712,6 +831,8 @@ export class StudentIsolateusPage {
    */
   protected readonly posicaoFeita = signal(false);
   protected readonly acaoFeita = signal(false);
+  /** Para onde eu andei nesta noite (o doc público só muda no fechamento). */
+  protected readonly destinoNoite = signal<string | null>(null);
   /** Habitante sendo levado agora — dispara a nave no setor onde ele está. */
   protected readonly abduzindoId = signal<string | null>(null);
 
@@ -727,7 +848,6 @@ export class StudentIsolateusPage {
 
   /** Voto otimista na questão (trava a UI na hora, como no Qlick). */
   protected readonly respostaIndex = signal<number | null>(null);
-  protected readonly rumorTexto = signal('');
   protected readonly sinalTexto = signal('');
   protected readonly debateTexto = signal('');
   protected readonly votei = signal(false);
@@ -796,9 +916,19 @@ export class StudentIsolateusPage {
       this.relogio.set(Date.now());
       this.checarTempo();
     }, 500);
+    // O papel (Contágio), o codinome (Delírio) e a fileira ao vivo da Ameaça
+    // chegam SÓ pelo painel: nada disso passa pelo doc público, então o
+    // celular pergunta de tempos em tempos.
+    const vigia = setInterval(() => {
+      const p = this.partida();
+      if (p && p.status !== 'LOBBY' && p.status !== 'ENCERRADO') {
+        this.carregarPainel(false);
+      }
+    }, PAINEL_POLL_MS);
     this.destroyRef.onDestroy(() => {
       clearInterval(sonda);
       clearInterval(tick);
+      clearInterval(vigia);
       // A noite é do jogo, não do app: sair da partida não pode deixar o painel
       // do aluno escuro para sempre.
       this.tema.restaurarPreferencia();
@@ -873,20 +1003,60 @@ export class StudentIsolateusPage {
 
   // --- A Noite ---
 
-  /** Onde eu estou. Vazio antes do Despertar (ou se já saí da vila). */
+  /**
+   * Onde eu estou. Durante a noite, o destino que só eu (e o servidor) conheço:
+   * o doc público mantém a posição do anoitecer até a noite fechar — publicar
+   * na hora entregava quem é real, já que os NPCs só andam no fechamento.
+   * Vazio antes do Despertar (ou se já saí da vila).
+   */
   protected meuSetor(p: IsolateusMatch): string {
-    return this.meuHabitante()?.setorId ?? '';
+    const publico = this.meuHabitante()?.setorId ?? '';
+    if (p.status !== 'DESLOCAMENTO') return publico;
+    return this.destinoNoite() ?? this.painel()?.setorId ?? publico;
+  }
+
+  /**
+   * A vila vista do meu celular durante a noite: os outros onde estavam ao
+   * anoitecer, e eu onde decidi passar a noite.
+   */
+  protected habitantesDaNoite(p: IsolateusMatch) {
+    const eu = this.painel()?.habitanteId;
+    const aqui = this.meuSetor(p);
+    return p.habitantes.map((h) => (h.id === eu ? { ...h, setorId: aqui } : h));
   }
 
   protected meuSetorObj(p: IsolateusMatch) {
     return p.setores.find((s) => s.id === this.meuSetor(p));
   }
 
-  /** Os habitantes do meu setor, exceto eu — os alvos de abdução presencial. */
-  protected vizinhosDeSetor(p: IsolateusMatch) {
-    const meu = this.meuSetor(p);
-    const eu = this.painel()?.habitanteId;
-    return this.vivos(p).filter((h) => h.setorId === meu && h.id !== eu);
+  /**
+   * De onde a Ameaça age esta noite: o setor dela, ou — sob Controle Mental —
+   * o do controlado. Vem do painel (ao vivo, pelo servidor).
+   */
+  protected setorDeAcao(p: IsolateusMatch): string {
+    return this.painel()?.fileira?.setorId ?? this.meuSetor(p);
+  }
+
+  protected setorDeAcaoObj(p: IsolateusMatch) {
+    return p.setores.find((s) => s.id === this.setorDeAcao(p));
+  }
+
+  /**
+   * Os alvos da abdução presencial: quem está AGORA no setor de onde ela age.
+   * A fileira vem do painel porque as posições da noite não estão no doc
+   * público; sem ela (painel antigo), cai no meu setor pelo snapshot. O
+   * controlado nunca é vítima, e as aliadas também não.
+   */
+  protected alvosPresenciais(p: IsolateusMatch) {
+    const painel = this.painel();
+    const aliadas = new Set(painel?.aliados ?? []);
+    const controlado = painel?.controle?.habitanteId;
+    const fileira =
+      painel?.fileira?.habitantes ??
+      this.vivos(p).filter(
+        (h) => h.setorId === this.meuSetor(p) && h.id !== painel?.habitanteId,
+      );
+    return fileira.filter((h) => h.id !== controlado && !aliadas.has(h.nome));
   }
 
   /**
@@ -914,7 +1084,11 @@ export class StudentIsolateusPage {
   }
 
   protected mover(setorId: string): void {
-    this.acaoDaNoite((id) => this.api.mover(id, setorId));
+    this.acaoDaNoite(
+      (id) => this.api.mover(id, setorId),
+      'posicao',
+      () => this.destinoNoite.set(setorId),
+    );
   }
   protected ficar(): void {
     this.acaoDaNoite((id) => this.api.confirmarPosicao(id));
@@ -955,6 +1129,7 @@ export class StudentIsolateusPage {
   private acaoDaNoite(
     chamada: (partidaId: string) => Observable<IsolateusMatch>,
     qual: 'posicao' | 'acao' = 'posicao',
+    aoConcluir?: () => void,
   ): void {
     if (!this.partidaId || this.enviando()) return;
     this.enviando.set(true);
@@ -962,6 +1137,7 @@ export class StudentIsolateusPage {
     chamada(this.partidaId).subscribe({
       next: () => {
         this.enviando.set(false);
+        aoConcluir?.();
         this.fecharDecisao(qual);
         this.escolhendoSetor.set(false);
         this.verMapa.set(false);
@@ -984,9 +1160,9 @@ export class StudentIsolateusPage {
     else this.posicaoFeita.set(true);
   }
 
-  /** A Ameaça só intercepta a comunicação uma vez por noite. */
-  protected rumorEnviado(p: IsolateusMatch): boolean {
-    return p.rumores.some((r) => r.tipo === 'FORJADO');
+  /** Os Sinais de Rádio da questão (partidas antigas podem trazer rumores). */
+  protected sinais(p: IsolateusMatch) {
+    return p.rumores.filter((r) => r.tipo === 'SINAL');
   }
 
   private buscar(): void {
@@ -1037,12 +1213,28 @@ export class StudentIsolateusPage {
       return;
     }
 
-    // Nova noite: libera o voto e os composers, e rebusca a correta da Ameaça
+    // O Delírio regerou os ids: o meu sumiu do snapshot. Rebusca o painel na
+    // hora em vez de esperar a próxima consulta com a tela sem "eu".
+    const eu = this.painel()?.habitanteId;
+    if (eu && p.status !== 'LOBBY' && !p.habitantes.some((h) => h.id === eu)) {
+      this.carregarPainel(false);
+    }
+
+    // A questão foi apurada: se acertou, a Ameaça acabou de ganhar um poder —
+    // e ele só existe no painel autenticado.
+    if (
+      this.ehAmeaca() &&
+      anterior?.status === 'QUESTAO_ATIVA' &&
+      p.status !== 'QUESTAO_ATIVA'
+    ) {
+      this.carregarPainel(false);
+    }
+
+    // Nova noite: libera o voto e os composers, e rebusca o painel
     // (a resposta muda a cada questão, e ela vive só no painel autenticado).
     if (p.rodada !== this.ultimaRodada) {
       this.ultimaRodada = p.rodada;
       this.respostaIndex.set(null);
-      this.rumorTexto.set('');
       this.sinalTexto.set('');
       // Cabe uma Quarentena por rodada: a noite nova rearma o voto e o pulo.
       this.votei.set(false);
@@ -1053,19 +1245,31 @@ export class StudentIsolateusPage {
       this.acaoFeita.set(false);
       this.escolhendoSetor.set(false);
       this.verMapa.set(false);
-      if (this.ehAmeaca()) this.carregarPainel(false);
+      this.destinoNoite.set(null);
+      // A posição e o papel vivem no painel: a noite nova rebusca para todos.
+      this.carregarPainel(false);
     }
   }
 
   /**
-   * Busca o papel do aluno. Só a Ameaça recebe a resposta correta e os disfarces
-   * — o Aldeão não recebe nada sobre os outros, então nem uma inspeção do
-   * payload lhe dá vantagem.
+   * Busca o papel do aluno e a posição dele na noite. Só a Ameaça recebe o
+   * poder, as aliadas e a fileira de onde age — o Aldeão não recebe nada sobre
+   * os outros, então nem uma inspeção do payload lhe dá vantagem.
    */
   private carregarPainel(comRevelacao: boolean): void {
     if (!this.partidaId) return;
     this.api.painel(this.partidaId).subscribe({
       next: (pnl) => {
+        const antes = this.painel();
+        if (antes?.papel === 'ALDEAO' && pnl.papel === 'AMEACA') {
+          this.aviso.set(
+            'Você foi contagiado! Agora você é uma Ameaça: faça a sua jogada toda noite e não entregue suas aliadas.',
+          );
+        } else if (antes && antes.habitanteId !== pnl.habitanteId) {
+          this.aviso.set(
+            'Um delírio coletivo tomou a vila: todos trocaram de nome — você também. Confira o seu codinome novo.',
+          );
+        }
         this.painel.set(pnl);
         if (comRevelacao) {
           this.revelando.set(true);
@@ -1115,20 +1319,6 @@ export class StudentIsolateusPage {
     this.respostaIndex.set(index);
     this.api.responder(this.partidaId, index).subscribe({
       error: () => this.respostaIndex.set(null),
-    });
-  }
-
-  protected forjar(ev: Event): void {
-    ev.preventDefault();
-    const texto = this.rumorTexto().trim();
-    if (!this.partidaId || !texto || this.enviando()) return;
-    this.enviando.set(true);
-    this.api.forjarRumor(this.partidaId, texto).subscribe({
-      next: () => {
-        this.enviando.set(false);
-        this.rumorTexto.set('');
-      },
-      error: () => this.enviando.set(false),
     });
   }
 
@@ -1201,6 +1391,59 @@ export class StudentIsolateusPage {
       error: () => {
         this.enviando.set(false);
         this.votei.set(false);
+      },
+    });
+  }
+
+  // --- Os Poderes Alienígenas ---
+
+  protected readonly cardsDePoder = CARDS_DE_PODER;
+  protected readonly escolhendoControle = signal(false);
+  protected readonly erroPoder = signal('');
+
+  /**
+   * As opções do poder ganho, ou `null` se não há o que escolher agora. Só a
+   * Ameaça ainda na vila, e só nas fases em que o poder vale (da janela de
+   * decisão até o fim da noite seguinte).
+   */
+  protected poderDisponivel(
+    p: IsolateusMatch,
+  ): Record<PoderAlienigena, boolean> | null {
+    if (!this.ehAmeaca() || this.foraDaVila()) return null;
+    if (p.status === 'LOBBY' || p.status === 'ENCERRADO') return null;
+    return this.painel()?.poder ?? null;
+  }
+
+  /** Quem pode ser controlado: qualquer um na vila, menos eu e as aliadas. */
+  protected controlaveis(p: IsolateusMatch) {
+    const eu = this.painel()?.habitanteId;
+    const aliadas = new Set(this.painel()?.aliados ?? []);
+    return this.vivos(p).filter((h) => h.id !== eu && !aliadas.has(h.nome));
+  }
+
+  protected escolherPoder(poder: PoderAlienigena): void {
+    if (poder === 'CONTROLE') {
+      this.escolhendoControle.set(true);
+      return;
+    }
+    this.usarPoder(poder);
+  }
+
+  protected usarPoder(poder: PoderAlienigena, alvoId?: string): void {
+    if (!this.partidaId || this.enviando()) return;
+    this.enviando.set(true);
+    this.erroPoder.set('');
+    this.api.usarPoder(this.partidaId, poder, alvoId).subscribe({
+      next: (pnl) => {
+        this.enviando.set(false);
+        this.escolhendoControle.set(false);
+        this.painel.set(pnl);
+      },
+      error: (e: { error?: { message?: string } }) => {
+        this.enviando.set(false);
+        this.erroPoder.set(e.error?.message ?? 'Não foi possível usar o poder.');
+        // O servidor é o juiz: rebusca o painel (o poder pode ter expirado).
+        this.carregarPainel(false);
       },
     });
   }

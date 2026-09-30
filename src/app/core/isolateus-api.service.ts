@@ -7,7 +7,9 @@ import {
   IsolateusJogo,
   IsolateusMatch,
   PainelIsolateus,
+  PoderAlienigena,
   QuestaoIsolateus,
+  StatusIsolateus,
 } from './models';
 
 /**
@@ -76,11 +78,17 @@ export class IsolateusApiService {
       {},
     );
   }
-  /** O Despertar: preenche a vila com NPCs e sorteia a Ameaça. */
-  iniciar(id: string): Observable<IsolateusMatch> {
+  /**
+   * O Despertar: preenche a vila com NPCs e sorteia a Ameaça. As opções do
+   * lobby (debate antes da votação) ficam fixas a partir daqui.
+   */
+  iniciar(
+    id: string,
+    opcoes: { debateHabilitado: boolean },
+  ): Observable<IsolateusMatch> {
     return this.http.post<IsolateusMatch>(
       `${this.base}/isolateus/matches/${id}/iniciar`,
-      {},
+      opcoes,
     );
   }
   /** Fecha a fase cronometrada (o telão dispara ao zerar o relógio). */
@@ -90,6 +98,17 @@ export class IsolateusApiService {
       {},
     );
   }
+  /**
+   * O professor pula o tempo restante da fase cronometrada. `status` é a fase
+   * que o telão exibia — protege contra pular duas fases num clique atrasado.
+   */
+  pularFase(id: string, status: StatusIsolateus): Observable<IsolateusMatch> {
+    return this.http.post<IsolateusMatch>(
+      `${this.base}/isolateus/matches/${id}/pular-fase`,
+      { status },
+    );
+  }
+  /** @deprecated O telão usa `pularFase`. */
   proxima(id: string): Observable<IsolateusMatch> {
     return this.http.post<IsolateusMatch>(
       `${this.base}/isolateus/matches/${id}/proxima`,
@@ -122,6 +141,20 @@ export class IsolateusApiService {
   painel(id: string): Observable<PainelIsolateus> {
     return this.http.get<PainelIsolateus>(
       `${this.base}/aluno/isolateus/${id}/painel`,
+    );
+  }
+  /**
+   * A Ameaça gasta o Poder Alienígena ganho no acerto. `alvoId` só no Controle
+   * Mental. Devolve o painel atualizado — o doc público não muda aqui.
+   */
+  usarPoder(
+    id: string,
+    poder: PoderAlienigena,
+    alvoId?: string,
+  ): Observable<PainelIsolateus> {
+    return this.http.post<PainelIsolateus>(
+      `${this.base}/aluno/isolateus/${id}/poder`,
+      { poder, alvoId },
     );
   }
   /** O deslocamento da noite: anda um setor pelas estradas do mapa. */
@@ -175,13 +208,6 @@ export class IsolateusApiService {
     return this.http.post<{ registrada: boolean }>(
       `${this.base}/aluno/isolateus/${id}/resposta`,
       { alternativaIndex },
-    );
-  }
-  /** A Sabotagem de Frequência: o rumor falso, sob o nome de um NPC. */
-  forjarRumor(id: string, texto: string): Observable<IsolateusMatch> {
-    return this.http.post<IsolateusMatch>(
-      `${this.base}/aluno/isolateus/${id}/rumor`,
-      { texto },
     );
   }
   /** O Sinal Interceptado: a dica anônima de quem já foi levado. */

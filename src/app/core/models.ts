@@ -651,6 +651,7 @@ export type StatusMatch = 'LOBBY' | 'EM_ANDAMENTO' | 'ENCERRADO';
 export type TipoAcaoGlobal =
   | 'ATAQUE'
   | 'CURA'
+  | 'CATAPULTA'
   | 'USURPACAO'
   | 'DANO_CRITICO'
   | 'DICA';
@@ -667,6 +668,12 @@ export interface LastGlobalAction {
   duracaoMs: number;
   em: string;
 }
+
+/**
+ * O que a equipe comum ganha ao acertar a palavra inteira (Risco Heroico):
+ * Recuperar HP do próprio castelo ou a Catapulta num castelo rival.
+ */
+export type EfeitoRisco = 'CURAR' | 'CATAPULTA';
 
 export interface WorTeam {
   id: string;
@@ -823,7 +830,8 @@ export interface Rumor {
   id: string;
   autorNome: string;
   texto: string;
-  tipo: 'RUMOR' | 'FORJADO' | 'SINAL';
+  /** Hoje só o SINAL (anônimo, de quem saiu da vila); RUMOR = partidas antigas. */
+  tipo: 'SINAL' | 'RUMOR';
 }
 
 export interface MensagemDebate {
@@ -863,6 +871,8 @@ export type TipoAcontecimento =
   | 'RESTAURADO'
   | 'REPARO_FALHOU'
   | 'QUARENTENA'
+  /** O Delírio Coletivo: todos trocaram de codinome (sem autor). */
+  | 'DELIRIO'
   | 'VEREDITO'
   | 'FIM';
 
@@ -932,6 +942,11 @@ export interface IsolateusMatch {
 
   /** Rodada da última Quarentena (null = nenhuma). Cabe uma por rodada. */
   quarentenaRodada?: number | null;
+  /**
+   * Debate antes da votação, escolhido no lobby. Desligado, a Quarentena vai
+   * direto ao voto. Ausente = ligado (partidas anteriores à opção).
+   */
+  debateHabilitado?: boolean;
   vereditoQuarentena?: VereditoQuarentena | null;
   votosRecebidos: number;
   /** Quantos já pularam o debate — só a contagem; quem pulou é segredo. */
@@ -960,6 +975,22 @@ export interface PainelIsolateus {
   habitanteId: string;
   vivo: boolean;
   preso: boolean;
-  corretaIndex?: number;
-  disfarces?: string[];
+  /**
+   * Onde EU estou agora. Durante a noite é o destino guardado no servidor: o
+   * doc público só recebe as posições quando a noite fecha.
+   */
+  setorId: string;
+
+  // ===== Só para a Ameaça =====
+  /** Codinomes das outras Ameaças livres. */
+  aliados?: string[];
+  /** O poder ganho no acerto e o que ela pode escolher; `null` = sem poder. */
+  poder?: Record<PoderAlienigena, boolean> | null;
+  /** O habitante sob Controle Mental nesta rodada, se houver. */
+  controle?: { habitanteId: string; nome: string } | null;
+  /** Quem está AGORA no setor de onde ela age (o dela ou o do controlado). */
+  fileira?: { setorId: string; habitantes: { id: string; nome: string }[] };
 }
+
+/** Os Poderes Alienígenas que a Ameaça ganha ao acertar a questão. */
+export type PoderAlienigena = 'CONTROLE' | 'CONTAGIO' | 'DELIRIO';

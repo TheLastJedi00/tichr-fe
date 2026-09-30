@@ -12,7 +12,13 @@ import { RealtimeService } from '../../core/realtime.service';
 import { StudentAuthService } from '../../core/student-auth.service';
 import { WorApiService } from '../../core/wor-api.service';
 import { FREEZE_MS, NarradorCards, cardNoAr } from '../../core/action-card';
-import { PlacarEquipe, ResumoRodada, WorMatch, WorTeam } from '../../core/models';
+import {
+  EfeitoRisco,
+  PlacarEquipe,
+  ResumoRodada,
+  WorMatch,
+  WorTeam,
+} from '../../core/models';
 import { ActionCard } from '../../ui/action-card/action-card';
 import { Confetti } from '../../ui/confetti/confetti';
 import { Icon } from '../../ui/icon/icon';
@@ -22,6 +28,9 @@ import { Spinner } from '../../ui/spinner/spinner';
 
 const LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const LIMITE_RODADA_S = 60;
+/** Espelham `WOR.CURA_MASSIVA` e `WOR.DANO_CATAPULTA` do backend (só para o texto). */
+const CURA_MASSIVA = 400;
+const DANO_CATAPULTA = 300;
 
 /**
  * Cliente do aluno (mobile-first). Escuta o próprio time (dano barato) + a raiz
@@ -200,13 +209,61 @@ const LIMITE_RODADA_S = 60;
     }
 
     @if (modalRisco()) {
-      <app-modal [open]="true" title="Arriscar a palavra?" (close)="modalRisco.set(false)">
-        <p class="aviso">
-          Se acertar, você {{ team()?.isHorde ? 'invade e rouba o castelo do líder' : 'cura seu castelo massivamente e encerra a rodada' }}.
-          Se errar, sofrerá Dano Crítico no seu castelo.
-        </p>
+      <app-modal [open]="true" title="Arriscar a palavra?" (close)="fecharRisco()">
+        @if (team()?.isHorde) {
+          <p class="aviso">
+            Se acertar, você invade e rouba o castelo do líder.
+            Se errar, sofrerá Dano Crítico no seu castelo.
+          </p>
+        } @else {
+          <p class="aviso">
+            Se acertar, a rodada acaba e sua equipe escolhe a recompensa abaixo.
+            Se errar, sofrerá Dano Crítico no seu castelo.
+          </p>
+          <div class="efeitos">
+            <button
+              class="efeito"
+              type="button"
+              [class.efeito--on]="efeitoRisco() === 'CURAR'"
+              [attr.aria-pressed]="efeitoRisco() === 'CURAR'"
+              (click)="efeitoRisco.set('CURAR')"
+            >
+              <app-icon name="shield" [size]="18" />
+              <b>Recuperar HP</b>
+              <small>+{{ curaMassiva }} HP no seu castelo</small>
+            </button>
+            <button
+              class="efeito"
+              type="button"
+              [class.efeito--on]="efeitoRisco() === 'CATAPULTA'"
+              [attr.aria-pressed]="efeitoRisco() === 'CATAPULTA'"
+              [disabled]="!alvosCatapulta().length"
+              (click)="efeitoRisco.set('CATAPULTA')"
+            >
+              <app-icon name="castle" [size]="18" />
+              <b>Catapulta</b>
+              <small>{{ danoCatapulta }} de dano num castelo rival</small>
+            </button>
+          </div>
+          @if (efeitoRisco() === 'CATAPULTA') {
+            <div class="alvos">
+              @for (r of alvosCatapulta(); track r.id) {
+                <button
+                  class="alvo"
+                  type="button"
+                  [style.--cor]="r.cor"
+                  [class.alvo--on]="alvoCatapulta() === r.id"
+                  [attr.aria-pressed]="alvoCatapulta() === r.id"
+                  (click)="alvoCatapulta.set(r.id)"
+                >
+                  <app-icon name="castle" [size]="16" /> {{ r.nome }} · {{ r.hp }} HP
+                </button>
+              }
+            </div>
+          }
+        }
         <input class="tichr-input" [value]="palpite()" (input)="palpite.set($any($event.target).value)" placeholder="Digite a palavra inteira" />
-        <button modal-actions class="btn-primary" type="button" [disabled]="travado() || !palpite().trim()" (click)="arriscar()">
+        <button modal-actions class="btn-primary" type="button" [disabled]="travado() || !podeArriscar()" (click)="arriscar()">
           Confirmar tentativa
         </button>
       </app-modal>
@@ -291,6 +348,13 @@ const LIMITE_RODADA_S = 60;
     .alvo { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.8rem; border-radius: 12px; border: 2px solid var(--cor); background: color-mix(in srgb, var(--cor) 10%, var(--surface)); color: var(--text); font-weight: 800; cursor: pointer; }
     .alvo--dica { --cor: #b45309; }
     .alvo:disabled { opacity: 0.5; cursor: not-allowed; }
+    .alvo--on { background: var(--cor); color: #fff; }
+    .efeitos { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .efeito { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; padding: 0.8rem 0.5rem; border-radius: 12px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font: inherit; cursor: pointer; text-align: center; }
+    .efeito small { color: var(--text-muted); font-size: 0.78rem; }
+    .efeito--on { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, var(--surface)); }
+    .efeito:disabled { opacity: 0.5; cursor: not-allowed; }
+    .alvos + .tichr-input, .efeitos + .tichr-input { margin-top: 0.75rem; }
     .aviso { margin: 0 0 0.75rem; color: var(--text-muted); }
     .aviso b { color: var(--text); }
 
@@ -383,6 +447,35 @@ export class StudentWorPage {
   });
   /** Inputs bloqueados: durante a chamada HTTP ou com um card interrompendo o jogo. */
   protected readonly travado = computed(() => this.ocupado() || this.narrador.ativo());
+
+  // ===== Risco Heroico: Recuperar HP × Catapulta =====
+  protected readonly curaMassiva = CURA_MASSIVA;
+  protected readonly danoCatapulta = DANO_CATAPULTA;
+  protected readonly efeitoRisco = signal<EfeitoRisco>('CURAR');
+  protected readonly alvoCatapulta = signal<string | null>(null);
+  /**
+   * A Catapulta só mira castelo rival de pé: Horda não tem o que derrubar.
+   * Lê do placar da raiz (ao vivo) — `rivais` só é preenchido ao escolher uma
+   * letra, e quem arrisca a palavra direto via a Catapulta desabilitada.
+   */
+  protected readonly alvosCatapulta = computed(() =>
+    this.placar().filter(
+      (e) => e.id !== this.myTeamId && !e.isHorde && e.hp > 0,
+    ),
+  );
+  /** Palpite digitado e, na Catapulta, um alvo escolhido. */
+  protected readonly podeArriscar = computed(
+    () =>
+      !!this.palpite().trim() &&
+      (this.team()?.isHorde ||
+        this.efeitoRisco() === 'CURAR' ||
+        !!this.alvoCatapulta()),
+  );
+  protected fecharRisco(): void {
+    this.modalRisco.set(false);
+    this.efeitoRisco.set('CURAR');
+    this.alvoCatapulta.set(null);
+  }
 
   protected hpPct(hp: number): number {
     return Math.max(0, Math.min(100, hp / 10));
@@ -537,9 +630,13 @@ export class StudentWorPage {
 
   protected arriscar(): void {
     const p = this.palpite().trim();
-    if (!p) return;
-    this.modalRisco.set(false);
+    if (!this.podeArriscar()) return;
+    const catapulta =
+      !this.team()?.isHorde && this.efeitoRisco() === 'CATAPULTA';
+    const efeito: EfeitoRisco = catapulta ? 'CATAPULTA' : 'CURAR';
+    const alvo = catapulta ? (this.alvoCatapulta() ?? undefined) : undefined;
+    this.fecharRisco();
     this.palpite.set('');
-    this.acao(this.api.arriscar(this.matchId()!, p));
+    this.acao(this.api.arriscar(this.matchId()!, p, efeito, alvo));
   }
 }

@@ -111,6 +111,18 @@ const MIN_REAIS = 4;
             }
           </div>
 
+          <label class="opcao">
+            <input
+              type="checkbox"
+              [checked]="debateHabilitado()"
+              (change)="debateHabilitado.set($any($event.target).checked)"
+            />
+            <span>
+              <b>Debate antes da votação</b>
+              <small>Desmarque para a Quarentena ir direto à votação.</small>
+            </span>
+          </label>
+
           <button
             class="btn-iso full"
             type="button"
@@ -178,7 +190,7 @@ const MIN_REAIS = 4;
                   Cada habitante escolhe onde passar a noite.
                   {{ p.movimentosRecebidos ?? 0 }} já decidiram.
                 </p>
-                <div class="timer" [class.timer--fim]="restante() <= 5">{{ restante() }}s</div>
+                @if (relogioAtivo()) { <div class="timer" [class.timer--fim]="restante() <= 5">{{ restante() }}s</div> }
                 <app-lobby-loader />
               </div>
             }
@@ -197,7 +209,7 @@ const MIN_REAIS = 4;
                 <div class="alerta"><app-icon name="alert" [size]="18" /> {{ a.texto }}</div>
               }
               @if (p.questaoPublica; as q) {
-                <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div>
+                @if (relogioAtivo()) { <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div> }
                 <h2 class="enunciado">{{ q.enunciado }}</h2>
                 <ol class="alts">
                   @for (alt of q.alternativas; track $index) {
@@ -205,13 +217,20 @@ const MIN_REAIS = 4;
                   }
                 </ol>
               }
+              <!--
+                Só os Sinais de quem saiu da vila. O Chat de Rumores saiu: os
+                autores eram sempre NPCs, e o telão mostrava à turma quem era
+                virtual.
+              -->
               <div class="feed">
-                <span class="feed__tit">Chat de Rumores</span>
+                <span class="feed__tit">Sinais Interceptados</span>
                 @for (r of p.rumores; track r.id) {
-                  <p class="rumor" [class.rumor--sinal]="r.tipo === 'SINAL'">
-                    <strong>{{ r.tipo === 'SINAL' ? '[ Sinal Interceptado ]' : r.autorNome }}</strong>
-                    {{ r.texto }}
-                  </p>
+                  @if (r.tipo === 'SINAL') {
+                    <p class="rumor rumor--sinal">
+                      <strong>[ Sinal Interceptado ]</strong>
+                      {{ r.texto }}
+                    </p>
+                  }
                 }
               </div>
             }
@@ -239,26 +258,22 @@ const MIN_REAIS = 4;
                 — e esvaziava justamente o que faz dela o alvo mais valioso do
                 mapa. O controle de ritmo dele continua sendo "Adiantar noite".
               -->
-              <div class="janela">
-                <span class="janela__lbl">A noite cai em</span>
-                <span class="timer" [class.timer--fim]="restante() <= 5">{{ restante() }}s</span>
-              </div>
+              @if (relogioAtivo()) {
+                <div class="janela">
+                  <span class="janela__lbl">A noite cai em</span>
+                  <span class="timer" [class.timer--fim]="restante() <= 5">{{ restante() }}s</span>
+                </div>
+              }
               <p class="reveal">
                 Quem estiver no Setor de Comunicação pode convocar a Quarentena
                 pelo celular.
               </p>
-
-              <div class="acoes">
-                <button class="btn-iso" type="button" [disabled]="ocupado()" (click)="proxima()">
-                  {{ ultimaNoite(p) ? 'Encerrar e ver o veredito' : 'Adiantar noite' }}
-                </button>
-              </div>
             }
 
             @case ('QUARENTENA_DEBATE') {
               <div class="quarentena">
                 <span class="quarentena__tag">Quarentena · Debate</span>
-                <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div>
+                @if (relogioAtivo()) { <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div> }
                 <div class="feed">
                   @for (m of p.debate; track m.id) {
                     <p class="rumor"><strong>{{ m.autorNome }}</strong> {{ m.texto }}</p>
@@ -273,7 +288,7 @@ const MIN_REAIS = 4;
             @case ('QUARENTENA_VOTO') {
               <div class="quarentena">
                 <span class="quarentena__tag">Quarentena · Veredito</span>
-                <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div>
+                @if (relogioAtivo()) { <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div> }
                 <p class="lead">Depositem seus votos. {{ p.votosRecebidos }} voto(s) recebido(s).</p>
                 <app-lobby-loader />
               </div>
@@ -299,6 +314,19 @@ const MIN_REAIS = 4;
             }
           }
 
+          <!--
+            O controle de ritmo do professor: toda fase cronometrada pode ser
+            pulada. O clique vale pela unanimidade e o jogo segue como se o
+            relógio tivesse zerado.
+          -->
+          @if (rotuloPular(p); as rotulo) {
+            <div class="acoes">
+              <button class="btn-iso" type="button" [disabled]="ocupado()" (click)="pular(p)">
+                {{ rotulo }}
+              </button>
+            </div>
+          }
+
           <!-- O Diário fica sempre à vista: é sobre ele que a turma argumenta. -->
           @if (p.acontecimentos?.length) {
             <app-isolateus-diario
@@ -310,7 +338,7 @@ const MIN_REAIS = 4;
           <!--
             A saída de emergência da aula: o sinal bate no meio da noite e a
             turma dispersa. Fica discreto e no rodapé de propósito — é uma ação
-            sem volta, não um controle de ritmo (esse é o "Adiantar noite").
+            sem volta, não um controle de ritmo (esse é o botão de pular da fase).
           -->
           @if (p.status !== 'ENCERRADO') {
             <button class="btn-encerrar" type="button" [disabled]="ocupado()" (click)="confirmarFim.set(true)">
@@ -384,6 +412,10 @@ const MIN_REAIS = 4;
     .lead--row { display: flex; align-items: center; gap: 0.25rem; }
     .loader-mini { transform: scale(0.5); margin: -14px -10px; }
     .muted { color: var(--text-muted); font-size: 0.9rem; margin: 0.25rem 0; }
+    .opcao { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.75rem 0.9rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); cursor: pointer; }
+    .opcao input { margin-top: 0.2rem; width: 1.1rem; height: 1.1rem; accent-color: #4d7c0f; cursor: pointer; }
+    .opcao span { display: flex; flex-direction: column; gap: 0.15rem; }
+    .opcao small { color: var(--text-muted); font-size: 0.82rem; }
     .center { text-align: center; }
     .inscritos { list-style: none; display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.6rem 0 0; padding: 0; }
     .chip { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.7rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-alt); font-weight: 600; font-size: 0.85rem; font-family: inherit; color: var(--text); }
@@ -474,6 +506,11 @@ export class IsolateusProjetorPage {
 
   protected readonly minReais = MIN_REAIS;
   protected readonly ocupado = signal(false);
+  /**
+   * Opção do lobby: local ao telão até o clique em "Iniciar" (vai no próprio
+   * Despertar — nada a sincronizar enquanto a sala enche).
+   */
+  protected readonly debateHabilitado = signal(true);
   protected readonly erro = signal<string | null>(null);
   protected readonly assistencia = signal(false);
   /** Confirmação do encerramento antecipado — a ação não tem volta. */
@@ -484,6 +521,15 @@ export class IsolateusProjetorPage {
 
   private readonly relogio = signal(Date.now());
   private readonly cronometro = new RelogioDaFase();
+
+  /**
+   * A fase tem relógio correndo? Sem base (`faseIniciadaEm` nulo) o número
+   * ficaria congelado no limite — melhor não exibir timer nenhum do que um
+   * "15s" parado que parece a partida travada.
+   */
+  protected readonly relogioAtivo = computed(
+    () => !!this.partida()?.faseIniciadaEm && this.limiteDaFase() > 0,
+  );
 
   /** Segundos restantes da fase cronometrada corrente. */
   protected readonly restante = computed(() => {
@@ -518,7 +564,14 @@ export class IsolateusProjetorPage {
     () => this.partida()?.status === 'DESLOCAMENTO',
   );
 
-  /** Os setores com a contagem de quem está em cada um (visão onisciente). */
+  /**
+   * Os setores com a contagem de quem está em cada um (visão onisciente).
+   *
+   * Durante a noite, a contagem fica como estava ao anoitecer: as posições só
+   * chegam ao doc público no fechamento, todas de uma vez. Ao vivo, ela mudava
+   * enquanto os alunos andavam — e o projetor contava à turma que quem se mexeu
+   * era real, já que os NPCs só andam no fechamento.
+   */
   protected setoresComGente(p: IsolateusMatch) {
     return p.setores.map((s) => ({
       ...s,
@@ -605,10 +658,36 @@ export class IsolateusProjetorPage {
   }
 
   protected iniciar(): void {
-    this.acao(this.api.iniciar(this.matchId));
+    this.acao(
+      this.api.iniciar(this.matchId, {
+        debateHabilitado: this.debateHabilitado(),
+      }),
+    );
   }
-  protected proxima(): void {
-    this.acao(this.api.proxima(this.matchId));
+  /** O rótulo do pulo na fase corrente; `null` = fase sem cronômetro. */
+  protected rotuloPular(p: IsolateusMatch): string | null {
+    switch (p.status) {
+      case 'DESLOCAMENTO':
+        return 'Pular noite';
+      case 'QUESTAO_ATIVA':
+        return 'Encerrar questão';
+      case 'RESULTADO_RODADA':
+        return this.ultimaNoite(p) ? 'Encerrar e ver o veredito' : 'Adiantar noite';
+      case 'QUARENTENA_DEBATE':
+        return 'Pular debate';
+      case 'QUARENTENA_VOTO':
+        return 'Encerrar votação';
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Pula o tempo restante. Manda a fase exibida: se a partida já virou (o
+   * relógio zerou no mesmo instante), o servidor ignora o clique atrasado.
+   */
+  protected pular(p: IsolateusMatch): void {
+    this.acao(this.api.pularFase(this.matchId, p.status));
   }
   /** O sinal da aula bateu: a investigação termina onde está. */
   protected encerrar(): void {

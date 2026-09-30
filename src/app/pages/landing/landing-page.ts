@@ -207,8 +207,9 @@ const DESLIZADO = ['02 mar', '09 mar', '23 mar', '30 mar', '06 abr'];
           <h2>A revisão da matéria vira uma guerra épica</h2>
           <p>
             Divida a turma em equipes: cada uma defende um castelo. Acertar
-            letras carrega o ataque, arriscar a palavra derruba o rival e as
-            dicas geradas por IA mantêm todo mundo no jogo. Castelos caem, mas
+            letras carrega o ataque, arriscar a palavra cura o seu castelo ou
+            lança a catapulta no rival e as dicas geradas por IA mantêm todo
+            mundo no jogo. Castelos caem, mas
             ninguém é eliminado — quem perde vira Usurpador e volta pra briga.
           </p>
           <a class="feature__cta btn-wor" routerLink="/cadastro">Forjar sua primeira batalha</a>
