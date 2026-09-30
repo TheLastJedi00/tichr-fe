@@ -69,11 +69,12 @@ import { RegrasJogoView } from '../../ui/regras-jogo/regras-jogo';
       </article>
       <article class="passo">
         <span class="passo__ic"><app-icon name="radio" [size]="24" /></span>
-        <h2>A Guerra de Frequências</h2>
+        <h2>Os Poderes Alienígenas</h2>
         <p>
-          O infiltrado conhece a resposta certa e transmite argumentos falsos sob
-          nome alheio. Quem foi abduzido continua jogando e pode mandar sinais
-          anônimos para salvar a vila.
+          Se o infiltrado acertar a questão, ganha um poder: controlar outro
+          habitante, contagiar um colega ou embaralhar os nomes da vila. Quem foi
+          abduzido continua jogando e pode mandar sinais anônimos para salvar a
+          vila.
         </p>
       </article>
     </section>

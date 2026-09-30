@@ -60,7 +60,9 @@ const WOR: RegrasJogo = {
       titulo: 'Risco Heroico',
       itens: [
         'A qualquer momento do seu turno você pode arriscar a palavra inteira.',
-        'Acertou: seu castelo recupera 400 de HP e a onda avança na hora.',
+        'Acertou: a onda avança na hora e quem arriscou escolhe a recompensa da equipe —',
+        'Recuperar HP: seu castelo recupera 400 de HP.',
+        'Catapulta: 300 de dano no castelo rival que você escolher (se o HP dele zerar, ele vira Horda).',
         'Errou: seu PRÓPRIO castelo sofre 200 de Dano Crítico.',
       ],
     },
@@ -84,7 +86,8 @@ const WOR: RegrasJogo = {
   recompensas: [
     { acao: 'Ataque ao castelo rival', valor: '+100', detalhe: 'os pontos vão para a equipe atacante' },
     { acao: 'Ataque perfeito (equipe inteira acertou)', valor: '+200', detalhe: 'equipes de 2 ou mais membros' },
-    { acao: 'Risco Heroico certeiro (ou Invasão da Horda)', valor: '+300', detalhe: 'além de curar 400 de HP ou roubar o castelo' },
+    { acao: 'Risco Heroico certeiro (ou Invasão da Horda)', valor: '+300', detalhe: 'além de curar 400 de HP, disparar a Catapulta ou roubar o castelo' },
+    { acao: 'Catapulta no castelo rival', valor: '+300', detalhe: 'o dano causado vira pontos, além do bônus do Risco Heroico' },
     { acao: 'Castelo de pé no fim da batalha', valor: '+1 por HP restante', detalhe: 'terminar intacto vale até +1000' },
     { acao: 'Comprar dica', valor: '0', detalhe: 'sacrifica o ataque da rodada em troca de uma carta' },
     { acao: 'Errar a letra ou o Risco Heroico', valor: '0', detalhe: 'errar o risco ainda custa 200 de HP' },
@@ -140,14 +143,24 @@ const ISOLATEUS: RegrasJogo = {
         'A vila é avisada do ataque e todos respondem à questão da rodada para defender o setor.',
         'Se a maioria acertar, a defesa resiste e nada acontece. Se a maioria errar, o ataque se concretiza e a Barra de Esperança cai.',
         'Como os Habitantes Virtuais votam ao acaso, empates são desempatados pelo consenso dos jogadores reais — o Instinto Humano.',
+        'O voto da Ameaça não conta na defesa: ela responde e pontua como todos, mas não decide o resultado.',
+        'Durante a noite, só você sabe para onde andou: o mapa da vila só mostra as posições novas quando a noite termina.',
       ],
     },
     {
-      titulo: 'A Guerra de Frequências',
+      titulo: 'Os Poderes Alienígenas',
       itens: [
-        'Durante a questão, um chat de rumores corre na tela.',
-        'A Ameaça conhece a resposta certa e pode transmitir um argumento falso, assinado com o nome de um Habitante Virtual.',
-        'Quem já foi abduzido continua respondendo e pode mandar um Sinal de Rádio anônimo tentando salvar a vila.',
+        'Se a Ameaça acertar a questão do dia, ganha um poder — um por acerto, válido até o fim da noite seguinte.',
+        'Controle Mental: na noite seguinte, as jogadas dela partem do setor de outro habitante, que não fica sabendo. Se a vila prender o controlado, prende um inocente.',
+        'Contágio: um aluno real, sorteado, vira uma Ameaça também — com jogada própria toda noite. A Esperança cai a cada contágio, sem aviso. Só a Ameaça original contagia.',
+        'Delírio Coletivo: todos os habitantes trocam de nome entre si. O Diário avisa, mas não diz quem causou.',
+        'Com mais de uma Ameaça, a vila só vence quando prender todas.',
+      ],
+    },
+    {
+      titulo: 'Sinais de Rádio',
+      itens: [
+        'Quem já foi abduzido ou preso continua respondendo e pode mandar um Sinal de Rádio anônimo durante a questão, tentando salvar a vila.',
       ],
     },
     {
@@ -155,8 +168,10 @@ const ISOLATEUS: RegrasJogo = {
       itens: [
         'Depois de cada noite, a vila pode convocar a Quarentena — uma por rodada.',
         'Abre um debate cronometrado e, em seguida, a votação no suspeito.',
+        'O professor pode desligar o debate antes de iniciar a partida: aí a Quarentena vai direto para a votação.',
         'Quem já se decidiu pode pular o debate: se todos pularem, a votação começa na hora.',
-        'Trancou a Ameaça: a invasão é contida e a Vila vence na hora.',
+        'O professor controla o ritmo pelo telão: ele pode pular o tempo restante de qualquer etapa — noite, questão, debate ou votação — e o jogo segue como se o relógio tivesse zerado.',
+        'Trancou a Ameaça: a invasão é contida e a Vila vence na hora — ou, se o Contágio deixou outra solta, a partida segue.',
         'Trancou um inocente: a Esperança sofre dano severo e a identidade do preso continua em segredo.',
       ],
     },
@@ -164,7 +179,7 @@ const ISOLATEUS: RegrasJogo = {
       titulo: 'Fim de partida',
       itens: [
         'A Ameaça vence se zerar a Esperança, abduzir mais da metade da vila ou destruir mais de 3 setores.',
-        'A Vila vence se prender a Ameaça, manter mais de 3 setores intactos ou resistir com mais da metade dos moradores.',
+        'A Vila vence se prender todas as Ameaças, manter mais de 3 setores intactos ou resistir com mais da metade dos moradores.',
         'O telão sempre mostra o motivo técnico da vitória.',
       ],
     },

@@ -18,6 +18,48 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.30.0',
+    data: '2026-09-29',
+    titulo: 'Poderes Alienígenas e a Catapulta',
+    itens: [
+      {
+        categoria: 'Correção',
+        texto:
+          'No Tichr Isolateus, a noite volta a cair sozinha depois que a vila prende um inocente. Antes, o cronômetro de 15 segundos travava e a partida só andava quando o professor clicava em "Adiantar noite".',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Poderes Alienígenas no Isolateus: o voto da Ameaça não conta mais na defesa da vila, e, se ela acertar a questão, ganha um poder — Controle Mental (age a partir do setor de outro habitante, que não fica sabendo), Contágio (um colega vira Ameaça também, e a Esperança cai em silêncio) ou Delírio Coletivo (a vila inteira troca de nome). Cada poder vem explicado na tela antes da escolha.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'O professor controla o ritmo do Isolateus pelo telão: dá para pular o tempo restante de qualquer etapa — noite, questão, debate ou votação — e o jogo segue como se o relógio tivesse zerado.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Antes de iniciar o Isolateus, o professor escolhe se haverá debate na Quarentena. Sem debate, a vila vai direto para a votação.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Mais segredo no Isolateus: para onde cada um anda só aparece no mapa quando a noite termina, e o chat de rumores saiu — as falas automáticas entregavam quem era habitante virtual. Os Sinais de Rádio dos abduzidos continuam.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Na mesma turma, ninguém volta a ser a Ameaça do Isolateus antes que todos os presentes tenham tido a vez.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Catapulta no Tichr Wor: quem arrisca a palavra escolhe a recompensa se acertar — recuperar 400 de HP do próprio castelo ou disparar 300 de dano num castelo rival.',
+      },
+    ],
+  },
+  {
     versao: 'v0.29.1',
     data: '2026-08-16',
     titulo: 'A noite do Isolateus destravou',

@@ -23,6 +23,7 @@ const ESTILO: Record<TipoAcontecimento, { icone: string; cor: string }> = {
   RESTAURADO: { icone: 'check', cor: 'bom' },
   REPARO_FALHOU: { icone: 'x', cor: 'ruim' },
   QUARENTENA: { icone: 'alert', cor: 'atencao' },
+  DELIRIO: { icone: 'dice', cor: 'atencao' },
   VEREDITO: { icone: 'lock', cor: 'atencao' },
   FIM: { icone: 'flag', cor: 'neutro' },
 };
