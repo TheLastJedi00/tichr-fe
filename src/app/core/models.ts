@@ -654,7 +654,8 @@ export type TipoAcaoGlobal =
   | 'CATAPULTA'
   | 'USURPACAO'
   | 'DANO_CRITICO'
-  | 'DICA';
+  | 'DICA'
+  | 'MODERACAO';
 
 /**
  * Ação de impacto narrada em todas as telas ao mesmo tempo. Chega por fan-out:
@@ -753,6 +754,22 @@ export interface ResumoRodada {
   porTempo?: boolean;
 }
 
+/** Mensagem do chat privado da equipe (`wor_chats/{canalId}`). */
+export interface MensagemChatWor {
+  id: string;
+  alunoId: string;
+  nome: string;
+  texto: string;
+  em: string;
+}
+
+export interface WorChat {
+  id: string;
+  matchId: string;
+  teamId: string;
+  mensagens: MensagemChatWor[];
+}
+
 export interface WorMatchView {
   match: WorMatch;
   teams: WorTeam[];
@@ -800,6 +817,8 @@ export type StatusIsolateus =
   | 'RESULTADO_RODADA'
   | 'QUARENTENA_DEBATE'
   | 'QUARENTENA_VOTO'
+  /** A turma acertou a questão do resgate e vota quem volta. */
+  | 'RESGATE_VOTO'
   | 'ENCERRADO';
 
 /**
@@ -873,6 +892,10 @@ export type TipoAcontecimento =
   | 'QUARENTENA'
   /** O Delírio Coletivo: todos trocaram de codinome (sem autor). */
   | 'DELIRIO'
+  /** O brilho misterioso das noites múltiplas de `cicloBrilho` (um por setor). */
+  | 'BRILHO'
+  /** O resgate pela Saúde: organizado, cancelado, fracassado ou concluído. */
+  | 'RESGATE'
   | 'VEREDITO'
   | 'FIM';
 
@@ -948,6 +971,20 @@ export interface IsolateusMatch {
    */
   debateHabilitado?: boolean;
   vereditoQuarentena?: VereditoQuarentena | null;
+  /** Quem convocou a Quarentena em curso (público: convocar à toa custa caro). */
+  quarentenaConvocadaPor?: { habitanteId: string; nome: string } | null;
+  /** Quem prendeu um inocente fica sem convocar até `ateRodada`. */
+  convocadorBloqueado?: { habitanteId: string; ateRodada: number } | null;
+  /** De quantas em quantas noites o brilho misterioso acontece (ausente = 3). */
+  cicloBrilho?: number;
+  /** O último brilho: a noite (`rodada`) e os setores que irradiaram. */
+  brilho?: { rodada: number; setorIds: string[] } | null;
+  /** Um resgate validado no amanhecer está em jogo na questão do dia. */
+  resgatePendente?: boolean;
+  /** Quantos já votaram no resgate (só a contagem). */
+  votosResgateRecebidos?: number;
+  /** Quem o último resgate trouxe de volta. */
+  resgateResultado?: { habitanteId: string; nome: string } | null;
   votosRecebidos: number;
   /** Quantos já pularam o debate — só a contagem; quem pulou é segredo. */
   pulosRecebidos?: number;

@@ -6,6 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { RealtimeService } from '../../core/realtime.service';
@@ -14,6 +15,7 @@ import { WorApiService } from '../../core/wor-api.service';
 import { FREEZE_MS, NarradorCards, cardNoAr } from '../../core/action-card';
 import {
   EfeitoRisco,
+  MensagemChatWor,
   PlacarEquipe,
   ResumoRodada,
   WorMatch,
@@ -25,6 +27,7 @@ import { Icon } from '../../ui/icon/icon';
 import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { Modal } from '../../ui/modal/modal';
 import { Spinner } from '../../ui/spinner/spinner';
+import { WorChat } from '../../ui/wor-chat/wor-chat';
 
 const LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const LIMITE_RODADA_S = 60;
@@ -41,7 +44,7 @@ const DANO_CATAPULTA = 300;
   selector: 'app-student-wor-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, Modal, LobbyLoader, Spinner, Confetti, ActionCard, RouterLink],
+  imports: [Icon, Modal, LobbyLoader, Spinner, Confetti, ActionCard, RouterLink, WorChat],
   template: `
     @if (narrador.card(); as c) {
       <app-action-card [card]="c" />
@@ -269,6 +272,27 @@ const DANO_CATAPULTA = 300;
       </app-modal>
     }
 
+    <!-- Chat privado da equipe: só os membros recebem o canal. -->
+    @if (canalId() && root()?.status !== 'LOBBY') {
+      <button class="chat-fab" type="button" (click)="abrirChat()" aria-label="Abrir o chat da equipe">
+        <app-icon name="chat" [size]="22" />
+        @if (naoLidas()) { <span class="chat-fab__badge">{{ naoLidas() > 9 ? '9+' : naoLidas() }}</span> }
+      </button>
+    }
+    @if (chatAberto()) {
+      <app-wor-chat
+        [mensagens]="mensagensChat()"
+        [alunoId]="alunoIdAtual"
+        [equipe]="team()?.nome ?? 'equipe'"
+        [enviando]="chatEnviando()"
+        [erro]="chatErro()"
+        [enviadas]="chatEnviadas()"
+        [somenteLeitura]="root()?.status === 'ENCERRADO'"
+        (enviar)="enviarChat($event)"
+        (fechar)="fecharChat()"
+      />
+    }
+
     <!-- Modal: quem atacou o seu castelo -->
     @if (danoModal(); as r) {
       <app-modal [open]="true" title="Seu castelo foi atacado!" (close)="danoModal.set(null)">
@@ -357,6 +381,8 @@ const DANO_CATAPULTA = 300;
     .alvos + .tichr-input, .efeitos + .tichr-input { margin-top: 0.75rem; }
     .aviso { margin: 0 0 0.75rem; color: var(--text-muted); }
     .aviso b { color: var(--text); }
+    .chat-fab { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 50; display: inline-flex; align-items: center; justify-content: center; width: 3.25rem; height: 3.25rem; border-radius: 999px; border: 2px solid var(--primary); background: var(--surface); color: var(--primary); box-shadow: 3px 3px 0 var(--border); cursor: pointer; }
+    .chat-fab__badge { position: absolute; top: -4px; right: -4px; min-width: 1.3rem; height: 1.3rem; padding: 0 0.3rem; border-radius: 999px; background: var(--danger); color: #fff; font-size: 0.7rem; font-weight: 800; line-height: 1.3rem; text-align: center; }
 
     /* Tema escuro: clareia os âmbares que ficariam escuros sobre fundo escuro. */
     :host-context(html[data-theme='dark']) {
@@ -375,6 +401,7 @@ export class StudentWorPage {
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly alunoId = this.studentAuth.aluno()?.id ?? '';
+  protected readonly alunoIdAtual = this.alunoId;
 
   protected readonly carregando = signal(true);
   protected readonly matchId = signal<string | null>(null);
@@ -396,6 +423,24 @@ export class StudentWorPage {
   /** Narração global (Action Cards) — chega pelo doc da própria equipe. */
   protected readonly narrador = new NarradorCards();
   private readonly relogio = signal(Date.now());
+
+  // ===== Chat da equipe =====
+  protected readonly canalId = signal<string | null>(null);
+  protected readonly mensagensChat = signal<MensagemChatWor[]>([]);
+  protected readonly chatAberto = signal(false);
+  protected readonly chatEnviando = signal(false);
+  protected readonly chatErro = signal<string | null>(null);
+  /** Conta os envios aceitos: o componente limpa o campo a cada mudança. */
+  protected readonly chatEnviadas = signal(0);
+  /** Instante da última mensagem já vista (as de antes de abrir a tela contam como vistas). */
+  private readonly vistoAte = signal<string | null>(null);
+  protected readonly naoLidas = computed(() => {
+    if (this.chatAberto()) return 0;
+    const visto = this.vistoAte() ?? '';
+    return this.mensagensChat().filter(
+      (m) => m.alunoId !== this.alunoId && m.em > visto,
+    ).length;
+  });
 
   protected readonly letras = LETRAS;
   private myTeamId: string | null = null;
@@ -584,6 +629,71 @@ export class StudentWorPage {
         // O card global chega pelo doc da própria equipe (o aluno só escuta este).
         this.narrador.receber(t.lastGlobalAction);
       });
+    this.conectarChat();
+  }
+
+  /** Pede o canal da equipe ao backend e passa a escutar o chat em tempo real. */
+  private conectarChat(): void {
+    const matchId = this.matchId();
+    if (!matchId || this.canalId()) return;
+    this.api.canalChat(matchId).subscribe({
+      next: ({ canalId }) => {
+        this.canalId.set(canalId);
+        let primeira = true;
+        this.realtime
+          .escutarChat(canalId)
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe((c) => {
+            const msgs = c?.mensagens ?? [];
+            // O histórico de antes de abrir a tela não acende o contador.
+            if (primeira) {
+              primeira = false;
+              this.vistoAte.set(msgs.at(-1)?.em ?? '');
+            }
+            this.mensagensChat.set(msgs);
+            if (this.chatAberto()) this.marcarVisto();
+          });
+      },
+      // Sem canal (ex.: aluno fora das equipes), a tela segue sem o chat.
+      error: () => undefined,
+    });
+  }
+
+  private marcarVisto(): void {
+    this.vistoAte.set(this.mensagensChat().at(-1)?.em ?? this.vistoAte());
+  }
+
+  protected abrirChat(): void {
+    this.chatErro.set(null);
+    this.chatAberto.set(true);
+    this.marcarVisto();
+  }
+
+  protected fecharChat(): void {
+    this.chatAberto.set(false);
+    this.marcarVisto();
+  }
+
+  protected enviarChat(texto: string): void {
+    const matchId = this.matchId();
+    if (!matchId) return;
+    this.chatEnviando.set(true);
+    this.chatErro.set(null);
+    this.api.enviarChat(matchId, texto).subscribe({
+      next: () => {
+        this.chatEnviando.set(false);
+        this.chatEnviadas.update((n) => n + 1);
+      },
+      error: (e: HttpErrorResponse) => {
+        this.chatEnviando.set(false);
+        // 422 (palavrão, já penalizado) e 429 (rajada) trazem a mensagem pronta.
+        const msg = (e.error as { message?: string } | null)?.message;
+        this.chatErro.set(
+          typeof msg === 'string' ? msg : 'Não foi possível enviar a mensagem.',
+        );
+        if (e.status === 422) this.chatEnviadas.update((n) => n + 1);
+      },
+    });
   }
 
   private flash(): void {

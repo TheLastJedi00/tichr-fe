@@ -79,6 +79,9 @@ export const MAPA: SetorMapa[] = [
  */
 export const SETOR_COMUNICACAO = 'comunicacao';
 
+/** De onde se organiza o resgate de quem saiu da vila (espelha o backend). */
+export const SETOR_SAUDE = 'saude';
+
 export function setorDoMapa(id: string): SetorMapa | undefined {
   return MAPA.find((s) => s.id === id);
 }
@@ -107,4 +110,44 @@ export function estradas(): Array<[SetorMapa, SetorMapa]> {
     }
   }
   return pares;
+}
+
+// ===== O brilho misterioso (025 §5) =====
+
+/** Espelha `ISOLATEUS.CICLO_BRILHO`, para partidas sem o campo `cicloBrilho`. */
+const CICLO_BRILHO_PADRAO = 3;
+
+interface FaseDaVila {
+  rodada: number;
+  status: string;
+  cicloBrilho?: number;
+  brilho?: { rodada: number; setorIds: string[] } | null;
+}
+
+/**
+ * Quantas noites faltam para o próximo brilho (`0` = esta noite). A `rodada` é
+ * 0-indexada (Noite = rodada + 1) e o brilho cai nas noites múltiplas do ciclo.
+ * Durante a noite de brilho, ela ainda conta; depois dela, o próximo é o do
+ * ciclo seguinte.
+ */
+export function noitesAteBrilho(p: FaseDaVila): number {
+  const ciclo = p.cicloBrilho || CICLO_BRILHO_PADRAO;
+  const noite = p.rodada + 1;
+  const resto = noite % ciclo;
+  if (p.status === 'DESLOCAMENTO') return resto === 0 ? 0 : ciclo - resto;
+  return ciclo - resto;
+}
+
+/** O contador do mapa público: "Brilho misterioso em X noites". */
+export function rotuloBrilho(p: FaseDaVila): string {
+  const n = noitesAteBrilho(p);
+  if (n === 0) return 'Brilho misterioso esta noite';
+  return `Brilho misterioso em ${n} ${n === 1 ? 'noite' : 'noites'}`;
+}
+
+/** Os setores que irradiaram na noite que acabou (só durante o dia dela). */
+export function setoresBrilhando(p: FaseDaVila): string[] {
+  if (!p.brilho || p.brilho.rodada !== p.rodada) return [];
+  if (p.status === 'DESLOCAMENTO') return [];
+  return p.brilho.setorIds;
 }

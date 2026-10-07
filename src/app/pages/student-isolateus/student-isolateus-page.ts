@@ -10,7 +10,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
 import { IsolateusApiService } from '../../core/isolateus-api.service';
-import { SETOR_COMUNICACAO } from '../../core/isolateus-mapa';
+import {
+  SETOR_COMUNICACAO,
+  SETOR_SAUDE,
+  rotuloBrilho,
+  setoresBrilhando,
+} from '../../core/isolateus-mapa';
 import { RelogioDaFase } from '../../core/isolateus-relogio';
 import { IsolateusMatch, PainelIsolateus, PoderAlienigena } from '../../core/models';
 import { RealtimeService } from '../../core/realtime.service';
@@ -20,7 +25,9 @@ import { Icon } from '../../ui/icon/icon';
 import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { IsolateusDiario } from '../../ui/isolateus-diario/isolateus-diario';
 import { IsolateusEvento } from '../../ui/isolateus-evento/isolateus-evento';
+import { IsolateusBrilho } from '../../ui/isolateus-brilho/isolateus-brilho';
 import { IsolateusMapa } from '../../ui/isolateus-mapa/isolateus-mapa';
+import { IsolateusPersonagem } from '../../ui/isolateus-personagem/isolateus-personagem';
 import { IsolateusSetor } from '../../ui/isolateus-setor/isolateus-setor';
 import { IsolateusTransicao } from '../../ui/isolateus-transicao/isolateus-transicao';
 import { Spinner } from '../../ui/spinner/spinner';
@@ -32,8 +39,11 @@ const LIMITE_DEBATE_S = 90;
 const LIMITE_VOTO_S = 60;
 const LIMITE_DESLOCAMENTO_S = 60;
 const JANELA_DECISAO_S = 15;
+const RESGATE_VOTO_S = 60;
 /** De quanto em quanto tempo o celular rebusca o painel (papel, codinome, fileira). */
 const PAINEL_POLL_MS = 4000;
+/** Quanto o aviso do brilho misterioso fica no ar. */
+const AVISO_BRILHO_MS = 6000;
 
 /**
  * Os três Poderes Alienígenas, descritos para a Ameaça escolher ciente do que
@@ -99,6 +109,8 @@ const CARDS_DE_PODER: ReadonlyArray<{
     IsolateusDiario,
     IsolateusTransicao,
     IsolateusEvento,
+    IsolateusPersonagem,
+    IsolateusBrilho,
   ],
   template: `
     @if (carregando()) {
@@ -112,6 +124,8 @@ const CARDS_DE_PODER: ReadonlyArray<{
             A vila está isolada no extremo norte. Luzes cortaram o céu e uma
             estrutura metálica afundou na floresta. Desde então, moradores
             desaparecem à noite. A ameaça já está aqui — disfarçada entre vocês.
+            E a cada 3 noites, um brilho misterioso irradia alguns setores da
+            vila, sem explicação.
           </p>
         </section>
 
@@ -144,38 +158,46 @@ const CARDS_DE_PODER: ReadonlyArray<{
           </div>
         }
       } @else if (revelando()) {
-        <!-- O Despertar -->
-        <section class="revelacao" [class.revelacao--ameaca]="ehAmeaca()">
-          <app-icon [name]="ehAmeaca() ? 'alien' : 'shield'" [size]="52" />
-          <strong>{{ ehAmeaca() ? 'Você é a Ameaça' : 'Você é um Aldeão' }}</strong>
+        <!--
+          O Despertar, IGUAL para todos (025 §4.1): o papel não aparece na tela
+          de ninguém sem pedir. Cor, ícone ou texto diferentes por papel seriam
+          lidos por quem senta ao lado.
+        -->
+        <section class="revelacao">
+          <app-icon name="user" [size]="52" />
+          <strong>A vila despertou</strong>
           <p class="revelacao__codinome">
-            Nesta vila, você é <b>{{ meuCodinome() }}</b>
+            Seu codinome é <b>{{ meuCodinomeExibido() }}</b>
           </p>
           <p>
-            @if (ehAmeaca()) {
-              Sabote os setores, abduza moradores e espalhe desinformação. Não
-              deixe que descubram você.
-            } @else {
-              Deduza quem é a ameaça e vote nas alternativas corretas para salvar
-              a vila.
-            }
+            Toque no seu personagem para ver o seu papel e as suas ações.
+            Discrição: ninguém precisa saber o que você é.
           </p>
         </section>
       } @else {
         <!-- Em jogo. A cinemática acompanha todas as fases, fora do switch. -->
         <app-isolateus-transicao [noite]="ehNoite()" />
         <app-isolateus-evento [acontecimentos]="p.acontecimentos ?? []" />
+        @if (avisoBrilho(); as nomes) {
+          <app-isolateus-brilho [setores]="nomes" (fechar)="avisoBrilho.set(null)" />
+        }
 
         <div class="jogo" [class.jogo--hackeada]="foraDaVila()">
-          @if (aviso(); as msg) {
-            <div class="aviso-papel" role="alert">
-              <app-icon name="alien" [size]="16" />
-              <span>
-                {{ msg }}
-                @if (meuHabitante(); as h) { Você é <b>{{ h.nome }}</b>. }
-              </span>
-              <button type="button" class="aviso-papel__x" aria-label="Fechar aviso" (click)="aviso.set(null)">
-                <app-icon name="close" [size]="14" />
+          <!-- O meu personagem: o codinome, com o olho para escondê-lo de quem espia. -->
+          @if (meuHabitante()) {
+            <div class="eu-chip">
+              <button class="eu-chip__nome" type="button" aria-label="Abrir meu personagem" (click)="abrirPersonagem()">
+                <app-icon name="user" [size]="16" /> <b>{{ meuCodinomeExibido() }}</b>
+                @if (novidadePersonagem()) { <span class="eu-chip__ponto" aria-hidden="true"></span> }
+              </button>
+              <button
+                class="eu-chip__olho"
+                type="button"
+                [attr.aria-pressed]="ocultarNome()"
+                [attr.aria-label]="ocultarNome() ? 'Mostrar meu codinome' : 'Ocultar meu codinome'"
+                (click)="alternarNome()"
+              >
+                <app-icon [name]="ocultarNome() ? 'eye-off' : 'eye'" [size]="16" />
               </button>
             </div>
           }
@@ -201,7 +223,7 @@ const CARDS_DE_PODER: ReadonlyArray<{
               } @else {
                 <div class="noite">
                   <div class="noite__topo">
-                    <span class="noite__tit">Noite {{ p.rodada + 1 }}</span>
+                    <span class="noite__tit">Noite {{ p.rodada + 1 }} · {{ contagemBrilho(p) }}</span>
                     <span class="timer timer--peq" [class.timer--fim]="restante() <= 5">
                       {{ restante() }}s
                     </span>
@@ -214,13 +236,18 @@ const CARDS_DE_PODER: ReadonlyArray<{
                       [reparoEm]="p.reparoSetorId ?? null"
                       [podeAndar]="!posicaoFeita()"
                       [noite]="true"
+                      [contagemBrilho]="contagemBrilho(p)"
                       (andarPara)="mover($event)"
+                      (selecionarProprio)="abrirPersonagem()"
                     />
                   } @else if (meuSetorObj(p); as s) {
                     <app-isolateus-setor
                       [setor]="s"
                       [habitantes]="habitantesDaNoite(p)"
                       [meuHabitanteId]="painel()?.habitanteId ?? ''"
+                      [ocultarMeuNome]="ocultarNome()"
+                      [meuPonto]="novidadePersonagem()"
+                      (selecionarProprio)="abrirPersonagem()"
                       [emReparo]="p.reparoSetorId === s.id"
                       [podeAndar]="!posicaoFeita()"
                       [noite]="true"
@@ -234,6 +261,7 @@ const CARDS_DE_PODER: ReadonlyArray<{
                     {{ verMapa() ? 'Voltar ao meu setor' : 'Ver o mapa da vila' }}
                   </button>
 
+                  <p class="muted center">Toque no seu personagem para ver o seu papel e as suas ações.</p>
                   @if (posicaoFeita()) {
                     <p class="muted center">
                       Posição fechada. Aguardando a vila…
@@ -244,107 +272,13 @@ const CARDS_DE_PODER: ReadonlyArray<{
                       <button class="btn-iso" type="button" [disabled]="enviando()" (click)="ficar()">
                         Ficar onde estou
                       </button>
-                      @if (podeReparar(p)) {
-                        <button class="btn-reparo" type="button" [disabled]="enviando()" (click)="reparar()">
-                          <app-icon name="sparkles" [size]="16" /> Organizar o reparo
-                        </button>
-                      }
                     </div>
                   }
                   <!-- A Ameaça vê o erro dentro do painel dela, enquanto ele existe. -->
-                  @if (erro() && (!ehAmeaca() || acaoFeita())) {
+                  @if (erro() && !personagemAberto()) {
                     <p class="aviso">{{ erro() }}</p>
                   }
 
-                  <!--
-                    A jogada da Ameaça vive FORA do bloco de deslocamento: ela
-                    ataca antes ou depois de andar, na ordem que quiser. Aninhado
-                    aqui dentro, o painel sumia assim que ela se deslocava — e o
-                    alienígena passava a noite sem jogada.
-                  -->
-                  @if (ehAmeaca()) {
-                    @if (acaoFeita()) {
-                      <p class="muted center">
-                        Jogada enviada. Ninguém saberá que foi você.
-                      </p>
-                    } @else {
-                      <section class="turno">
-                        <h2 class="turno__tit">Sua jogada, Ameaça</h2>
-                        @if (painel()?.aliados?.length) {
-                          <p class="aliadas">
-                            <app-icon name="alien" [size]="14" />
-                            Suas aliadas: <b>{{ painel()!.aliados!.join(', ') }}</b>
-                          </p>
-                        }
-                        @if (painel()?.controle; as c) {
-                          <p class="controle">
-                            <app-icon name="radio" [size]="14" />
-                            Controle Mental: esta noite você age através de
-                            <b>{{ c.nome }}</b>, do setor onde ele estiver.
-                          </p>
-                        }
-                        @if (!escolhendoSetor()) {
-                          <p class="muted">
-                            Você age {{ painel()?.controle ? 'de onde o controlado está' : 'onde está' }}.
-                            Ninguém saberá que foi você — mas o que você atingir dirá
-                            de onde partiu o ataque.
-                          </p>
-                          <div class="alvos">
-                            @if (setorDeAcaoObj(p); as s) {
-                              @if (s.intacto) {
-                                <button class="alvo" type="button" [disabled]="enviando()" (click)="sabotar()">
-                                  <app-icon name="rachadura" [size]="16" /> Sabotar {{ s.nome }}
-                                </button>
-                              }
-                            }
-                            <button class="alvo alvo--abd" type="button" [disabled]="enviando()" (click)="escolhendoSetor.set(true)">
-                              <app-icon name="nave" [size]="16" /> Abduzir
-                            </button>
-                            <button class="alvo" type="button" [disabled]="enviando()" (click)="aguardar()">
-                              <app-icon name="moon" [size]="16" /> Passar a noite
-                            </button>
-                          </div>
-                        } @else {
-                          <p class="muted">
-                            Escolha um setor para arriscar uma <b>abdução às cegas</b> —
-                            você não sabe quem está lá. Ou aja no <b>seu setor</b>, onde
-                            você enxerga cada habitante.
-                          </p>
-                          <app-isolateus-mapa
-                            [setores]="p.setores"
-                            [meuSetor]="meuSetor(p)"
-                            [reparoEm]="null"
-                            [noite]="true"
-                          />
-                          <div class="alvos">
-                            @for (s of p.setores; track s.id) {
-                              @if (s.id !== setorDeAcao(p)) {
-                                <button class="alvo alvo--abd" type="button" [disabled]="enviando()" (click)="abduzirAsCegas(s.id)">
-                                  <app-icon name="nave" [size]="14" /> {{ s.nome }}
-                                </button>
-                              }
-                            }
-                          </div>
-                          <span class="grupo__lbl">
-                            {{ painel()?.controle ? 'Com o controlado' : 'No seu setor' }}, você escolhe a vítima
-                          </span>
-                          <div class="alvos">
-                            @for (h of alvosPresenciais(p); track h.id) {
-                              <button class="alvo" type="button" [disabled]="enviando()" (click)="abduzirAqui(h.id)">
-                                <app-icon name="user" [size]="14" /> {{ h.nome }}
-                              </button>
-                            } @empty {
-                              <span class="muted">Ninguém ao seu alcance esta noite.</span>
-                            }
-                          </div>
-                          <button class="btn-mapa" type="button" (click)="escolhendoSetor.set(false)">
-                            Voltar
-                          </button>
-                        }
-                        @if (erro()) { <p class="aviso">{{ erro() }}</p> }
-                      </section>
-                    }
-                  }
                 </div>
               }
             }
@@ -355,16 +289,13 @@ const CARDS_DE_PODER: ReadonlyArray<{
                 <div class="alerta"><app-icon name="alert" [size]="16" /> {{ a.texto }}</div>
               }
 
+              @if (p.resgatePendente) {
+                <div class="resgate-tag"><app-icon name="coracao" [size]="16" /> Resgate em jogo: a maioria dos aldeões precisa acertar.</div>
+              }
               @if (p.questaoPublica; as q) {
                 <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div>
                 <h2 class="enunciado">{{ q.enunciado }}</h2>
 
-                @if (ehAmeaca()) {
-                  <p class="sabe">
-                    Seu voto não defende a vila — mas, se você acertar, ganha um
-                    <b>Poder Alienígena</b>.
-                  </p>
-                }
 
                 <div class="opts">
                   @for (alt of q.alternativas; track $index) {
@@ -451,7 +382,11 @@ const CARDS_DE_PODER: ReadonlyArray<{
                   [setor]="s"
                   [habitantes]="p.habitantes"
                   [meuHabitanteId]="painel()?.habitanteId ?? ''"
+                  [ocultarMeuNome]="ocultarNome()"
+                  [meuPonto]="novidadePersonagem()"
+                  (selecionarProprio)="abrirPersonagem()"
                   [emReparo]="false"
+                  [brilhando]="brilhando(p).includes(s.id)"
                   [podeAndar]="false"
                   [abduzindoId]="abduzindoNoMeuSetor(p)"
                 />
@@ -464,6 +399,9 @@ const CARDS_DE_PODER: ReadonlyArray<{
                     [setores]="p.setores"
                     [meuSetor]="meuSetor(p)"
                     [reparoEm]="null"
+                    [brilhoEm]="brilhando(p)"
+                    [contagemBrilho]="contagemBrilho(p)"
+                    (selecionarProprio)="abrirPersonagem()"
                   />
                 }
               }
@@ -497,6 +435,9 @@ const CARDS_DE_PODER: ReadonlyArray<{
 
             @case ('QUARENTENA_DEBATE') {
               <div class="qtag">Quarentena · Debate</div>
+              @if (p.quarentenaConvocadaPor; as c) {
+                <p class="muted center">Convocada por <b>{{ c.nome }}</b></p>
+              }
               <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div>
               <div class="feed feed--alto">
                 @for (m of p.debate; track m.id) {
@@ -538,6 +479,9 @@ const CARDS_DE_PODER: ReadonlyArray<{
 
             @case ('QUARENTENA_VOTO') {
               <div class="qtag">Quarentena · Veredito</div>
+              @if (p.quarentenaConvocadaPor; as c) {
+                <p class="muted center">Convocada por <b>{{ c.nome }}</b></p>
+              }
               <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div>
               @if (foraDaVila()) {
                 <p class="muted center">Quem saiu da vila não vota.</p>
@@ -549,8 +493,30 @@ const CARDS_DE_PODER: ReadonlyArray<{
                   @for (h of vivos(p); track h.id) {
                     <button class="suspeito" type="button" [disabled]="enviando()" (click)="votar(h.id)">
                       <app-icon name="user" [size]="16" />
-                      {{ h.nome }}
+                      {{ h.id === painel()?.habitanteId ? meuCodinomeExibido() : h.nome }}
                       @if (h.id === painel()?.habitanteId) { <span class="eu">você</span> }
+                    </button>
+                  }
+                </div>
+              }
+            }
+
+            @case ('RESGATE_VOTO') {
+              <div class="qtag qtag--resgate">Resgate · Quem volta?</div>
+              <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div>
+              @if (foraDaVila()) {
+                <p class="muted center">Quem saiu da vila não vota. Torça para ser escolhido!</p>
+              } @else if (voteiResgate()) {
+                <p class="muted center">
+                  Voto depositado. Aguardando os outros habitantes…
+                  ({{ p.votosResgateRecebidos ?? 0 }} votaram)
+                </p>
+              } @else {
+                <p class="muted center">A vila acertou! Toque em quem deve voltar.</p>
+                <div class="suspeitos">
+                  @for (h of resgataveis(p); track h.id) {
+                    <button class="suspeito suspeito--resgate" type="button" [disabled]="enviando()" (click)="votarResgate(h.id)">
+                      <app-icon name="coracao" [size]="16" /> {{ h.nome }}
                     </button>
                   }
                 </div>
@@ -579,58 +545,205 @@ const CARDS_DE_PODER: ReadonlyArray<{
             }
           }
 
-          <!--
-            O Poder Alienígena: a Ameaça que acertou a questão escolhe um dos
-            três, ciente do que cada um faz. Fica à mão da janela de decisão até
-            o fim da noite seguinte — depois disso, o servidor o descarta.
-          -->
-          @if (poderDisponivel(p); as opcoes) {
-            <section class="poderes">
-              <h2 class="poderes__tit">
-                <app-icon name="alien" [size]="18" /> Você acertou: escolha um Poder Alienígena
-              </h2>
-              @if (escolhendoControle()) {
-                <p class="muted">Escolha o habitante que você vai controlar na próxima noite.</p>
-                <div class="alvos">
-                  @for (h of controlaveis(p); track h.id) {
-                    <button class="alvo" type="button" [disabled]="enviando()" (click)="usarPoder('CONTROLE', h.id)">
-                      <app-icon name="user" [size]="14" /> {{ h.nome }}
-                    </button>
-                  } @empty {
-                    <span class="muted">Não há ninguém para controlar.</span>
-                  }
-                </div>
-                <button class="btn-mapa" type="button" (click)="escolhendoControle.set(false)">Voltar</button>
-              } @else {
-                <div class="poderes__lista">
-                  @for (card of cardsDePoder; track card.id) {
-                    <article class="poder" [class.poder--off]="!opcoes[card.id]">
-                      <strong class="poder__nome">{{ card.nome }}</strong>
-                      <p class="poder__txt">{{ card.texto }}</p>
-                      <p class="poder__meta">
-                        <span><b>Dura:</b> {{ card.duracao }}</span>
-                        <span><b>A vila vê:</b> {{ card.vilaVe }}</span>
-                      </p>
-                      @if (opcoes[card.id]) {
-                        <button class="btn-iso" type="button" [disabled]="enviando()" (click)="escolherPoder(card.id)">
-                          Usar {{ card.nome }}
-                        </button>
-                      } @else {
-                        <span class="muted">{{ card.indisponivel }}</span>
-                      }
-                    </article>
-                  }
-                </div>
-              }
-              @if (erroPoder()) { <p class="aviso">{{ erroPoder() }}</p> }
-            </section>
-          }
 
           <!-- O Diário acompanha a partida inteira, em qualquer fase. -->
           @if (p.acontecimentos?.length) {
             <app-isolateus-diario class="diario" [acontecimentos]="p.acontecimentos" />
           }
         </div>
+
+        <!--
+          O popup do personagem (025 §4): papel e ações saem da tela principal.
+          Abre para TODOS ao tocar no próprio personagem, com o mesmo visual;
+          só o texto do papel muda de cor.
+        -->
+        @if (personagemAberto() && painel(); as pn) {
+          <app-isolateus-personagem
+            [papel]="pn.papel"
+            [codinome]="meuCodinomeExibido()"
+            (fechar)="fecharPersonagem()"
+          >
+            @if (pn.papel === 'AMEACA') {
+              <p class="sabe">
+                Seu voto na questão não defende a vila — mas, se você acertar,
+                ganha um <b>Poder Alienígena</b>.
+              </p>
+            }
+            @if (aviso(); as msg) {
+              <div class="aviso-papel" role="alert">
+                <app-icon name="alien" [size]="16" />
+                <span>
+                  {{ msg }}
+                  @if (meuHabitante()) { Você é <b>{{ meuCodinomeExibido() }}</b>. }
+                </span>
+                <button type="button" class="aviso-papel__x" aria-label="Fechar aviso" (click)="aviso.set(null)">
+                  <app-icon name="close" [size]="14" />
+                </button>
+              </div>
+            }
+            @if (p.status === 'DESLOCAMENTO' && !foraDaVila()) {
+              @if (!posicaoFeita()) {
+                @if (podeReparar(p)) {
+                  <button class="btn-reparo" type="button" [disabled]="enviando()" (click)="reparar()">
+                    <app-icon name="sparkles" [size]="16" /> Organizar o reparo
+                  </button>
+                }
+              }
+              @if (podeResgatar(p)) {
+                <button class="btn-resgate" type="button" [disabled]="enviando()" (click)="resgatar()">
+                  <app-icon name="coracao" [size]="16" /> Organizar resgate
+                </button>
+                <p class="muted">
+                  Precisa de pelo menos 2 habitantes na Saúde ao amanhecer. Se a
+                  maioria dos aldeões acertar a questão, a vila escolhe quem volta.
+                </p>
+              } @else if (resgateOrganizado()) {
+                <p class="muted">Resgate organizado. Ele vale se a Saúde reunir gente ao amanhecer.</p>
+              }
+              <!--
+                A jogada da Ameaça vive FORA do bloco de deslocamento: ela
+                ataca antes ou depois de andar, na ordem que quiser. Aninhado
+                aqui dentro, o painel sumia assim que ela se deslocava — e o
+                alienígena passava a noite sem jogada.
+              -->
+              @if (ehAmeaca()) {
+                @if (acaoFeita()) {
+                  <p class="muted center">
+                    Jogada enviada. Ninguém saberá que foi você.
+                  </p>
+                } @else {
+                  <section class="turno">
+                    <h2 class="turno__tit">Sua jogada, Ameaça</h2>
+                    @if (painel()?.aliados?.length) {
+                      <p class="aliadas">
+                        <app-icon name="alien" [size]="14" />
+                        Suas aliadas: <b>{{ painel()!.aliados!.join(', ') }}</b>
+                      </p>
+                    }
+                    @if (painel()?.controle; as c) {
+                      <p class="controle">
+                        <app-icon name="radio" [size]="14" />
+                        Controle Mental: esta noite você age através de
+                        <b>{{ c.nome }}</b>, do setor onde ele estiver.
+                      </p>
+                    }
+                    @if (!escolhendoSetor()) {
+                      <p class="muted">
+                        Você age {{ painel()?.controle ? 'de onde o controlado está' : 'onde está' }}.
+                        Ninguém saberá que foi você — mas o que você atingir dirá
+                        de onde partiu o ataque.
+                      </p>
+                      <div class="alvos">
+                        @if (setorDeAcaoObj(p); as s) {
+                          @if (s.intacto) {
+                            <button class="alvo" type="button" [disabled]="enviando()" (click)="sabotar()">
+                              <app-icon name="rachadura" [size]="16" /> Sabotar {{ s.nome }}
+                            </button>
+                          }
+                        }
+                        <button class="alvo alvo--abd" type="button" [disabled]="enviando()" (click)="escolhendoSetor.set(true)">
+                          <app-icon name="nave" [size]="16" /> Abduzir
+                        </button>
+                        <button class="alvo" type="button" [disabled]="enviando()" (click)="aguardar()">
+                          <app-icon name="moon" [size]="16" /> Passar a noite
+                        </button>
+                      </div>
+                    } @else {
+                      <p class="muted">
+                        Escolha um setor para arriscar uma <b>abdução às cegas</b> —
+                        você não sabe quem está lá. Ou aja no <b>seu setor</b>, onde
+                        você enxerga cada habitante.
+                      </p>
+                      <app-isolateus-mapa
+                        [setores]="p.setores"
+                        [meuSetor]="meuSetor(p)"
+                        [reparoEm]="null"
+                        [noite]="true"
+                      />
+                      <div class="alvos">
+                        @for (s of p.setores; track s.id) {
+                          @if (s.id !== setorDeAcao(p)) {
+                            <button class="alvo alvo--abd" type="button" [disabled]="enviando()" (click)="abduzirAsCegas(s.id)">
+                              <app-icon name="nave" [size]="14" /> {{ s.nome }}
+                            </button>
+                          }
+                        }
+                      </div>
+                      <span class="grupo__lbl">
+                        {{ painel()?.controle ? 'Com o controlado' : 'No seu setor' }}, você escolhe a vítima
+                      </span>
+                      <div class="alvos">
+                        @for (h of alvosPresenciais(p); track h.id) {
+                          <button class="alvo" type="button" [disabled]="enviando()" (click)="abduzirAqui(h.id)">
+                            <app-icon name="user" [size]="14" /> {{ h.nome }}
+                          </button>
+                        } @empty {
+                          <span class="muted">Ninguém ao seu alcance esta noite.</span>
+                        }
+                      </div>
+                      <button class="btn-mapa" type="button" (click)="escolhendoSetor.set(false)">
+                        Voltar
+                      </button>
+                    }
+                    @if (erro()) { <p class="aviso">{{ erro() }}</p> }
+                  </section>
+                }
+              }
+            }
+            <!--
+              O Poder Alienígena: a Ameaça que acertou a questão escolhe um dos
+              três, ciente do que cada um faz. Fica à mão da janela de decisão até
+              o fim da noite seguinte — depois disso, o servidor o descarta.
+            -->
+            @if (poderDisponivel(p); as opcoes) {
+              <section class="poderes">
+                <h2 class="poderes__tit">
+                  <app-icon name="alien" [size]="18" /> Você acertou: escolha um Poder Alienígena
+                </h2>
+                @if (escolhendoControle()) {
+                  <p class="muted">Escolha o habitante que você vai controlar na próxima noite.</p>
+                  <div class="alvos">
+                    @for (h of controlaveis(p); track h.id) {
+                      <button class="alvo" type="button" [disabled]="enviando()" (click)="usarPoder('CONTROLE', h.id)">
+                        <app-icon name="user" [size]="14" /> {{ h.nome }}
+                      </button>
+                    } @empty {
+                      <span class="muted">Não há ninguém para controlar.</span>
+                    }
+                  </div>
+                  <button class="btn-mapa" type="button" (click)="escolhendoControle.set(false)">Voltar</button>
+                } @else {
+                  <div class="poderes__lista">
+                    @for (card of cardsDePoder; track card.id) {
+                      <article class="poder" [class.poder--off]="!opcoes[card.id]">
+                        <strong class="poder__nome">{{ card.nome }}</strong>
+                        <p class="poder__txt">{{ card.texto }}</p>
+                        <p class="poder__meta">
+                          <span><b>Dura:</b> {{ card.duracao }}</span>
+                          <span><b>A vila vê:</b> {{ card.vilaVe }}</span>
+                        </p>
+                        @if (opcoes[card.id]) {
+                          <button class="btn-iso" type="button" [disabled]="enviando()" (click)="escolherPoder(card.id)">
+                            Usar {{ card.nome }}
+                          </button>
+                        } @else {
+                          <span class="muted">{{ card.indisponivel }}</span>
+                        }
+                      </article>
+                    }
+                  </div>
+                }
+                @if (erroPoder()) { <p class="aviso">{{ erroPoder() }}</p> }
+              </section>
+            }
+            @if (erro() && !(ehAmeaca() && !acaoFeita() && p.status === 'DESLOCAMENTO')) {
+              <p class="aviso">{{ erro() }}</p>
+            }
+            @if (!temAcaoNoPersonagem(p)) {
+              <p class="muted center">Nenhuma ação disponível agora.</p>
+            }
+          </app-isolateus-personagem>
+        }
       }
     } @else {
       <section class="vazio">
@@ -662,7 +775,6 @@ const CARDS_DE_PODER: ReadonlyArray<{
       gap: 0.75rem; min-height: 60vh; text-align: center; border-radius: 18px; padding: 2rem 1.25rem;
       color: #fff; background: #2563eb; animation: pulsar 1.2s ease-in-out infinite;
     }
-    .revelacao--ameaca { background: #4d7c0f; }
     .revelacao strong { font-size: 1.6rem; font-weight: 900; }
     .revelacao p { margin: 0; max-width: 22rem; opacity: 0.95; line-height: 1.5; }
     /* O codinome é a segunda informação mais importante da tela, depois do papel. */
@@ -721,8 +833,20 @@ const CARDS_DE_PODER: ReadonlyArray<{
       cursor: pointer;
     }
     .btn-reparo:disabled { opacity: 0.6; cursor: not-allowed; }
+    /* O resgate: a outra ação de ganho, em vermelho-saúde. */
+    .btn-resgate { display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.6rem; font: inherit; font-weight: 800; color: #fff; background: #e11d48; border: 2px solid #9f1239; box-shadow: 3px 3px 0 #9f1239; cursor: pointer; }
+    .btn-resgate:disabled { opacity: 0.6; cursor: not-allowed; }
+    .resgate-tag { display: flex; align-items: center; gap: 0.4rem; padding: 0.55rem 0.8rem; border: 2px solid #e11d48; font-size: 0.85rem; font-weight: 800; color: #9f1239; background: var(--surface); }
+    .qtag--resgate { color: #e11d48; }
+    .suspeito--resgate:hover:not(:disabled) { border-color: #e11d48; color: #e11d48; }
 
     .diario { margin-top: 0.8rem; }
+    /* O meu personagem: o olho fica abaixo do nome (025 §3). */
+    .eu-chip { display: flex; flex-direction: column; align-items: center; gap: 0.15rem; align-self: center; }
+    .eu-chip__nome { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.8rem; border: 2px solid var(--border); background: var(--surface); font-size: 0.95rem; }
+    .eu-chip__nome { position: relative; font: inherit; color: var(--text); cursor: pointer; }
+    .eu-chip__ponto { position: absolute; top: -4px; right: -4px; width: 9px; height: 9px; border-radius: 999px; background: var(--danger); }
+    .eu-chip__olho { display: inline-flex; padding: 0.25rem; border: none; background: none; color: var(--text-muted); cursor: pointer; }
     @keyframes pulsar { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.25); } }
     @media (prefers-reduced-motion: reduce) { .revelacao { animation: none; } }
     .vazio { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; padding: 3rem 1rem; text-align: center; color: #4d7c0f; }
@@ -734,7 +858,7 @@ const CARDS_DE_PODER: ReadonlyArray<{
     .jogo--hackeada { padding: 0.75rem; border: 1px solid #4d7c0f; border-radius: 14px; background: color-mix(in srgb, #84cc16 6%, var(--surface)); }
     .hack { display: flex; align-items: center; gap: 0.45rem; padding: 0.5rem 0.7rem; border-radius: 10px; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; color: #1a2e05; background: #84cc16; }
     .turno { display: flex; flex-direction: column; gap: 0.5rem; }
-    .turno__tit { margin: 0; font-size: 1.2rem; font-weight: 900; color: #4d7c0f; }
+    .turno__tit { margin: 0; font-size: 1rem; font-weight: 700; color: var(--text); }
     .grupo__lbl { margin-top: 0.4rem; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
     .alvos { display: flex; flex-wrap: wrap; gap: 0.4rem; }
     .alvo { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.55rem 0.8rem; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); font: inherit; font-weight: 700; font-size: 0.85rem; color: var(--text); cursor: pointer; }
@@ -748,7 +872,9 @@ const CARDS_DE_PODER: ReadonlyArray<{
     .janela { display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
     .janela__lbl { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.75; }
     .enunciado { margin: 0; font-size: 1.15rem; font-weight: 800; text-align: center; }
-    .sabe { margin: 0; padding: 0.5rem 0.75rem; border-radius: 10px; font-size: 0.85rem; text-align: center; color: #1a2e05; background: color-mix(in srgb, #84cc16 35%, transparent); }
+    /* Texto comum, sem destaque: um card verde no popup chamava atenção de quem espia. */
+    .sabe { margin: 0; font-size: 0.85rem; text-align: center; color: var(--text-muted); }
+    .sabe b { font-weight: inherit; }
     .opts { display: grid; grid-template-columns: 1fr; gap: 0.5rem; }
     .opt { display: flex; align-items: center; gap: 0.6rem; padding: 0.9rem 1rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); font: inherit; font-weight: 600; text-align: left; color: var(--text); cursor: pointer; }
     .opt:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -772,7 +898,7 @@ const CARDS_DE_PODER: ReadonlyArray<{
     .aviso-papel { display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.75rem; padding: 0.75rem 0.9rem; border: 2px solid #84cc16; border-radius: 12px; background: var(--surface); font-size: 0.88rem; line-height: 1.45; }
     .aviso-papel span { flex: 1; }
     .aviso-papel__x { border: none; background: none; cursor: pointer; color: var(--text-muted); padding: 0; }
-    .aliadas, .controle { display: flex; align-items: center; gap: 0.35rem; margin: 0 0 0.5rem; font-size: 0.86rem; color: #4d7c0f; }
+    .aliadas, .controle { display: flex; align-items: center; gap: 0.35rem; margin: 0 0 0.5rem; font-size: 0.86rem; color: var(--text-muted); }
     .poderes { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem; padding: 1rem; border: 2px solid #84cc16; border-radius: 14px; background: var(--surface); }
     .poderes__tit { display: flex; align-items: center; gap: 0.4rem; margin: 0; font-size: 1rem; color: #4d7c0f; }
     .poderes__lista { display: grid; gap: 0.6rem; }
@@ -813,6 +939,51 @@ export class StudentIsolateusPage {
   protected readonly erro = signal('');
   /** Aviso que só o painel traz: fui contagiado, ou meu codinome mudou. */
   protected readonly aviso = signal<string | null>(null);
+  /**
+   * O olho: esconde o meu codinome da tela (cabeçalho, popup, fileira), para o
+   * colega ao lado não ler. Preferência por partida, guardada no aparelho.
+   */
+  protected readonly ocultarNome = signal(false);
+
+  /** O aviso do brilho misterioso (nomes dos setores), no ar por alguns segundos. */
+  protected readonly avisoBrilho = signal<string[] | null>(null);
+  /** A noite do último brilho já visto; `undefined` = ainda sem linha de base. */
+  private ultimoBrilho: number | null | undefined = undefined;
+  protected readonly contagemBrilho = rotuloBrilho;
+  protected readonly brilhando = setoresBrilhando;
+
+  /** O popup do personagem: papel e ações, só a pedido do aluno. */
+  protected readonly personagemAberto = signal(false);
+  /**
+   * O que o popup mostra, resumido. Muda a cada noite e a cada dia para TODOS
+   * (não só para a Ameaça): é isso que deixa o ponto de novidade neutro. Se
+   * ele só acendesse com poder ou jogada pendente, apontaria o infiltrado.
+   */
+  private readonly assinaturaPersonagem = computed(() => {
+    const p = this.partida();
+    const pn = this.painel();
+    if (!p || !pn) return '';
+    return JSON.stringify([
+      p.rodada,
+      p.status === 'DESLOCAMENTO' ? 'noite' : 'dia',
+      pn.papel,
+      pn.habitanteId,
+      pn.aliados ?? [],
+      pn.poder ?? null,
+      pn.controle?.habitanteId ?? null,
+      this.aviso(),
+    ]);
+  });
+  private readonly vistoPersonagem = signal('');
+  protected readonly novidadePersonagem = computed(
+    () =>
+      !this.personagemAberto() &&
+      !!this.assinaturaPersonagem() &&
+      this.assinaturaPersonagem() !== this.vistoPersonagem(),
+  );
+  protected readonly meuCodinomeExibido = computed(() =>
+    this.ocultarNome() ? '••••••' : (this.meuHabitante()?.nome ?? '—'),
+  );
   /** O professor removeu o aluno: ele some dos inscritos e volta ao registro. */
   protected readonly removido = signal(false);
 
@@ -851,6 +1022,10 @@ export class StudentIsolateusPage {
   protected readonly sinalTexto = signal('');
   protected readonly debateTexto = signal('');
   protected readonly votei = signal(false);
+  /** Votei em quem volta pelo resgate desta rodada (otimista). */
+  protected readonly voteiResgate = signal(false);
+  /** Organizei um resgate nesta noite (o cofre não devolve isso). */
+  protected readonly resgateOrganizado = signal(false);
   /** Pulei o debate desta Quarentena (otimista — o servidor é o juiz). */
   protected readonly jaPulei = signal(false);
   private readonly relogio = signal(Date.now());
@@ -898,6 +1073,7 @@ export class StudentIsolateusPage {
     if (p.status === 'RESULTADO_RODADA') return JANELA_DECISAO_S;
     if (p.status === 'QUARENTENA_DEBATE') return LIMITE_DEBATE_S;
     if (p.status === 'QUARENTENA_VOTO') return LIMITE_VOTO_S;
+    if (p.status === 'RESGATE_VOTO') return RESGATE_VOTO_S;
     return 0;
   }
 
@@ -1074,6 +1250,16 @@ export class StudentIsolateusPage {
     if (!radio?.intacto) {
       return 'O Setor de Comunicação está em ruínas. Reconstrua o rádio para convocar a Quarentena.';
     }
+    // Espelha o 403 CONVOCADOR_BLOQUEADO: quem prendeu um inocente fica uma
+    // rodada sem convocar.
+    const bloqueio = p.convocadorBloqueado;
+    if (
+      bloqueio &&
+      bloqueio.habitanteId === this.painel()?.habitanteId &&
+      bloqueio.ateRodada >= p.rodada
+    ) {
+      return 'Sua última Quarentena prendeu um inocente. Você poderá convocar de novo na próxima rodada.';
+    }
     return null;
   }
 
@@ -1081,6 +1267,46 @@ export class StudentIsolateusPage {
   protected podeReparar(p: IsolateusMatch): boolean {
     const s = this.meuSetorObj(p);
     return !!s && !s.intacto && !p.reparoSetorId;
+  }
+
+  /** Quem saiu da vila e pode voltar por um resgate: abduzidos e presos. */
+  protected resgataveis(p: IsolateusMatch) {
+    return p.habitantes.filter((h) => !h.vivo || h.preso);
+  }
+
+  /**
+   * O botão do resgate só existe para quem o servidor vai aceitar: na Saúde,
+   * com ela de pé e alguém para trazer de volta (espelha FORA_DA_SAUDE,
+   * SAUDE_EM_RUINAS e SEM_RESGATAVEIS).
+   */
+  protected podeResgatar(p: IsolateusMatch): boolean {
+    if (p.status !== 'DESLOCAMENTO' || this.foraDaVila() || this.resgateOrganizado()) return false;
+    const saude = p.setores.find((s) => s.id === SETOR_SAUDE);
+    return (
+      this.meuSetor(p) === SETOR_SAUDE &&
+      !!saude?.intacto &&
+      this.resgataveis(p).length > 0
+    );
+  }
+
+  protected resgatar(): void {
+    this.acaoDaNoite((id) => this.api.resgate(id), 'posicao', () =>
+      this.resgateOrganizado.set(true),
+    );
+  }
+
+  /** Otimista, como o voto da Quarentena: um voto por rodada. */
+  protected votarResgate(habitanteId: string): void {
+    if (!this.partidaId || this.voteiResgate() || this.enviando()) return;
+    this.enviando.set(true);
+    this.voteiResgate.set(true);
+    this.api.votarResgate(this.partidaId, habitanteId).subscribe({
+      next: () => this.enviando.set(false),
+      error: () => {
+        this.enviando.set(false);
+        this.voteiResgate.set(false);
+      },
+    });
   }
 
   protected mover(setorId: string): void {
@@ -1171,6 +1397,7 @@ export class StudentIsolateusPage {
         this.carregando.set(false);
         if (p && p.id !== this.partidaId) {
           this.partidaId = p.id;
+          this.ocultarNome.set(this.lerOcultarNome(p.id));
           this.partida.set(p);
           this.escutar(p.id);
         } else if (!p) {
@@ -1199,6 +1426,7 @@ export class StudentIsolateusPage {
   private reagir(p: IsolateusMatch): void {
     const anterior = this.partida();
     this.detectarAbducao(anterior, p);
+    this.detectarBrilho(p);
 
     // Removido no lobby: eu estava inscrito e sumi da lista.
     if (p.status === 'LOBBY' && this.jaEntrei && !this.inscrito(p)) {
@@ -1238,6 +1466,8 @@ export class StudentIsolateusPage {
       this.sinalTexto.set('');
       // Cabe uma Quarentena por rodada: a noite nova rearma o voto e o pulo.
       this.votei.set(false);
+      this.voteiResgate.set(false);
+      this.resgateOrganizado.set(false);
       this.abduzindoId.set(null);
       this.jaPulei.set(false);
       // E as duas decisões da noite voltam a ficar em aberto.
@@ -1280,13 +1510,74 @@ export class StudentIsolateusPage {
     });
   }
 
-  protected inscrito(p: IsolateusMatch): boolean {
-    return p.inscritos.some((i) => i.alunoId === this.meuId);
+  private chaveOcultarNome(partidaId: string): string {
+    return `isolateus:ocultarNome:${partidaId}`;
   }
 
-  /** O codinome de cidade sorteado para mim no Despertar. */
-  protected meuCodinome(): string {
-    return this.meuHabitante()?.nome ?? '—';
+  private lerOcultarNome(partidaId: string): boolean {
+    try {
+      return localStorage.getItem(this.chaveOcultarNome(partidaId)) === '1';
+    } catch {
+      return false;
+    }
+  }
+
+  protected abrirPersonagem(): void {
+    if (!this.painel()) return;
+    this.erro.set('');
+    this.personagemAberto.set(true);
+    this.vistoPersonagem.set(this.assinaturaPersonagem());
+  }
+
+  protected fecharPersonagem(): void {
+    this.personagemAberto.set(false);
+    this.vistoPersonagem.set(this.assinaturaPersonagem());
+    this.escolhendoSetor.set(false);
+    this.escolhendoControle.set(false);
+  }
+
+  /** Há algo para mostrar no popup além do papel? */
+  protected temAcaoNoPersonagem(p: IsolateusMatch): boolean {
+    if (this.aviso() || this.poderDisponivel(p)) return true;
+    if (p.status !== 'DESLOCAMENTO' || this.foraDaVila()) return false;
+    if (this.podeResgatar(p) || this.resgateOrganizado()) return true;
+    return this.ehAmeaca() || (!this.posicaoFeita() && this.podeReparar(p));
+  }
+
+  protected alternarNome(): void {
+    const novo = !this.ocultarNome();
+    this.ocultarNome.set(novo);
+    if (!this.partidaId) return;
+    try {
+      localStorage.setItem(this.chaveOcultarNome(this.partidaId), novo ? '1' : '0');
+    } catch {
+      // Sem armazenamento (aba anônima): vale só nesta sessão.
+    }
+  }
+
+  /**
+   * Um brilho novo acende o aviso. Entrar no meio da partida não reapresenta o
+   * último: o primeiro snapshot é só a linha de base, como no card de eventos.
+   */
+  private detectarBrilho(p: IsolateusMatch): void {
+    const noite = p.brilho?.rodada ?? null;
+    if (this.ultimoBrilho === undefined) {
+      this.ultimoBrilho = noite;
+      return;
+    }
+    if (noite === null || noite === this.ultimoBrilho) return;
+    this.ultimoBrilho = noite;
+    const nomes = (p.brilho?.setorIds ?? []).map(
+      (id) => p.setores.find((s) => s.id === id)?.nome ?? id,
+    );
+    this.avisoBrilho.set(nomes);
+    setTimeout(() => {
+      if (this.avisoBrilho() === nomes) this.avisoBrilho.set(null);
+    }, AVISO_BRILHO_MS);
+  }
+
+  protected inscrito(p: IsolateusMatch): boolean {
+    return p.inscritos.some((i) => i.alunoId === this.meuId);
   }
 
   protected entrar(): void {

@@ -542,16 +542,20 @@ type Ordenacao = 'nome' | 'pontuacao';
                     class="tichr-input qtd"
                     type="number"
                     min="1"
+                    [attr.max]="maxXp"
                     [value]="qtd()"
                     (input)="qtd.set(+$any($event.target).value)"
                   />
-                  <button class="btn-outline" type="button" [disabled]="pontuandoBusy()" (click)="aplicarPontos(-1)">
+                  <button class="btn-outline" type="button" [disabled]="pontuandoBusy() || !qtdValida()" (click)="aplicarPontos(-1)">
                     {{ cfg().rotuloRemover }}
                   </button>
-                  <button class="btn-primary" type="button" [disabled]="pontuandoBusy()" (click)="aplicarPontos(1)">
+                  <button class="btn-primary" type="button" [disabled]="pontuandoBusy() || !qtdValida()" (click)="aplicarPontos(1)">
                     {{ cfg().rotuloAdicionar }}
                   </button>
                 </div>
+                @if (qtd() > maxXp) {
+                  <small class="hint">Máximo de {{ maxXp }} por vez.</small>
+                }
               } @else {
                 <button class="btn-primary" type="button" (click)="upsellGamificacao.set(true)">
                   Desbloquear com o plano PhD
@@ -1012,6 +1016,12 @@ export class TurmaDetalhePage {
   protected readonly nomeEdit = signal('');
   protected readonly salvandoNome = signal(false);
   protected readonly qtd = signal(10);
+  /** Espelha o limite do backend (`DistribuirXpDto`): ±99999 por operação. */
+  protected readonly maxXp = 99999;
+  protected readonly qtdValida = computed(() => {
+    const q = Math.trunc(this.qtd());
+    return q >= 1 && q <= this.maxXp;
+  });
   protected readonly pontuandoBusy = signal(false);
 
   // Cargos e modo de atribuição.
@@ -1267,7 +1277,7 @@ export class TurmaDetalhePage {
   protected aplicarPontos(sinal: 1 | -1): void {
     const alvo = this.detalhe();
     const qtd = Math.abs(Math.trunc(this.qtd()));
-    if (!alvo || qtd <= 0) {
+    if (!alvo || qtd <= 0 || qtd > this.maxXp) {
       return;
     }
     this.pontuandoBusy.set(true);

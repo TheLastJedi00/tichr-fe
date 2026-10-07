@@ -31,6 +31,15 @@ service cloud.firestore {
       }
     }
 
+    // Chat privado de cada equipe do Wor. O id do doc é um UUID que o backend
+    // entrega só aos membros da equipe (o mapa equipe → canal fica em
+    // `wor_canais`, no deny-all). `get` liberado para quem sabe o id; `list`
+    // negado, para ninguém varrer a coleção e ler o chat das rivais.
+    match /wor_chats/{canalId} {
+      allow get: if true;
+      allow list, write: if false;
+    }
+
     // Tichr Isolateus: SÓ o documento da partida é público. Ele é montado para
     // não entregar o mistério — nele não há o Alienígena, nem a marca de quem é
     // NPC, nem a alternativa correta da questão no ar.
