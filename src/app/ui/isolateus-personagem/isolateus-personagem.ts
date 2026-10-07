@@ -47,7 +47,8 @@ import { Icon } from '../icon/icon';
     /* A única cor que muda entre os papéis — e só neste texto. */
     .papel--ameaca {
       color: transparent;
-      background: linear-gradient(90deg, #2563eb, #84cc16);
+      /* Quase todo azul: o verde só aparece no fim, como uma mancha que não se mostra inteira. */
+      background: linear-gradient(90deg, #2563eb, #2563eb, #2563eb, #84cc16);
       -webkit-background-clip: text;
       background-clip: text;
     }

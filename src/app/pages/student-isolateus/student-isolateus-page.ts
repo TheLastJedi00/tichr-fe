@@ -872,7 +872,9 @@ const CARDS_DE_PODER: ReadonlyArray<{
     .janela { display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
     .janela__lbl { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.75; }
     .enunciado { margin: 0; font-size: 1.15rem; font-weight: 800; text-align: center; }
-    .sabe { margin: 0; padding: 0.5rem 0.75rem; border-radius: 10px; font-size: 0.85rem; text-align: center; color: #1a2e05; background: color-mix(in srgb, #84cc16 35%, transparent); }
+    /* Texto comum, sem destaque: um card verde no popup chamava atenção de quem espia. */
+    .sabe { margin: 0; font-size: 0.85rem; text-align: center; color: var(--text-muted); }
+    .sabe b { font-weight: inherit; }
     .opts { display: grid; grid-template-columns: 1fr; gap: 0.5rem; }
     .opt { display: flex; align-items: center; gap: 0.6rem; padding: 0.9rem 1rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); font: inherit; font-weight: 600; text-align: left; color: var(--text); cursor: pointer; }
     .opt:disabled { opacity: 0.6; cursor: not-allowed; }
