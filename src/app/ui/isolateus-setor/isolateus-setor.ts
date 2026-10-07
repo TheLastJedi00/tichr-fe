@@ -42,8 +42,16 @@ import { Icon } from '../icon/icon';
             [class.hab--eu]="h.id === meuHabitanteId()"
             [class.hab--indo]="h.id === abduzindoId()"
             [style.--atraso]="i * 40 + 'ms'"
+            [attr.role]="h.id === meuHabitanteId() ? 'button' : null"
+            [attr.tabindex]="h.id === meuHabitanteId() ? 0 : null"
+            [attr.aria-label]="h.id === meuHabitanteId() ? 'Abrir meu personagem' : null"
+            (click)="h.id === meuHabitanteId() && selecionarProprio.emit()"
+            (keydown.enter)="h.id === meuHabitanteId() && selecionarProprio.emit()"
           >
-            <span class="hab__avatar"><app-icon name="user" [size]="16" /></span>
+            <span class="hab__avatar">
+              <app-icon name="user" [size]="16" />
+              @if (h.id === meuHabitanteId() && meuPonto()) { <span class="hab__ponto" aria-hidden="true"></span> }
+            </span>
             <span class="hab__nome">{{ h.id === meuHabitanteId() && ocultarMeuNome() ? MASCARA : h.nome }}</span>
           </span>
         } @empty {
@@ -124,6 +132,9 @@ import { Icon } from '../icon/icon';
       color: var(--primary, #2563eb);
     }
     .hab--eu .hab__avatar { color: var(--iso, #65a30d); background: rgba(101, 163, 13, 0.12); }
+    .hab--eu { cursor: pointer; }
+    .hab__avatar { position: relative; }
+    .hab__ponto { position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; border-radius: 999px; background: var(--danger); }
     .hab__nome { font-size: 0.6rem; font-weight: 700; max-width: 4.5rem; text-align: center; }
     /* A vítima subindo pelo feixe da nave. */
     .hab--indo { animation: abduzido 1.2s ease-in forwards; }
@@ -237,6 +248,8 @@ export class IsolateusSetor {
   readonly meuHabitanteId = input<string>('');
   /** O jogador escondeu o próprio codinome (o olho): o marcador "você" fica sem nome. */
   readonly ocultarMeuNome = input(false);
+  /** Ponto discreto no meu avatar: há novidade no meu popup. */
+  readonly meuPonto = input(false);
   protected readonly MASCARA = '••••••';
   readonly emReparo = input(false);
   readonly podeAndar = input(false);
@@ -245,6 +258,8 @@ export class IsolateusSetor {
   readonly abduzindoId = input<string | null>(null);
 
   readonly andarPara = output<string>();
+  /** Toquei no meu próprio avatar: a página abre o popup do personagem. */
+  readonly selecionarProprio = output<void>();
 
   protected readonly nome = computed(() => this.setor().nome);
   protected readonly intacto = computed(() => this.setor().intacto);

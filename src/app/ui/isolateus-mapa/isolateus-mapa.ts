@@ -43,9 +43,9 @@ import { Icon } from '../icon/icon';
           [class.setor--reparo]="s.emReparo"
           [class.setor--aqui]="s.aqui"
           [class.setor--alcancavel]="s.alcancavel"
-          [disabled]="!s.alcancavel"
+          [disabled]="!s.alcancavel && !s.aqui"
           [attr.aria-label]="rotulo(s)"
-          (click)="andarPara.emit(s.id)"
+          (click)="s.aqui ? selecionarProprio.emit() : andarPara.emit(s.id)"
         >
           <span class="setor__icone">
             <app-icon [name]="$any(s.icone)" [size]="26" />
@@ -166,6 +166,8 @@ export class IsolateusMapa {
   readonly noite = input(false);
 
   readonly andarPara = output<string>();
+  /** Toquei no "Você está aqui": a página abre o popup do personagem. */
+  readonly selecionarProprio = output<void>();
 
   protected readonly celulas = computed(() => {
     const estado = new Map(this.setores().map((s) => [s.id, s]));
