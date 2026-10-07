@@ -12,6 +12,7 @@ import { Observable } from 'rxjs';
 import { IsolateusApiService } from '../../core/isolateus-api.service';
 import {
   SETOR_COMUNICACAO,
+  SETOR_SAUDE,
   rotuloBrilho,
   setoresBrilhando,
 } from '../../core/isolateus-mapa';
@@ -38,6 +39,7 @@ const LIMITE_DEBATE_S = 90;
 const LIMITE_VOTO_S = 60;
 const LIMITE_DESLOCAMENTO_S = 60;
 const JANELA_DECISAO_S = 15;
+const RESGATE_VOTO_S = 60;
 /** De quanto em quanto tempo o celular rebusca o painel (papel, codinome, fileira). */
 const PAINEL_POLL_MS = 4000;
 /** Quanto o aviso do brilho misterioso fica no ar. */
@@ -285,6 +287,9 @@ const CARDS_DE_PODER: ReadonlyArray<{
                 <div class="alerta"><app-icon name="alert" [size]="16" /> {{ a.texto }}</div>
               }
 
+              @if (p.resgatePendente) {
+                <div class="resgate-tag"><app-icon name="coracao" [size]="16" /> Resgate em jogo: a maioria dos aldeões precisa acertar.</div>
+              }
               @if (p.questaoPublica; as q) {
                 <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div>
                 <h2 class="enunciado">{{ q.enunciado }}</h2>
@@ -494,6 +499,28 @@ const CARDS_DE_PODER: ReadonlyArray<{
               }
             }
 
+            @case ('RESGATE_VOTO') {
+              <div class="qtag qtag--resgate">Resgate · Quem volta?</div>
+              <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div>
+              @if (foraDaVila()) {
+                <p class="muted center">Quem saiu da vila não vota. Torça para ser escolhido!</p>
+              } @else if (voteiResgate()) {
+                <p class="muted center">
+                  Voto depositado. Aguardando os outros habitantes…
+                  ({{ p.votosResgateRecebidos ?? 0 }} votaram)
+                </p>
+              } @else {
+                <p class="muted center">A vila acertou! Toque em quem deve voltar.</p>
+                <div class="suspeitos">
+                  @for (h of resgataveis(p); track h.id) {
+                    <button class="suspeito suspeito--resgate" type="button" [disabled]="enviando()" (click)="votarResgate(h.id)">
+                      <app-icon name="coracao" [size]="16" /> {{ h.nome }}
+                    </button>
+                  }
+                </div>
+              }
+            }
+
             @case ('ENCERRADO') {
               @if (p.veredito; as v) {
                 <div class="fim" [class.fim--ganhei]="ganhei(v.lado)">
@@ -559,6 +586,17 @@ const CARDS_DE_PODER: ReadonlyArray<{
                     <app-icon name="sparkles" [size]="16" /> Organizar o reparo
                   </button>
                 }
+              }
+              @if (podeResgatar(p)) {
+                <button class="btn-resgate" type="button" [disabled]="enviando()" (click)="resgatar()">
+                  <app-icon name="coracao" [size]="16" /> Organizar resgate
+                </button>
+                <p class="muted">
+                  Precisa de pelo menos 2 habitantes na Saúde ao amanhecer. Se a
+                  maioria dos aldeões acertar a questão, a vila escolhe quem volta.
+                </p>
+              } @else if (resgateOrganizado()) {
+                <p class="muted">Resgate organizado. Ele vale se a Saúde reunir gente ao amanhecer.</p>
               }
               <!--
                 A jogada da Ameaça vive FORA do bloco de deslocamento: ela
@@ -793,6 +831,12 @@ const CARDS_DE_PODER: ReadonlyArray<{
       cursor: pointer;
     }
     .btn-reparo:disabled { opacity: 0.6; cursor: not-allowed; }
+    /* O resgate: a outra ação de ganho, em vermelho-saúde. */
+    .btn-resgate { display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.6rem; font: inherit; font-weight: 800; color: #fff; background: #e11d48; border: 2px solid #9f1239; box-shadow: 3px 3px 0 #9f1239; cursor: pointer; }
+    .btn-resgate:disabled { opacity: 0.6; cursor: not-allowed; }
+    .resgate-tag { display: flex; align-items: center; gap: 0.4rem; padding: 0.55rem 0.8rem; border: 2px solid #e11d48; font-size: 0.85rem; font-weight: 800; color: #9f1239; background: var(--surface); }
+    .qtag--resgate { color: #e11d48; }
+    .suspeito--resgate:hover:not(:disabled) { border-color: #e11d48; color: #e11d48; }
 
     .diario { margin-top: 0.8rem; }
     /* O meu personagem: o olho fica abaixo do nome (025 §3). */
@@ -974,6 +1018,10 @@ export class StudentIsolateusPage {
   protected readonly sinalTexto = signal('');
   protected readonly debateTexto = signal('');
   protected readonly votei = signal(false);
+  /** Votei em quem volta pelo resgate desta rodada (otimista). */
+  protected readonly voteiResgate = signal(false);
+  /** Organizei um resgate nesta noite (o cofre não devolve isso). */
+  protected readonly resgateOrganizado = signal(false);
   /** Pulei o debate desta Quarentena (otimista — o servidor é o juiz). */
   protected readonly jaPulei = signal(false);
   private readonly relogio = signal(Date.now());
@@ -1021,6 +1069,7 @@ export class StudentIsolateusPage {
     if (p.status === 'RESULTADO_RODADA') return JANELA_DECISAO_S;
     if (p.status === 'QUARENTENA_DEBATE') return LIMITE_DEBATE_S;
     if (p.status === 'QUARENTENA_VOTO') return LIMITE_VOTO_S;
+    if (p.status === 'RESGATE_VOTO') return RESGATE_VOTO_S;
     return 0;
   }
 
@@ -1216,6 +1265,46 @@ export class StudentIsolateusPage {
     return !!s && !s.intacto && !p.reparoSetorId;
   }
 
+  /** Quem saiu da vila e pode voltar por um resgate: abduzidos e presos. */
+  protected resgataveis(p: IsolateusMatch) {
+    return p.habitantes.filter((h) => !h.vivo || h.preso);
+  }
+
+  /**
+   * O botão do resgate só existe para quem o servidor vai aceitar: na Saúde,
+   * com ela de pé e alguém para trazer de volta (espelha FORA_DA_SAUDE,
+   * SAUDE_EM_RUINAS e SEM_RESGATAVEIS).
+   */
+  protected podeResgatar(p: IsolateusMatch): boolean {
+    if (p.status !== 'DESLOCAMENTO' || this.foraDaVila() || this.resgateOrganizado()) return false;
+    const saude = p.setores.find((s) => s.id === SETOR_SAUDE);
+    return (
+      this.meuSetor(p) === SETOR_SAUDE &&
+      !!saude?.intacto &&
+      this.resgataveis(p).length > 0
+    );
+  }
+
+  protected resgatar(): void {
+    this.acaoDaNoite((id) => this.api.resgate(id), 'posicao', () =>
+      this.resgateOrganizado.set(true),
+    );
+  }
+
+  /** Otimista, como o voto da Quarentena: um voto por rodada. */
+  protected votarResgate(habitanteId: string): void {
+    if (!this.partidaId || this.voteiResgate() || this.enviando()) return;
+    this.enviando.set(true);
+    this.voteiResgate.set(true);
+    this.api.votarResgate(this.partidaId, habitanteId).subscribe({
+      next: () => this.enviando.set(false),
+      error: () => {
+        this.enviando.set(false);
+        this.voteiResgate.set(false);
+      },
+    });
+  }
+
   protected mover(setorId: string): void {
     this.acaoDaNoite(
       (id) => this.api.mover(id, setorId),
@@ -1373,6 +1462,8 @@ export class StudentIsolateusPage {
       this.sinalTexto.set('');
       // Cabe uma Quarentena por rodada: a noite nova rearma o voto e o pulo.
       this.votei.set(false);
+      this.voteiResgate.set(false);
+      this.resgateOrganizado.set(false);
       this.abduzindoId.set(null);
       this.jaPulei.set(false);
       // E as duas decisões da noite voltam a ficar em aberto.
@@ -1445,6 +1536,7 @@ export class StudentIsolateusPage {
   protected temAcaoNoPersonagem(p: IsolateusMatch): boolean {
     if (this.aviso() || this.poderDisponivel(p)) return true;
     if (p.status !== 'DESLOCAMENTO' || this.foraDaVila()) return false;
+    if (this.podeResgatar(p) || this.resgateOrganizado()) return true;
     return this.ehAmeaca() || (!this.posicaoFeita() && this.podeReparar(p));
   }
 

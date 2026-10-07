@@ -79,6 +79,9 @@ export const MAPA: SetorMapa[] = [
  */
 export const SETOR_COMUNICACAO = 'comunicacao';
 
+/** De onde se organiza o resgate de quem saiu da vila (espelha o backend). */
+export const SETOR_SAUDE = 'saude';
+
 export function setorDoMapa(id: string): SetorMapa | undefined {
   return MAPA.find((s) => s.id === id);
 }
