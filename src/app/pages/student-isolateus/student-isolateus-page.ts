@@ -167,12 +167,29 @@ const CARDS_DE_PODER: ReadonlyArray<{
         <app-isolateus-evento [acontecimentos]="p.acontecimentos ?? []" />
 
         <div class="jogo" [class.jogo--hackeada]="foraDaVila()">
+          <!-- O meu personagem: o codinome, com o olho para escondê-lo de quem espia. -->
+          @if (meuHabitante()) {
+            <div class="eu-chip">
+              <span class="eu-chip__nome">
+                <app-icon name="user" [size]="16" /> <b>{{ meuCodinomeExibido() }}</b>
+              </span>
+              <button
+                class="eu-chip__olho"
+                type="button"
+                [attr.aria-pressed]="ocultarNome()"
+                [attr.aria-label]="ocultarNome() ? 'Mostrar meu codinome' : 'Ocultar meu codinome'"
+                (click)="alternarNome()"
+              >
+                <app-icon [name]="ocultarNome() ? 'eye-off' : 'eye'" [size]="16" />
+              </button>
+            </div>
+          }
           @if (aviso(); as msg) {
             <div class="aviso-papel" role="alert">
               <app-icon name="alien" [size]="16" />
               <span>
                 {{ msg }}
-                @if (meuHabitante(); as h) { Você é <b>{{ h.nome }}</b>. }
+                @if (meuHabitante()) { Você é <b>{{ meuCodinomeExibido() }}</b>. }
               </span>
               <button type="button" class="aviso-papel__x" aria-label="Fechar aviso" (click)="aviso.set(null)">
                 <app-icon name="close" [size]="14" />
@@ -221,6 +238,8 @@ const CARDS_DE_PODER: ReadonlyArray<{
                       [setor]="s"
                       [habitantes]="habitantesDaNoite(p)"
                       [meuHabitanteId]="painel()?.habitanteId ?? ''"
+                      [ocultarMeuNome]="ocultarNome()"
+                  [ocultarMeuNome]="ocultarNome()"
                       [emReparo]="p.reparoSetorId === s.id"
                       [podeAndar]="!posicaoFeita()"
                       [noite]="true"
@@ -451,6 +470,7 @@ const CARDS_DE_PODER: ReadonlyArray<{
                   [setor]="s"
                   [habitantes]="p.habitantes"
                   [meuHabitanteId]="painel()?.habitanteId ?? ''"
+                  [ocultarMeuNome]="ocultarNome()"
                   [emReparo]="false"
                   [podeAndar]="false"
                   [abduzindoId]="abduzindoNoMeuSetor(p)"
@@ -549,7 +569,7 @@ const CARDS_DE_PODER: ReadonlyArray<{
                   @for (h of vivos(p); track h.id) {
                     <button class="suspeito" type="button" [disabled]="enviando()" (click)="votar(h.id)">
                       <app-icon name="user" [size]="16" />
-                      {{ h.nome }}
+                      {{ h.id === painel()?.habitanteId ? meuCodinomeExibido() : h.nome }}
                       @if (h.id === painel()?.habitanteId) { <span class="eu">você</span> }
                     </button>
                   }
@@ -723,6 +743,10 @@ const CARDS_DE_PODER: ReadonlyArray<{
     .btn-reparo:disabled { opacity: 0.6; cursor: not-allowed; }
 
     .diario { margin-top: 0.8rem; }
+    /* O meu personagem: o olho fica abaixo do nome (025 §3). */
+    .eu-chip { display: flex; flex-direction: column; align-items: center; gap: 0.15rem; align-self: center; }
+    .eu-chip__nome { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.8rem; border: 2px solid var(--border); background: var(--surface); font-size: 0.95rem; }
+    .eu-chip__olho { display: inline-flex; padding: 0.25rem; border: none; background: none; color: var(--text-muted); cursor: pointer; }
     @keyframes pulsar { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.25); } }
     @media (prefers-reduced-motion: reduce) { .revelacao { animation: none; } }
     .vazio { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; padding: 3rem 1rem; text-align: center; color: #4d7c0f; }
@@ -813,6 +837,14 @@ export class StudentIsolateusPage {
   protected readonly erro = signal('');
   /** Aviso que só o painel traz: fui contagiado, ou meu codinome mudou. */
   protected readonly aviso = signal<string | null>(null);
+  /**
+   * O olho: esconde o meu codinome da tela (cabeçalho, popup, fileira), para o
+   * colega ao lado não ler. Preferência por partida, guardada no aparelho.
+   */
+  protected readonly ocultarNome = signal(false);
+  protected readonly meuCodinomeExibido = computed(() =>
+    this.ocultarNome() ? '••••••' : (this.meuHabitante()?.nome ?? '—'),
+  );
   /** O professor removeu o aluno: ele some dos inscritos e volta ao registro. */
   protected readonly removido = signal(false);
 
@@ -1171,6 +1203,7 @@ export class StudentIsolateusPage {
         this.carregando.set(false);
         if (p && p.id !== this.partidaId) {
           this.partidaId = p.id;
+          this.ocultarNome.set(this.lerOcultarNome(p.id));
           this.partida.set(p);
           this.escutar(p.id);
         } else if (!p) {
@@ -1278,6 +1311,29 @@ export class StudentIsolateusPage {
       },
       error: () => {},
     });
+  }
+
+  private chaveOcultarNome(partidaId: string): string {
+    return `isolateus:ocultarNome:${partidaId}`;
+  }
+
+  private lerOcultarNome(partidaId: string): boolean {
+    try {
+      return localStorage.getItem(this.chaveOcultarNome(partidaId)) === '1';
+    } catch {
+      return false;
+    }
+  }
+
+  protected alternarNome(): void {
+    const novo = !this.ocultarNome();
+    this.ocultarNome.set(novo);
+    if (!this.partidaId) return;
+    try {
+      localStorage.setItem(this.chaveOcultarNome(this.partidaId), novo ? '1' : '0');
+    } catch {
+      // Sem armazenamento (aba anônima): vale só nesta sessão.
+    }
   }
 
   protected inscrito(p: IsolateusMatch): boolean {

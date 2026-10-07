@@ -44,7 +44,7 @@ import { Icon } from '../icon/icon';
             [style.--atraso]="i * 40 + 'ms'"
           >
             <span class="hab__avatar"><app-icon name="user" [size]="16" /></span>
-            <span class="hab__nome">{{ h.nome }}</span>
+            <span class="hab__nome">{{ h.id === meuHabitanteId() && ocultarMeuNome() ? MASCARA : h.nome }}</span>
           </span>
         } @empty {
           <span class="vazio">Você está sozinho aqui.</span>
@@ -235,6 +235,9 @@ export class IsolateusSetor {
   /** A vila inteira; o componente filtra quem está neste setor. */
   readonly habitantes = input.required<Habitante[]>();
   readonly meuHabitanteId = input<string>('');
+  /** O jogador escondeu o próprio codinome (o olho): o marcador "você" fica sem nome. */
+  readonly ocultarMeuNome = input(false);
+  protected readonly MASCARA = '••••••';
   readonly emReparo = input(false);
   readonly podeAndar = input(false);
   readonly noite = input(false);
