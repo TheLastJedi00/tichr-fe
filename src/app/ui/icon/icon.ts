@@ -44,7 +44,10 @@ export type IconName =
   | 'coracao'
   | 'nave'
   | 'rachadura'
-  | 'mail';
+  | 'mail'
+  // Chat da equipe do Wor.
+  | 'chat'
+  | 'send';
 
 /**
  * Componente burro de icones. Centraliza os SVGs e herda a cor do texto
@@ -268,6 +271,13 @@ export type IconName =
         }
         @case ('rachadura') {
           <path d="M13 2 9 9h5l-4 6h4l-3 7" />
+        }
+        @case ('chat') {
+          <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z" />
+        }
+        @case ('send') {
+          <path d="M22 2 11 13" />
+          <path d="M22 2 15 22l-4-9-9-4 20-7Z" />
         }
       }
     </svg>
