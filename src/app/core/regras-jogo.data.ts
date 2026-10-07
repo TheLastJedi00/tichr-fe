@@ -75,6 +75,15 @@ const WOR: RegrasJogo = {
       ],
     },
     {
+      titulo: 'Chat da equipe',
+      itens: [
+        'Cada equipe tem um chat privado: só os membros dela leem — nem as rivais, nem o professor.',
+        'Mensagens de até 200 caracteres, uma a cada 2 segundos.',
+        'Linguagem imprópria é bloqueada pelo sistema: a mensagem não chega à equipe, quem escreveu perde 1000 de XP no ranking e o castelo da equipe perde 100 de HP.',
+        'O professor e a sua equipe recebem o alerta com o nome de quem escreveu.',
+      ],
+    },
+    {
       titulo: 'Fim da batalha',
       itens: [
         'A batalha acaba quando as palavras do arsenal terminam.',
@@ -91,6 +100,7 @@ const WOR: RegrasJogo = {
     { acao: 'Castelo de pé no fim da batalha', valor: '+1 por HP restante', detalhe: 'terminar intacto vale até +1000' },
     { acao: 'Comprar dica', valor: '0', detalhe: 'sacrifica o ataque da rodada em troca de uma carta' },
     { acao: 'Errar a letra ou o Risco Heroico', valor: '0', detalhe: 'errar o risco ainda custa 200 de HP' },
+    { acao: 'Linguagem imprópria no chat', valor: '−1000 XP', detalhe: 'direto no ranking de quem escreveu, e −100 de HP no castelo da equipe' },
   ],
   conversao:
     'Ao fim da batalha, os pontos de combate viram XP do ranking da turma: XP = pontos × 0,1. A equipe campeã recebe o valor cheio; as demais, metade. Todos os membros da equipe recebem o mesmo XP.',
