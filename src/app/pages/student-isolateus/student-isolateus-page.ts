@@ -146,21 +146,20 @@ const CARDS_DE_PODER: ReadonlyArray<{
           </div>
         }
       } @else if (revelando()) {
-        <!-- O Despertar -->
-        <section class="revelacao" [class.revelacao--ameaca]="ehAmeaca()">
-          <app-icon [name]="ehAmeaca() ? 'alien' : 'shield'" [size]="52" />
-          <strong>{{ ehAmeaca() ? 'Você é a Ameaça' : 'Você é um Aldeão' }}</strong>
+        <!--
+          O Despertar, IGUAL para todos (025 §4.1): o papel não aparece na tela
+          de ninguém sem pedir. Cor, ícone ou texto diferentes por papel seriam
+          lidos por quem senta ao lado.
+        -->
+        <section class="revelacao">
+          <app-icon name="user" [size]="52" />
+          <strong>A vila despertou</strong>
           <p class="revelacao__codinome">
-            Nesta vila, você é <b>{{ meuCodinome() }}</b>
+            Seu codinome é <b>{{ meuCodinomeExibido() }}</b>
           </p>
           <p>
-            @if (ehAmeaca()) {
-              Sabote os setores, abduza moradores e espalhe desinformação. Não
-              deixe que descubram você.
-            } @else {
-              Deduza quem é a ameaça e vote nas alternativas corretas para salvar
-              a vila.
-            }
+            Toque no seu personagem para ver o seu papel e as suas ações.
+            Discrição: ninguém precisa saber o que você é.
           </p>
         </section>
       } @else {
@@ -281,12 +280,6 @@ const CARDS_DE_PODER: ReadonlyArray<{
                 <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div>
                 <h2 class="enunciado">{{ q.enunciado }}</h2>
 
-                @if (ehAmeaca()) {
-                  <p class="sabe">
-                    Seu voto não defende a vila — mas, se você acertar, ganha um
-                    <b>Poder Alienígena</b>.
-                  </p>
-                }
 
                 <div class="opts">
                   @for (alt of q.alternativas; track $index) {
@@ -522,6 +515,12 @@ const CARDS_DE_PODER: ReadonlyArray<{
             [codinome]="meuCodinomeExibido()"
             (fechar)="fecharPersonagem()"
           >
+            @if (pn.papel === 'AMEACA') {
+              <p class="sabe">
+                Seu voto na questão não defende a vila — mas, se você acertar,
+                ganha um <b>Poder Alienígena</b>.
+              </p>
+            }
             @if (aviso(); as msg) {
               <div class="aviso-papel" role="alert">
                 <app-icon name="alien" [size]="16" />
@@ -717,7 +716,6 @@ const CARDS_DE_PODER: ReadonlyArray<{
       gap: 0.75rem; min-height: 60vh; text-align: center; border-radius: 18px; padding: 2rem 1.25rem;
       color: #fff; background: #2563eb; animation: pulsar 1.2s ease-in-out infinite;
     }
-    .revelacao--ameaca { background: #4d7c0f; }
     .revelacao strong { font-size: 1.6rem; font-weight: 900; }
     .revelacao p { margin: 0; max-width: 22rem; opacity: 0.95; line-height: 1.5; }
     /* O codinome é a segunda informação mais importante da tela, depois do papel. */
@@ -1426,11 +1424,6 @@ export class StudentIsolateusPage {
 
   protected inscrito(p: IsolateusMatch): boolean {
     return p.inscritos.some((i) => i.alunoId === this.meuId);
-  }
-
-  /** O codinome de cidade sorteado para mim no Despertar. */
-  protected meuCodinome(): string {
-    return this.meuHabitante()?.nome ?? '—';
   }
 
   protected entrar(): void {
