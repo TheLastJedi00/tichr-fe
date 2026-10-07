@@ -858,7 +858,7 @@ const CARDS_DE_PODER: ReadonlyArray<{
     .jogo--hackeada { padding: 0.75rem; border: 1px solid #4d7c0f; border-radius: 14px; background: color-mix(in srgb, #84cc16 6%, var(--surface)); }
     .hack { display: flex; align-items: center; gap: 0.45rem; padding: 0.5rem 0.7rem; border-radius: 10px; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; color: #1a2e05; background: #84cc16; }
     .turno { display: flex; flex-direction: column; gap: 0.5rem; }
-    .turno__tit { margin: 0; font-size: 1.2rem; font-weight: 900; color: #4d7c0f; }
+    .turno__tit { margin: 0; font-size: 1rem; font-weight: 700; color: var(--text); }
     .grupo__lbl { margin-top: 0.4rem; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
     .alvos { display: flex; flex-wrap: wrap; gap: 0.4rem; }
     .alvo { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.55rem 0.8rem; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); font: inherit; font-weight: 700; font-size: 0.85rem; color: var(--text); cursor: pointer; }
@@ -898,7 +898,7 @@ const CARDS_DE_PODER: ReadonlyArray<{
     .aviso-papel { display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.75rem; padding: 0.75rem 0.9rem; border: 2px solid #84cc16; border-radius: 12px; background: var(--surface); font-size: 0.88rem; line-height: 1.45; }
     .aviso-papel span { flex: 1; }
     .aviso-papel__x { border: none; background: none; cursor: pointer; color: var(--text-muted); padding: 0; }
-    .aliadas, .controle { display: flex; align-items: center; gap: 0.35rem; margin: 0 0 0.5rem; font-size: 0.86rem; color: #4d7c0f; }
+    .aliadas, .controle { display: flex; align-items: center; gap: 0.35rem; margin: 0 0 0.5rem; font-size: 0.86rem; color: var(--text-muted); }
     .poderes { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem; padding: 1rem; border: 2px solid #84cc16; border-radius: 14px; background: var(--surface); }
     .poderes__tit { display: flex; align-items: center; gap: 0.4rem; margin: 0; font-size: 1rem; color: #4d7c0f; }
     .poderes__lista { display: grid; gap: 0.6rem; }
