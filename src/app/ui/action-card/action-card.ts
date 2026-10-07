@@ -10,6 +10,8 @@ const VISUAL: Record<string, { icone: IconName; cor: string }> = {
   USURPACAO: { icone: 'flag', cor: '#7c3aed' },
   DANO_CRITICO: { icone: 'skull', cor: '#b45309' },
   DICA: { icone: 'scroll', cor: '#0891b2' },
+  // Linguagem imprópria no chat: só o telão e a equipe infratora recebem.
+  MODERACAO: { icone: 'alert', cor: '#be123c' },
 };
 
 /**
