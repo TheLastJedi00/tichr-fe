@@ -41,6 +41,7 @@ import { Icon } from '../icon/icon';
           [style.grid-row]="s.linha"
           [class.setor--ruina]="!s.intacto"
           [class.setor--reparo]="s.emReparo"
+          [class.setor--brilho]="s.brilho"
           [class.setor--aqui]="s.aqui"
           [class.setor--alcancavel]="s.alcancavel"
           [disabled]="!s.alcancavel && !s.aqui"
@@ -55,6 +56,9 @@ import { Icon } from '../icon/icon';
           </span>
           <span class="setor__nome">{{ s.curto }}</span>
 
+          @if (s.brilho) {
+            <span class="tag tag--brilho">Brilho misterioso</span>
+          }
           @if (s.aqui) {
             <span class="tag tag--aqui">Você está aqui</span>
           } @else if (s.emReparo) {
@@ -65,6 +69,9 @@ import { Icon } from '../icon/icon';
         </button>
       }
     </div>
+    @if (contagemBrilho(); as c) {
+      <p class="contagem"><app-icon name="sparkles" [size]="14" /> {{ c }}</p>
+    }
   `,
   styles: `
     :host { display: block; }
@@ -143,6 +150,10 @@ import { Icon } from '../icon/icon';
     .tag--aqui { color: var(--iso, #65a30d); }
     .tag--ruina { color: #dc2626; }
     .tag--reparo { color: #d97706; }
+    /* O brilho misterioso: realce flat (borda grossa + sombra dura), sem gradiente. */
+    .setor--brilho { border-color: #eab308; border-width: 4px; box-shadow: 0 0 0 3px #fde047; }
+    .tag--brilho { color: #a16207; }
+    .contagem { display: flex; align-items: center; justify-content: center; gap: 0.3rem; margin: 0.4rem 0 0; font-size: 0.78rem; font-weight: 800; color: var(--text-muted); }
 
     @keyframes pulso {
       0%, 100% { border-color: #d97706; }
@@ -164,6 +175,10 @@ export class IsolateusMapa {
   /** Só na janela de deslocamento as setas/atalhos ficam clicáveis. */
   readonly podeAndar = input(false);
   readonly noite = input(false);
+  /** Setores que irradiaram o brilho misterioso na noite que acabou. */
+  readonly brilhoEm = input<string[]>([]);
+  /** O contador do mapa público ("Brilho misterioso em X noites"); null = oculto. */
+  readonly contagemBrilho = input<string | null>(null);
 
   readonly andarPara = output<string>();
   /** Toquei no "Você está aqui": a página abre o popup do personagem. */
@@ -182,6 +197,7 @@ export class IsolateusMapa {
       emReparo: this.reparoEm() === m.id,
       aqui: this.meuSetor() === m.id,
       alcancavel: vizinhos.has(m.id),
+      brilho: this.brilhoEm().includes(m.id),
     }));
   });
 

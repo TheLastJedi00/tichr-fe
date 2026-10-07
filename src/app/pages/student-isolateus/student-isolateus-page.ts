@@ -10,7 +10,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
 import { IsolateusApiService } from '../../core/isolateus-api.service';
-import { SETOR_COMUNICACAO } from '../../core/isolateus-mapa';
+import {
+  SETOR_COMUNICACAO,
+  rotuloBrilho,
+  setoresBrilhando,
+} from '../../core/isolateus-mapa';
 import { RelogioDaFase } from '../../core/isolateus-relogio';
 import { IsolateusMatch, PainelIsolateus, PoderAlienigena } from '../../core/models';
 import { RealtimeService } from '../../core/realtime.service';
@@ -20,6 +24,7 @@ import { Icon } from '../../ui/icon/icon';
 import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { IsolateusDiario } from '../../ui/isolateus-diario/isolateus-diario';
 import { IsolateusEvento } from '../../ui/isolateus-evento/isolateus-evento';
+import { IsolateusBrilho } from '../../ui/isolateus-brilho/isolateus-brilho';
 import { IsolateusMapa } from '../../ui/isolateus-mapa/isolateus-mapa';
 import { IsolateusPersonagem } from '../../ui/isolateus-personagem/isolateus-personagem';
 import { IsolateusSetor } from '../../ui/isolateus-setor/isolateus-setor';
@@ -35,6 +40,8 @@ const LIMITE_DESLOCAMENTO_S = 60;
 const JANELA_DECISAO_S = 15;
 /** De quanto em quanto tempo o celular rebusca o painel (papel, codinome, fileira). */
 const PAINEL_POLL_MS = 4000;
+/** Quanto o aviso do brilho misterioso fica no ar. */
+const AVISO_BRILHO_MS = 6000;
 
 /**
  * Os três Poderes Alienígenas, descritos para a Ameaça escolher ciente do que
@@ -101,6 +108,7 @@ const CARDS_DE_PODER: ReadonlyArray<{
     IsolateusTransicao,
     IsolateusEvento,
     IsolateusPersonagem,
+    IsolateusBrilho,
   ],
   template: `
     @if (carregando()) {
@@ -166,6 +174,9 @@ const CARDS_DE_PODER: ReadonlyArray<{
         <!-- Em jogo. A cinemática acompanha todas as fases, fora do switch. -->
         <app-isolateus-transicao [noite]="ehNoite()" />
         <app-isolateus-evento [acontecimentos]="p.acontecimentos ?? []" />
+        @if (avisoBrilho(); as nomes) {
+          <app-isolateus-brilho [setores]="nomes" (fechar)="avisoBrilho.set(null)" />
+        }
 
         <div class="jogo" [class.jogo--hackeada]="foraDaVila()">
           <!-- O meu personagem: o codinome, com o olho para escondê-lo de quem espia. -->
@@ -208,7 +219,7 @@ const CARDS_DE_PODER: ReadonlyArray<{
               } @else {
                 <div class="noite">
                   <div class="noite__topo">
-                    <span class="noite__tit">Noite {{ p.rodada + 1 }}</span>
+                    <span class="noite__tit">Noite {{ p.rodada + 1 }} · {{ contagemBrilho(p) }}</span>
                     <span class="timer timer--peq" [class.timer--fim]="restante() <= 5">
                       {{ restante() }}s
                     </span>
@@ -221,6 +232,7 @@ const CARDS_DE_PODER: ReadonlyArray<{
                       [reparoEm]="p.reparoSetorId ?? null"
                       [podeAndar]="!posicaoFeita()"
                       [noite]="true"
+                      [contagemBrilho]="contagemBrilho(p)"
                       (andarPara)="mover($event)"
                       (selecionarProprio)="abrirPersonagem()"
                     />
@@ -230,11 +242,8 @@ const CARDS_DE_PODER: ReadonlyArray<{
                       [habitantes]="habitantesDaNoite(p)"
                       [meuHabitanteId]="painel()?.habitanteId ?? ''"
                       [ocultarMeuNome]="ocultarNome()"
-                  [meuPonto]="novidadePersonagem()"
-                  (selecionarProprio)="abrirPersonagem()"
-                  [ocultarMeuNome]="ocultarNome()"
-                  [meuPonto]="novidadePersonagem()"
-                  (selecionarProprio)="abrirPersonagem()"
+                      [meuPonto]="novidadePersonagem()"
+                      (selecionarProprio)="abrirPersonagem()"
                       [emReparo]="p.reparoSetorId === s.id"
                       [podeAndar]="!posicaoFeita()"
                       [noite]="true"
@@ -370,6 +379,7 @@ const CARDS_DE_PODER: ReadonlyArray<{
                   [meuPonto]="novidadePersonagem()"
                   (selecionarProprio)="abrirPersonagem()"
                   [emReparo]="false"
+                  [brilhando]="brilhando(p).includes(s.id)"
                   [podeAndar]="false"
                   [abduzindoId]="abduzindoNoMeuSetor(p)"
                 />
@@ -382,6 +392,9 @@ const CARDS_DE_PODER: ReadonlyArray<{
                     [setores]="p.setores"
                     [meuSetor]="meuSetor(p)"
                     [reparoEm]="null"
+                    [brilhoEm]="brilhando(p)"
+                    [contagemBrilho]="contagemBrilho(p)"
+                    (selecionarProprio)="abrirPersonagem()"
                   />
                 }
               }
@@ -884,6 +897,13 @@ export class StudentIsolateusPage {
    */
   protected readonly ocultarNome = signal(false);
 
+  /** O aviso do brilho misterioso (nomes dos setores), no ar por alguns segundos. */
+  protected readonly avisoBrilho = signal<string[] | null>(null);
+  /** A noite do último brilho já visto; `undefined` = ainda sem linha de base. */
+  private ultimoBrilho: number | null | undefined = undefined;
+  protected readonly contagemBrilho = rotuloBrilho;
+  protected readonly brilhando = setoresBrilhando;
+
   /** O popup do personagem: papel e ações, só a pedido do aluno. */
   protected readonly personagemAberto = signal(false);
   /**
@@ -1313,6 +1333,7 @@ export class StudentIsolateusPage {
   private reagir(p: IsolateusMatch): void {
     const anterior = this.partida();
     this.detectarAbducao(anterior, p);
+    this.detectarBrilho(p);
 
     // Removido no lobby: eu estava inscrito e sumi da lista.
     if (p.status === 'LOBBY' && this.jaEntrei && !this.inscrito(p)) {
@@ -1436,6 +1457,27 @@ export class StudentIsolateusPage {
     } catch {
       // Sem armazenamento (aba anônima): vale só nesta sessão.
     }
+  }
+
+  /**
+   * Um brilho novo acende o aviso. Entrar no meio da partida não reapresenta o
+   * último: o primeiro snapshot é só a linha de base, como no card de eventos.
+   */
+  private detectarBrilho(p: IsolateusMatch): void {
+    const noite = p.brilho?.rodada ?? null;
+    if (this.ultimoBrilho === undefined) {
+      this.ultimoBrilho = noite;
+      return;
+    }
+    if (noite === null || noite === this.ultimoBrilho) return;
+    this.ultimoBrilho = noite;
+    const nomes = (p.brilho?.setorIds ?? []).map(
+      (id) => p.setores.find((s) => s.id === id)?.nome ?? id,
+    );
+    this.avisoBrilho.set(nomes);
+    setTimeout(() => {
+      if (this.avisoBrilho() === nomes) this.avisoBrilho.set(null);
+    }, AVISO_BRILHO_MS);
   }
 
   protected inscrito(p: IsolateusMatch): boolean {

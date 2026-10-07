@@ -20,6 +20,7 @@ import { Icon } from '../icon/icon';
       class="setor"
       [class.setor--ruina]="!intacto()"
       [class.setor--reparo]="emReparo()"
+      [class.setor--brilho]="brilhando()"
       [class.setor--noite]="noite()"
     >
       <!--
@@ -68,6 +69,9 @@ import { Icon } from '../icon/icon';
           }
         </span>
         <h2 class="centro__nome">{{ nome() }}</h2>
+        @if (brilhando()) {
+          <span class="selo selo--brilho">Brilho misterioso</span>
+        }
         @if (emReparo()) {
           <span class="selo selo--reparo">Reparo em curso</span>
         } @else if (!intacto()) {
@@ -202,6 +206,8 @@ import { Icon } from '../icon/icon';
     }
     .selo--ruina { color: #dc2626; }
     .selo--reparo { color: #d97706; }
+    .setor--brilho { border-color: #eab308; box-shadow: 4px 4px 0 #eab308; }
+    .selo--brilho { color: #a16207; }
 
     .saidas { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; }
     .saida {
@@ -252,6 +258,8 @@ export class IsolateusSetor {
   readonly meuPonto = input(false);
   protected readonly MASCARA = '••••••';
   readonly emReparo = input(false);
+  /** O setor irradiou o brilho misterioso na noite que acabou. */
+  readonly brilhando = input(false);
   readonly podeAndar = input(false);
   readonly noite = input(false);
   /** Habitante sendo levado pela nave agora (dispara a animação de abdução). */

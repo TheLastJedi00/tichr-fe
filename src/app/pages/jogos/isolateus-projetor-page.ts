@@ -3,12 +3,14 @@ import {
   Component,
   DestroyRef,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { IsolateusApiService } from '../../core/isolateus-api.service';
+import { rotuloBrilho, setoresBrilhando } from '../../core/isolateus-mapa';
 import { RelogioDaFase } from '../../core/isolateus-relogio';
 import { Aluno, IsolateusMatch } from '../../core/models';
 import { RealtimeService } from '../../core/realtime.service';
@@ -16,6 +18,7 @@ import { TurmaApiService } from '../../core/turma-api.service';
 import { Icon } from '../../ui/icon/icon';
 import { IsolateusDiario } from '../../ui/isolateus-diario/isolateus-diario';
 import { IsolateusEvento } from '../../ui/isolateus-evento/isolateus-evento';
+import { IsolateusBrilho } from '../../ui/isolateus-brilho/isolateus-brilho';
 import { IsolateusMapa } from '../../ui/isolateus-mapa/isolateus-mapa';
 import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { Modal } from '../../ui/modal/modal';
@@ -48,6 +51,7 @@ const MIN_REAIS = 4;
     LobbyLoader,
     Modal,
     IsolateusMapa,
+    IsolateusBrilho,
     IsolateusDiario,
     IsolateusEvento,
   ],
@@ -143,6 +147,9 @@ const MIN_REAIS = 4;
       } @else {
         <!-- A vila em jogo -->
         <app-isolateus-evento [acontecimentos]="p.acontecimentos ?? []" />
+        @if (avisoBrilho(); as nomes) {
+          <app-isolateus-brilho [setores]="nomes" (fechar)="avisoBrilho.set(null)" />
+        }
 
         <section class="vila">
           <div class="esperanca">
@@ -163,6 +170,8 @@ const MIN_REAIS = 4;
             [setores]="p.setores"
             [reparoEm]="p.reparoSetorId ?? null"
             [noite]="ehNoite()"
+            [brilhoEm]="brilhando(p)"
+            [contagemBrilho]="contagemBrilho(p)"
           />
 
           <div class="setores">
@@ -511,6 +520,12 @@ export class IsolateusProjetorPage {
   );
 
   protected readonly minReais = MIN_REAIS;
+  protected readonly contagemBrilho = rotuloBrilho;
+  protected readonly brilhando = setoresBrilhando;
+  /** O aviso do brilho misterioso no telão (nomes dos setores). */
+  protected readonly avisoBrilho = signal<string[] | null>(null);
+  /** A noite do último brilho já visto; `undefined` = ainda sem linha de base. */
+  private ultimoBrilho: number | null | undefined = undefined;
   protected readonly ocupado = signal(false);
   /**
    * Opção do lobby: local ao telão até o clique em "Iniciar" (vai no próprio
@@ -595,6 +610,26 @@ export class IsolateusProjetorPage {
         .getTurma(p.turmaId)
         .subscribe((t) => this.pin.set(t.pinTurma ?? null));
       this.turmas.getAlunos(p.turmaId).subscribe((a) => this.alunos.set(a));
+    });
+
+    // Brilho novo acende o aviso; o primeiro snapshot é só a linha de base.
+    effect(() => {
+      const p = this.partida();
+      if (!p) return;
+      const noite = p.brilho?.rodada ?? null;
+      if (this.ultimoBrilho === undefined) {
+        this.ultimoBrilho = noite;
+        return;
+      }
+      if (noite === null || noite === this.ultimoBrilho) return;
+      this.ultimoBrilho = noite;
+      const nomes = (p.brilho?.setorIds ?? []).map(
+        (id) => p.setores.find((s) => s.id === id)?.nome ?? id,
+      );
+      this.avisoBrilho.set(nomes);
+      setTimeout(() => {
+        if (this.avisoBrilho() === nomes) this.avisoBrilho.set(null);
+      }, 6000);
     });
 
     // O telão (sempre presente) fecha a fase quando o cronômetro zera — é ele
