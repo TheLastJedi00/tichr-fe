@@ -361,6 +361,17 @@ const MIN_REAIS = 4;
             </div>
           }
 
+          <!--
+            Anti-trapaça: o professor nota alunos mostrando a tela ou combinando
+            por fora e embaralha os codinomes da vila na hora. O aviso no Diário
+            é o mesmo do poder da Ameaça — a turma não sabe quem causou.
+          -->
+          @if (p.status !== 'ENCERRADO') {
+            <button class="btn-delirio" type="button" [disabled]="ocupado()" (click)="confirmarDelirio.set(true)">
+              <app-icon name="dice" [size]="14" /> Delírio coletivo
+            </button>
+          }
+
           <!-- O Diário fica sempre à vista: é sobre ele que a turma argumenta. -->
           @if (p.acontecimentos?.length) {
             <app-isolateus-diario
@@ -381,6 +392,29 @@ const MIN_REAIS = 4;
           }
         </section>
       }
+
+      <app-modal
+        [open]="confirmarDelirio()"
+        title="Causar um delírio coletivo?"
+        (close)="confirmarDelirio.set(false)"
+      >
+        <p>
+          <b>Agora</b>, todos os habitantes trocam de codinome entre si. Útil
+          quando a turma está mostrando a tela ou combinando por fora.
+        </p>
+        <p class="muted">
+          O Diário anuncia o delírio sem dizer quem o causou. O que foi dito de
+          cada um fica preso ao nome antigo.
+        </p>
+        <div modal-actions>
+          <button class="btn-outline" type="button" (click)="confirmarDelirio.set(false)">
+            Cancelar
+          </button>
+          <button class="btn-iso" type="button" [disabled]="ocupado()" (click)="delirio()">
+            Causar delírio
+          </button>
+        </div>
+      </app-modal>
 
       <app-modal
         [open]="confirmarFim()"
@@ -518,6 +552,8 @@ const MIN_REAIS = 4;
     .pos { font-weight: 900; color: var(--text-muted); min-width: 2.5ch; }
     .rk-nome { flex: 1; font-weight: 700; }
     .rk-pts { font-weight: 800; color: #4d7c0f; }
+    .btn-delirio { align-self: center; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.9rem; border: 2px solid #7c3aed; background: var(--surface); color: #7c3aed; font: inherit; font-weight: 800; font-size: 0.85rem; cursor: pointer; }
+    .btn-delirio:disabled { opacity: 0.55; cursor: not-allowed; }
     .resgate__tag { color: #e11d48; }
     .resgate__aviso { color: #e11d48; }
     .agrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.5rem; }
@@ -557,6 +593,8 @@ export class IsolateusProjetorPage {
   protected readonly assistencia = signal(false);
   /** Confirmação do encerramento antecipado — a ação não tem volta. */
   protected readonly confirmarFim = signal(false);
+  /** Confirmação do Delírio Coletivo (dentro do app, nada de confirm()). */
+  protected readonly confirmarDelirio = signal(false);
   protected readonly pin = signal<string | null>(null);
   protected readonly alunos = signal<Aluno[]>([]);
   private readonly reveladosSet = signal<Set<string>>(new Set());
@@ -758,6 +796,11 @@ export class IsolateusProjetorPage {
    */
   protected pular(p: IsolateusMatch): void {
     this.acao(this.api.pularFase(this.matchId, p.status));
+  }
+  /** Delírio Coletivo imediato: todos trocam de codinome (anti-trapaça). */
+  protected delirio(): void {
+    this.confirmarDelirio.set(false);
+    this.acao(this.api.delirio(this.matchId));
   }
   /** O sinal da aula bateu: a investigação termina onde está. */
   protected encerrar(): void {
