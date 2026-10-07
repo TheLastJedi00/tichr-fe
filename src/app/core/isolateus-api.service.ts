@@ -108,6 +108,16 @@ export class IsolateusApiService {
       { status },
     );
   }
+  /**
+   * Delírio Coletivo pelo professor (anti-trapaça): todos trocam de codinome na
+   * hora, com o mesmo aviso anônimo do poder da Ameaça.
+   */
+  delirio(id: string): Observable<IsolateusMatch> {
+    return this.http.post<IsolateusMatch>(
+      `${this.base}/isolateus/matches/${id}/delirio`,
+      {},
+    );
+  }
   /** @deprecated O telão usa `pularFase`. */
   proxima(id: string): Observable<IsolateusMatch> {
     return this.http.post<IsolateusMatch>(
@@ -178,6 +188,25 @@ export class IsolateusApiService {
     return this.http.post<IsolateusMatch>(
       `${this.base}/aluno/isolateus/${id}/reparo`,
       {},
+    );
+  }
+
+  /** O Resgate: organiza, de dentro da Saúde, a volta de quem saiu da vila. */
+  resgate(id: string): Observable<IsolateusMatch> {
+    return this.http.post<IsolateusMatch>(
+      `${this.base}/aluno/isolateus/${id}/resgate`,
+      {},
+    );
+  }
+
+  /** O voto em quem volta pelo resgate (abduzido ou preso). */
+  votarResgate(
+    id: string,
+    habitanteId: string,
+  ): Observable<{ registrado: boolean }> {
+    return this.http.post<{ registrado: boolean }>(
+      `${this.base}/aluno/isolateus/${id}/resgate-voto`,
+      { habitanteId },
     );
   }
 

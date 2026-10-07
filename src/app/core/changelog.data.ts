@@ -18,6 +18,48 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.31.0',
+    data: '2026-10-07',
+    titulo: 'Brilho, Resgate e Chat de Equipe',
+    itens: [
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Chat privado da equipe no Tichr Wor: só os membros leem. Linguagem imprópria é bloqueada na hora — quem escreveu perde 1000 de XP, o castelo da equipe perde 100 de HP e o professor recebe o alerta com o nome.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Mais discrição no Isolateus: o papel não aparece mais na tela. Para ver se você é Aldeão ou Ameaça, e as suas ações, toque no seu personagem. E um olho abaixo do seu codinome esconde o nome de quem espia.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'O brilho misterioso: a cada 3 noites, alguns setores da vila irradiam um brilho sem explicação. O mapa mostra quantas noites faltam.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Resgate pelo Setor de Saúde: com pelo menos 2 habitantes lá, a vila pode trazer de volta alguém abduzido ou preso. Se a maioria dos aldeões acertar a questão, a turma escolhe quem volta e a Esperança sobe 10.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Quarentena com responsabilidade: quem convoca aparece para toda a vila, quem prende um inocente fica uma rodada sem convocar e só os votos dos jogadores reais contam.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Delírio coletivo pelo professor: se a turma estiver combinando por fora, o telão troca o codinome de todos na hora.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Na turma, o professor pode adicionar ou remover até 99999 de XP de uma vez.',
+      },
+    ],
+  },
+  {
     versao: 'v0.30.0',
     data: '2026-09-29',
     titulo: 'Poderes Alienígenas e a Catapulta',

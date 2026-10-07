@@ -3,12 +3,14 @@ import {
   Component,
   DestroyRef,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { IsolateusApiService } from '../../core/isolateus-api.service';
+import { rotuloBrilho, setoresBrilhando } from '../../core/isolateus-mapa';
 import { RelogioDaFase } from '../../core/isolateus-relogio';
 import { Aluno, IsolateusMatch } from '../../core/models';
 import { RealtimeService } from '../../core/realtime.service';
@@ -16,6 +18,7 @@ import { TurmaApiService } from '../../core/turma-api.service';
 import { Icon } from '../../ui/icon/icon';
 import { IsolateusDiario } from '../../ui/isolateus-diario/isolateus-diario';
 import { IsolateusEvento } from '../../ui/isolateus-evento/isolateus-evento';
+import { IsolateusBrilho } from '../../ui/isolateus-brilho/isolateus-brilho';
 import { IsolateusMapa } from '../../ui/isolateus-mapa/isolateus-mapa';
 import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { Modal } from '../../ui/modal/modal';
@@ -26,6 +29,7 @@ const LIMITE_DEBATE_S = 90;
 const LIMITE_VOTO_S = 60;
 const LIMITE_DESLOCAMENTO_S = 60;
 const JANELA_DECISAO_S = 15;
+const RESGATE_VOTO_S = 60;
 /** Mínimo de investigadores reais para o Despertar (§2). */
 const MIN_REAIS = 4;
 
@@ -48,6 +52,7 @@ const MIN_REAIS = 4;
     LobbyLoader,
     Modal,
     IsolateusMapa,
+    IsolateusBrilho,
     IsolateusDiario,
     IsolateusEvento,
   ],
@@ -143,6 +148,9 @@ const MIN_REAIS = 4;
       } @else {
         <!-- A vila em jogo -->
         <app-isolateus-evento [acontecimentos]="p.acontecimentos ?? []" />
+        @if (avisoBrilho(); as nomes) {
+          <app-isolateus-brilho [setores]="nomes" (fechar)="avisoBrilho.set(null)" />
+        }
 
         <section class="vila">
           <div class="esperanca">
@@ -163,6 +171,8 @@ const MIN_REAIS = 4;
             [setores]="p.setores"
             [reparoEm]="p.reparoSetorId ?? null"
             [noite]="ehNoite()"
+            [brilhoEm]="brilhando(p)"
+            [contagemBrilho]="contagemBrilho(p)"
           />
 
           <div class="setores">
@@ -207,6 +217,9 @@ const MIN_REAIS = 4;
             @case ('QUESTAO_ATIVA') {
               @if (p.alerta; as a) {
                 <div class="alerta"><app-icon name="alert" [size]="18" /> {{ a.texto }}</div>
+              }
+              @if (p.resgatePendente) {
+                <p class="lead resgate__aviso">Resgate em jogo: a maioria dos aldeões precisa acertar.</p>
               }
               @if (p.questaoPublica; as q) {
                 @if (relogioAtivo()) { <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div> }
@@ -273,6 +286,9 @@ const MIN_REAIS = 4;
             @case ('QUARENTENA_DEBATE') {
               <div class="quarentena">
                 <span class="quarentena__tag">Quarentena · Debate</span>
+                @if (p.quarentenaConvocadaPor; as c) {
+                  <p class="lead">Convocada por <b>{{ c.nome }}</b></p>
+                }
                 @if (relogioAtivo()) { <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div> }
                 <div class="feed">
                   @for (m of p.debate; track m.id) {
@@ -288,8 +304,26 @@ const MIN_REAIS = 4;
             @case ('QUARENTENA_VOTO') {
               <div class="quarentena">
                 <span class="quarentena__tag">Quarentena · Veredito</span>
+                @if (p.quarentenaConvocadaPor; as c) {
+                  <p class="lead">Convocada por <b>{{ c.nome }}</b></p>
+                }
                 @if (relogioAtivo()) { <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div> }
                 <p class="lead">Depositem seus votos. {{ p.votosRecebidos }} voto(s) recebido(s).</p>
+                <app-lobby-loader />
+              </div>
+            }
+
+            @case ('RESGATE_VOTO') {
+              <div class="quarentena">
+                <span class="quarentena__tag resgate__tag">Resgate · Quem volta?</span>
+                @if (relogioAtivo()) { <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div> }
+                <p class="lead">A vila acertou a questão do resgate. Votem pelo celular em quem deve voltar.</p>
+                <div class="setores">
+                  @for (h of resgataveis(p); track h.id) {
+                    <span class="setor">{{ h.nome }}</span>
+                  }
+                </div>
+                <p class="lead">{{ p.votosResgateRecebidos ?? 0 }} voto(s) recebido(s).</p>
                 <app-lobby-loader />
               </div>
             }
@@ -327,6 +361,17 @@ const MIN_REAIS = 4;
             </div>
           }
 
+          <!--
+            Anti-trapaça: o professor nota alunos mostrando a tela ou combinando
+            por fora e embaralha os codinomes da vila na hora. O aviso no Diário
+            é o mesmo do poder da Ameaça — a turma não sabe quem causou.
+          -->
+          @if (p.status !== 'ENCERRADO') {
+            <button class="btn-delirio" type="button" [disabled]="ocupado()" (click)="confirmarDelirio.set(true)">
+              <app-icon name="dice" [size]="14" /> Delírio coletivo
+            </button>
+          }
+
           <!-- O Diário fica sempre à vista: é sobre ele que a turma argumenta. -->
           @if (p.acontecimentos?.length) {
             <app-isolateus-diario
@@ -347,6 +392,29 @@ const MIN_REAIS = 4;
           }
         </section>
       }
+
+      <app-modal
+        [open]="confirmarDelirio()"
+        title="Causar um delírio coletivo?"
+        (close)="confirmarDelirio.set(false)"
+      >
+        <p>
+          <b>Agora</b>, todos os habitantes trocam de codinome entre si. Útil
+          quando a turma está mostrando a tela ou combinando por fora.
+        </p>
+        <p class="muted">
+          O Diário anuncia o delírio sem dizer quem o causou. O que foi dito de
+          cada um fica preso ao nome antigo.
+        </p>
+        <div modal-actions>
+          <button class="btn-outline" type="button" (click)="confirmarDelirio.set(false)">
+            Cancelar
+          </button>
+          <button class="btn-iso" type="button" [disabled]="ocupado()" (click)="delirio()">
+            Causar delírio
+          </button>
+        </div>
+      </app-modal>
 
       <app-modal
         [open]="confirmarFim()"
@@ -484,6 +552,10 @@ const MIN_REAIS = 4;
     .pos { font-weight: 900; color: var(--text-muted); min-width: 2.5ch; }
     .rk-nome { flex: 1; font-weight: 700; }
     .rk-pts { font-weight: 800; color: #4d7c0f; }
+    .btn-delirio { align-self: center; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.9rem; border: 2px solid #7c3aed; background: var(--surface); color: #7c3aed; font: inherit; font-weight: 800; font-size: 0.85rem; cursor: pointer; }
+    .btn-delirio:disabled { opacity: 0.55; cursor: not-allowed; }
+    .resgate__tag { color: #e11d48; }
+    .resgate__aviso { color: #e11d48; }
     .agrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.5rem; }
     .acard { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.6rem; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); cursor: pointer; font: inherit; text-align: left; color: var(--text); }
     .acard__nome { font-weight: 700; font-size: 0.9rem; }
@@ -505,6 +577,12 @@ export class IsolateusProjetorPage {
   );
 
   protected readonly minReais = MIN_REAIS;
+  protected readonly contagemBrilho = rotuloBrilho;
+  protected readonly brilhando = setoresBrilhando;
+  /** O aviso do brilho misterioso no telão (nomes dos setores). */
+  protected readonly avisoBrilho = signal<string[] | null>(null);
+  /** A noite do último brilho já visto; `undefined` = ainda sem linha de base. */
+  private ultimoBrilho: number | null | undefined = undefined;
   protected readonly ocupado = signal(false);
   /**
    * Opção do lobby: local ao telão até o clique em "Iniciar" (vai no próprio
@@ -515,6 +593,8 @@ export class IsolateusProjetorPage {
   protected readonly assistencia = signal(false);
   /** Confirmação do encerramento antecipado — a ação não tem volta. */
   protected readonly confirmarFim = signal(false);
+  /** Confirmação do Delírio Coletivo (dentro do app, nada de confirm()). */
+  protected readonly confirmarDelirio = signal(false);
   protected readonly pin = signal<string | null>(null);
   protected readonly alunos = signal<Aluno[]>([]);
   private readonly reveladosSet = signal<Set<string>>(new Set());
@@ -556,6 +636,7 @@ export class IsolateusProjetorPage {
     if (p.status === 'QUESTAO_ATIVA') return p.duracaoSegundos;
     if (p.status === 'QUARENTENA_DEBATE') return LIMITE_DEBATE_S;
     if (p.status === 'QUARENTENA_VOTO') return LIMITE_VOTO_S;
+    if (p.status === 'RESGATE_VOTO') return RESGATE_VOTO_S;
     return 0;
   }
 
@@ -591,6 +672,26 @@ export class IsolateusProjetorPage {
       this.turmas.getAlunos(p.turmaId).subscribe((a) => this.alunos.set(a));
     });
 
+    // Brilho novo acende o aviso; o primeiro snapshot é só a linha de base.
+    effect(() => {
+      const p = this.partida();
+      if (!p) return;
+      const noite = p.brilho?.rodada ?? null;
+      if (this.ultimoBrilho === undefined) {
+        this.ultimoBrilho = noite;
+        return;
+      }
+      if (noite === null || noite === this.ultimoBrilho) return;
+      this.ultimoBrilho = noite;
+      const nomes = (p.brilho?.setorIds ?? []).map(
+        (id) => p.setores.find((s) => s.id === id)?.nome ?? id,
+      );
+      this.avisoBrilho.set(nomes);
+      setTimeout(() => {
+        if (this.avisoBrilho() === nomes) this.avisoBrilho.set(null);
+      }, 6000);
+    });
+
     // O telão (sempre presente) fecha a fase quando o cronômetro zera — é ele
     // que substitui o timer que o servidor não tem.
     const tick = setInterval(() => {
@@ -618,6 +719,11 @@ export class IsolateusProjetorPage {
 
   protected letra(i: number): string {
     return ['A', 'B', 'C', 'D', 'E', 'F'][i] ?? '?';
+  }
+
+  /** Quem pode voltar pelo resgate: abduzidos e presos. */
+  protected resgataveis(p: IsolateusMatch) {
+    return p.habitantes.filter((h) => !h.vivo || h.preso);
   }
 
   protected vivos(p: { habitantes: Array<{ vivo: boolean; preso: boolean }> }) {
@@ -677,6 +783,8 @@ export class IsolateusProjetorPage {
         return 'Pular debate';
       case 'QUARENTENA_VOTO':
         return 'Encerrar votação';
+      case 'RESGATE_VOTO':
+        return 'Encerrar resgate';
       default:
         return null;
     }
@@ -688,6 +796,11 @@ export class IsolateusProjetorPage {
    */
   protected pular(p: IsolateusMatch): void {
     this.acao(this.api.pularFase(this.matchId, p.status));
+  }
+  /** Delírio Coletivo imediato: todos trocam de codinome (anti-trapaça). */
+  protected delirio(): void {
+    this.confirmarDelirio.set(false);
+    this.acao(this.api.delirio(this.matchId));
   }
   /** O sinal da aula bateu: a investigação termina onde está. */
   protected encerrar(): void {

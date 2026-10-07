@@ -44,7 +44,13 @@ export type IconName =
   | 'coracao'
   | 'nave'
   | 'rachadura'
-  | 'mail';
+  | 'mail'
+  // Chat da equipe do Wor.
+  | 'chat'
+  | 'send'
+  // Ocultar o próprio codinome na tela (Isolateus).
+  | 'eye'
+  | 'eye-off';
 
 /**
  * Componente burro de icones. Centraliza os SVGs e herda a cor do texto
@@ -268,6 +274,21 @@ export type IconName =
         }
         @case ('rachadura') {
           <path d="M13 2 9 9h5l-4 6h4l-3 7" />
+        }
+        @case ('chat') {
+          <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z" />
+        }
+        @case ('eye') {
+          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+          <circle cx="12" cy="12" r="3" />
+        }
+        @case ('eye-off') {
+          <path d="M10.6 5.1A10.4 10.4 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-2.2 3.2M6.6 6.6A17 17 0 0 0 2 12s3.5 7 10 7a10 10 0 0 0 5.4-1.6" />
+          <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2M2 2l20 20" />
+        }
+        @case ('send') {
+          <path d="M22 2 11 13" />
+          <path d="M22 2 15 22l-4-9-9-4 20-7Z" />
         }
       }
     </svg>
