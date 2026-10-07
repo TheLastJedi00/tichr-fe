@@ -56,7 +56,7 @@ O diferencial visível está na **demonstração interativa da landing page** e 
 | `/jogos` · `/jogos/qlick` | **Jogos / Tichr Qlick** | Vitrine de jogos e a mini-landing do **Tichr Qlick** (quiz ao vivo). Recurso do **plano PhD** (upsell nos inferiores). |
 | `/jogos/wor` · `.../novo` · `.../meus` · `.../partida/:id` | **Tichr Wor** | Guerra de castelos PvP: landing interna, **wizard de criação** (arsenal **forjado por IA** — 5 palavras com 3 dicas a partir de uma instrução —, reordenar por drag-and-drop), lista de batalhas e a **tela do projetor** (lobby → jogo, realtime). |
 | `/jogos/isolateus` · `.../novo` · `.../editar/:id` · `.../partida/:id` | **Tichr Isolateus** | Dedução social: landing de primeiro uso, **estúdio** das 10 questões (com geração por IA) e o **telão do Comando Central** — lobby cego, Barra de Esperança, o **mapa da vila com quem está em cada setor** (visão onisciente, o oposto do celular), chat de rumores, Diário da Vila e card de veredito. O telão conduz o relógio — mas não sozinho: qualquer aparelho da partida cobra a fase vencida, e o professor pode **encerrar a investigação a qualquer momento**. Recurso do **plano PhD**. |
-| `/aluno/wor` | **Wor (aluno)** | Cliente **mobile-first**: teclado de letras, **Dilema Tático** (atacar/comprar dica), **Risco Heroico**, **modal da Queda da Horda** e animação de dano. Escuta só o próprio castelo (realtime barato). |
+| `/aluno/wor` | **Wor (aluno)** | Cliente **mobile-first**: teclado de letras, **Dilema Tático** (atacar/comprar dica), **Risco Heroico**, **modal da Queda da Horda**, animação de dano e o **chat privado da equipe**. Escuta só o próprio castelo (realtime barato). |
 | `/jogos/qlick/meus` | **Meus Qlicks** | Lista dos quizzes do professor; **Rodar** pergunta "para qual turma?" quando o Qlick está em várias (N:N). |
 | `/jogos/qlick/novo` · `/editar/:id` | **Estúdio do Qlick** | Formulário reativo (FormArray) de perguntas → alternativas, com marcação da correta e duração. |
 | `/jogos/qlick/partida/:id` | **Sala do professor** | Comanda a partida em tempo real; o **lobby** exibe o **PIN da turma em tamanho grande** + um **modal de assistência** (grid de alunos com o PIN revelado por toque, em *flip*). Depois: pergunta (timer + revelar), ranking da rodada e pódio. |
@@ -128,7 +128,7 @@ estilo app), autenticada por **PIN** e com token próprio. O aluno entra pela jo
 | `/aluno/agenda` | **Agenda** | Dias letivos com status dinâmico (Concluída / Em andamento / Agendada) e o **tópico** de cada aula ("o que já vimos") — sincronizados do Plano de Aula quando o professor é PhD. |
 | `/aluno/ranking` | **Ranking** | Pódio (🥇🥈🥉) da turma, com o **card do próprio aluno destacado**. A aba **some** quando a turma desativa o ranking. |
 | `/aluno/qlick` | **Tichr Qlick** | Entra no quiz "de hoje": **lobby animado** (loader temático), alternativas **color-coded A/B/C/D** com feedback de clique (press/scale) e estado de espera, **revelação animada** (correta brilha, erradas em cinza, confete no acerto / shake no erro) e **pódio final** com os pontos somados ao XP. |
-| `/aluno/isolateus` | **Tichr Isolateus** | O celular do habitante: entrada com um toque, o **Despertar** (papel + **codinome de cidade**), o **mapa da vila** (zoom-out somente-leitura) e a **visão do próprio setor** — com as saídas para caminhar, o botão de **reparo** e só os habitantes que estão ali. Mais a jogada secreta da Ameaça, o **chat de rumores**, a **Quarentena**, o **Diário da Vila** e a **tela hackeada** de quem foi abduzido. |
+| `/aluno/isolateus` | **Tichr Isolateus** | O celular do habitante: entrada com um toque, o **Despertar** (só o **codinome de cidade** — o papel fica no **popup do personagem**, com o **olho** para esconder o nome), o **mapa da vila** (zoom-out somente-leitura) e a **visão do próprio setor** — com as saídas para caminhar, o botão de **reparo** e só os habitantes que estão ali. Mais a jogada secreta da Ameaça, o **chat de rumores**, a **Quarentena**, o **Diário da Vila** e a **tela hackeada** de quem foi abduzido. |
 | `/aluno/manual` | **Manual de Guerra** | Regras completas do **Tichr Wor**, do **Tichr Qlick** e do **Tichr Isolateus** + a **Tabela de Recompensas** (quanto vale cada jogada), para a turma montar estratégia **antes** da partida. |
 
 ### Criando jogos e começando a partida (comum aos três jogos)
@@ -180,6 +180,10 @@ aconteceu:
 - **Recuperar HP ou Catapulta:** quem arrisca a palavra escolhe, junto do palpite, a recompensa
   da equipe se acertar — **curar 400 de HP** do próprio castelo ou disparar a **Catapulta**, 300 de
   dano num castelo rival de pé (que pode cair e virar Horda). A Horda continua usurpando.
+- **Chat privado da equipe:** cada equipe conversa num chat que só os membros leem — nem as
+  rivais, nem o professor. Linguagem imprópria é **barrada pelo servidor**: a mensagem não chega
+  à equipe, o aluno perde **1000 de XP** no ranking, o castelo perde **100 de HP**, e o telão e a
+  equipe recebem o alerta com o nome de quem escreveu. (Exige o deploy das `firestore.rules`.)
 
 ### Tichr Isolateus: dedução social sobre a sua matéria (Plano PhD)
 
@@ -234,6 +238,23 @@ O jogo é o embrulho; o conteúdo cobrado é o seu.
   O professor escolhe no lobby se haverá **debate** — sem ele, a Quarentena vai direto à votação.
   Prendeu a ameaça, a vila vence; prendeu um inocente, a Esperança despenca — e a identidade
   do preso **continua em segredo**.
+- **Discrição (o popup do personagem):** o papel não aparece na tela de ninguém. Quem quiser
+  saber se é Aldeão ou Ameaça **toca no próprio personagem** — no nome, no avatar do setor ou no
+  "Você está aqui" do mapa — e um popup com fundo desfocado mostra o papel (azul para o aldeão,
+  azul → verde tóxico para a Ameaça) e as ações. O popup é igual para os dois papéis, e o ponto
+  de novidade acende para todos a cada noite e a cada dia, para não apontar ninguém. Um **olho**
+  abaixo do nome esconde o codinome de quem espia a tela.
+- **Quem convoca, responde:** o codinome de quem convoca a Quarentena aparece para toda a vila
+  e no Diário; quem prender um inocente fica a rodada seguinte sem convocar. Na votação, **só os
+  jogadores reais** contam (empate vira sorteio).
+- **O brilho misterioso:** a cada 3 noites, alguns setores irradiam um brilho sem explicação —
+  e o mapa público conta quantas noites faltam. (Dica: é onde a Ameaça estava, se ela não tentou
+  atacar naquela noite.)
+- **O Resgate:** do Setor de Saúde, com pelo menos 2 habitantes nela, a vila organiza a volta de
+  quem foi abduzido ou preso. Se a maioria dos aldeões acertar a questão, a turma vota quem volta
+  e a Esperança sobe 10.
+- **Delírio do professor:** se a turma estiver combinando por fora, o telão embaralha os
+  codinomes de todos na hora, com o mesmo aviso anônimo do poder da Ameaça.
 - **O Diário da Vila** guarda tudo o que aconteceu na partida. Cada novidade aparece na tela
   e depois fica ali, para a turma reler enquanto discute. O que ele **não** registra é o
   deslocamento: a lista de quem foi para onde entregaria o mapa inteiro.
