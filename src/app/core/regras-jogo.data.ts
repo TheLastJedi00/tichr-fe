@@ -144,6 +144,8 @@ const ISOLATEUS: RegrasJogo = {
         'Um aluno é sorteado como a Ameaça. Todos os outros são Aldeões.',
         'Em turmas pequenas, a vila é preenchida por Habitantes Virtuais para a Ameaça ter onde se esconder. Eles nunca são a Ameaça.',
         'São necessários pelo menos 4 investigadores reais para começar.',
+        'Discrição: o papel não aparece na tela. Para ver se você é Aldeão ou Ameaça — e as suas ações —, toque no seu personagem.',
+        'O olho abaixo do seu codinome esconde o nome da tela, para quem está do lado não ler.',
       ],
     },
     {
@@ -155,6 +157,7 @@ const ISOLATEUS: RegrasJogo = {
         'Como os Habitantes Virtuais votam ao acaso, empates são desempatados pelo consenso dos jogadores reais — o Instinto Humano.',
         'O voto da Ameaça não conta na defesa: ela responde e pontua como todos, mas não decide o resultado.',
         'Durante a noite, só você sabe para onde andou: o mapa da vila só mostra as posições novas quando a noite termina.',
+        'A cada 3 noites, um brilho misterioso irradia alguns setores da vila, sem explicação. O mapa mostra quantas noites faltam.',
       ],
     },
     {
@@ -168,6 +171,15 @@ const ISOLATEUS: RegrasJogo = {
       ],
     },
     {
+      titulo: 'O Resgate',
+      itens: [
+        'Do Setor de Saúde, de pé, qualquer habitante pode organizar à noite o resgate de quem saiu da vila (abduzido ou preso).',
+        'O resgate só vale se, ao amanhecer, houver pelo menos 2 habitantes na Saúde.',
+        'Ele entra na questão do dia: se a maioria dos aldeões acertar, a vila vota quem volta — e a Esperança sobe 10.',
+        'Quem volta reaparece na Saúde. Se a turma trouxer de volta uma Ameaça presa, ela volta livre: a escolha é da vila.',
+      ],
+    },
+    {
       titulo: 'Sinais de Rádio',
       itens: [
         'Quem já foi abduzido ou preso continua respondendo e pode mandar um Sinal de Rádio anônimo durante a questão, tentando salvar a vila.',
@@ -178,11 +190,14 @@ const ISOLATEUS: RegrasJogo = {
       itens: [
         'Depois de cada noite, a vila pode convocar a Quarentena — uma por rodada.',
         'Abre um debate cronometrado e, em seguida, a votação no suspeito.',
+        'Quem convoca aparece para toda a vila e no Diário. Se a Quarentena prender um inocente, quem convocou fica a rodada seguinte sem poder convocar.',
+        'Só os votos dos jogadores reais contam. A Quarentena sempre prende alguém; empate vira sorteio entre os empatados.',
         'O professor pode desligar o debate antes de iniciar a partida: aí a Quarentena vai direto para a votação.',
         'Quem já se decidiu pode pular o debate: se todos pularem, a votação começa na hora.',
         'O professor controla o ritmo pelo telão: ele pode pular o tempo restante de qualquer etapa — noite, questão, debate ou votação — e o jogo segue como se o relógio tivesse zerado.',
         'Trancou a Ameaça: a invasão é contida e a Vila vence na hora — ou, se o Contágio deixou outra solta, a partida segue.',
         'Trancou um inocente: a Esperança sofre dano severo e a identidade do preso continua em segredo.',
+        'Se notar alunos combinando por fora, o professor pode causar um delírio coletivo a qualquer momento: todos trocam de nome, com o mesmo aviso anônimo do poder da Ameaça.',
       ],
     },
     {
@@ -206,6 +221,11 @@ const ISOLATEUS: RegrasJogo = {
       acao: 'Sabotagem validada (a vila errou)',
       valor: '+1000 para a Ameaça',
       detalhe: 'induzir a vila ao erro vale o mesmo que acertar a questão',
+    },
+    {
+      acao: 'Resgate concluído',
+      valor: '+10 de Esperança',
+      detalhe: 'para a vila, não para o XP',
     },
     {
       acao: 'Vitória da partida',

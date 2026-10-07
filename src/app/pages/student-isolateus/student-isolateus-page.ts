@@ -124,6 +124,8 @@ const CARDS_DE_PODER: ReadonlyArray<{
             A vila está isolada no extremo norte. Luzes cortaram o céu e uma
             estrutura metálica afundou na floresta. Desde então, moradores
             desaparecem à noite. A ameaça já está aqui — disfarçada entre vocês.
+            E a cada 3 noites, um brilho misterioso irradia alguns setores da
+            vila, sem explicação.
           </p>
         </section>
 
