@@ -273,6 +273,9 @@ const MIN_REAIS = 4;
             @case ('QUARENTENA_DEBATE') {
               <div class="quarentena">
                 <span class="quarentena__tag">Quarentena · Debate</span>
+                @if (p.quarentenaConvocadaPor; as c) {
+                  <p class="lead">Convocada por <b>{{ c.nome }}</b></p>
+                }
                 @if (relogioAtivo()) { <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div> }
                 <div class="feed">
                   @for (m of p.debate; track m.id) {
@@ -288,6 +291,9 @@ const MIN_REAIS = 4;
             @case ('QUARENTENA_VOTO') {
               <div class="quarentena">
                 <span class="quarentena__tag">Quarentena · Veredito</span>
+                @if (p.quarentenaConvocadaPor; as c) {
+                  <p class="lead">Convocada por <b>{{ c.nome }}</b></p>
+                }
                 @if (relogioAtivo()) { <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div> }
                 <p class="lead">Depositem seus votos. {{ p.votosRecebidos }} voto(s) recebido(s).</p>
                 <app-lobby-loader />

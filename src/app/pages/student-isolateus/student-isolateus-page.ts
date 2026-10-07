@@ -415,6 +415,9 @@ const CARDS_DE_PODER: ReadonlyArray<{
 
             @case ('QUARENTENA_DEBATE') {
               <div class="qtag">Quarentena · Debate</div>
+              @if (p.quarentenaConvocadaPor; as c) {
+                <p class="muted center">Convocada por <b>{{ c.nome }}</b></p>
+              }
               <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div>
               <div class="feed feed--alto">
                 @for (m of p.debate; track m.id) {
@@ -456,6 +459,9 @@ const CARDS_DE_PODER: ReadonlyArray<{
 
             @case ('QUARENTENA_VOTO') {
               <div class="qtag">Quarentena · Veredito</div>
+              @if (p.quarentenaConvocadaPor; as c) {
+                <p class="muted center">Convocada por <b>{{ c.nome }}</b></p>
+              }
               <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div>
               @if (foraDaVila()) {
                 <p class="muted center">Quem saiu da vila não vota.</p>
@@ -1170,6 +1176,16 @@ export class StudentIsolateusPage {
     const radio = p.setores.find((s) => s.id === SETOR_COMUNICACAO);
     if (!radio?.intacto) {
       return 'O Setor de Comunicação está em ruínas. Reconstrua o rádio para convocar a Quarentena.';
+    }
+    // Espelha o 403 CONVOCADOR_BLOQUEADO: quem prendeu um inocente fica uma
+    // rodada sem convocar.
+    const bloqueio = p.convocadorBloqueado;
+    if (
+      bloqueio &&
+      bloqueio.habitanteId === this.painel()?.habitanteId &&
+      bloqueio.ateRodada >= p.rodada
+    ) {
+      return 'Sua última Quarentena prendeu um inocente. Você poderá convocar de novo na próxima rodada.';
     }
     return null;
   }
