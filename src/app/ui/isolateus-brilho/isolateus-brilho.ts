@@ -19,6 +19,9 @@ import { Icon } from '../icon/icon';
       <div class="card__txt">
         @for (nome of setores(); track nome) {
           <p>Brilho misterioso irradiando no <b>{{ nome }}</b></p>
+        } @empty {
+          <!-- Noite do ciclo sem brilho: a turma esperava por ela. -->
+          <p>Brilho misterioso não apareceu esta noite.</p>
         }
       </div>
     </div>
@@ -47,7 +50,7 @@ import { Icon } from '../icon/icon';
   `,
 })
 export class IsolateusBrilho {
-  /** Nomes completos dos setores que irradiaram. */
+  /** Nomes completos dos setores que irradiaram; vazio = a noite do ciclo passou sem brilho. */
   readonly setores = input.required<string[]>();
   readonly fechar = output<void>();
 }
