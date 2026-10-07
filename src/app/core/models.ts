@@ -654,7 +654,8 @@ export type TipoAcaoGlobal =
   | 'CATAPULTA'
   | 'USURPACAO'
   | 'DANO_CRITICO'
-  | 'DICA';
+  | 'DICA'
+  | 'MODERACAO';
 
 /**
  * Ação de impacto narrada em todas as telas ao mesmo tempo. Chega por fan-out:
@@ -751,6 +752,22 @@ export interface ResumoRodada {
   dano?: number;
   critico?: boolean;
   porTempo?: boolean;
+}
+
+/** Mensagem do chat privado da equipe (`wor_chats/{canalId}`). */
+export interface MensagemChatWor {
+  id: string;
+  alunoId: string;
+  nome: string;
+  texto: string;
+  em: string;
+}
+
+export interface WorChat {
+  id: string;
+  matchId: string;
+  teamId: string;
+  mensagens: MensagemChatWor[];
 }
 
 export interface WorMatchView {

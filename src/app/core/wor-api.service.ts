@@ -5,6 +5,7 @@ import { API_BASE_URL } from './api.config';
 import {
   CriarWorJogoPayload,
   EfeitoRisco,
+  MensagemChatWor,
   WorJogo,
   WorMatch,
   WorMatchView,
@@ -128,6 +129,23 @@ export class WorApiService {
     return this.http.post<WorMatchView>(
       `${this.base}/aluno/wor/${matchId}/arriscar`,
       { palavra, efeito, alvoEquipeId },
+    );
+  }
+
+  /**
+   * O canal do chat privado da equipe do aluno. O id é o segredo: o celular o
+   * usa para escutar `wor_chats/{canalId}` em tempo real.
+   */
+  canalChat(matchId: string): Observable<{ canalId: string }> {
+    return this.http.get<{ canalId: string }>(
+      `${this.base}/aluno/wor/${matchId}/chat`,
+    );
+  }
+  /** Manda uma mensagem no chat da equipe (o servidor filtra a linguagem). */
+  enviarChat(matchId: string, texto: string): Observable<MensagemChatWor> {
+    return this.http.post<MensagemChatWor>(
+      `${this.base}/aluno/wor/${matchId}/chat`,
+      { texto },
     );
   }
 }

@@ -8,7 +8,13 @@ import {
 } from 'firebase/firestore';
 import { Observable } from 'rxjs';
 import { firebaseApp } from './firebase-app';
-import { IsolateusMatch, Partida, WorMatch, WorTeam } from './models';
+import {
+  IsolateusMatch,
+  Partida,
+  WorChat,
+  WorMatch,
+  WorTeam,
+} from './models';
 
 /**
  * Único ponto de contato do frontend com o Firebase. Inicializa o app web
@@ -84,6 +90,23 @@ export class RealtimeService {
         ref,
         (snap) =>
           sub.next(snap.exists() ? ({ id: snap.id, ...snap.data() } as WorTeam) : null),
+        (err) => sub.error(err),
+      );
+      return () => unsub();
+    });
+  }
+
+  /**
+   * O chat privado da equipe (`wor_chats/{canalId}`). As rules liberam só
+   * `get` por id: quem não recebeu o `canalId` do backend não chega aqui.
+   */
+  escutarChat(canalId: string): Observable<WorChat | null> {
+    return new Observable<WorChat | null>((sub) => {
+      const ref = doc(this.conectar(), 'wor_chats', canalId);
+      const unsub = onSnapshot(
+        ref,
+        (snap) =>
+          sub.next(snap.exists() ? ({ id: snap.id, ...snap.data() } as WorChat) : null),
         (err) => sub.error(err),
       );
       return () => unsub();
