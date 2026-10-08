@@ -923,6 +923,19 @@ export interface PlacarIsolateus {
   pontos: number;
 }
 
+/** Um aviso de saída da noite: o habitante escolheu ir para `para`. */
+export interface DeslocamentoNoite {
+  habitanteId: string;
+  para: string;
+}
+
+/** Uma troca de setor do último amanhecer. */
+export interface MovimentoAmanhecer {
+  habitanteId: string;
+  de: string;
+  para: string;
+}
+
 /** A camada pública da partida (`isolateus_partidas/{id}`), lida por snapshot. */
 export interface IsolateusMatch {
   id: string;
@@ -985,6 +998,17 @@ export interface IsolateusMatch {
   votosResgateRecebidos?: number;
   /** Quem o último resgate trouxe de volta. */
   resgateResultado?: { habitanteId: string; nome: string } | null;
+  /**
+   * Os avisos de saída da noite: quem escolheu sair e para onde. A origem é o
+   * `setorId` público. Reais e NPCs aparecem iguais; a tela mostra só os do
+   * próprio setor.
+   */
+  deslocamentosNoite?: DeslocamentoNoite[];
+  /** Quem trocou de setor no último amanhecer (`null` em noite de Delírio). */
+  ultimosDeslocamentos?: {
+    rodada: number;
+    movimentos: MovimentoAmanhecer[];
+  } | null;
   votosRecebidos: number;
   /** Quantos já pularam o debate — só a contagem; quem pulou é segredo. */
   pulosRecebidos?: number;

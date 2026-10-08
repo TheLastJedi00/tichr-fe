@@ -18,6 +18,33 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.32.0',
+    data: '2026-10-08',
+    titulo: 'Movimentação em tempo real no Isolateus',
+    itens: [
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Agora você vê, do seu setor, quem está partindo e para onde: o colega ganha um aviso com o destino e a estrada pulsa com quantos vão por ela. Quem muda de ideia, muda o aviso também.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'No amanhecer, quem saiu desliza pela estrada do destino, quem chegou entra pela estrada de onde veio, e um aviso conta quem partiu e quem acabou de chegar.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Mudou de ideia depois de andar? A barra "Mudar" mostra os outros caminhos de onde a noite começou, e também o de voltar.',
+      },
+      {
+        categoria: 'Correção',
+        texto:
+          'Com muitos celulares na partida, um movimento feito no último instante da noite podia não valer. Agora todo movimento confirmado chega ao amanhecer.',
+      },
+    ],
+  },
+  {
     versao: 'v0.31.0',
     data: '2026-10-07',
     titulo: 'Brilho, Resgate e Chat de Equipe',
