@@ -718,6 +718,8 @@ export interface WorMatch {
   lastGlobalAction?: LastGlobalAction | null;
   inscritos: { alunoId: string; nome: string }[];
   vencedorEquipeId?: string | null;
+  /** Quanto valem os pontos da partida (1x a 10x, escolhido no lobby). Ausente = 1. */
+  multiplicador?: number;
 }
 
 /** Ação de um membro na rodada (para o cliente saber quem já jogou). */

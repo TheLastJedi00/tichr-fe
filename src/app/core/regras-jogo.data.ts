@@ -88,6 +88,7 @@ const WOR: RegrasJogo = {
       itens: [
         'A batalha acaba quando as palavras do arsenal terminam.',
         'Vence quem tiver MAIS HP. Empate no HP é desempatado pelos pontos de combate.',
+        'Partida valendo mais: antes de começar, o professor pode multiplicar os pontos da partida (de 1x a 10x). O dano nos castelos não muda, só a pontuação.',
       ],
     },
   ],
@@ -103,7 +104,7 @@ const WOR: RegrasJogo = {
     { acao: 'Linguagem imprópria no chat', valor: '−1000 XP', detalhe: 'direto no ranking de quem escreveu, e −100 de HP no castelo da equipe' },
   ],
   conversao:
-    'Ao fim da batalha, os pontos de combate viram XP do ranking da turma: XP = pontos × 0,1. A equipe campeã recebe o valor cheio; as demais, metade. Todos os membros da equipe recebem o mesmo XP.',
+    'Ao fim da batalha, os pontos de combate viram XP do ranking da turma na proporção de 1 para 1. A equipe campeã recebe o valor cheio; as demais, metade. Todos os membros da equipe recebem o mesmo XP. O professor pode valer a partida de 1x a 10x antes de começar: todos os pontos (e o XP) são multiplicados.',
 };
 
 const QLICK: RegrasJogo = {

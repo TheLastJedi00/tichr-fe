@@ -18,6 +18,23 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.33.0',
+    data: '2026-10-08',
+    titulo: 'Tichr Wor valendo mais',
+    itens: [
+      {
+        categoria: 'Correção',
+        texto:
+          'O Tichr Wor rendia pouco XP: agora os pontos de combate viram XP na mesma proporção do Qlick e do Isolateus (1 para 1). A equipe campeã leva o valor cheio; as demais, metade.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Partida valendo mais: no lobby do Tichr Wor, o professor escolhe quanto vale a batalha, de 1x a 10x. Todos os pontos das equipes, e o XP do ranking, são multiplicados.',
+      },
+    ],
+  },
+  {
     versao: 'v0.31.0',
     data: '2026-10-07',
     titulo: 'Brilho, Resgate e Chat de Equipe',
