@@ -184,6 +184,13 @@ aconteceu:
   rivais, nem o professor. Linguagem imprópria é **barrada pelo servidor**: a mensagem não chega
   à equipe, o aluno perde **1000 de XP** no ranking, o castelo perde **100 de HP**, e o telão e a
   equipe recebem o alerta com o nome de quem escreveu. (Exige o deploy das `firestore.rules`.)
+- **XP na mesma régua dos outros jogos:** no fim da batalha, os pontos de combate viram XP do
+  ranking na proporção de **1 para 1** (antes era 1 para 10 e o Wor rendia muito menos que o Qlick
+  e o Isolateus). A equipe campeã leva o valor cheio; as demais, metade.
+- **Partida valendo mais:** no lobby, enquanto os alunos entram, o professor escolhe quanto vale
+  a partida, de **1x a 10x**. Todos os pontos das equipes (e o XP) são multiplicados; o dano nos
+  castelos não muda. O celular dos alunos mostra o valor no lobby e no placar da equipe, e o
+  telão mostra o selo "Valendo Nx" durante a batalha.
 
 ### Tichr Isolateus: dedução social sobre a sua matéria (Plano PhD)
 

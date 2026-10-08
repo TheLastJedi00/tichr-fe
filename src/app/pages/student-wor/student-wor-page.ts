@@ -80,6 +80,9 @@ const DANO_CATAPULTA = 300;
           <div class="lobby">
             <app-icon name="castle" [size]="48" />
             <h1>{{ m.nome }}</h1>
+            @if ((m.multiplicador ?? 1) > 1) {
+              <p class="mult-selo">Partida valendo {{ m.multiplicador }}x: todos os pontos (e o XP) multiplicados</p>
+            }
             @if (!inscrito()) {
               <button class="btn-primary" type="button" [disabled]="ocupado()" (click)="entrar()">
                 Entrar na batalha
@@ -96,7 +99,10 @@ const DANO_CATAPULTA = 300;
             <span class="fort__nome">
               <app-icon [name]="t.isHorde ? 'sword' : 'castle'" [size]="18" /> {{ t.nome }}
             </span>
-            <span class="fort__pontos"><app-icon name="trophy" [size]="14" /> {{ t.pontos ?? 0 }} pts</span>
+            <span class="fort__pontos">
+              <app-icon name="trophy" [size]="14" /> {{ t.pontos ?? 0 }} pts
+              @if ((m.multiplicador ?? 1) > 1) { <b class="fort__mult">{{ m.multiplicador }}x</b> }
+            </span>
             <span class="hpbar"><span [style.width.%]="hpPct(t.hp)"></span></span>
             <span class="hp">{{ t.hp }} HP</span>
             <span class="fort__membros">
@@ -327,6 +333,12 @@ const DANO_CATAPULTA = 300;
     .vazio, .lobby { display: flex; flex-direction: column; align-items: center; gap: 1rem; text-align: center; padding: 2.5rem 1rem; color: var(--text-muted); }
     .lobby h1 { margin: 0; color: var(--text); font-size: 1.4rem; }
     .aguarde { text-align: center; color: var(--text-muted); font-weight: 600; }
+    /* Multiplicador de pontos da partida (escolhido pelo professor no lobby). */
+    .mult-selo {
+      margin: 0; padding: 0.35rem 0.75rem; border-radius: 999px; font-size: 0.8rem; font-weight: 800;
+      color: #fff; background: #b45309; text-align: center;
+    }
+    .fort__mult { margin-left: 0.25rem; padding: 0 0.35rem; border-radius: 999px; color: #fff; background: #b45309; font-size: 0.7rem; }
     .fort { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.9rem; border-radius: 14px; border: 2px solid var(--cor); background: color-mix(in srgb, var(--cor) 8%, var(--surface)); }
     .fort__nome { display: flex; align-items: center; gap: 0.4rem; font-weight: 800; }
     .fort__pontos { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 1.05rem; font-weight: 800; color: var(--cor); font-variant-numeric: tabular-nums; }
