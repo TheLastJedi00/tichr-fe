@@ -88,6 +88,7 @@ const WOR: RegrasJogo = {
       itens: [
         'A batalha acaba quando as palavras do arsenal terminam.',
         'Vence quem tiver MAIS HP. Empate no HP é desempatado pelos pontos de combate.',
+        'Partida valendo mais: antes de começar, o professor pode multiplicar os pontos da partida (de 1x a 10x). O dano nos castelos não muda, só a pontuação.',
       ],
     },
   ],
@@ -103,7 +104,7 @@ const WOR: RegrasJogo = {
     { acao: 'Linguagem imprópria no chat', valor: '−1000 XP', detalhe: 'direto no ranking de quem escreveu, e −100 de HP no castelo da equipe' },
   ],
   conversao:
-    'Ao fim da batalha, os pontos de combate viram XP do ranking da turma: XP = pontos × 0,1. A equipe campeã recebe o valor cheio; as demais, metade. Todos os membros da equipe recebem o mesmo XP.',
+    'Ao fim da batalha, os pontos de combate viram XP do ranking da turma na proporção de 1 para 1. A equipe campeã recebe o valor cheio; as demais, metade. Todos os membros da equipe recebem o mesmo XP. O professor pode valer a partida de 1x a 10x antes de começar: todos os pontos (e o XP) são multiplicados.',
 };
 
 const QLICK: RegrasJogo = {
@@ -156,7 +157,8 @@ const ISOLATEUS: RegrasJogo = {
         'Se a maioria acertar, a defesa resiste e nada acontece. Se a maioria errar, o ataque se concretiza e a Barra de Esperança cai.',
         'Como os Habitantes Virtuais votam ao acaso, empates são desempatados pelo consenso dos jogadores reais — o Instinto Humano.',
         'O voto da Ameaça não conta na defesa: ela responde e pontua como todos, mas não decide o resultado.',
-        'Durante a noite, só você sabe para onde andou: o mapa da vila só mostra as posições novas quando a noite termina.',
+        'Durante a noite, quem está no seu setor vê quando você escolhe sair e para onde, e você vê o mesmo deles. Dá para mudar de ideia (entre os vizinhos de onde a noite começou), e a troca também aparece.',
+        'Quem vem de outro setor só aparece no amanhecer: aí você vê quem partiu e quem acabou de chegar, e de onde veio.',
         'A cada 3 noites, um brilho misterioso irradia alguns setores da vila, sem explicação. O mapa mostra quantas noites faltam.',
       ],
     },

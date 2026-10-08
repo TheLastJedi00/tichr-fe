@@ -73,6 +73,13 @@ export class WorApiService {
       {},
     );
   }
+  /** Lobby: quanto valem os pontos desta partida (1x a 10x). */
+  definirMultiplicador(matchId: string, multiplicador: number): Observable<WorMatchView> {
+    return this.http.post<WorMatchView>(
+      `${this.base}/wor/matches/${matchId}/multiplicador`,
+      { multiplicador },
+    );
+  }
   iniciar(matchId: string): Observable<WorMatchView> {
     return this.http.post<WorMatchView>(
       `${this.base}/wor/matches/${matchId}/iniciar`,

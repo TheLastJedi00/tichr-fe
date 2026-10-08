@@ -59,11 +59,36 @@ import { Spinner } from '../../ui/spinner/spinner';
             }
           </div>
 
+          <!-- Quanto vale a partida: todos os pontos (e o XP) são multiplicados. -->
+          <div class="mult">
+            <div class="mult__txt">
+              <span class="mult__lbl">Valor da partida</span>
+              <span class="muted">Multiplica todos os pontos das equipes — e o XP no ranking.</span>
+            </div>
+            <div class="mult__ctl" role="group" aria-label="Multiplicador de pontos">
+              <button
+                class="mult__btn"
+                type="button"
+                aria-label="Diminuir"
+                [disabled]="multiplicador() <= MULT_MIN"
+                (click)="mudarMultiplicador(-1)"
+              >−</button>
+              <strong class="mult__val" aria-live="polite">{{ multiplicador() }}x</strong>
+              <button
+                class="mult__btn"
+                type="button"
+                aria-label="Aumentar"
+                [disabled]="multiplicador() >= MULT_MAX"
+                (click)="mudarMultiplicador(1)"
+              >+</button>
+            </div>
+          </div>
+
           @if (!teams().length) {
             <button
               class="btn-primary full"
               type="button"
-              [disabled]="ocupado() || m.inscritos.length < 2"
+              [disabled]="ocupado() || salvandoMultiplicador() || m.inscritos.length < 2"
               (click)="distribuir()"
             >
               Distribuir equipes ({{ m.inscritos.length }} na sala)
@@ -81,7 +106,7 @@ import { Spinner } from '../../ui/spinner/spinner';
                 <span class="team-chip" [style.background]="t.cor">{{ t.nome }} · {{ t.membros.length }}</span>
               }
             </div>
-            <button class="btn-primary full" type="button" [disabled]="ocupado()" (click)="iniciar()">Iniciar batalha</button>
+            <button class="btn-primary full" type="button" [disabled]="ocupado() || salvandoMultiplicador()" (click)="iniciar()">Iniciar batalha</button>
           }
           @if (erro()) { <p class="erro">{{ erro() }}</p> }
         </section>
@@ -94,7 +119,12 @@ import { Spinner } from '../../ui/spinner/spinner';
               @else { <span class="box" [class.box--on]="ch !== '_'">{{ ch === '_' ? '' : ch }}</span> }
             }
           </div>
-          <p class="onda">Onda {{ m.ondaIndex + 1 }} de {{ m.totalOndas }}</p>
+          <p class="onda">
+            Onda {{ m.ondaIndex + 1 }} de {{ m.totalOndas }}
+            @if ((m.multiplicador ?? 1) > 1) {
+              <span class="mult-selo">Valendo {{ m.multiplicador }}x</span>
+            }
+          </p>
 
           @if (m.status === 'EM_ANDAMENTO') {
             <div class="timer" [class.timer--fim]="restante() <= 10">
@@ -198,6 +228,26 @@ import { Spinner } from '../../ui/spinner/spinner';
     .campo { display: flex; flex-direction: column; gap: 0.35rem; }
     .campo > span { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
     .erro { margin: 0; color: var(--danger); font-weight: 600; }
+    /* Multiplicador de pontos da partida (lobby). */
+    .mult {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem;
+      padding: 0.75rem 0.9rem; border: 2px solid var(--border); border-radius: var(--radius);
+      background: var(--surface);
+    }
+    .mult__txt { display: flex; flex-direction: column; gap: 0.15rem; font-size: 0.85rem; }
+    .mult__lbl { font-weight: 800; }
+    .mult__ctl { display: inline-flex; align-items: center; gap: 0.5rem; }
+    .mult__btn {
+      width: 2.25rem; height: 2.25rem; font: inherit; font-size: 1.2rem; font-weight: 800; line-height: 1;
+      color: var(--text); background: var(--surface-alt); border: 2px solid var(--border);
+      border-radius: var(--radius); cursor: pointer;
+    }
+    .mult__btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .mult__val { min-width: 3.2rem; text-align: center; font-size: 1.4rem; font-variant-numeric: tabular-nums; color: #b45309; }
+    .mult-selo {
+      margin-left: 0.5rem; padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800;
+      color: #fff; background: #b45309; vertical-align: middle;
+    }
     /* Em jogo */
     .palavra { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.4rem; }
     .box { display: inline-flex; align-items: center; justify-content: center; width: 2.4rem; height: 3rem; border-radius: 8px; border-bottom: 4px solid var(--border); background: var(--surface); font-size: 1.6rem; font-weight: 800; }
@@ -316,6 +366,7 @@ export class WorProjetorPage {
     }, 1000);
     this.destroyRef.onDestroy(() => {
       clearInterval(tick);
+      clearTimeout(this.envioMultiplicador);
       this.narrador.destruir();
     });
   }
@@ -335,6 +386,70 @@ export class WorProjetorPage {
   }
   protected iniciar(): void {
     this.acao(this.api.iniciar(this.matchId));
+  }
+
+  // --- Multiplicador de pontos (lobby, 1x a 10x) ---
+  protected readonly MULT_MIN = 1;
+  protected readonly MULT_MAX = 10;
+  /**
+   * O valor escolhido aqui, antes de o snapshot confirmar. Sem ele, dois
+   * cliques rápidos partiam do mesmo valor do documento e o segundo se perdia.
+   */
+  private readonly multiplicadorLocal = signal<number | null>(null);
+  protected readonly multiplicador = computed(
+    () => this.multiplicadorLocal() ?? this.match()?.multiplicador ?? 1,
+  );
+
+  /** Há um valor escolhido ainda não gravado: Distribuir/Iniciar esperam. */
+  protected readonly salvandoMultiplicador = signal(false);
+  private envioMultiplicador: ReturnType<typeof setTimeout> | undefined;
+  private multiplicadorEmVoo = false;
+  private multiplicadorPendente = false;
+
+  /**
+   * O clique muda o valor na tela na hora; o envio sai depois de 400ms sem
+   * cliques, e uma requisição por vez, sempre com o valor mais recente. Cliques
+   * rápidos em paralelo chegavam ao servidor fora de ordem, e o documento
+   * terminava num valor diferente do que o professor via.
+   */
+  protected mudarMultiplicador(passo: number): void {
+    const novo = Math.min(
+      this.MULT_MAX,
+      Math.max(this.MULT_MIN, this.multiplicador() + passo),
+    );
+    if (novo === this.multiplicador()) return;
+    this.multiplicadorLocal.set(novo);
+    this.salvandoMultiplicador.set(true);
+    clearTimeout(this.envioMultiplicador);
+    this.envioMultiplicador = setTimeout(() => this.enviarMultiplicador(), 400);
+  }
+
+  private enviarMultiplicador(): void {
+    if (this.multiplicadorEmVoo) {
+      this.multiplicadorPendente = true;
+      return;
+    }
+    const valor = this.multiplicadorLocal();
+    if (valor === null) return;
+    this.multiplicadorEmVoo = true;
+    const fim = () => {
+      this.multiplicadorEmVoo = false;
+      if (this.multiplicadorPendente) {
+        this.multiplicadorPendente = false;
+        this.enviarMultiplicador();
+      } else {
+        this.salvandoMultiplicador.set(false);
+      }
+    };
+    this.api.definirMultiplicador(this.matchId, valor).subscribe({
+      next: fim,
+      error: () => {
+        // O servidor recusou (ex.: a partida começou): volta ao valor real.
+        this.multiplicadorLocal.set(null);
+        this.erro.set('Não foi possível mudar o valor da partida.');
+        fim();
+      },
+    });
   }
   protected pular(): void {
     this.acao(this.api.pular(this.matchId));
