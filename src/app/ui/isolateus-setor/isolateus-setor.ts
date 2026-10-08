@@ -1,12 +1,18 @@
 import {
+  afterNextRender,
   afterRenderEffect,
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
+  effect,
   ElementRef,
   inject,
+  Injector,
   input,
   output,
+  signal,
+  untracked,
 } from '@angular/core';
 import { setorDoMapa, vizinhosDe } from '../../core/isolateus-mapa';
 import { DeslocamentoNoite, Habitante, SetorVila } from '../../core/models';
@@ -44,9 +50,45 @@ import { Icon } from '../icon/icon';
         </div>
       }
 
+      <!-- Quem chegou e quem partiu no amanhecer (026 §4.2) -->
+      <div class="aviso-mov-regiao" aria-live="polite">
+        @if (aviso(); as a) {
+          <div class="aviso-mov" [class.aviso-mov--some]="avisoSaindo()">
+            <span class="aviso-mov__icone"><app-icon name="users" [size]="16" /></span>
+            <span class="aviso-mov__texto">
+              @if (a.linhas.length <= 3) {
+                @for (l of a.linhas; track $index) {
+                  <span><b>{{ l.nome }}</b> {{ l.texto }}</span>
+                }
+              } @else {
+                <span><b>{{ a.resumo }}</b></span>
+                <button
+                  class="aviso-mov__mais"
+                  type="button"
+                  [attr.aria-expanded]="avisoAberto()"
+                  (click)="alternarAviso()"
+                >
+                  {{ avisoAberto() ? 'Esconder' : 'Ver quem' }}
+                </button>
+                @if (avisoAberto()) {
+                  <ul>
+                    @for (l of a.linhas; track $index) {
+                      <li><b>{{ l.nome }}</b> {{ l.texto }}</li>
+                    }
+                  </ul>
+                }
+              }
+            </span>
+            <button class="aviso-mov__fechar" type="button" aria-label="Fechar aviso" (click)="fecharAviso()">
+              <app-icon name="x" [size]="14" />
+            </button>
+          </div>
+        }
+      </div>
+
       <!-- Quem está aqui -->
       <div class="fileira">
-        @for (h of presentes(); track h.id; let i = $index) {
+        @for (h of fileira(); track h.id; let i = $index) {
           <span
             class="hab"
             [attr.data-hab]="h.id"
@@ -54,6 +96,7 @@ import { Icon } from '../icon/icon';
             [class.hab--eu]="h.id === meuHabitanteId()"
             [class.hab--indo]="h.id === abduzindoId()"
             [class.hab--saindo]="!!saidaDe(h.id)"
+            [class.hab--sem-entrada]="semEntrada().has(h.id)"
             [style.--atraso]="i * 40 + 'ms'"
             [attr.role]="h.id === meuHabitanteId() ? 'button' : null"
             [attr.tabindex]="h.id === meuHabitanteId() ? 0 : null"
@@ -417,8 +460,15 @@ export class IsolateusSetor {
 
   /** Os avisos de saída da noite, já recortados para este setor pela página. */
   readonly saidasNoite = input<DeslocamentoNoite[]>([]);
+  /**
+   * Quem saiu e quem chegou no amanhecer, já recortado (e sem o próprio
+   * aluno). Toca uma vez por `rodada`; `null` = nada a animar.
+   */
+  readonly movimentosAmanhecer = input<MovimentosSetor | null>(null);
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly injector = inject(Injector);
+  private readonly destroyRef = inject(DestroyRef);
 
   private readonly saidaPorHab = computed(
     () => new Map(this.saidasNoite().map((d) => [d.habitanteId, d.para])),
@@ -430,12 +480,23 @@ export class IsolateusSetor {
     return n;
   });
 
+  /** Durante a animação do amanhecer, a fileira mostrada é controlada aqui. */
+  private readonly exibidos = signal<Array<{ id: string; nome: string }> | null>(null);
+  protected readonly fileira = computed(() => this.exibidos() ?? this.presentes());
+  protected readonly semEntrada = signal<ReadonlySet<string>>(new Set());
+
+  protected readonly aviso = signal<AvisoMovimento | null>(null);
+  protected readonly avisoAberto = signal(false);
+  protected readonly avisoSaindo = signal(false);
+  private avisoTimer: ReturnType<typeof setTimeout> | undefined;
+  private rodadaAnimada: number | null = null;
+
   constructor() {
     // A inclinação de quem está de saída aponta para a estrada de verdade:
     // depende do layout, então é medida depois de cada render.
     afterRenderEffect(() => {
       this.saidasNoite();
-      this.presentes();
+      this.fileira();
       const raiz = this.host.nativeElement;
       raiz.querySelectorAll<HTMLElement>('.hab[data-para]').forEach((el) => {
         const d = this.delta(el, el.dataset['para']!);
@@ -444,6 +505,15 @@ export class IsolateusSetor {
         el.style.setProperty('--dy', `${((d.y / len) * INCLINA_PX).toFixed(1)}px`);
       });
     });
+
+    effect(() => {
+      const mov = this.movimentosAmanhecer();
+      if (!mov || mov.rodada === this.rodadaAnimada) return;
+      this.rodadaAnimada = mov.rodada;
+      untracked(() => void this.tocarAmanhecer(mov));
+    });
+
+    this.destroyRef.onDestroy(() => clearTimeout(this.avisoTimer));
   }
 
   protected saidaDe(id: string): string | null {
@@ -452,6 +522,147 @@ export class IsolateusSetor {
 
   protected curto(setorId: string): string {
     return setorDoMapa(setorId)?.curto ?? setorId;
+  }
+
+  /**
+   * O amanhecer: a fileira volta ao estado da noite (reconstruído dos
+   * movimentos, já que esta instância pode ter nascido agora), quem saiu
+   * desliza até a estrada do destino, quem ficou escorrega para o buraco, quem
+   * chegou entra pela estrada da origem e, por fim, o aviso compacto.
+   */
+  private async tocarAmanhecer(mov: MovimentosSetor): Promise<void> {
+    const reduz = movimentoReduzido();
+    const chegando = new Set(mov.chegaram.map((m) => m.id));
+    this.exibidos.set([
+      ...this.presentes()
+        .filter((h) => !chegando.has(h.id))
+        .map((h) => ({ id: h.id, nome: h.nome })),
+      ...mov.sairam.map((m) => ({ id: m.id, nome: m.nome })),
+    ]);
+    this.semEntrada.set(new Set(this.fileira().map((h) => h.id)));
+    await this.proximoRender();
+
+    // 1. Saídas.
+    await Promise.all(
+      mov.sairam.map((m, i) => {
+        const el = this.hab(m.id);
+        if (!el) return Promise.resolve();
+        const d = this.delta(el, m.para);
+        return el
+          .animate(
+            reduz
+              ? [{ opacity: 1 }, { opacity: 0 }]
+              : [
+                  { transform: 'none', opacity: 1 },
+                  { transform: `translate(${d.x}px, ${d.y}px) scale(0.55)`, opacity: 0 },
+                ],
+            {
+              duration: reduz ? 150 : T_SAIDA,
+              delay: reduz ? 0 : i * T_ESCALONA,
+              easing: 'cubic-bezier(.5,0,.75,0)',
+              fill: 'forwards',
+            },
+          )
+          .finished.then(() => undefined);
+      }),
+    );
+
+    // 2. Quem ficou escorrega (FLIP) e quem chegou entra pela estrada da origem.
+    const antes = this.medirFileira();
+    this.semEntrada.set(new Set([...this.semEntrada(), ...chegando]));
+    this.exibidos.set(null);
+    await this.proximoRender();
+    if (!reduz) {
+      for (const [id, r] of antes) {
+        const el = this.hab(id);
+        if (!el || chegando.has(id)) continue;
+        const agora = el.getBoundingClientRect();
+        const dx = r.left - agora.left;
+        const dy = r.top - agora.top;
+        if (dx || dy) {
+          el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], {
+            duration: 220,
+            easing: 'ease-out',
+          });
+        }
+      }
+    }
+    await Promise.all(
+      mov.chegaram.map((m, i) => {
+        const el = this.hab(m.id);
+        if (!el) return Promise.resolve();
+        const d = this.delta(el, m.de);
+        return el
+          .animate(
+            reduz
+              ? [{ opacity: 0 }, { opacity: 1 }]
+              : [
+                  { transform: `translate(${d.x}px, ${d.y}px) scale(0.55)`, opacity: 0 },
+                  { transform: 'none', opacity: 1 },
+                ],
+            {
+              duration: reduz ? 150 : T_CHEGADA,
+              delay: reduz ? 0 : i * T_ESCALONA,
+              easing: 'cubic-bezier(.16,1,.3,1)',
+              fill: 'backwards',
+            },
+          )
+          .finished.then(() => undefined);
+      }),
+    );
+
+    // 3. O aviso compacto.
+    this.mostrarAviso(mov);
+  }
+
+  private mostrarAviso(mov: MovimentosSetor): void {
+    const linhas = [
+      ...mov.chegaram.map((m) => ({ nome: m.nome, texto: `chegou do ${m.deNome}.` })),
+      ...mov.sairam.map((m) => ({ nome: m.nome, texto: `partiu para o ${m.paraNome}.` })),
+    ];
+    if (!linhas.length) return;
+    const conta = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
+    const partes = [
+      mov.chegaram.length ? conta(mov.chegaram.length, 'chegou', 'chegaram') : '',
+      mov.sairam.length ? conta(mov.sairam.length, 'partiu', 'partiram') : '',
+    ].filter(Boolean);
+    this.avisoAberto.set(false);
+    this.avisoSaindo.set(false);
+    this.aviso.set({ linhas, resumo: `${partes.join(', ')}.` });
+    clearTimeout(this.avisoTimer);
+    this.avisoTimer = setTimeout(() => this.fecharAviso(), T_AVISO);
+  }
+
+  protected alternarAviso(): void {
+    this.avisoAberto.update((v) => !v);
+    // Expandido, o aviso fica até o X.
+    clearTimeout(this.avisoTimer);
+  }
+
+  protected fecharAviso(): void {
+    clearTimeout(this.avisoTimer);
+    if (movimentoReduzido()) {
+      this.aviso.set(null);
+      return;
+    }
+    this.avisoSaindo.set(true);
+    this.avisoTimer = setTimeout(() => this.aviso.set(null), 200);
+  }
+
+  private proximoRender(): Promise<void> {
+    return new Promise((ok) => afterNextRender(() => ok(), { injector: this.injector }));
+  }
+
+  private hab(id: string): HTMLElement | null {
+    return this.host.nativeElement.querySelector<HTMLElement>(`.hab[data-hab="${id}"]`);
+  }
+
+  private medirFileira(): Map<string, DOMRect> {
+    const m = new Map<string, DOMRect>();
+    this.host.nativeElement
+      .querySelectorAll<HTMLElement>('.hab[data-hab]')
+      .forEach((el) => m.set(el.dataset['hab']!, el.getBoundingClientRect()));
+    return m;
   }
 
   /** Vetor do centro de `el` até o centro da estrada de `setorId`. */
@@ -469,5 +680,28 @@ export class IsolateusSetor {
   }
 }
 
-/** Quantos px o avatar de saída se inclina para a estrada (026 §4.1). */
+/** Quem saiu e quem chegou neste setor no amanhecer (recortado pela página). */
+export interface MovimentosSetor {
+  rodada: number;
+  sairam: Array<{ id: string; nome: string; para: string; paraNome: string }>;
+  chegaram: Array<{ id: string; nome: string; de: string; deNome: string }>;
+}
+
+interface AvisoMovimento {
+  linhas: Array<{ nome: string; texto: string }>;
+  resumo: string;
+}
+
+/** Tempos da spec 026 §4 (ms). */
+const T_SAIDA = 400;
+const T_CHEGADA = 400;
+const T_ESCALONA = 60;
+const T_AVISO = 4000;
 const INCLINA_PX = 6;
+
+function movimentoReduzido(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  );
+}
