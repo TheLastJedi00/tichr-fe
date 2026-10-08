@@ -1700,6 +1700,9 @@ export class StudentIsolateusPage {
       this.resgateOrganizado.set(false);
       this.reparoOrganizado.set(false);
       this.mudandoDestino.set(false);
+      // A animação é do amanhecer da rodada: a instância do setor que nascer no
+      // próximo resultado não pode herdar a da noite anterior.
+      this.amanhecerParaAnimar.set(null);
       this.abduzindoId.set(null);
       this.jaPulei.set(false);
       // E as duas decisões da noite voltam a ficar em aberto.

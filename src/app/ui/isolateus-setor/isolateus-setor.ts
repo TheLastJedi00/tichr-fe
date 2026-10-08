@@ -490,6 +490,7 @@ export class IsolateusSetor {
   protected readonly avisoSaindo = signal(false);
   private avisoTimer: ReturnType<typeof setTimeout> | undefined;
   private rodadaAnimada: number | null = null;
+  private destruido = false;
 
   constructor() {
     // A inclinação de quem está de saída aponta para a estrada de verdade:
@@ -513,7 +514,10 @@ export class IsolateusSetor {
       untracked(() => void this.tocarAmanhecer(mov));
     });
 
-    this.destroyRef.onDestroy(() => clearTimeout(this.avisoTimer));
+    this.destroyRef.onDestroy(() => {
+      this.destruido = true;
+      clearTimeout(this.avisoTimer);
+    });
   }
 
   protected saidaDe(id: string): string | null {
@@ -649,7 +653,13 @@ export class IsolateusSetor {
     this.avisoTimer = setTimeout(() => this.aviso.set(null), 200);
   }
 
+  /**
+   * Espera o próximo render. Se a fase virou no meio da animação (a noite caiu
+   * e a página destruiu este setor), a animação para ali, em silêncio:
+   * registrar um `afterNextRender` numa view destruída lança NG0911.
+   */
   private proximoRender(): Promise<void> {
+    if (this.destruido) return new Promise(() => undefined);
     return new Promise((ok) => afterNextRender(() => ok(), { injector: this.injector }));
   }
 
