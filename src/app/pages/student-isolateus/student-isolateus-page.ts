@@ -1376,6 +1376,9 @@ export class StudentIsolateusPage {
           this.fecharDecisao(qual);
           return;
         }
+        // Trocas de destino em rajada (026 §2.2): o destino anterior continua
+        // valendo, e o botão já volta a responder. Nada a avisar.
+        if (e.error?.code === 'MOVER_RAPIDO') return;
         this.erro.set(e.error?.message ?? 'Não foi possível fazer isso agora.');
       },
     });
