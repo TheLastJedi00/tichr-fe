@@ -128,7 +128,7 @@ estilo app), autenticada por **PIN** e com token próprio. O aluno entra pela jo
 | `/aluno/agenda` | **Agenda** | Dias letivos com status dinâmico (Concluída / Em andamento / Agendada) e o **tópico** de cada aula ("o que já vimos") — sincronizados do Plano de Aula quando o professor é PhD. |
 | `/aluno/ranking` | **Ranking** | Pódio (🥇🥈🥉) da turma, com o **card do próprio aluno destacado**. A aba **some** quando a turma desativa o ranking. |
 | `/aluno/qlick` | **Tichr Qlick** | Entra no quiz "de hoje": **lobby animado** (loader temático), alternativas **color-coded A/B/C/D** com feedback de clique (press/scale) e estado de espera, **revelação animada** (correta brilha, erradas em cinza, confete no acerto / shake no erro) e **pódio final** com os pontos somados ao XP. |
-| `/aluno/isolateus` | **Tichr Isolateus** | O celular do habitante: entrada com um toque, o **Despertar** (só o **codinome de cidade** — o papel fica no **popup do personagem**, com o **olho** para esconder o nome), o **mapa da vila** (zoom-out somente-leitura) e a **visão do próprio setor** — com as saídas para caminhar, o botão de **reparo** e só os habitantes que estão ali. Mais a jogada secreta da Ameaça, o **chat de rumores**, a **Quarentena**, o **Diário da Vila** e a **tela hackeada** de quem foi abduzido. |
+| `/aluno/isolateus` | **Tichr Isolateus** | O celular do habitante: entrada com um toque, o **Despertar** (só o **codinome de cidade** — o papel fica no **popup do personagem**, com o **olho** para esconder o nome), o **mapa da vila** (zoom-out somente-leitura) e a **visão do próprio setor** — com as saídas para caminhar, o botão de **reparo**, só os habitantes que estão ali, os **avisos de quem está saindo** (e para onde), a barra **"Mudar"** depois de andar e a **animação de saídas e chegadas** no amanhecer. Mais a jogada secreta da Ameaça, o **chat de rumores**, a **Quarentena**, o **Diário da Vila** e a **tela hackeada** de quem foi abduzido. |
 | `/aluno/manual` | **Manual de Guerra** | Regras completas do **Tichr Wor**, do **Tichr Qlick** e do **Tichr Isolateus** + a **Tabela de Recompensas** (quanto vale cada jogada), para a turma montar estratégia **antes** da partida. |
 
 ### Criando jogos e começando a partida (comum aos três jogos)
@@ -218,9 +218,15 @@ O jogo é o embrulho; o conteúdo cobrado é o seu.
   **tela hackeada**, de onde manda Sinais anônimos para tentar salvar a vila. (O antigo chat de
   rumores saiu: as falas automáticas saíam sempre em nome de habitantes virtuais e entregavam quem
   era real.)
-- **A noite é só sua:** para onde você andou fica entre você e o servidor até a noite terminar —
-  o mapa e a contagem por setor do telão só mudam quando todos já decidiram. Antes, quem se mexia
-  no meio da noite se revelava jogador de verdade.
+- **A vila se mexe na sua frente:** durante a noite, quem divide o setor com você vê quando
+  você escolhe sair, e para onde ("→ Energia"); você vê o mesmo deles, com a estrada pulsando e
+  o número de quem vai por ela. Dá para mudar de ideia (sempre entre os vizinhos de onde a noite
+  começou), e a troca também aparece — blefar vira tática. Os habitantes virtuais anunciam a
+  saída do mesmo jeito, ao longo da noite, e às vezes mudam de ideia também: o movimento não
+  denuncia quem é real. No amanhecer, quem saiu desliza pela estrada do destino, quem chegou
+  entra pela da origem, e um aviso conta quem partiu e quem acabou de chegar. Quem vem de outro
+  setor só aparece no amanhecer, e numa noite de **Delírio Coletivo** ninguém é mostrado
+  andando (casaria o nome antigo com o novo). O telão não mostra a movimentação.
 - **O voto da Ameaça não defende a vila, e o acerto dela vale um poder:** o infiltrado responde
   como todos, mas o voto dele não conta na defesa. Se acertar, ganha um **Poder Alienígena**,
   escolhido em cards que explicam o que cada um faz:
