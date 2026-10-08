@@ -50,7 +50,9 @@ export type IconName =
   | 'send'
   // Ocultar o próprio codinome na tela (Isolateus).
   | 'eye'
-  | 'eye-off';
+  | 'eye-off'
+  // O aviso de saída da noite ("→ Energia") no Isolateus.
+  | 'arrow-right';
 
 /**
  * Componente burro de icones. Centraliza os SVGs e herda a cor do texto
@@ -182,6 +184,10 @@ export type IconName =
         }
         @case ('check') {
           <path d="M20 6 9 17l-5-5" />
+        }
+        @case ('arrow-right') {
+          <path d="M5 12h14" />
+          <path d="m13 6 6 6-6 6" />
         }
         @case ('x') {
           <path d="M18 6 6 18M6 6l12 12" />

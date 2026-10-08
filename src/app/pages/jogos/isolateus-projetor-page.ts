@@ -30,6 +30,9 @@ const LIMITE_VOTO_S = 60;
 const LIMITE_DESLOCAMENTO_S = 60;
 const JANELA_DECISAO_S = 15;
 const RESGATE_VOTO_S = 60;
+/** O pulso da noite: libera os avisos de saída dos NPCs (026 §2.3). */
+const PULSO_DESLOCAMENTO_MS = 3000;
+const PULSO_JITTER_MS = 1000;
 /** Mínimo de investigadores reais para o Despertar (§2). */
 const MIN_REAIS = 4;
 
@@ -697,8 +700,25 @@ export class IsolateusProjetorPage {
     const tick = setInterval(() => {
       this.relogio.set(Date.now());
       this.checarTempo();
+      this.pulsoDaNoite();
     }, 1000);
     this.destroyRef.onDestroy(() => clearInterval(tick));
+  }
+
+  private proximoPulso = 0;
+
+  /**
+   * O pulso da noite (026 §2.3): o servidor só libera os avisos de saída dos
+   * NPCs quando alguém fala com ele. O telão pulsa junto dos celulares, para os
+   * NPCs não pararem de "anunciar" se poucos alunos estiverem com a tela aberta.
+   */
+  private pulsoDaNoite(): void {
+    if (this.partida()?.status !== 'DESLOCAMENTO') return;
+    const agora = Date.now();
+    if (agora < this.proximoPulso) return;
+    this.proximoPulso =
+      agora + PULSO_DESLOCAMENTO_MS + (Math.random() * 2 - 1) * PULSO_JITTER_MS;
+    this.api.tempo(this.matchId).subscribe({ next: () => {}, error: () => {} });
   }
 
   /**
