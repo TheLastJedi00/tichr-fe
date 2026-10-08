@@ -3,8 +3,10 @@ import {
   Component,
   DestroyRef,
   computed,
+  effect,
   inject,
   signal,
+  untracked,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
@@ -15,9 +17,16 @@ import {
   SETOR_SAUDE,
   rotuloBrilho,
   setoresBrilhando,
+  vizinhosDe,
 } from '../../core/isolateus-mapa';
 import { RelogioDaFase } from '../../core/isolateus-relogio';
-import { IsolateusMatch, PainelIsolateus, PoderAlienigena } from '../../core/models';
+import {
+  DeslocamentoNoite,
+  IsolateusMatch,
+  MovimentoAmanhecer,
+  PainelIsolateus,
+  PoderAlienigena,
+} from '../../core/models';
 import { RealtimeService } from '../../core/realtime.service';
 import { StudentAuthService } from '../../core/student-auth.service';
 import { ThemeService } from '../../core/theme.service';
@@ -28,7 +37,10 @@ import { IsolateusEvento } from '../../ui/isolateus-evento/isolateus-evento';
 import { IsolateusBrilho } from '../../ui/isolateus-brilho/isolateus-brilho';
 import { IsolateusMapa } from '../../ui/isolateus-mapa/isolateus-mapa';
 import { IsolateusPersonagem } from '../../ui/isolateus-personagem/isolateus-personagem';
-import { IsolateusSetor } from '../../ui/isolateus-setor/isolateus-setor';
+import {
+  IsolateusSetor,
+  MovimentosSetor,
+} from '../../ui/isolateus-setor/isolateus-setor';
 import { IsolateusTransicao } from '../../ui/isolateus-transicao/isolateus-transicao';
 import { Spinner } from '../../ui/spinner/spinner';
 
@@ -44,6 +56,11 @@ const RESGATE_VOTO_S = 60;
 const PAINEL_POLL_MS = 4000;
 /** Quanto o aviso do brilho misterioso fica no ar. */
 const AVISO_BRILHO_MS = 6000;
+/** O pulso da noite: libera os avisos de saída dos NPCs (026 §2.3). */
+const PULSO_DESLOCAMENTO_MS = 3000;
+const PULSO_JITTER_MS = 1000;
+/** Sem storage, o amanhecer só anima se o resultado abriu há menos disso. */
+const AMANHECER_RECENTE_MS = 10_000;
 
 /**
  * Os três Poderes Alienígenas, descritos para a Ameaça escolher ciente do que
@@ -234,7 +251,7 @@ const CARDS_DE_PODER: ReadonlyArray<{
                       [setores]="p.setores"
                       [meuSetor]="meuSetor(p)"
                       [reparoEm]="p.reparoSetorId ?? null"
-                      [podeAndar]="!posicaoFeita()"
+                      [podeAndar]="podeAndarNoite(p)"
                       [noite]="true"
                       [contagemBrilho]="contagemBrilho(p)"
                       (andarPara)="mover($event)"
@@ -249,9 +266,10 @@ const CARDS_DE_PODER: ReadonlyArray<{
                       [meuPonto]="novidadePersonagem()"
                       (selecionarProprio)="abrirPersonagem()"
                       [emReparo]="p.reparoSetorId === s.id"
-                      [podeAndar]="!posicaoFeita()"
+                      [podeAndar]="podeAndarNoite(p)"
                       [noite]="true"
                       [abduzindoId]="abduzindoNoMeuSetor(p)"
+                      [saidasNoite]="saidasDoMeuSetor()"
                       (andarPara)="mover($event)"
                     />
                   }
@@ -262,6 +280,41 @@ const CARDS_DE_PODER: ReadonlyArray<{
                   </button>
 
                   <p class="muted center">Toque no seu personagem para ver o seu papel e as suas ações.</p>
+                  <!--
+                    Mudar de ideia (026 §2.2.1): depois de andar, a fileira já
+                    mostra o destino, e as estradas dele não servem (são vizinhas
+                    do destino). As opções são sempre os vizinhos da ORIGEM.
+                  -->
+                  @if (meuDestino(p); as d) {
+                    @if (!posicaoTravada()) {
+                      <div class="mudar">
+                        <span class="mudar__txt">
+                          <app-icon name="arrow-right" [size]="14" />
+                          Indo para o <b>{{ nomeSetor(p, d) }}</b>
+                        </span>
+                        <button
+                          class="mudar__btn"
+                          type="button"
+                          [attr.aria-expanded]="mudandoDestino()"
+                          (click)="mudandoDestino.set(!mudandoDestino())"
+                        >
+                          {{ mudandoDestino() ? 'Cancelar' : 'Mudar' }}
+                        </button>
+                      </div>
+                      @if (mudandoDestino()) {
+                        <div class="mudar__opcoes">
+                          @for (v of outrosDestinos(d); track v.id) {
+                            <button class="btn-outline" type="button" [disabled]="enviando()" (click)="mover(v.id)">
+                              {{ v.curto }}
+                            </button>
+                          }
+                          <button class="btn-outline" type="button" [disabled]="enviando()" (click)="mover(origemDaNoite())">
+                            Voltar para o {{ nomeSetor(p, origemDaNoite()) }}
+                          </button>
+                        </div>
+                      }
+                    }
+                  }
                   @if (posicaoFeita()) {
                     <p class="muted center">
                       Posição fechada. Aguardando a vila…
@@ -389,6 +442,7 @@ const CARDS_DE_PODER: ReadonlyArray<{
                   [brilhando]="brilhando(p).includes(s.id)"
                   [podeAndar]="false"
                   [abduzindoId]="abduzindoNoMeuSetor(p)"
+                  [movimentosAmanhecer]="amanhecerParaAnimar()"
                 />
                 <button class="btn-mapa" type="button" (click)="verMapa.set(!verMapa())">
                   <app-icon name="grip" [size]="14" />
@@ -817,6 +871,32 @@ const CARDS_DE_PODER: ReadonlyArray<{
     .acoes-noite { display: flex; flex-wrap: wrap; gap: 0.5rem; }
     .acoes-noite > * { flex: 1; }
 
+    /* "Indo para o … · Mudar" (026 §2.2.1): âmbar de trânsito, como o selo. */
+    .mudar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.45rem 0.6rem;
+      font-size: 0.8rem;
+      border: 2px solid #fbbf24;
+      background: var(--surface);
+    }
+    .mudar__txt { display: inline-flex; align-items: center; gap: 0.3rem; }
+    .mudar__btn {
+      padding: 0;
+      font: inherit;
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-decoration: underline;
+      color: var(--primary);
+      background: none;
+      border: 0;
+      cursor: pointer;
+    }
+    .mudar__opcoes { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .mudar__opcoes > * { flex: 1; }
+
     /* O reparo é a única ação de ganho do jogo: âmbar, não verde tóxico. */
     .btn-reparo {
       display: inline-flex;
@@ -1026,6 +1106,17 @@ export class StudentIsolateusPage {
   protected readonly voteiResgate = signal(false);
   /** Organizei um resgate nesta noite (o cofre não devolve isso). */
   protected readonly resgateOrganizado = signal(false);
+  /** Organizei um reparo nesta noite: a posição sustenta a ação, não muda mais. */
+  protected readonly reparoOrganizado = signal(false);
+  protected readonly posicaoTravada = computed(
+    () => this.reparoOrganizado() || this.resgateOrganizado(),
+  );
+  /** A barra "Mudar" aberta, com os outros vizinhos da origem. */
+  protected readonly mudandoDestino = signal(false);
+  /** Saídas e chegadas do amanhecer a animar no meu setor (uma vez por rodada). */
+  protected readonly amanhecerParaAnimar = signal<MovimentosSetor | null>(null);
+  private amanhecerDecidido: number | null = null;
+  private proximoPulso = 0;
   /** Pulei o debate desta Quarentena (otimista — o servidor é o juiz). */
   protected readonly jaPulei = signal(false);
   private readonly relogio = signal(Date.now());
@@ -1091,7 +1182,21 @@ export class StudentIsolateusPage {
     const tick = setInterval(() => {
       this.relogio.set(Date.now());
       this.checarTempo();
+      this.pulsoDaNoite();
     }, 500);
+    // O amanhecer chega no snapshot; a animação é decidida uma vez por rodada,
+    // quando o resultado abre e o meu setor volta à tela.
+    effect(() => {
+      const p = this.partida();
+      const eu = this.painel()?.habitanteId;
+      if (!p || !eu || p.status !== 'RESULTADO_RODADA') return;
+      const u = p.ultimosDeslocamentos;
+      if (!u || u.rodada !== p.rodada || this.amanhecerDecidido === u.rodada) return;
+      this.amanhecerDecidido = u.rodada;
+      const mov = this.recortarAmanhecer(p, u.movimentos, u.rodada);
+      if (!mov.sairam.length && !mov.chegaram.length) return;
+      if (untracked(() => this.deveAnimar(p))) this.amanhecerParaAnimar.set(mov);
+    });
     // O papel (Contágio), o codinome (Delírio) e a fileira ao vivo da Ameaça
     // chegam SÓ pelo painel: nada disso passa pelo doc público, então o
     // celular pergunta de tempos em tempos.
@@ -1205,6 +1310,122 @@ export class StudentIsolateusPage {
     return p.setores.find((s) => s.id === this.meuSetor(p));
   }
 
+  // --- Movimentação em tempo real (026) ---
+
+  /** Onde a noite começou para mim: a posição pública, que só muda no amanhecer. */
+  protected origemDaNoite(): string {
+    return this.meuHabitante()?.setorId ?? '';
+  }
+
+  /** Para onde eu andei nesta noite (`null` = fiquei na origem). */
+  protected meuDestino(p: IsolateusMatch): string | null {
+    if (p.status !== 'DESLOCAMENTO') return null;
+    const aqui = this.meuSetor(p);
+    return aqui && aqui !== this.origemDaNoite() ? aqui : null;
+  }
+
+  /**
+   * As estradas do setor que estou vendo só servem enquanto estou na origem:
+   * depois de andar, elas são vizinhas do destino, e a troca passa pela barra
+   * "Mudar". Quem organizou reparo ou resgate já fixou a posição.
+   */
+  protected podeAndarNoite(p: IsolateusMatch): boolean {
+    return !this.meuDestino(p) && !this.posicaoTravada();
+  }
+
+  /** Os outros vizinhos da origem, para trocar de destino (026 §2.2.1). */
+  protected outrosDestinos(destino: string) {
+    return vizinhosDe(this.origemDaNoite()).filter((v) => v.id !== destino);
+  }
+
+  protected nomeSetor(p: IsolateusMatch, setorId: string): string {
+    return p.setores.find((s) => s.id === setorId)?.nome ?? setorId;
+  }
+
+  /**
+   * Os avisos de saída do setor que estou vendo: quem começou a noite aqui e
+   * escolheu sair. Eu não entro: já estou na fileira do meu destino.
+   */
+  protected readonly saidasDoMeuSetor = computed<DeslocamentoNoite[]>(() => {
+    const p = this.partida();
+    if (!p || p.status !== 'DESLOCAMENTO') return [];
+    const aqui = this.meuSetor(p);
+    const eu = this.painel()?.habitanteId;
+    return (p.deslocamentosNoite ?? []).filter((d) => {
+      if (d.habitanteId === eu) return false;
+      const h = p.habitantes.find((x) => x.id === d.habitanteId);
+      return !!h && h.vivo && !h.preso && h.setorId === aqui;
+    });
+  });
+
+  /**
+   * Quem saiu do setor onde amanheci e quem chegou nele (sem mim: já estava
+   * aqui desde a noite). Vazio quando não há o que animar.
+   */
+  private recortarAmanhecer(
+    p: IsolateusMatch,
+    movimentos: MovimentoAmanhecer[],
+    rodada: number,
+  ): MovimentosSetor {
+    const aqui = this.origemDaNoite();
+    const eu = this.painel()?.habitanteId;
+    const nome = (id: string) => p.habitantes.find((h) => h.id === id)?.nome ?? '—';
+    return {
+      rodada,
+      sairam: movimentos
+        .filter((m) => m.de === aqui)
+        .map((m) => ({
+          id: m.habitanteId,
+          nome: nome(m.habitanteId),
+          para: m.para,
+          paraNome: this.nomeSetor(p, m.para),
+        })),
+      chegaram: movimentos
+        .filter((m) => m.para === aqui && m.habitanteId !== eu)
+        .map((m) => ({
+          id: m.habitanteId,
+          nome: nome(m.habitanteId),
+          de: m.de,
+          deNome: this.nomeSetor(p, m.de),
+        })),
+    };
+  }
+
+  /**
+   * A animação do amanhecer toca uma vez por rodada (026 §3.3): recarregar a
+   * página mostra o estado final. Sem storage, só toca se o resultado acabou
+   * de abrir.
+   */
+  private deveAnimar(p: IsolateusMatch): boolean {
+    const chave = `isolateus:animouDeslocamento:${p.id}`;
+    try {
+      if (localStorage.getItem(chave) === String(p.rodada)) return false;
+      localStorage.setItem(chave, String(p.rodada));
+      return true;
+    } catch {
+      return (
+        !!p.faseIniciadaEm &&
+        Date.now() - Date.parse(p.faseIniciadaEm) < AMANHECER_RECENTE_MS
+      );
+    }
+  }
+
+  /**
+   * O pulso da noite: o servidor só libera os avisos de saída dos NPCs quando
+   * alguém fala com ele, então cada celular na vila chama o `/tempo` a cada
+   * ~3s, com sorteio para a turma não bater junto (026 §2.3).
+   */
+  private pulsoDaNoite(): void {
+    const p = this.partida();
+    if (!p || !this.partidaId || p.status !== 'DESLOCAMENTO') return;
+    if (this.foraDaVila() || !this.meuHabitante()) return;
+    const agora = Date.now();
+    if (agora < this.proximoPulso) return;
+    this.proximoPulso =
+      agora + PULSO_DESLOCAMENTO_MS + (Math.random() * 2 - 1) * PULSO_JITTER_MS;
+    this.api.tempoAluno(this.partidaId).subscribe({ next: () => {}, error: () => {} });
+  }
+
   /**
    * De onde a Ameaça age esta noite: o setor dela, ou — sob Controle Mental —
    * o do controlado. Vem do painel (ao vivo, pelo servidor).
@@ -1310,17 +1531,23 @@ export class StudentIsolateusPage {
   }
 
   protected mover(setorId: string): void {
+    // Voltar à origem também é "mover": o servidor retira o aviso de saída.
     this.acaoDaNoite(
       (id) => this.api.mover(id, setorId),
       'posicao',
-      () => this.destinoNoite.set(setorId),
+      () => {
+        this.destinoNoite.set(setorId);
+        this.mudandoDestino.set(false);
+      },
     );
   }
   protected ficar(): void {
     this.acaoDaNoite((id) => this.api.confirmarPosicao(id));
   }
   protected reparar(): void {
-    this.acaoDaNoite((id) => this.api.reparo(id));
+    this.acaoDaNoite((id) => this.api.reparo(id), 'posicao', () =>
+      this.reparoOrganizado.set(true),
+    );
   }
   protected sabotar(): void {
     this.acaoDaNoite((id) => this.api.acao(id, { tipo: 'SABOTAR' }), 'acao');
@@ -1471,6 +1698,8 @@ export class StudentIsolateusPage {
       this.votei.set(false);
       this.voteiResgate.set(false);
       this.resgateOrganizado.set(false);
+      this.reparoOrganizado.set(false);
+      this.mudandoDestino.set(false);
       this.abduzindoId.set(null);
       this.jaPulei.set(false);
       // E as duas decisões da noite voltam a ficar em aberto.
