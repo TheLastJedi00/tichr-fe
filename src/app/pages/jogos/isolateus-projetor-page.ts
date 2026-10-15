@@ -23,6 +23,7 @@ import { IsolateusMapa } from '../../ui/isolateus-mapa/isolateus-mapa';
 import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { Modal } from '../../ui/modal/modal';
 import { Spinner } from '../../ui/spinner/spinner';
+import { ValeRankingComponent } from '../../ui/vale-ranking/vale-ranking';
 
 /** Janelas cronometradas — espelham as constantes `ISOLATEUS` do backend. */
 const LIMITE_DEBATE_S = 90;
@@ -58,12 +59,18 @@ const MIN_REAIS = 4;
     IsolateusBrilho,
     IsolateusDiario,
     IsolateusEvento,
+    ValeRankingComponent,
   ],
   template: `
     <a class="voltar" routerLink="/jogos/isolateus">‹ Minhas investigações</a>
 
     @if (partida(); as p) {
-      <h1 class="title">{{ p.nome }}</h1>
+      <h1 class="title">
+        {{ p.nome }}
+        @if (p.status !== 'LOBBY' && p.valeRanking === false) {
+          <span class="selo-casual" title="Os pontos desta partida não somam no ranking da turma">Casual</span>
+        }
+      </h1>
 
       @if (p.status === 'LOBBY') {
         <section class="lobby">
@@ -131,10 +138,18 @@ const MIN_REAIS = 4;
             </span>
           </label>
 
+          @if (p.turmaId) {
+            <app-vale-ranking
+              [valor]="valeRanking()"
+              [desabilitado]="salvandoValeRanking()"
+              (mudou)="mudarValeRanking($event)"
+            />
+          }
+
           <button
             class="btn-iso full"
             type="button"
-            [disabled]="ocupado() || p.inscritos.length < minReais"
+            [disabled]="ocupado() || salvandoValeRanking() || p.inscritos.length < minReais"
             (click)="iniciar()"
           >
             Iniciar investigação ({{ p.inscritos.length }} na vila)
@@ -781,6 +796,29 @@ export class IsolateusProjetorPage {
       return;
     }
     this.acao(this.api.removerInscrito(this.matchId, alunoId));
+  }
+
+  // --- Partida casual (lobby) ---
+  /** O valor escolhido aqui, antes de o snapshot confirmar. */
+  private readonly valeRankingLocal = signal<boolean | null>(null);
+  protected readonly valeRanking = computed(
+    () => this.valeRankingLocal() ?? this.partida()?.valeRanking !== false,
+  );
+  protected readonly salvandoValeRanking = signal(false);
+
+  protected mudarValeRanking(vale: boolean): void {
+    this.valeRankingLocal.set(vale);
+    this.salvandoValeRanking.set(true);
+    this.erro.set(null);
+    this.api.definirValeRanking(this.matchId, vale).subscribe({
+      next: () => this.salvandoValeRanking.set(false),
+      error: () => {
+        // O servidor recusou (ex.: a partida começou): volta ao valor real.
+        this.valeRankingLocal.set(null);
+        this.salvandoValeRanking.set(false);
+        this.erro.set('Não foi possível mudar se a partida vale para o ranking.');
+      },
+    });
   }
 
   protected iniciar(): void {

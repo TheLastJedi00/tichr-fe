@@ -28,7 +28,12 @@ import { Spinner } from '../../ui/spinner/spinner';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [Card, Spinner, RouterLink, LobbyLoader, Confetti, Icon],
   template: `
-    <h1 class="title">Tichr Qlick</h1>
+    <h1 class="title">
+      Tichr Qlick
+      @if (partida()?.valeRanking === false) {
+        <span class="selo-casual" title="Os pontos desta partida não somam no ranking da turma">Casual</span>
+      }
+    </h1>
 
     @if (carregando()) {
       <div class="loading"><app-spinner [size]="32" /></div>

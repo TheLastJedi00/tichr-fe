@@ -150,6 +150,9 @@ const CARDS_DE_PODER: ReadonlyArray<{
           <div class="espera">
             <app-lobby-loader />
             <strong>Aguardando Comando Central</strong>
+            @if (p.valeRanking === false) {
+              <span class="selo-casual">Partida casual: não soma no ranking</span>
+            }
             <p class="muted">
               Você está na vila. Seu <b>codinome</b> será revelado quando a
               investigação começar.
@@ -216,6 +219,9 @@ const CARDS_DE_PODER: ReadonlyArray<{
               >
                 <app-icon [name]="ocultarNome() ? 'eye-off' : 'eye'" [size]="16" />
               </button>
+              @if (p.valeRanking === false) {
+                <span class="selo-casual" title="Os pontos desta partida não somam no ranking da turma">Casual</span>
+              }
             </div>
           }
           @if (foraDaVila()) {

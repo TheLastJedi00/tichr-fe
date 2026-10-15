@@ -11,6 +11,7 @@ import { Icon } from '../../ui/icon/icon';
 import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { Modal } from '../../ui/modal/modal';
 import { Spinner } from '../../ui/spinner/spinner';
+import { ValeRankingComponent } from '../../ui/vale-ranking/vale-ranking';
 
 /**
  * Tela do projetor (professor/orquestrador). Escuta a raiz + todas as equipes
@@ -21,7 +22,7 @@ import { Spinner } from '../../ui/spinner/spinner';
   selector: 'app-wor-projetor-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Spinner, LobbyLoader, Modal, ActionCard],
+  imports: [RouterLink, Icon, Spinner, LobbyLoader, Modal, ActionCard, ValeRankingComponent],
   template: `
     @if (narrador.card(); as c) {
       <app-action-card [card]="c" />
@@ -84,11 +85,19 @@ import { Spinner } from '../../ui/spinner/spinner';
             </div>
           </div>
 
+          @if (m.turmaId) {
+            <app-vale-ranking
+              [valor]="valeRanking()"
+              [desabilitado]="salvandoValeRanking()"
+              (mudou)="mudarValeRanking($event)"
+            />
+          }
+
           @if (!teams().length) {
             <button
               class="btn-primary full"
               type="button"
-              [disabled]="ocupado() || salvandoMultiplicador() || m.inscritos.length < 2"
+              [disabled]="ocupado() || salvandoMultiplicador() || salvandoValeRanking() || m.inscritos.length < 2"
               (click)="distribuir()"
             >
               Distribuir equipes ({{ m.inscritos.length }} na sala)
@@ -106,7 +115,7 @@ import { Spinner } from '../../ui/spinner/spinner';
                 <span class="team-chip" [style.background]="t.cor">{{ t.nome }} · {{ t.membros.length }}</span>
               }
             </div>
-            <button class="btn-primary full" type="button" [disabled]="ocupado() || salvandoMultiplicador()" (click)="iniciar()">Iniciar batalha</button>
+            <button class="btn-primary full" type="button" [disabled]="ocupado() || salvandoMultiplicador() || salvandoValeRanking()" (click)="iniciar()">Iniciar batalha</button>
           }
           @if (erro()) { <p class="erro">{{ erro() }}</p> }
         </section>
@@ -123,6 +132,9 @@ import { Spinner } from '../../ui/spinner/spinner';
             Onda {{ m.ondaIndex + 1 }} de {{ m.totalOndas }}
             @if ((m.multiplicador ?? 1) > 1) {
               <span class="mult-selo">Valendo {{ m.multiplicador }}x</span>
+            }
+            @if (m.valeRanking === false) {
+              <span class="selo-casual" title="Os pontos desta partida não somam no ranking da turma">Casual</span>
             }
           </p>
 
@@ -451,6 +463,29 @@ export class WorProjetorPage {
       },
     });
   }
+  // --- Partida casual (lobby) ---
+  /** O valor escolhido aqui, antes de o snapshot confirmar. */
+  private readonly valeRankingLocal = signal<boolean | null>(null);
+  protected readonly valeRanking = computed(
+    () => this.valeRankingLocal() ?? this.match()?.valeRanking !== false,
+  );
+  protected readonly salvandoValeRanking = signal(false);
+
+  protected mudarValeRanking(vale: boolean): void {
+    this.valeRankingLocal.set(vale);
+    this.salvandoValeRanking.set(true);
+    this.erro.set(null);
+    this.api.definirValeRanking(this.matchId, vale).subscribe({
+      next: () => this.salvandoValeRanking.set(false),
+      error: () => {
+        // O servidor recusou (ex.: a partida começou): volta ao valor real.
+        this.valeRankingLocal.set(null);
+        this.salvandoValeRanking.set(false);
+        this.erro.set('Não foi possível mudar se a partida vale para o ranking.');
+      },
+    });
+  }
+
   protected pular(): void {
     this.acao(this.api.pular(this.matchId));
   }

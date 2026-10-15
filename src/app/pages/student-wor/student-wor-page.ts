@@ -83,6 +83,9 @@ const DANO_CATAPULTA = 300;
             @if ((m.multiplicador ?? 1) > 1) {
               <p class="mult-selo">Partida valendo {{ m.multiplicador }}x: todos os pontos (e o XP) multiplicados</p>
             }
+            @if (m.valeRanking === false) {
+              <span class="selo-casual">Partida casual: não soma no ranking</span>
+            }
             @if (!inscrito()) {
               <button class="btn-primary" type="button" [disabled]="ocupado()" (click)="entrar()">
                 Entrar na batalha
@@ -102,6 +105,7 @@ const DANO_CATAPULTA = 300;
             <span class="fort__pontos">
               <app-icon name="trophy" [size]="14" /> {{ t.pontos ?? 0 }} pts
               @if ((m.multiplicador ?? 1) > 1) { <b class="fort__mult">{{ m.multiplicador }}x</b> }
+              @if (m.valeRanking === false) { <span class="selo-casual">Casual</span> }
             </span>
             <span class="hpbar"><span [style.width.%]="hpPct(t.hp)"></span></span>
             <span class="hp">{{ t.hp }} HP</span>

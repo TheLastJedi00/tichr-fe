@@ -16,6 +16,7 @@ import { Icon } from '../../ui/icon/icon';
 import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { Modal } from '../../ui/modal/modal';
 import { Spinner } from '../../ui/spinner/spinner';
+import { ValeRankingComponent } from '../../ui/vale-ranking/vale-ranking';
 
 /**
  * Sala do professor (tempo real). Escuta a partida via onSnapshot e comanda a
@@ -26,12 +27,15 @@ import { Spinner } from '../../ui/spinner/spinner';
   selector: 'app-professor-partida-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Card, Spinner, Icon, Modal, LobbyLoader],
+  imports: [Card, Spinner, Icon, Modal, LobbyLoader, ValeRankingComponent],
   template: `
     @if (partida(); as p) {
       <header class="head">
         <h1 class="title">{{ p.titulo }}</h1>
         <div class="head__acoes">
+          @if (p.status !== 'LOBBY' && p.valeRanking === false) {
+            <span class="selo-casual" title="Os pontos desta partida não somam no ranking da turma">Casual</span>
+          }
           <span class="status status--{{ p.status.toLowerCase() }}">{{ rotulo(p.status) }}</span>
           @if (p.status !== 'ENCERRADO') {
             <button class="btn-encerrar" type="button" [disabled]="processando()" (click)="comando('encerrar')">
@@ -68,10 +72,19 @@ import { Spinner } from '../../ui/spinner/spinner';
                 }
               </ul>
             }
+            @if (p.turmaId) {
+              <app-vale-ranking
+                class="vale"
+                [valor]="valeRanking()"
+                [desabilitado]="salvandoValeRanking()"
+                (mudou)="mudarValeRanking($event)"
+              />
+            }
+            @if (erro()) { <p class="erro">{{ erro() }}</p> }
             <button
               class="btn-primary full"
               type="button"
-              [disabled]="p.inscritos.length === 0 || processando()"
+              [disabled]="p.inscritos.length === 0 || processando() || salvandoValeRanking()"
               (click)="comando('iniciar')"
             >
               Iniciar Qlick ({{ p.inscritos.length }} inscritos)
@@ -221,6 +234,8 @@ import { Spinner } from '../../ui/spinner/spinner';
     .loader-mini { transform: scale(0.5); margin: -14px -10px; }
     .muted { color: var(--text-muted); }
     .inscritos { list-style: none; margin: 0 0 1.25rem; padding: 0; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .vale { display: block; margin: 0 0 1rem; }
+    .erro { color: var(--danger); font-size: 0.9rem; margin: 0 0 0.75rem; }
     .chip { padding: 0.35rem 0.7rem; border-radius: 999px; background: var(--surface-alt); font-weight: 600; font-size: 0.9rem; }
     .full { width: 100%; }
     .q__top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
@@ -312,6 +327,30 @@ export class ProfessorPartidaPage {
 
     const tick = setInterval(() => this.agora.set(Date.now()), 500);
     this.destroyRef.onDestroy(() => clearInterval(tick));
+  }
+
+  // --- Partida casual (lobby) ---
+  /** O valor escolhido aqui, antes de o snapshot confirmar. */
+  private readonly valeRankingLocal = signal<boolean | null>(null);
+  protected readonly valeRanking = computed(
+    () => this.valeRankingLocal() ?? this.partida()?.valeRanking !== false,
+  );
+  protected readonly salvandoValeRanking = signal(false);
+  protected readonly erro = signal<string | null>(null);
+
+  protected mudarValeRanking(vale: boolean): void {
+    this.valeRankingLocal.set(vale);
+    this.salvandoValeRanking.set(true);
+    this.erro.set(null);
+    this.api.definirValeRankingQlick(this.partidaId, vale).subscribe({
+      next: () => this.salvandoValeRanking.set(false),
+      error: () => {
+        // O servidor recusou (ex.: a partida começou): volta ao valor real.
+        this.valeRankingLocal.set(null);
+        this.salvandoValeRanking.set(false);
+        this.erro.set('Não foi possível mudar se a partida vale para o ranking.');
+      },
+    });
   }
 
   protected comando(cmd: 'iniciar' | 'proxima' | 'apurar' | 'encerrar'): void {
