@@ -14,6 +14,8 @@ import { Spinner } from '../../ui/spinner/spinner';
 import { ValeRankingComponent } from '../../ui/vale-ranking/vale-ranking';
 import { LogPontuacaoComponent } from '../../ui/log-pontuacao/log-pontuacao';
 import { rankingDoLog } from '../../core/log-pontuacao';
+import { relogioDaPartida } from '../../core/pausa';
+import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausada';
 
 /**
  * Tela do projetor (professor/orquestrador). Escuta a raiz + todas as equipes
@@ -24,7 +26,17 @@ import { rankingDoLog } from '../../core/log-pontuacao';
   selector: 'app-wor-projetor-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Spinner, LobbyLoader, Modal, ActionCard, ValeRankingComponent, LogPontuacaoComponent],
+  imports: [
+    RouterLink,
+    Icon,
+    Spinner,
+    LobbyLoader,
+    Modal,
+    ActionCard,
+    ValeRankingComponent,
+    LogPontuacaoComponent,
+    PartidaPausadaComponent,
+  ],
   template: `
     @if (narrador.card(); as c) {
       <app-action-card [card]="c" />
@@ -200,9 +212,23 @@ import { rankingDoLog } from '../../core/log-pontuacao';
               />
             }
           } @else {
-            <button class="btn-outline" type="button" [disabled]="ocupado()" (click)="pular()">Pular palavra</button>
+            <div class="controles">
+              <button class="btn-outline" type="button" [disabled]="ocupado() || !!m.pausadaEm" (click)="pausar()">
+                <app-icon name="pause" [size]="16" /> Pausar
+              </button>
+              <button class="btn-outline" type="button" [disabled]="ocupado()" (click)="pular()">Pular palavra</button>
+            </div>
           }
         </section>
+      }
+      @if (m.pausadaEm) {
+        <app-partida-pausada
+          jogo="Tichr Wor"
+          [titulo]="m.nome"
+          [professor]="true"
+          [carregando]="ocupado()"
+          (retomar)="retomar()"
+        />
       }
     } @else {
       <div class="carregando"><app-spinner [size]="32" /></div>
@@ -243,6 +269,8 @@ import { rankingDoLog } from '../../core/log-pontuacao';
     .pinbig__lbl { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
     .pinbig__val { font-size: 3.5rem; font-weight: 800; line-height: 1; letter-spacing: 0.12em; color: #b45309; font-variant-numeric: tabular-nums; }
     .pinbig__hint { font-size: 0.8rem; color: var(--text-muted); }
+    .controles { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; }
+    .controles .btn-outline { display: inline-flex; align-items: center; gap: 0.4rem; }
     .pinbig .btn-outline { display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 0.25rem; }
     .assist { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
     @media (min-width: 480px) { .assist { grid-template-columns: repeat(3, 1fr); } }
@@ -382,7 +410,8 @@ export class WorProjetorPage {
     const m = this.match();
     if (!m || m.status !== 'EM_ANDAMENTO' || !m.rodadaIniciadaEm) return 60;
     const fim = Date.parse(m.rodadaIniciadaEm) + 60_000;
-    const s = Math.ceil((fim - this.relogio()) / 1000);
+    // Pausada, o relógio para no instante da pausa.
+    const s = Math.ceil((fim - relogioDaPartida(this.relogio(), m)) / 1000);
     return Math.max(0, Math.min(60, s));
   });
 
@@ -426,6 +455,7 @@ export class WorProjetorPage {
     const m = this.match();
     if (!m || m.status !== 'EM_ANDAMENTO' || !m.rodadaIniciadaEm) return;
     if (this.narrador.ativo()) return; // jogo congelado pelo card
+    if (m.pausadaEm) return; // pausada: o telão não cobra o prazo
     if (this.restante() > 0 || this.tempoDisparadoEm === m.rodadaIniciadaEm) return;
     this.tempoDisparadoEm = m.rodadaIniciadaEm;
     this.api.tempo(this.matchId).subscribe({ next: () => {}, error: () => {} });
@@ -538,6 +568,14 @@ export class WorProjetorPage {
 
   protected pular(): void {
     this.acao(this.api.pular(this.matchId));
+  }
+
+  protected pausar(): void {
+    this.acao(this.api.pausar(this.matchId));
+  }
+
+  protected retomar(): void {
+    this.acao(this.api.retomar(this.matchId));
   }
 
   private acao(obs: { subscribe: (o: { next: () => void; error: (e: unknown) => void }) => void }): void {

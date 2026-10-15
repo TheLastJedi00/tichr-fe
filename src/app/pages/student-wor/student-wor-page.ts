@@ -30,6 +30,8 @@ import { Spinner } from '../../ui/spinner/spinner';
 import { WorChat } from '../../ui/wor-chat/wor-chat';
 import { LogPontuacaoComponent } from '../../ui/log-pontuacao/log-pontuacao';
 import { rankingDoLog } from '../../core/log-pontuacao';
+import { relogioDaPartida } from '../../core/pausa';
+import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausada';
 
 const LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const LIMITE_RODADA_S = 60;
@@ -46,7 +48,18 @@ const DANO_CATAPULTA = 300;
   selector: 'app-student-wor-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, Modal, LobbyLoader, Spinner, Confetti, ActionCard, RouterLink, WorChat, LogPontuacaoComponent],
+  imports: [
+    Icon,
+    Modal,
+    LobbyLoader,
+    Spinner,
+    Confetti,
+    ActionCard,
+    RouterLink,
+    WorChat,
+    LogPontuacaoComponent,
+    PartidaPausadaComponent,
+  ],
   template: `
     @if (narrador.card(); as c) {
       <app-action-card [card]="c" />
@@ -351,6 +364,12 @@ const DANO_CATAPULTA = 300;
         <button modal-actions class="btn-primary" type="button" (click)="modalHorda.set(false)">Entendido, vamos à forra!</button>
       </app-modal>
     }
+
+    @if (root(); as m) {
+      @if (m.pausadaEm) {
+        <app-partida-pausada jogo="Tichr Wor" [titulo]="m.nome" />
+      }
+    }
   `,
   styles: `
     :host { display: block; }
@@ -551,7 +570,8 @@ export class StudentWorPage {
     const m = this.root();
     if (!m || m.status !== 'EM_ANDAMENTO' || !m.rodadaIniciadaEm) return LIMITE_RODADA_S;
     const fim = Date.parse(m.rodadaIniciadaEm) + LIMITE_RODADA_S * 1000;
-    const s = Math.ceil((fim - this.relogio()) / 1000);
+    // Pausada, o relógio para no instante da pausa.
+    const s = Math.ceil((fim - relogioDaPartida(this.relogio(), m)) / 1000);
     return Math.max(0, Math.min(LIMITE_RODADA_S, s));
   });
   /** Inputs bloqueados: durante a chamada HTTP ou com um card interrompendo o jogo. */

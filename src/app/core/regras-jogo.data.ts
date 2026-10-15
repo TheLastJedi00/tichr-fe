@@ -167,7 +167,7 @@ const ISOLATEUS: RegrasJogo = {
       itens: [
         'Se a Ameaça acertar a questão do dia, ganha um poder — um por acerto, válido até o fim da noite seguinte.',
         'Controle Mental: na noite seguinte, as jogadas dela partem do setor de outro habitante, que não fica sabendo. Se a vila prender o controlado, prende um inocente.',
-        'Contágio: um aluno real, sorteado, vira uma Ameaça também — com jogada própria toda noite. A Esperança cai a cada contágio, sem aviso. Só a Ameaça original contagia.',
+        'Contágio: um aluno real, sorteado, vira uma Ameaça também — com jogada própria toda noite. A Esperança cai a cada contágio, sem aviso. Só a Ameaça original contagia, e só a cada 2 acertos dela (desde o início ou desde o último Contágio).',
         'Delírio Coletivo: todos os habitantes trocam de nome entre si. O Diário avisa, mas não diz quem causou.',
         'Com mais de uma Ameaça, a vila só vence quando prender todas.',
       ],
@@ -185,6 +185,16 @@ const ISOLATEUS: RegrasJogo = {
       titulo: 'Sinais de Rádio',
       itens: [
         'Quem já foi abduzido ou preso continua respondendo e pode mandar um Sinal de Rádio anônimo durante a questão, tentando salvar a vila.',
+        'Palavrão no debate ou no Sinal de Rádio não é publicado e custa 1000 XP no ranking a quem escreveu. Ninguém mais fica sabendo.',
+      ],
+    },
+    {
+      titulo: 'A fuga da Quarentena',
+      itens: [
+        'Uma Ameaça presa pode, à noite, forçar a invasão: tentar romper a Quarentena. A vila só vê que algo tenta romper a Quarentena, sem nome.',
+        'A tentativa abre a questão do dia. Se a Ameaça presa acertar e a maioria dos aldeões na vila errar, ela foge e volta livre a um setor sorteado.',
+        'A fuga é anunciada com o nome de quem fugiu. Se a vila se proteger, o aviso é o mesmo quer a vila tenha acertado, quer a Ameaça tenha errado.',
+        'Uma tentativa por noite, sem limite por partida. Só acontece com mais de uma Ameaça: prender a única encerra a partida.',
       ],
     },
     {
@@ -235,6 +245,16 @@ const ISOLATEUS: RegrasJogo = {
       detalhe: 'a tela hackeada continua valendo XP',
     },
     { acao: 'Resposta errada', valor: '0' },
+    {
+      acao: 'Palavrão no debate ou no Sinal de Rádio',
+      valor: '−1000',
+      detalhe: 'só para quem escreveu; a mensagem não é publicada',
+    },
+    {
+      acao: 'Invasão forçada (Ameaça presa)',
+      valor: 'fuga',
+      detalhe: 'se ela acertar e a maioria dos aldeões na vila errar',
+    },
   ],
   conversao:
     'No Isolateus os pontos da partida viram XP do ranking na proporção de 1 para 1, direto para cada aluno — inclusive para quem foi abduzido no meio do caminho.',

@@ -26,6 +26,8 @@ const ESTILO: Record<TipoAcontecimento, { icone: string; cor: string }> = {
   DELIRIO: { icone: 'dice', cor: 'atencao' },
   BRILHO: { icone: 'sparkles', cor: 'atencao' },
   RESGATE: { icone: 'coracao', cor: 'bom' },
+  // Contida ou fuga, o mesmo estilo: o texto diz qual foi.
+  INVASAO: { icone: 'lock', cor: 'atencao' },
   VEREDITO: { icone: 'lock', cor: 'atencao' },
   FIM: { icone: 'flag', cor: 'neutro' },
 };

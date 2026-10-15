@@ -417,10 +417,16 @@ export class TurmaApiService {
     );
   }
 
-  /** Professor: comandos da partida (iniciar/proxima/apurar/encerrar). */
+  /** Professor: comandos da partida (iniciar/proxima/apurar/encerrar/pausar/retomar). */
   comandoPartida(
     partidaId: string,
-    comando: 'iniciar' | 'proxima' | 'apurar' | 'encerrar',
+    comando:
+      | 'iniciar'
+      | 'proxima'
+      | 'apurar'
+      | 'encerrar'
+      | 'pausar'
+      | 'retomar',
   ): Observable<unknown> {
     return this.http.post(
       `${this.base}/partidas/${partidaId}/${comando}`,

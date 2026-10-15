@@ -17,6 +17,8 @@ import { Confetti } from '../../ui/confetti/confetti';
 import { Icon } from '../../ui/icon/icon';
 import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { LogPontuacaoComponent } from '../../ui/log-pontuacao/log-pontuacao';
+import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausada';
+import { relogioDaPartida } from '../../core/pausa';
 import { Spinner } from '../../ui/spinner/spinner';
 
 /**
@@ -27,7 +29,16 @@ import { Spinner } from '../../ui/spinner/spinner';
   selector: 'app-student-qlick-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Card, Spinner, RouterLink, LobbyLoader, Confetti, Icon, LogPontuacaoComponent],
+  imports: [
+    Card,
+    Spinner,
+    RouterLink,
+    LobbyLoader,
+    Confetti,
+    Icon,
+    LogPontuacaoComponent,
+    PartidaPausadaComponent,
+  ],
   template: `
     <h1 class="title">
       Tichr Qlick
@@ -196,6 +207,9 @@ import { Spinner } from '../../ui/spinner/spinner';
           <a class="btn-primary full sair" routerLink="/aluno/dashboard">Voltar ao início</a>
         }
       }
+      @if (p.pausadaEm) {
+        <app-partida-pausada jogo="Tichr Qlick" [titulo]="p.titulo" />
+      }
     } @else {
       <app-card>
         <h2 class="q__tit">{{ qlick()?.titulo }}</h2>
@@ -352,7 +366,8 @@ export class StudentQlickPage {
     const p = this.partida();
     if (!p || p.status !== 'QUESTAO_ATIVA' || !p.perguntaIniciadaEm) return 0;
     const fim = Date.parse(p.perguntaIniciadaEm) + p.duracaoSegundos * 1000;
-    return Math.max(0, Math.ceil((fim - this.agora()) / 1000));
+    // Pausada, o relógio para no instante da pausa.
+    return Math.max(0, Math.ceil((fim - relogioDaPartida(this.agora(), p)) / 1000));
   });
 
   constructor() {

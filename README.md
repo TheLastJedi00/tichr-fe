@@ -154,6 +154,14 @@ estilo app), autenticada por **PIN** e com token próprio. O aluno entra pela jo
   total e o que entrou no ranking da turma (ou "Partida casual" / "Partida sem turma"). É
   público para toda a sala. No Wor, o celular e o telão listam os jogadores ordenados pelo que
   cada um levou (com o ×0,5 da equipe não campeã); no Isolateus, o celular ganhou o ranking final.
+- **Pausa (spec 028):** nos três jogos, o telão do professor tem **"Pausar"** com a partida em
+  andamento. Pausada, todas as telas (os três telões e os três celulares) mostram o modal
+  `<app-partida-pausada>` (`ui/`, dumb) com o nome do jogo, o título da partida e *"Partida
+  pausada. Aguardando o professor retomar."*, cobrindo e bloqueando o fundo; no telão ele traz
+  **"Retomar partida"**. Os cronômetros congelam (`core/pausa.ts`: o relógio da partida conta até
+  `pausadaEm`), o telão para de cobrar o `/tempo` e o pulso da noite, e o servidor recusa todo
+  comando (409 `PARTIDA_PAUSADA`, sem o modal global de erro). Ao retomar, cada relógio volta com
+  o tempo que faltava. Para encerrar, retoma-se antes.
 
 ### Tichr Qlick: quiz ao vivo em tempo real (Plano PhD)
 
@@ -252,8 +260,18 @@ O jogo é o embrulho; o conteúdo cobrado é o seu.
   escolhido em cards que explicam o que cada um faz:
   **Controle Mental** (na noite seguinte, age a partir do setor de outro habitante, que não fica
   sabendo — preso, ele conta como inocente), **Contágio** (um colega sorteado vira Ameaça também,
-  e a Esperança cai em silêncio; só a Ameaça original contagia) e **Delírio Coletivo** (a vila
+  e a Esperança cai em silêncio; só a Ameaça original contagia, e só a cada **2 acertos** dela: o
+  card mostra *"Contágio: 1 de 2 acertos"* enquanto recarrega) e **Delírio Coletivo** (a vila
   inteira troca de nome entre si). Com mais de uma Ameaça, a vila só vence prendendo todas.
+- **A fuga da Quarentena:** com mais de uma Ameaça, a que está presa vê na tela hackeada, de
+  noite, o botão **"Forçar invasão"** (o Aldeão preso não vê). A vila só fica sabendo que *"algo
+  tenta romper a Quarentena"*, sem nome, e a questão do dia abre mesmo sem outra disputa. Se a
+  Ameaça presa acertar e a maioria dos aldeões na vila errar, ela foge e volta livre a um setor
+  sorteado, com um card que diz quem fugiu; senão, *"A Quarentena resistiu"*. Uma tentativa por
+  noite.
+- **Linguagem imprópria no Isolateus:** palavrão no debate da Quarentena ou no Sinal de Rádio não
+  é publicado: o campo avisa *"Mensagem bloqueada por linguagem imprópria. Você perdeu 1000 XP."*
+  e mantém o texto para o aluno editar. Ninguém mais fica sabendo (o Sinal é anônimo).
 - **A Ameaça não repete:** numa mesma turma, quem já foi o infiltrado só volta a ser depois que
   todos os presentes tiverem sido.
 - **A Quarentena:** um debate cronometrado seguido de votação no suspeito, convocado de
