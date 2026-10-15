@@ -220,19 +220,14 @@ const ISOLATEUS: RegrasJogo = {
       detalhe: 'proporcional ao tempo que sobrou no relógio',
     },
     {
-      acao: 'Sabotagem validada (a vila errou)',
-      valor: '+1000 para a Ameaça',
-      detalhe: 'induzir a vila ao erro vale o mesmo que acertar a questão',
-    },
-    {
       acao: 'Resgate concluído',
       valor: '+10 de Esperança',
       detalhe: 'para a vila, não para o XP',
     },
     {
-      acao: 'Vitória da partida',
-      valor: '+1000',
-      detalhe: 'para todos do lado vencedor — Aldeões ou a Ameaça',
+      acao: 'Aldeões e Ameaças',
+      valor: 'pontuam igual',
+      detalhe: 'só acertando a questão: vencer a partida ou a vila errar não dá pontos',
     },
     {
       acao: 'Respostas de quem foi abduzido ou preso',
