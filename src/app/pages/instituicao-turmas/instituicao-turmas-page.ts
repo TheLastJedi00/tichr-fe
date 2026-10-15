@@ -38,7 +38,11 @@ const SEM = 'sem-instituicao';
         <app-icon [name]="ehSem() ? 'alert' : 'building'" [size]="22" />
         {{ titulo() }}
       </h1>
-      <a class="btn-primary nova" routerLink="/turmas/nova">Nova turma</a>
+      <a
+        class="btn-primary nova"
+        routerLink="/turmas/nova"
+        [queryParams]="ehSem() ? {} : { instituicao: paramId() }"
+      >Nova turma</a>
     </header>
 
     @if (loading()) {

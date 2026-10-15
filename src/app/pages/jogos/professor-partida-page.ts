@@ -16,6 +16,10 @@ import { Icon } from '../../ui/icon/icon';
 import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { Modal } from '../../ui/modal/modal';
 import { Spinner } from '../../ui/spinner/spinner';
+import { ValeRankingComponent } from '../../ui/vale-ranking/vale-ranking';
+import { LogPontuacaoComponent } from '../../ui/log-pontuacao/log-pontuacao';
+import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausada';
+import { podePausar, relogioDaPartida } from '../../core/pausa';
 
 /**
  * Sala do professor (tempo real). Escuta a partida via onSnapshot e comanda a
@@ -26,13 +30,30 @@ import { Spinner } from '../../ui/spinner/spinner';
   selector: 'app-professor-partida-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Card, Spinner, Icon, Modal, LobbyLoader],
+  imports: [
+    Card,
+    Spinner,
+    Icon,
+    Modal,
+    LobbyLoader,
+    ValeRankingComponent,
+    LogPontuacaoComponent,
+    PartidaPausadaComponent,
+  ],
   template: `
     @if (partida(); as p) {
       <header class="head">
         <h1 class="title">{{ p.titulo }}</h1>
         <div class="head__acoes">
+          @if (p.status !== 'LOBBY' && p.valeRanking === false) {
+            <span class="selo-casual" title="Os pontos desta partida não somam no ranking da turma">Casual</span>
+          }
           <span class="status status--{{ p.status.toLowerCase() }}">{{ rotulo(p.status) }}</span>
+          @if (podePausar(p.status) && !p.pausadaEm) {
+            <button class="btn-pausar" type="button" [disabled]="processando()" (click)="comando('pausar')">
+              <app-icon name="pause" [size]="14" /> Pausar
+            </button>
+          }
           @if (p.status !== 'ENCERRADO') {
             <button class="btn-encerrar" type="button" [disabled]="processando()" (click)="comando('encerrar')">
               Encerrar
@@ -68,10 +89,19 @@ import { Spinner } from '../../ui/spinner/spinner';
                 }
               </ul>
             }
+            @if (p.turmaId) {
+              <app-vale-ranking
+                class="vale"
+                [valor]="valeRanking()"
+                [desabilitado]="salvandoValeRanking()"
+                (mudou)="mudarValeRanking($event)"
+              />
+            }
+            @if (erro()) { <p class="erro">{{ erro() }}</p> }
             <button
               class="btn-primary full"
               type="button"
-              [disabled]="p.inscritos.length === 0 || processando()"
+              [disabled]="p.inscritos.length === 0 || processando() || salvandoValeRanking()"
               (click)="comando('iniciar')"
             >
               Iniciar Qlick ({{ p.inscritos.length }} inscritos)
@@ -139,7 +169,14 @@ import { Spinner } from '../../ui/spinner/spinner';
             <h2 class="podio__tit">Pódio final</h2>
             <ol class="podio">
               @for (r of (p.rankingFinal ?? []); track r.alunoId) {
-                <li class="podio__row podio__row--{{ r.posicao }}">
+                <li
+                  class="podio__row podio__row--{{ r.posicao }}"
+                  [class.clicavel]="!!p.logPontuacao"
+                  [attr.role]="p.logPontuacao ? 'button' : null"
+                  [attr.tabindex]="p.logPontuacao ? 0 : null"
+                  (click)="abrirLog(r.alunoId)"
+                  (keydown.enter)="abrirLog(r.alunoId)"
+                >
                   <span class="podio__medal">
                     @if (r.posicao <= 3) {
                       <app-icon name="medal" [size]="22" class="medal--{{ r.posicao }}" />
@@ -150,12 +187,32 @@ import { Spinner } from '../../ui/spinner/spinner';
                 </li>
               }
             </ol>
+            @if (p.logPontuacao) {
+              <p class="muted dica">Toque em um aluno para ver de onde vieram os pontos.</p>
+            }
           </app-card>
+          <app-log-pontuacao
+            [jogador]="logJogador()"
+            [posicao]="logPosicao()"
+            [unidade]="turma()?.nomePontuacao || 'XP'"
+            [temTurma]="!!p.turmaId"
+            [casual]="p.valeRanking === false"
+            (fechar)="logAberto.set(null)"
+          />
           <p class="fim">Qlick encerrado — a sala foi fechada para os alunos.</p>
           <button class="btn-primary full" type="button" (click)="sair()">
             Concluir e voltar aos Qlicks
           </button>
         }
+      }
+      @if (p.pausadaEm) {
+        <app-partida-pausada
+          jogo="Tichr Qlick"
+          [titulo]="p.titulo"
+          [professor]="true"
+          [carregando]="processando()"
+          (retomar)="comando('retomar')"
+        />
       }
     } @else {
       <div class="loading"><app-spinner [size]="32" /></div>
@@ -213,6 +270,9 @@ import { Spinner } from '../../ui/spinner/spinner';
     .btn-encerrar { font-size: 0.8rem; font-weight: 700; padding: 0.3rem 0.7rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: #dc2626; cursor: pointer; }
     .btn-encerrar:hover:not(:disabled) { border-color: #dc2626; }
     .btn-encerrar:disabled { opacity: 0.5; }
+    .btn-pausar { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.8rem; font-weight: 700; padding: 0.3rem 0.7rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; }
+    .btn-pausar:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+    .btn-pausar:disabled { opacity: 0.5; }
     .fim { text-align: center; color: var(--text-muted); margin: 1rem 0 0.75rem; }
     .loading { display: flex; justify-content: center; padding: 3rem 0; color: var(--primary); }
     .lead { font-weight: 600; margin: 0 0 0.75rem; }
@@ -221,6 +281,8 @@ import { Spinner } from '../../ui/spinner/spinner';
     .loader-mini { transform: scale(0.5); margin: -14px -10px; }
     .muted { color: var(--text-muted); }
     .inscritos { list-style: none; margin: 0 0 1.25rem; padding: 0; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .vale { display: block; margin: 0 0 1rem; }
+    .erro { color: var(--danger); font-size: 0.9rem; margin: 0 0 0.75rem; }
     .chip { padding: 0.35rem 0.7rem; border-radius: 999px; background: var(--surface-alt); font-weight: 600; font-size: 0.9rem; }
     .full { width: 100%; }
     .q__top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
@@ -249,6 +311,9 @@ import { Spinner } from '../../ui/spinner/spinner';
     .medal--1 { color: #f59e0b; }
     .medal--2 { color: #94a3b8; }
     .medal--3 { color: #b45309; }
+    .clicavel { cursor: pointer; }
+    .clicavel:hover, .clicavel:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+    .dica { margin: 0.75rem 0 0; text-align: center; font-size: 0.85rem; }
   `,
 })
 export class ProfessorPartidaPage {
@@ -295,7 +360,8 @@ export class ProfessorPartidaPage {
     const p = this.partida();
     if (!p || p.status !== 'QUESTAO_ATIVA' || !p.perguntaIniciadaEm) return 0;
     const fim = Date.parse(p.perguntaIniciadaEm) + p.duracaoSegundos * 1000;
-    return Math.max(0, Math.ceil((fim - this.agora()) / 1000));
+    // Pausada, o relógio para no instante da pausa.
+    return Math.max(0, Math.ceil((fim - relogioDaPartida(this.agora(), p)) / 1000));
   });
 
   constructor() {
@@ -314,7 +380,49 @@ export class ProfessorPartidaPage {
     this.destroyRef.onDestroy(() => clearInterval(tick));
   }
 
-  protected comando(cmd: 'iniciar' | 'proxima' | 'apurar' | 'encerrar'): void {
+  // --- Log de pontuação (fim de partida) ---
+  protected readonly logAberto = signal<string | null>(null);
+  protected readonly logJogador = computed(() => {
+    const id = this.logAberto();
+    return this.partida()?.logPontuacao?.find((l) => l.alunoId === id) ?? null;
+  });
+  protected readonly logPosicao = computed(() => {
+    const id = this.logAberto();
+    return this.partida()?.rankingFinal?.find((r) => r.alunoId === id)?.posicao ?? null;
+  });
+  protected abrirLog(alunoId: string): void {
+    if (this.partida()?.logPontuacao) this.logAberto.set(alunoId);
+  }
+
+  // --- Partida casual (lobby) ---
+  /** O valor escolhido aqui, antes de o snapshot confirmar. */
+  private readonly valeRankingLocal = signal<boolean | null>(null);
+  protected readonly valeRanking = computed(
+    () => this.valeRankingLocal() ?? this.partida()?.valeRanking !== false,
+  );
+  protected readonly salvandoValeRanking = signal(false);
+  protected readonly erro = signal<string | null>(null);
+
+  protected mudarValeRanking(vale: boolean): void {
+    this.valeRankingLocal.set(vale);
+    this.salvandoValeRanking.set(true);
+    this.erro.set(null);
+    this.api.definirValeRankingQlick(this.partidaId, vale).subscribe({
+      next: () => this.salvandoValeRanking.set(false),
+      error: () => {
+        // O servidor recusou (ex.: a partida começou): volta ao valor real.
+        this.valeRankingLocal.set(null);
+        this.salvandoValeRanking.set(false);
+        this.erro.set('Não foi possível mudar se a partida vale para o ranking.');
+      },
+    });
+  }
+
+  protected readonly podePausar = podePausar;
+
+  protected comando(
+    cmd: 'iniciar' | 'proxima' | 'apurar' | 'encerrar' | 'pausar' | 'retomar',
+  ): void {
     this.processando.set(true);
     this.api.comandoPartida(this.partidaId, cmd).subscribe({
       next: () => this.processando.set(false),

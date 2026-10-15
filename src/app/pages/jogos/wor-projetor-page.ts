@@ -11,6 +11,11 @@ import { Icon } from '../../ui/icon/icon';
 import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { Modal } from '../../ui/modal/modal';
 import { Spinner } from '../../ui/spinner/spinner';
+import { ValeRankingComponent } from '../../ui/vale-ranking/vale-ranking';
+import { LogPontuacaoComponent } from '../../ui/log-pontuacao/log-pontuacao';
+import { rankingDoLog } from '../../core/log-pontuacao';
+import { relogioDaPartida } from '../../core/pausa';
+import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausada';
 
 /**
  * Tela do projetor (professor/orquestrador). Escuta a raiz + todas as equipes
@@ -21,7 +26,17 @@ import { Spinner } from '../../ui/spinner/spinner';
   selector: 'app-wor-projetor-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Spinner, LobbyLoader, Modal, ActionCard],
+  imports: [
+    RouterLink,
+    Icon,
+    Spinner,
+    LobbyLoader,
+    Modal,
+    ActionCard,
+    ValeRankingComponent,
+    LogPontuacaoComponent,
+    PartidaPausadaComponent,
+  ],
   template: `
     @if (narrador.card(); as c) {
       <app-action-card [card]="c" />
@@ -84,11 +99,19 @@ import { Spinner } from '../../ui/spinner/spinner';
             </div>
           </div>
 
+          @if (m.turmaId) {
+            <app-vale-ranking
+              [valor]="valeRanking()"
+              [desabilitado]="salvandoValeRanking()"
+              (mudou)="mudarValeRanking($event)"
+            />
+          }
+
           @if (!teams().length) {
             <button
               class="btn-primary full"
               type="button"
-              [disabled]="ocupado() || salvandoMultiplicador() || m.inscritos.length < 2"
+              [disabled]="ocupado() || salvandoMultiplicador() || salvandoValeRanking() || m.inscritos.length < 2"
               (click)="distribuir()"
             >
               Distribuir equipes ({{ m.inscritos.length }} na sala)
@@ -106,7 +129,7 @@ import { Spinner } from '../../ui/spinner/spinner';
                 <span class="team-chip" [style.background]="t.cor">{{ t.nome }} · {{ t.membros.length }}</span>
               }
             </div>
-            <button class="btn-primary full" type="button" [disabled]="ocupado() || salvandoMultiplicador()" (click)="iniciar()">Iniciar batalha</button>
+            <button class="btn-primary full" type="button" [disabled]="ocupado() || salvandoMultiplicador() || salvandoValeRanking()" (click)="iniciar()">Iniciar batalha</button>
           }
           @if (erro()) { <p class="erro">{{ erro() }}</p> }
         </section>
@@ -123,6 +146,9 @@ import { Spinner } from '../../ui/spinner/spinner';
             Onda {{ m.ondaIndex + 1 }} de {{ m.totalOndas }}
             @if ((m.multiplicador ?? 1) > 1) {
               <span class="mult-selo">Valendo {{ m.multiplicador }}x</span>
+            }
+            @if (m.valeRanking === false) {
+              <span class="selo-casual" title="Os pontos desta partida não somam no ranking da turma">Casual</span>
             }
           </p>
 
@@ -159,10 +185,50 @@ import { Spinner } from '../../ui/spinner/spinner';
               <app-icon name="trophy" [size]="22" />
               Vitória: {{ vencedorNome() }}
             </div>
+            @if (logOrdenado().length) {
+              <ol class="log-lista">
+                @for (l of logOrdenado(); track l.alunoId) {
+                  <li
+                    class="log-lista__row"
+                    role="button"
+                    tabindex="0"
+                    (click)="logAberto.set(l.alunoId)"
+                    (keydown.enter)="logAberto.set(l.alunoId)"
+                  >
+                    <span class="log-lista__pos">{{ l.posicao }}º</span>
+                    <span class="log-lista__nome">{{ l.nome }}</span>
+                    <span class="log-lista__pts">{{ l.pontos }}</span>
+                  </li>
+                }
+              </ol>
+              <p class="muted center">Toque em um aluno para ver de onde vieram os pontos.</p>
+              <app-log-pontuacao
+                [jogador]="logJogador()"
+                [posicao]="logPosicao()"
+                [unidade]="unidade()"
+                [temTurma]="!!m.turmaId"
+                [casual]="m.valeRanking === false"
+                (fechar)="logAberto.set(null)"
+              />
+            }
           } @else {
-            <button class="btn-outline" type="button" [disabled]="ocupado()" (click)="pular()">Pular palavra</button>
+            <div class="controles">
+              <button class="btn-outline" type="button" [disabled]="ocupado() || !!m.pausadaEm" (click)="pausar()">
+                <app-icon name="pause" [size]="16" /> Pausar
+              </button>
+              <button class="btn-outline" type="button" [disabled]="ocupado()" (click)="pular()">Pular palavra</button>
+            </div>
           }
         </section>
+      }
+      @if (m.pausadaEm) {
+        <app-partida-pausada
+          jogo="Tichr Wor"
+          [titulo]="m.nome"
+          [professor]="true"
+          [carregando]="ocupado()"
+          (retomar)="retomar()"
+        />
       }
     } @else {
       <div class="carregando"><app-spinner [size]="32" /></div>
@@ -203,6 +269,8 @@ import { Spinner } from '../../ui/spinner/spinner';
     .pinbig__lbl { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
     .pinbig__val { font-size: 3.5rem; font-weight: 800; line-height: 1; letter-spacing: 0.12em; color: #b45309; font-variant-numeric: tabular-nums; }
     .pinbig__hint { font-size: 0.8rem; color: var(--text-muted); }
+    .controles { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; }
+    .controles .btn-outline { display: inline-flex; align-items: center; gap: 0.4rem; }
     .pinbig .btn-outline { display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 0.25rem; }
     .assist { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
     @media (min-width: 480px) { .assist { grid-template-columns: repeat(3, 1fr); } }
@@ -273,6 +341,13 @@ import { Spinner } from '../../ui/spinner/spinner';
     .hpbar span { display: block; height: 100%; transition: width 0.4s ease; }
     .hp { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); }
     .fim { display: flex; align-items: center; gap: 0.5rem; padding: 1rem; border-radius: 12px; background: color-mix(in srgb, #f59e0b 14%, transparent); color: #b45309; font-weight: 800; justify-content: center; }
+    .log-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+    .log-lista__row { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.85rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); cursor: pointer; }
+    .log-lista__row:hover, .log-lista__row:focus-visible { border-color: var(--primary); outline: none; }
+    .log-lista__row--eu { border-width: 2px; border-color: var(--primary); }
+    .log-lista__pos { font-weight: 900; color: var(--text-muted); min-width: 2.5ch; }
+    .log-lista__nome { flex: 1 1 auto; font-weight: 700; }
+    .log-lista__pts { font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums; }
     .carregando { display: flex; justify-content: center; padding: 3rem 0; color: #b45309; }
   `,
 })
@@ -335,7 +410,8 @@ export class WorProjetorPage {
     const m = this.match();
     if (!m || m.status !== 'EM_ANDAMENTO' || !m.rodadaIniciadaEm) return 60;
     const fim = Date.parse(m.rodadaIniciadaEm) + 60_000;
-    const s = Math.ceil((fim - this.relogio()) / 1000);
+    // Pausada, o relógio para no instante da pausa.
+    const s = Math.ceil((fim - relogioDaPartida(this.relogio(), m)) / 1000);
     return Math.max(0, Math.min(60, s));
   });
 
@@ -356,7 +432,10 @@ export class WorProjetorPage {
     this.api.verPartida(this.matchId).subscribe((v) => {
       const turmaId = v.match.turmaId;
       if (!turmaId) return;
-      this.turmas.getTurma(turmaId).subscribe((t) => this.pin.set(t.pinTurma ?? null));
+      this.turmas.getTurma(turmaId).subscribe((t) => {
+        this.pin.set(t.pinTurma ?? null);
+        this.unidade.set(t.nomePontuacao || 'XP');
+      });
       this.turmas.getAlunos(turmaId).subscribe((a) => this.alunos.set(a));
     });
     // O projetor (sempre presente) fecha a rodada quando o cronômetro zera.
@@ -376,6 +455,7 @@ export class WorProjetorPage {
     const m = this.match();
     if (!m || m.status !== 'EM_ANDAMENTO' || !m.rodadaIniciadaEm) return;
     if (this.narrador.ativo()) return; // jogo congelado pelo card
+    if (m.pausadaEm) return; // pausada: o telão não cobra o prazo
     if (this.restante() > 0 || this.tempoDisparadoEm === m.rodadaIniciadaEm) return;
     this.tempoDisparadoEm = m.rodadaIniciadaEm;
     this.api.tempo(this.matchId).subscribe({ next: () => {}, error: () => {} });
@@ -451,8 +531,51 @@ export class WorProjetorPage {
       },
     });
   }
+  // --- Log de pontuação (fim de partida) ---
+  /** O nome da pontuação da turma (padrão "XP"). */
+  protected readonly unidade = signal('XP');
+  protected readonly logOrdenado = computed(() =>
+    rankingDoLog(this.match()?.logPontuacao),
+  );
+  protected readonly logAberto = signal<string | null>(null);
+  protected readonly logJogador = computed(
+    () => this.logOrdenado().find((l) => l.alunoId === this.logAberto()) ?? null,
+  );
+  protected readonly logPosicao = computed(() => this.logJogador()?.posicao ?? null);
+
+  // --- Partida casual (lobby) ---
+  /** O valor escolhido aqui, antes de o snapshot confirmar. */
+  private readonly valeRankingLocal = signal<boolean | null>(null);
+  protected readonly valeRanking = computed(
+    () => this.valeRankingLocal() ?? this.match()?.valeRanking !== false,
+  );
+  protected readonly salvandoValeRanking = signal(false);
+
+  protected mudarValeRanking(vale: boolean): void {
+    this.valeRankingLocal.set(vale);
+    this.salvandoValeRanking.set(true);
+    this.erro.set(null);
+    this.api.definirValeRanking(this.matchId, vale).subscribe({
+      next: () => this.salvandoValeRanking.set(false),
+      error: () => {
+        // O servidor recusou (ex.: a partida começou): volta ao valor real.
+        this.valeRankingLocal.set(null);
+        this.salvandoValeRanking.set(false);
+        this.erro.set('Não foi possível mudar se a partida vale para o ranking.');
+      },
+    });
+  }
+
   protected pular(): void {
     this.acao(this.api.pular(this.matchId));
+  }
+
+  protected pausar(): void {
+    this.acao(this.api.pausar(this.matchId));
+  }
+
+  protected retomar(): void {
+    this.acao(this.api.retomar(this.matchId));
   }
 
   private acao(obs: { subscribe: (o: { next: () => void; error: (e: unknown) => void }) => void }): void {

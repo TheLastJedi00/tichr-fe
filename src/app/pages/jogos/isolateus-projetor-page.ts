@@ -23,6 +23,10 @@ import { IsolateusMapa } from '../../ui/isolateus-mapa/isolateus-mapa';
 import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { Modal } from '../../ui/modal/modal';
 import { Spinner } from '../../ui/spinner/spinner';
+import { ValeRankingComponent } from '../../ui/vale-ranking/vale-ranking';
+import { LogPontuacaoComponent } from '../../ui/log-pontuacao/log-pontuacao';
+import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausada';
+import { podePausar } from '../../core/pausa';
 
 /** Janelas cronometradas — espelham as constantes `ISOLATEUS` do backend. */
 const LIMITE_DEBATE_S = 90;
@@ -58,12 +62,20 @@ const MIN_REAIS = 4;
     IsolateusBrilho,
     IsolateusDiario,
     IsolateusEvento,
+    ValeRankingComponent,
+    LogPontuacaoComponent,
+    PartidaPausadaComponent,
   ],
   template: `
     <a class="voltar" routerLink="/jogos/isolateus">‹ Minhas investigações</a>
 
     @if (partida(); as p) {
-      <h1 class="title">{{ p.nome }}</h1>
+      <h1 class="title">
+        {{ p.nome }}
+        @if (p.status !== 'LOBBY' && p.valeRanking === false) {
+          <span class="selo-casual" title="Os pontos desta partida não somam no ranking da turma">Casual</span>
+        }
+      </h1>
 
       @if (p.status === 'LOBBY') {
         <section class="lobby">
@@ -131,10 +143,18 @@ const MIN_REAIS = 4;
             </span>
           </label>
 
+          @if (p.turmaId) {
+            <app-vale-ranking
+              [valor]="valeRanking()"
+              [desabilitado]="salvandoValeRanking()"
+              (mudou)="mudarValeRanking($event)"
+            />
+          }
+
           <button
             class="btn-iso full"
             type="button"
-            [disabled]="ocupado() || p.inscritos.length < minReais"
+            [disabled]="ocupado() || salvandoValeRanking() || p.inscritos.length < minReais"
             (click)="iniciar()"
           >
             Iniciar investigação ({{ p.inscritos.length }} na vila)
@@ -341,13 +361,30 @@ const MIN_REAIS = 4;
               }
               <ol class="ranking">
                 @for (r of p.rankingFinal; track r.alunoId) {
-                  <li>
+                  <li
+                    [class.clicavel]="!!p.logPontuacao"
+                    [attr.role]="p.logPontuacao ? 'button' : null"
+                    [attr.tabindex]="p.logPontuacao ? 0 : null"
+                    (click)="abrirLog(r.alunoId)"
+                    (keydown.enter)="abrirLog(r.alunoId)"
+                  >
                     <span class="pos">{{ r.posicao }}º</span>
                     <span class="rk-nome">{{ r.nome }}</span>
-                    <span class="rk-pts">{{ r.pontos }} XP</span>
+                    <span class="rk-pts">{{ r.pontos }} {{ unidade() }}</span>
                   </li>
                 }
               </ol>
+              @if (p.logPontuacao) {
+                <p class="muted center">Toque em um habitante para ver de onde vieram os pontos.</p>
+              }
+              <app-log-pontuacao
+                [jogador]="logJogador()"
+                [posicao]="logPosicao()"
+                [unidade]="unidade()"
+                [temTurma]="!!p.turmaId"
+                [casual]="p.valeRanking === false"
+                (fechar)="logAberto.set(null)"
+              />
             }
           }
 
@@ -369,6 +406,13 @@ const MIN_REAIS = 4;
             por fora e embaralha os codinomes da vila na hora. O aviso no Diário
             é o mesmo do poder da Ameaça — a turma não sabe quem causou.
           -->
+          <!-- A pausa: todo relógio para e um modal cobre todas as telas. -->
+          @if (podePausar(p.status) && !p.pausadaEm) {
+            <button class="btn-pausar" type="button" [disabled]="ocupado()" (click)="pausar()">
+              <app-icon name="pause" [size]="14" /> Pausar
+            </button>
+          }
+
           @if (p.status !== 'ENCERRADO') {
             <button class="btn-delirio" type="button" [disabled]="ocupado()" (click)="confirmarDelirio.set(true)">
               <app-icon name="dice" [size]="14" /> Delírio coletivo
@@ -458,6 +502,15 @@ const MIN_REAIS = 4;
           <button class="btn-primary" type="button" (click)="assistencia.set(false)">Fechar</button>
         </div>
       </app-modal>
+      @if (p.pausadaEm) {
+        <app-partida-pausada
+          jogo="Tichr Isolateus"
+          [titulo]="p.nome"
+          [professor]="true"
+          [carregando]="ocupado()"
+          (retomar)="retomar()"
+        />
+      }
     } @else {
       <div class="loading"><app-spinner [size]="32" /></div>
     }
@@ -555,8 +608,13 @@ const MIN_REAIS = 4;
     .pos { font-weight: 900; color: var(--text-muted); min-width: 2.5ch; }
     .rk-nome { flex: 1; font-weight: 700; }
     .rk-pts { font-weight: 800; color: #4d7c0f; }
+    .ranking li.clicavel { cursor: pointer; }
+    .ranking li.clicavel:hover, .ranking li.clicavel:focus-visible { border-color: #4d7c0f; outline: none; }
     .btn-delirio { align-self: center; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.9rem; border: 2px solid #7c3aed; background: var(--surface); color: #7c3aed; font: inherit; font-weight: 800; font-size: 0.85rem; cursor: pointer; }
     .btn-delirio:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-pausar { align-self: center; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.9rem; border: 2px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-weight: 800; font-size: 0.85rem; cursor: pointer; }
+    .btn-pausar:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+    .btn-pausar:disabled { opacity: 0.55; cursor: not-allowed; }
     .resgate__tag { color: #e11d48; }
     .resgate__aviso { color: #e11d48; }
     .agrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.5rem; }
@@ -620,7 +678,11 @@ export class IsolateusProjetorPage {
     const limite = this.limiteDaFase();
     if (!p || !p.faseIniciadaEm || !limite) return limite;
     const fim = Date.parse(p.faseIniciadaEm) + limite * 1000;
-    const s = Math.ceil((fim - this.cronometro.agora(this.relogio())) / 1000);
+    // Pausada, o relógio para no instante da pausa (já no relógio do servidor).
+    const agora = p.pausadaEm
+      ? Date.parse(p.pausadaEm)
+      : this.cronometro.agora(this.relogio());
+    const s = Math.ceil((fim - agora) / 1000);
     return Math.max(0, Math.min(limite, s));
   });
 
@@ -671,7 +733,10 @@ export class IsolateusProjetorPage {
       if (!p.turmaId) return;
       this.turmas
         .getTurma(p.turmaId)
-        .subscribe((t) => this.pin.set(t.pinTurma ?? null));
+        .subscribe((t) => {
+          this.pin.set(t.pinTurma ?? null);
+          this.unidade.set(t.nomePontuacao || 'XP');
+        });
       this.turmas.getAlunos(p.turmaId).subscribe((a) => this.alunos.set(a));
     });
 
@@ -713,7 +778,8 @@ export class IsolateusProjetorPage {
    * NPCs não pararem de "anunciar" se poucos alunos estiverem com a tela aberta.
    */
   private pulsoDaNoite(): void {
-    if (this.partida()?.status !== 'DESLOCAMENTO') return;
+    const p = this.partida();
+    if (p?.status !== 'DESLOCAMENTO' || p.pausadaEm) return;
     const agora = Date.now();
     if (agora < this.proximoPulso) return;
     this.proximoPulso =
@@ -733,6 +799,7 @@ export class IsolateusProjetorPage {
     const p = this.partida();
     this.cronometro.sincronizar(p?.faseIniciadaEm ?? null);
     if (!p || !p.faseIniciadaEm || !this.limiteDaFase()) return;
+    if (p.pausadaEm) return; // pausada: o telão não cobra o prazo
     if (!this.cronometro.devoCobrar(Date.now(), this.restante() <= 0)) return;
     this.api.tempo(this.matchId).subscribe({ next: () => {}, error: () => {} });
   }
@@ -783,6 +850,45 @@ export class IsolateusProjetorPage {
     this.acao(this.api.removerInscrito(this.matchId, alunoId));
   }
 
+  // --- Log de pontuação (fim de partida) ---
+  /** O nome da pontuação da turma (padrão "XP"). */
+  protected readonly unidade = signal('XP');
+  protected readonly logAberto = signal<string | null>(null);
+  protected readonly logJogador = computed(() => {
+    const id = this.logAberto();
+    return this.partida()?.logPontuacao?.find((l) => l.alunoId === id) ?? null;
+  });
+  protected readonly logPosicao = computed(() => {
+    const id = this.logAberto();
+    return this.partida()?.rankingFinal.find((r) => r.alunoId === id)?.posicao ?? null;
+  });
+  protected abrirLog(alunoId: string): void {
+    if (this.partida()?.logPontuacao) this.logAberto.set(alunoId);
+  }
+
+  // --- Partida casual (lobby) ---
+  /** O valor escolhido aqui, antes de o snapshot confirmar. */
+  private readonly valeRankingLocal = signal<boolean | null>(null);
+  protected readonly valeRanking = computed(
+    () => this.valeRankingLocal() ?? this.partida()?.valeRanking !== false,
+  );
+  protected readonly salvandoValeRanking = signal(false);
+
+  protected mudarValeRanking(vale: boolean): void {
+    this.valeRankingLocal.set(vale);
+    this.salvandoValeRanking.set(true);
+    this.erro.set(null);
+    this.api.definirValeRanking(this.matchId, vale).subscribe({
+      next: () => this.salvandoValeRanking.set(false),
+      error: () => {
+        // O servidor recusou (ex.: a partida começou): volta ao valor real.
+        this.valeRankingLocal.set(null);
+        this.salvandoValeRanking.set(false);
+        this.erro.set('Não foi possível mudar se a partida vale para o ranking.');
+      },
+    });
+  }
+
   protected iniciar(): void {
     this.acao(
       this.api.iniciar(this.matchId, {
@@ -821,6 +927,13 @@ export class IsolateusProjetorPage {
   protected delirio(): void {
     this.confirmarDelirio.set(false);
     this.acao(this.api.delirio(this.matchId));
+  }
+  protected readonly podePausar = podePausar;
+  protected pausar(): void {
+    this.acao(this.api.pausar(this.matchId));
+  }
+  protected retomar(): void {
+    this.acao(this.api.retomar(this.matchId));
   }
   /** O sinal da aula bateu: a investigação termina onde está. */
   protected encerrar(): void {

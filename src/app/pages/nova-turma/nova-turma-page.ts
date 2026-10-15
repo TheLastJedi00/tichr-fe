@@ -6,7 +6,7 @@ import {
   signal,
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CriarTurmaPayload, PlanoAtual } from '../../core/models';
 import { NOME_PLANO } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
@@ -40,6 +40,7 @@ import { TurmaForm } from '../turma-form/turma-form';
     } @else {
       <app-turma-form
         submitLabel="Criar turma"
+        [instituicaoInicial]="instituicaoId"
         [submitting]="salvando()"
         (save)="criar($event)"
       />
@@ -54,6 +55,9 @@ export class NovaTurmaPage {
   private readonly api = inject(TurmaApiService);
   private readonly profileService = inject(ProfileService);
   private readonly router = inject(Router);
+  /** Veio do painel de uma instituição (`?instituicao=<id>`). */
+  protected readonly instituicaoId =
+    inject(ActivatedRoute).snapshot.queryParamMap.get('instituicao');
 
   protected readonly salvando = signal(false);
   protected readonly bloqueado = signal(false);
@@ -77,7 +81,13 @@ export class NovaTurmaPage {
   protected criar(payload: CriarTurmaPayload): void {
     this.salvando.set(true);
     this.api.criarTurma(payload).subscribe({
-      next: () => this.router.navigateByUrl('/dashboard'),
+      // Criada no painel da instituição: volta para ele, onde a turma aparece.
+      next: () =>
+        this.router.navigateByUrl(
+          this.instituicaoId
+            ? `/instituicoes/${this.instituicaoId}/turmas`
+            : '/dashboard',
+        ),
       error: (err: HttpErrorResponse) => {
         this.salvando.set(false);
         if (err.status === 403 && err.error?.code === 'LIMIT_REACHED') {

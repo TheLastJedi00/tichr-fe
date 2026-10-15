@@ -480,12 +480,49 @@ export interface Partida {
   totalPerguntas: number;
   duracaoSegundos: number;
   perguntaIniciadaEm?: string | null;
+  /** Pausada pelo professor (ISO); null/ausente = rodando. Os relógios param. */
+  pausadaEm?: string | null;
   perguntaPublica?: { enunciado: string; alternativas: string[] } | null;
   corretaIndex?: number | null;
   inscritos: { alunoId: string; nome: string }[];
   placar: PlacarItem[];
   rankingParcial?: PlacarItem[];
   rankingFinal?: Array<{ posicao: number } & PlacarItem>;
+  /** Desmarcado no lobby, a partida é casual (não soma no ranking). Ausente = vale. */
+  valeRanking?: boolean;
+  /** De onde veio cada ponto. Só no encerramento. */
+  logPontuacao?: LogPontuacaoJogador[];
+}
+
+// --- Log de pontuação (fim de partida, todos os jogos) ---
+
+export type FontePontos =
+  | 'ACERTO'
+  | 'DANO'
+  | 'CRITICO'
+  | 'CATAPULTA'
+  | 'ARRISCAR'
+  | 'HP_FINAL'
+  | 'FATOR_COLOCACAO';
+
+export interface ItemLogPontos {
+  /** Pergunta (Qlick), rodada (Wor) ou noite (Isolateus), 1-based. */
+  rodada: number;
+  fonte: FontePontos;
+  /** Texto pronto para a tela. */
+  descricao: string;
+  /** Pode ser negativo (o fator de colocação do Wor). */
+  pontos: number;
+}
+
+export interface LogPontuacaoJogador {
+  alunoId: string;
+  nome: string;
+  /** Pontos da partida (os mesmos do ranking final). */
+  totalPartida: number;
+  /** O que de fato entrou no ranking da turma (0 se casual ou sem turma). */
+  creditoRanking: number;
+  itens: ItemLogPontos[];
 }
 
 export interface QlickDoDia {
@@ -710,6 +747,8 @@ export interface WorMatch {
   acoesRodada: AcaoMembroWor[];
   /** Início do turno/rodada atual (ISO) — base do cronômetro de 1 min. */
   rodadaIniciadaEm?: string | null;
+  /** Pausada pelo professor (ISO); null/ausente = rodando. Os relógios param. */
+  pausadaEm?: string | null;
   /** Snapshot de todas as equipes (o aluno vê os castelos rivais pela raiz). */
   placar: PlacarEquipe[];
   /** Resultado da última rodada (reveal + quem atacou). */
@@ -720,6 +759,10 @@ export interface WorMatch {
   vencedorEquipeId?: string | null;
   /** Quanto valem os pontos da partida (1x a 10x, escolhido no lobby). Ausente = 1. */
   multiplicador?: number;
+  /** Desmarcado no lobby, a partida é casual (não soma no ranking). Ausente = vale. */
+  valeRanking?: boolean;
+  /** De onde veio cada ponto, por aluno. Só no encerramento. */
+  logPontuacao?: LogPontuacaoJogador[];
 }
 
 /** Ação de um membro na rodada (para o cliente saber quem já jogou). */
@@ -862,7 +905,8 @@ export interface MensagemDebate {
 }
 
 export interface AlertaRodada {
-  tipo: 'SABOTAGEM' | 'ABDUCAO';
+  /** `INVASAO`: só uma Ameaça presa tentando fugir abriu a questão. */
+  tipo: 'SABOTAGEM' | 'ABDUCAO' | 'INVASAO';
   texto: string;
 }
 
@@ -898,6 +942,8 @@ export type TipoAcontecimento =
   | 'BRILHO'
   /** O resgate pela Saúde: organizado, cancelado, fracassado ou concluído. */
   | 'RESGATE'
+  /** A invasão forçada da Ameaça presa: contida ou fuga. */
+  | 'INVASAO'
   | 'VEREDITO'
   | 'FIM';
 
@@ -947,6 +993,8 @@ export interface IsolateusMatch {
   nome: string;
   status: StatusIsolateus;
   criadaEm?: string | null;
+  /** Pausada pelo professor (ISO); null/ausente = rodando. Os relógios param. */
+  pausadaEm?: string | null;
 
   esperanca: number;
   setores: SetorVila[];
@@ -1027,6 +1075,10 @@ export interface IsolateusMatch {
   veredito?: VereditoIsolateus | null;
   /** O placar só é publicado no encerramento (ao vivo, denunciaria os reais). */
   rankingFinal: PlacarIsolateus[];
+  /** Desmarcado no lobby, a partida é casual (não soma no ranking). Ausente = vale. */
+  valeRanking?: boolean;
+  /** De onde veio cada ponto. Só no encerramento, como o placar. */
+  logPontuacao?: LogPontuacaoJogador[];
 }
 
 /**
@@ -1053,6 +1105,10 @@ export interface PainelIsolateus {
   controle?: { habitanteId: string; nome: string } | null;
   /** Quem está AGORA no setor de onde ela age (o dela ou o do controlado). */
   fileira?: { setorId: string; habitantes: { id: string; nome: string }[] };
+  /** Só para a Ameaça presa: a invasão forçada desta noite. */
+  invasao?: { disponivel: boolean; declarada: boolean };
+  /** Só para a original: a recarga do Contágio (acertos desde o último). */
+  contagioAcertos?: { atual: number; necessario: number };
 }
 
 /** Os Poderes Alienígenas que a Ameaça ganha ao acertar a questão. */

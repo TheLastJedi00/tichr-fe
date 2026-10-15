@@ -80,6 +80,13 @@ export class WorApiService {
       { multiplicador },
     );
   }
+  /** Lobby: a partida vale para o ranking da turma ou é casual. */
+  definirValeRanking(matchId: string, valeRanking: boolean): Observable<WorMatchView> {
+    return this.http.post<WorMatchView>(
+      `${this.base}/wor/matches/${matchId}/vale-ranking`,
+      { valeRanking },
+    );
+  }
   iniciar(matchId: string): Observable<WorMatchView> {
     return this.http.post<WorMatchView>(
       `${this.base}/wor/matches/${matchId}/iniciar`,
@@ -89,6 +96,20 @@ export class WorApiService {
   pular(matchId: string): Observable<WorMatchView> {
     return this.http.post<WorMatchView>(
       `${this.base}/wor/matches/${matchId}/pular`,
+      {},
+    );
+  }
+  /** Pausa a batalha: todo comando é recusado até retomar. */
+  pausar(matchId: string): Observable<WorMatchView> {
+    return this.http.post<WorMatchView>(
+      `${this.base}/wor/matches/${matchId}/pausar`,
+      {},
+    );
+  }
+  /** Retoma: a rodada volta com o tempo que faltava. */
+  retomar(matchId: string): Observable<WorMatchView> {
+    return this.http.post<WorMatchView>(
+      `${this.base}/wor/matches/${matchId}/retomar`,
       {},
     );
   }

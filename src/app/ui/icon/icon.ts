@@ -52,7 +52,10 @@ export type IconName =
   | 'eye'
   | 'eye-off'
   // O aviso de saída da noite ("→ Energia") no Isolateus.
-  | 'arrow-right';
+  | 'arrow-right'
+  // A pausa do professor (Qlick, Wor e Isolateus).
+  | 'pause'
+  | 'play';
 
 /**
  * Componente burro de icones. Centraliza os SVGs e herda a cor do texto
@@ -184,6 +187,13 @@ export type IconName =
         }
         @case ('check') {
           <path d="M20 6 9 17l-5-5" />
+        }
+        @case ('pause') {
+          <rect x="6" y="4" width="4" height="16" rx="1" />
+          <rect x="14" y="4" width="4" height="16" rx="1" />
+        }
+        @case ('play') {
+          <path d="M6 4v16l14-8z" />
         }
         @case ('arrow-right') {
           <path d="M5 12h14" />

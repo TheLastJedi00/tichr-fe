@@ -71,6 +71,13 @@ export class IsolateusApiService {
   verPartida(id: string): Observable<IsolateusMatch> {
     return this.http.get<IsolateusMatch>(`${this.base}/isolateus/matches/${id}`);
   }
+  /** Lobby: a partida vale para o ranking da turma ou é casual. */
+  definirValeRanking(id: string, valeRanking: boolean): Observable<IsolateusMatch> {
+    return this.http.post<IsolateusMatch>(
+      `${this.base}/isolateus/matches/${id}/vale-ranking`,
+      { valeRanking },
+    );
+  }
   /** Remove um habitante do lobby (entrou na partida errada). Só no LOBBY. */
   removerInscrito(id: string, alunoId: string): Observable<IsolateusMatch> {
     return this.http.post<IsolateusMatch>(
@@ -115,6 +122,20 @@ export class IsolateusApiService {
   delirio(id: string): Observable<IsolateusMatch> {
     return this.http.post<IsolateusMatch>(
       `${this.base}/isolateus/matches/${id}/delirio`,
+      {},
+    );
+  }
+  /** Pausa a investigação: todo comando é recusado até retomar. */
+  pausar(id: string): Observable<IsolateusMatch> {
+    return this.http.post<IsolateusMatch>(
+      `${this.base}/isolateus/matches/${id}/pausar`,
+      {},
+    );
+  }
+  /** Retoma: cada relógio volta com o tempo que faltava. */
+  retomar(id: string): Observable<IsolateusMatch> {
+    return this.http.post<IsolateusMatch>(
+      `${this.base}/isolateus/matches/${id}/retomar`,
       {},
     );
   }
@@ -165,6 +186,16 @@ export class IsolateusApiService {
     return this.http.post<PainelIsolateus>(
       `${this.base}/aluno/isolateus/${id}/poder`,
       { poder, alvoId },
+    );
+  }
+  /**
+   * A invasão forçada: a Ameaça presa declara, de noite, que vai romper a
+   * Quarentena. A questão do dia decide a fuga.
+   */
+  invadir(id: string): Observable<IsolateusMatch> {
+    return this.http.post<IsolateusMatch>(
+      `${this.base}/aluno/isolateus/${id}/invasao`,
+      {},
     );
   }
   /** O deslocamento da noite: anda um setor pelas estradas do mapa. */

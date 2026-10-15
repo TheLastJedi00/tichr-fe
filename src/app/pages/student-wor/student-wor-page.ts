@@ -28,6 +28,10 @@ import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { Modal } from '../../ui/modal/modal';
 import { Spinner } from '../../ui/spinner/spinner';
 import { WorChat } from '../../ui/wor-chat/wor-chat';
+import { LogPontuacaoComponent } from '../../ui/log-pontuacao/log-pontuacao';
+import { rankingDoLog } from '../../core/log-pontuacao';
+import { relogioDaPartida } from '../../core/pausa';
+import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausada';
 
 const LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const LIMITE_RODADA_S = 60;
@@ -44,7 +48,18 @@ const DANO_CATAPULTA = 300;
   selector: 'app-student-wor-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, Modal, LobbyLoader, Spinner, Confetti, ActionCard, RouterLink, WorChat],
+  imports: [
+    Icon,
+    Modal,
+    LobbyLoader,
+    Spinner,
+    Confetti,
+    ActionCard,
+    RouterLink,
+    WorChat,
+    LogPontuacaoComponent,
+    PartidaPausadaComponent,
+  ],
   template: `
     @if (narrador.card(); as c) {
       <app-action-card [card]="c" />
@@ -83,6 +98,9 @@ const DANO_CATAPULTA = 300;
             @if ((m.multiplicador ?? 1) > 1) {
               <p class="mult-selo">Partida valendo {{ m.multiplicador }}x: todos os pontos (e o XP) multiplicados</p>
             }
+            @if (m.valeRanking === false) {
+              <span class="selo-casual">Partida casual: não soma no ranking</span>
+            }
             @if (!inscrito()) {
               <button class="btn-primary" type="button" [disabled]="ocupado()" (click)="entrar()">
                 Entrar na batalha
@@ -102,6 +120,7 @@ const DANO_CATAPULTA = 300;
             <span class="fort__pontos">
               <app-icon name="trophy" [size]="14" /> {{ t.pontos ?? 0 }} pts
               @if ((m.multiplicador ?? 1) > 1) { <b class="fort__mult">{{ m.multiplicador }}x</b> }
+              @if (m.valeRanking === false) { <span class="selo-casual">Casual</span> }
             </span>
             <span class="hpbar"><span [style.width.%]="hpPct(t.hp)"></span></span>
             <span class="hp">{{ t.hp }} HP</span>
@@ -134,6 +153,34 @@ const DANO_CATAPULTA = 300;
               {{ venci() ? 'Sua equipe venceu a batalha!' : vencedorNome() + ' venceu a batalha.' }}
             </div>
             <p class="aguarde">Seu castelo terminou com {{ t.hp }} HP.</p>
+            @if (logOrdenado().length) {
+              <ol class="log-lista">
+                @for (l of logOrdenado(); track l.alunoId) {
+                  <li
+                    class="log-lista__row"
+                    [class.log-lista__row--eu]="l.alunoId === alunoId"
+                    role="button"
+                    tabindex="0"
+                    (click)="logAberto.set(l.alunoId)"
+                    (keydown.enter)="logAberto.set(l.alunoId)"
+                  >
+                    <span class="log-lista__pos">{{ l.posicao }}º</span>
+                    <span class="log-lista__nome">{{ l.nome }}</span>
+                    <span class="log-lista__pts">{{ l.pontos }}</span>
+                  </li>
+                }
+              </ol>
+              <p class="aguarde">Toque em um colega para ver de onde vieram os pontos.</p>
+              <app-log-pontuacao
+                modo="sheet"
+                [jogador]="logJogador()"
+                [posicao]="logPosicao()"
+                [unidade]="unidade()"
+                [temTurma]="!!m.turmaId"
+                [casual]="m.valeRanking === false"
+                (fechar)="logAberto.set(null)"
+              />
+            }
             <a class="btn-primary voltar-btn" routerLink="/aluno/dashboard">Voltar ao início</a>
           } @else if (!ehMeuTurno()) {
             <p class="aguarde">Aguarde o turno da {{ turnoNome() }}…</p>
@@ -317,6 +364,12 @@ const DANO_CATAPULTA = 300;
         <button modal-actions class="btn-primary" type="button" (click)="modalHorda.set(false)">Entendido, vamos à forra!</button>
       </app-modal>
     }
+
+    @if (root(); as m) {
+      @if (m.pausadaEm) {
+        <app-partida-pausada jogo="Tichr Wor" [titulo]="m.nome" />
+      }
+    }
   `,
   styles: `
     :host { display: block; }
@@ -377,6 +430,13 @@ const DANO_CATAPULTA = 300;
     .castelo__bar span { display: block; height: 100%; transition: width 0.4s ease; }
     .castelo__hp { font-size: 0.78rem; font-weight: 800; color: var(--text-muted); font-variant-numeric: tabular-nums; }
     .fim { display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 1rem; border-radius: 12px; background: color-mix(in srgb, #94a3b8 22%, transparent); color: var(--text); font-weight: 800; text-align: center; }
+    .log-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+    .log-lista__row { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.85rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); cursor: pointer; }
+    .log-lista__row:hover, .log-lista__row:focus-visible { border-color: var(--primary); outline: none; }
+    .log-lista__row--eu { border-width: 2px; border-color: var(--primary); }
+    .log-lista__pos { font-weight: 900; color: var(--text-muted); min-width: 2.5ch; }
+    .log-lista__nome { flex: 1 1 auto; font-weight: 700; }
+    .log-lista__pts { font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums; }
     .fim--win { background: color-mix(in srgb, #f59e0b 22%, transparent); color: #b45309; }
     .voltar-btn { width: 100%; text-align: center; text-decoration: none; }
     .alvos, .painel .btn-primary { width: 100%; }
@@ -412,12 +472,23 @@ export class StudentWorPage {
   private readonly studentAuth = inject(StudentAuthService);
   private readonly destroyRef = inject(DestroyRef);
 
-  private readonly alunoId = this.studentAuth.aluno()?.id ?? '';
+  protected readonly alunoId = this.studentAuth.aluno()?.id ?? '';
   protected readonly alunoIdAtual = this.alunoId;
 
   protected readonly carregando = signal(true);
   protected readonly matchId = signal<string | null>(null);
   protected readonly root = signal<WorMatch | null>(null);
+
+  // --- Log de pontuação (fim de partida): público para toda a sala ---
+  protected readonly unidade = this.studentAuth.nomePontuacao;
+  protected readonly logOrdenado = computed(() =>
+    rankingDoLog(this.root()?.logPontuacao),
+  );
+  protected readonly logAberto = signal<string | null>(null);
+  protected readonly logJogador = computed(
+    () => this.logOrdenado().find((l) => l.alunoId === this.logAberto()) ?? null,
+  );
+  protected readonly logPosicao = computed(() => this.logJogador()?.posicao ?? null);
   protected readonly team = signal<WorTeam | null>(null);
   protected readonly rivais = signal<WorTeam[]>([]);
   protected readonly todosTeams = signal<WorTeam[]>([]);
@@ -499,7 +570,8 @@ export class StudentWorPage {
     const m = this.root();
     if (!m || m.status !== 'EM_ANDAMENTO' || !m.rodadaIniciadaEm) return LIMITE_RODADA_S;
     const fim = Date.parse(m.rodadaIniciadaEm) + LIMITE_RODADA_S * 1000;
-    const s = Math.ceil((fim - this.relogio()) / 1000);
+    // Pausada, o relógio para no instante da pausa.
+    const s = Math.ceil((fim - relogioDaPartida(this.relogio(), m)) / 1000);
     return Math.max(0, Math.min(LIMITE_RODADA_S, s));
   });
   /** Inputs bloqueados: durante a chamada HTTP ou com um card interrompendo o jogo. */

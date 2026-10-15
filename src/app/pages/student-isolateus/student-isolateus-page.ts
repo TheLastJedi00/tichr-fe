@@ -32,6 +32,8 @@ import { StudentAuthService } from '../../core/student-auth.service';
 import { ThemeService } from '../../core/theme.service';
 import { Icon } from '../../ui/icon/icon';
 import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
+import { LogPontuacaoComponent } from '../../ui/log-pontuacao/log-pontuacao';
+import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausada';
 import { IsolateusDiario } from '../../ui/isolateus-diario/isolateus-diario';
 import { IsolateusEvento } from '../../ui/isolateus-evento/isolateus-evento';
 import { IsolateusBrilho } from '../../ui/isolateus-brilho/isolateus-brilho';
@@ -87,10 +89,11 @@ const CARDS_DE_PODER: ReadonlyArray<{
     id: 'CONTAGIO',
     nome: 'Contágio',
     texto:
-      'Ao amanhecer, um aldeão real, sorteado, vira uma Ameaça como você: joga a própria jogada toda noite e conhece você. Cada contágio drena a Esperança da vila. Só você, a Ameaça original, pode contagiar.',
+      'Ao amanhecer, um aldeão real, sorteado, vira uma Ameaça como você: joga a própria jogada toda noite e conhece você. Cada contágio drena a Esperança da vila. Só você, a Ameaça original, pode contagiar, e só a cada 2 acertos seus.',
     duracao: 'até o fim da partida',
     vilaVe: 'a Esperança caindo, sem aviso',
-    indisponivel: 'Só a Ameaça original contagia — e é preciso haver um aldeão real livre.',
+    indisponivel:
+      'Só a Ameaça original contagia, a cada 2 acertos dela, e é preciso haver um aldeão real livre.',
   },
   {
     id: 'DELIRIO',
@@ -102,6 +105,20 @@ const CARDS_DE_PODER: ReadonlyArray<{
     indisponivel: 'Indisponível agora.',
   },
 ];
+
+/**
+ * O aviso do palavrão barrado pelo servidor (422 `MENSAGEM_BLOQUEADA`), ou
+ * `null` para qualquer outro erro. O texto digitado continua no campo.
+ */
+function mensagemBloqueada(e: {
+  error?: { code?: string; message?: string };
+}): string | null {
+  if (e.error?.code !== 'MENSAGEM_BLOQUEADA') return null;
+  return (
+    e.error.message ??
+    'Mensagem bloqueada por linguagem imprópria. Você perdeu 1000 XP.'
+  );
+}
 
 /**
  * O celular do habitante. Descobre a investigação da turma sozinho (sonda de 4s,
@@ -128,6 +145,8 @@ const CARDS_DE_PODER: ReadonlyArray<{
     IsolateusEvento,
     IsolateusPersonagem,
     IsolateusBrilho,
+    LogPontuacaoComponent,
+    PartidaPausadaComponent,
   ],
   template: `
     @if (carregando()) {
@@ -150,6 +169,9 @@ const CARDS_DE_PODER: ReadonlyArray<{
           <div class="espera">
             <app-lobby-loader />
             <strong>Aguardando Comando Central</strong>
+            @if (p.valeRanking === false) {
+              <span class="selo-casual">Partida casual: não soma no ranking</span>
+            }
             <p class="muted">
               Você está na vila. Seu <b>codinome</b> será revelado quando a
               investigação começar.
@@ -216,6 +238,9 @@ const CARDS_DE_PODER: ReadonlyArray<{
               >
                 <app-icon [name]="ocultarNome() ? 'eye-off' : 'eye'" [size]="16" />
               </button>
+              @if (p.valeRanking === false) {
+                <span class="selo-casual" title="Os pontos desta partida não somam no ranking da turma">Casual</span>
+              }
             </div>
           }
           @if (foraDaVila()) {
@@ -236,6 +261,28 @@ const CARDS_DE_PODER: ReadonlyArray<{
                   <app-lobby-loader />
                   <strong>A noite caiu…</strong>
                   <p class="muted">Você já não caminha por essas ruas. Aguarde o alarme.</p>
+                  <!--
+                    A invasão forçada: só a Ameaça presa recebe o campo no
+                    painel. O Aldeão preso não vê o botão.
+                  -->
+                  @if (painel()?.invasao; as inv) {
+                    @if (inv.declarada) {
+                      <p class="invasao invasao--ok">
+                        <app-icon name="lock" [size]="16" /> Invasão declarada. Prepare-se para a questão.
+                      </p>
+                    } @else if (inv.disponivel) {
+                      <div class="invasao">
+                        <button class="btn-iso" type="button" [disabled]="enviando()" (click)="invadir()">
+                          <app-icon name="alien" [size]="16" /> Forçar invasão
+                        </button>
+                        <p class="muted">
+                          Você responde a questão desta noite. Se acertar e a maioria
+                          da vila errar, você foge da Quarentena.
+                        </p>
+                      </div>
+                    }
+                    @if (erro()) { <p class="erro-invasao">{{ erro() }}</p> }
+                  }
                 </section>
               } @else {
                 <div class="noite">
@@ -396,6 +443,7 @@ const CARDS_DE_PODER: ReadonlyArray<{
                     (input)="sinalTexto.set($any($event.target).value)"
                     placeholder="Tente guiar os sobreviventes contra as mentiras…"
                   ></textarea>
+                  @if (avisoSinal()) { <p class="aviso">{{ avisoSinal() }}</p> }
                   <button class="btn-iso" type="submit" [disabled]="enviando() || !sinalTexto().trim()">
                     Enviar sinal
                   </button>
@@ -508,6 +556,7 @@ const CARDS_DE_PODER: ReadonlyArray<{
                     (input)="debateTexto.set($any($event.target).value)"
                     placeholder="Acuse, defenda-se, diga onde você passou a noite…"
                   ></textarea>
+                  @if (avisoDebate()) { <p class="aviso">{{ avisoDebate() }}</p> }
                   <button class="btn-iso" type="submit" [disabled]="enviando() || !debateTexto().trim()">
                     Falar
                   </button>
@@ -588,8 +637,40 @@ const CARDS_DE_PODER: ReadonlyArray<{
               @if (minhaPosicao(p); as eu) {
                 <p class="lead center">
                   Você terminou em {{ eu.posicao }}º com <b>{{ eu.pontos }}</b> pontos,
-                  somados ao seu XP do portal.
+                  @if (p.valeRanking === false) {
+                    mas a partida foi casual e eles não somaram no ranking.
+                  } @else {
+                    somados ao seu XP do portal.
+                  }
                 </p>
+              }
+              @if (p.logPontuacao) {
+                <ol class="placar-fim">
+                  @for (r of p.rankingFinal; track r.alunoId) {
+                    <li
+                      class="placar-fim__row"
+                      [class.placar-fim__row--eu]="r.alunoId === meuId"
+                      role="button"
+                      tabindex="0"
+                      (click)="logAberto.set(r.alunoId)"
+                      (keydown.enter)="logAberto.set(r.alunoId)"
+                    >
+                      <span class="placar-fim__pos">{{ r.posicao }}º</span>
+                      <span class="placar-fim__nome">{{ r.nome }}</span>
+                      <span class="placar-fim__pts">{{ r.pontos }}</span>
+                    </li>
+                  }
+                </ol>
+                <p class="muted center">Toque em um habitante para ver de onde vieram os pontos.</p>
+                <app-log-pontuacao
+                  modo="sheet"
+                  [jogador]="logJogador()"
+                  [posicao]="logPosicao()"
+                  [unidade]="unidade()"
+                  [temTurma]="!!p.turmaId"
+                  [casual]="p.valeRanking === false"
+                  (fechar)="logAberto.set(null)"
+                />
               }
               <a class="btn-outline full sair" routerLink="/aluno/dashboard">Voltar ao início</a>
             }
@@ -780,6 +861,8 @@ const CARDS_DE_PODER: ReadonlyArray<{
                           <button class="btn-iso" type="button" [disabled]="enviando()" (click)="escolherPoder(card.id)">
                             Usar {{ card.nome }}
                           </button>
+                        } @else if (card.id === 'CONTAGIO' && recargaContagio(); as recarga) {
+                          <span class="poder__recarga">{{ recarga }}</span>
                         } @else {
                           <span class="muted">{{ card.indisponivel }}</span>
                         }
@@ -807,6 +890,11 @@ const CARDS_DE_PODER: ReadonlyArray<{
         <a class="btn-outline" routerLink="/aluno/dashboard">Voltar ao início</a>
       </section>
     }
+    @if (partida(); as p) {
+      @if (p.pausadaEm) {
+        <app-partida-pausada jogo="Tichr Isolateus" [titulo]="p.nome" />
+      }
+    }
   `,
   styles: `
     :host { display: block; }
@@ -821,8 +909,12 @@ const CARDS_DE_PODER: ReadonlyArray<{
     .registro { display: flex; flex-direction: column; gap: 0.5rem; }
     .campo > span { display: block; margin-bottom: 0.375rem; font-size: 0.85rem; font-weight: 700; color: var(--text-muted); }
     .aviso { margin: 0; color: var(--danger); font-weight: 600; font-size: 0.9rem; }
+    .poder__recarga { font-weight: 800; font-size: 0.9rem; color: var(--text-muted); }
     .btn-iso { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.9rem 1.2rem; border: none; border-radius: 12px; cursor: pointer; font: inherit; font-weight: 800; color: #fff; background: linear-gradient(135deg, #84cc16, #4d7c0f); }
     .btn-iso:disabled { opacity: 0.55; cursor: not-allowed; }
+    .invasao { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; margin-top: 0.75rem; text-align: center; }
+    .invasao--ok { flex-direction: row; justify-content: center; font-weight: 800; color: #4d7c0f; }
+    .erro-invasao { margin: 0.5rem 0 0; color: var(--danger); font-size: 0.85rem; text-align: center; }
     .full { width: 100%; margin-top: 0.5rem; }
     .revelacao {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -970,6 +1062,13 @@ const CARDS_DE_PODER: ReadonlyArray<{
     .composer__lbl { font-size: 0.78rem; font-weight: 800; color: var(--text-muted); }
     .composer textarea { resize: vertical; font: inherit; }
     .center { text-align: center; }
+    .placar-fim { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+    .placar-fim__row { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.85rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); cursor: pointer; }
+    .placar-fim__row:hover, .placar-fim__row:focus-visible { border-color: #4d7c0f; outline: none; }
+    .placar-fim__row--eu { border-width: 2px; border-color: #4d7c0f; }
+    .placar-fim__pos { font-weight: 900; color: var(--text-muted); min-width: 2.5ch; }
+    .placar-fim__nome { flex: 1 1 auto; font-weight: 700; }
+    .placar-fim__pts { font-weight: 800; color: #4d7c0f; font-variant-numeric: tabular-nums; }
     /* Quarentena */
     .card-global { padding: 0.9rem; border-radius: 12px; font-weight: 800; font-size: 0.95rem; text-align: center; color: #fff; background: var(--danger); }
     .card-global--ok { background: var(--success); }
@@ -1010,7 +1109,7 @@ export class StudentIsolateusPage {
   private readonly destroyRef = inject(DestroyRef);
   private readonly tema = inject(ThemeService);
 
-  private readonly meuId = this.studentAuth.aluno()?.id ?? '';
+  protected readonly meuId = this.studentAuth.aluno()?.id ?? '';
 
   protected readonly partida = signal<IsolateusMatch | null>(null);
   protected readonly painel = signal<PainelIsolateus | null>(null);
@@ -1101,6 +1200,16 @@ export class StudentIsolateusPage {
   protected readonly respostaIndex = signal<number | null>(null);
   protected readonly sinalTexto = signal('');
   protected readonly debateTexto = signal('');
+  /** O palavrão barrado (422): o aviso fica no campo, com o texto mantido. */
+  protected readonly avisoSinal = signal('');
+  protected readonly avisoDebate = signal('');
+
+  /** "Contágio: 1 de 2 acertos" enquanto a original recarrega; null fora disso. */
+  protected readonly recargaContagio = computed(() => {
+    const r = this.painel()?.contagioAcertos;
+    if (!r || r.atual >= r.necessario) return null;
+    return `Contágio: ${r.atual} de ${r.necessario} acertos`;
+  });
   protected readonly votei = signal(false);
   /** Votei em quem volta pelo resgate desta rodada (otimista). */
   protected readonly voteiResgate = signal(false);
@@ -1151,7 +1260,11 @@ export class StudentIsolateusPage {
     const limite = this.limiteDaFase();
     if (!limite) return 0;
     const fim = Date.parse(p.faseIniciadaEm) + limite * 1000;
-    const s = Math.ceil((fim - this.cronometro.agora(this.relogio())) / 1000);
+    // Pausada, o relógio para no instante da pausa (já no relógio do servidor).
+    const agora = p.pausadaEm
+      ? Date.parse(p.pausadaEm)
+      : this.cronometro.agora(this.relogio());
+    const s = Math.ceil((fim - agora) / 1000);
     return Math.max(0, Math.min(limite, s));
   });
 
@@ -1231,6 +1344,7 @@ export class StudentIsolateusPage {
     this.cronometro.sincronizar(p?.faseIniciadaEm ?? null);
     if (!p || !this.partidaId || !p.faseIniciadaEm) return;
     if (!this.limiteDaFase()) return;
+    if (p.pausadaEm) return; // pausada: ninguém cobra o prazo
     if (!this.cronometro.devoCobrar(Date.now(), this.restante() <= 0)) return;
     this.api
       .tempoAluno(this.partidaId)
@@ -1418,6 +1532,7 @@ export class StudentIsolateusPage {
   private pulsoDaNoite(): void {
     const p = this.partida();
     if (!p || !this.partidaId || p.status !== 'DESLOCAMENTO') return;
+    if (p.pausadaEm) return; // pausada: o pulso para junto do relógio
     if (this.foraDaVila() || !this.meuHabitante()) return;
     const agora = Date.now();
     if (agora < this.proximoPulso) return;
@@ -1508,6 +1623,29 @@ export class StudentIsolateusPage {
       !!saude?.intacto &&
       this.resgataveis(p).length > 0
     );
+  }
+
+  /**
+   * A Ameaça presa declara a invasão da noite. Otimista: o painel marca
+   * "declarada" na hora; o servidor é o juiz e o painel volta ao real.
+   */
+  protected invadir(): void {
+    const pnl = this.painel();
+    if (!this.partidaId || !pnl?.invasao?.disponivel || this.enviando()) return;
+    this.enviando.set(true);
+    this.erro.set('');
+    this.painel.set({ ...pnl, invasao: { disponivel: false, declarada: true } });
+    this.api.invadir(this.partidaId).subscribe({
+      next: () => {
+        this.enviando.set(false);
+        this.carregarPainel(false);
+      },
+      error: (e: { error?: { message?: string } }) => {
+        this.enviando.set(false);
+        this.erro.set(e.error?.message ?? 'Não foi possível declarar a invasão.');
+        this.carregarPainel(false);
+      },
+    });
   }
 
   protected resgatar(): void {
@@ -1853,12 +1991,16 @@ export class StudentIsolateusPage {
     const texto = this.sinalTexto().trim();
     if (!this.partidaId || !texto || this.enviando()) return;
     this.enviando.set(true);
+    this.avisoSinal.set('');
     this.api.sinalDeRadio(this.partidaId, texto).subscribe({
       next: () => {
         this.enviando.set(false);
         this.sinalTexto.set('');
       },
-      error: () => this.enviando.set(false),
+      error: (e: { error?: { code?: string; message?: string } }) => {
+        this.enviando.set(false);
+        this.avisoSinal.set(mensagemBloqueada(e) ?? '');
+      },
     });
   }
 
@@ -1884,12 +2026,16 @@ export class StudentIsolateusPage {
     const texto = this.debateTexto().trim();
     if (!this.partidaId || !texto || this.enviando()) return;
     this.enviando.set(true);
+    this.avisoDebate.set('');
     this.api.debater(this.partidaId, texto).subscribe({
       next: () => {
         this.enviando.set(false);
         this.debateTexto.set('');
       },
-      error: () => this.enviando.set(false),
+      error: (e: { error?: { code?: string; message?: string } }) => {
+        this.enviando.set(false);
+        this.avisoDebate.set(mensagemBloqueada(e) ?? '');
+      },
     });
   }
 
@@ -1982,4 +2128,16 @@ export class StudentIsolateusPage {
   protected minhaPosicao(p: IsolateusMatch) {
     return p.rankingFinal.find((r) => r.alunoId === this.meuId) ?? null;
   }
+
+  // --- Log de pontuação (fim de partida): público para toda a vila ---
+  protected readonly unidade = this.studentAuth.nomePontuacao;
+  protected readonly logAberto = signal<string | null>(null);
+  protected readonly logJogador = computed(() => {
+    const id = this.logAberto();
+    return this.partida()?.logPontuacao?.find((l) => l.alunoId === id) ?? null;
+  });
+  protected readonly logPosicao = computed(() => {
+    const id = this.logAberto();
+    return this.partida()?.rankingFinal.find((r) => r.alunoId === id)?.posicao ?? null;
+  });
 }

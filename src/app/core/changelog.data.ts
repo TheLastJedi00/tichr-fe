@@ -18,6 +18,65 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.35.0',
+    data: '2026-10-15',
+    titulo: 'Pausa, fuga e linguagem',
+    itens: [
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Pausar a partida: no Qlick, no Wor e no Isolateus, o professor pausa o jogo pelo telão. Todas as telas mostram o aviso de pausa, os cronômetros param e ninguém joga até ele retomar. Ao retomar, cada etapa volta com o tempo que faltava.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Isolateus: a Ameaça presa pode tentar fugir. De noite ela força a invasão, e a vila só fica sabendo que algo tenta romper a Quarentena. Se ela acertar a questão e a maioria da vila errar, ela volta livre para a vila.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Isolateus: o Contágio agora recarrega. A Ameaça original só contagia a cada 2 acertos dela, e o card mostra quantos faltam.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Isolateus: palavrão no debate ou no Sinal de Rádio não é publicado e custa 1000 XP a quem escreveu. Só o celular dele é avisado, e o texto continua no campo para ser corrigido.',
+      },
+    ],
+  },
+  {
+    versao: 'v0.34.0',
+    data: '2026-10-15',
+    titulo: 'De onde veio cada ponto',
+    itens: [
+      {
+        categoria: 'Nova feature',
+        texto:
+          'No fim de qualquer jogo, toque em um jogador do ranking para ver de onde vieram os pontos dele: cada acerto, ataque ou bônus, e quanto entrou no ranking da turma. Todo mundo da partida vê o detalhe de todo mundo.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Partida casual: no lobby do Qlick, do Wor e do Isolateus, o professor desmarca "Vale para o ranking da turma" e a partida vira um treino. Os pontos aparecem no fim, mas não somam no ranking. Um selo "Casual" avisa a sala.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'No Isolateus, Aldeões e Ameaças agora pontuam do mesmo jeito: acertando a questão. Vencer a partida ou a vila errar não dá mais pontos.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'No fim do Wor e do Isolateus, o celular do aluno também mostra o ranking de todos os jogadores.',
+      },
+      {
+        categoria: 'Correção',
+        texto:
+          'Turma criada dentro do painel de uma instituição ficava em "Sem instituição". Agora ela já nasce na escola, inclusive em módulo fechado, e você volta para o painel depois de criar.',
+      },
+    ],
+  },
+  {
     versao: 'v0.33.0',
     data: '2026-10-08',
     titulo: 'Tichr Wor valendo mais',

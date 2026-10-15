@@ -185,3 +185,19 @@ div[modal-actions] {
   justify-content: flex-end;
   gap: 1rem;
 }
+
+/* Selo de partida casual (não soma no ranking da turma). Projetor e celular
+   dos três jogos. Sem lógica: classe global, não componente. */
+.selo-casual {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.5rem;
+  border: 1px dashed currentColor;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--warning);
+  vertical-align: middle;
+}

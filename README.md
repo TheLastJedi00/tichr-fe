@@ -49,8 +49,8 @@ O diferencial visível está na **demonstração interativa da landing page** e 
 | `/agenda` | **Minha Agenda** | Alternância **Calendário** (grade de 5 semanas — dias com aula em **cor de destaque + ícone "i"**, sem nomes de turma; toque abre um **modal com a grade do dia**) e **Detalhado** (**carrossel por dia** Seg–Sex, foco em hoje com *peek* dos vizinhos, grade vertical **Horário → turma / Janela / Intervalo** do ensino regular + aulas modulares da data); a escolha é memorizada. |
 | `/plano-aula` | **Plano de Aula** | Escopo geral por disciplina **e** o **quadro modular** (backlog de tópicos + **alocação drag-and-drop** na grade da turma) — tudo no **plano Graduado+** (Estagiário vê cadeado). Para turmas de **Ensino Regular**, a lista linear de aulas dá lugar a um **accordion Ano Letivo → Semestres (1º/2º) → Unidades Eletivas (1ª–4ª)**: arrasta-se o tópico para o bloco da **Unidade** (não para um dia), que **empilha e numera automaticamente**; reordenar dentro da unidade recalcula a numeração na hora. Layout em coluna (mobile-first). |
 | `/turmas` | **Minhas Turmas** | Centro do fluxo do **ensino regular**. Conta virgem: um **card-botão "Criar Instituição de Ensino"** (passo obrigatório antes das turmas). Com dados: **cards por instituição** que **navegam** para a tela dedicada da escola, e um bloco **"Turmas sem uma instituição de ensino"** para o legado. Instituições são criadas/editadas aqui, em modal com **turnos** (Matutino/Vespertino/Noturno — cada um com horários e recreios próprios e **prévia ao vivo da sua grade**), além da opção **"uma aula por turno"** (turno inteiro = uma aula). |
-| `/instituicoes/:id/turmas` | **Turmas da escola** | Tela dedicada às turmas de uma instituição (`:id = sem-instituicao` para o legado): filtro **Ativas / Encerradas** + **busca por nome**, e o **gerenciador de férias da escola** (`<app-ferias-manager [instituicaoId]>`). O **seletor para mover a turma de escola** aparece só nas turmas **sem instituição** (as que já têm escola trocam ao editar). |
-| `/turmas/nova` · `/turmas/:id/editar` | **Nova / Editar turma** | Formulário reativo com modalidade, cor, disciplina e a config de **Pontuação & Gamificação** (liga/desliga, nome da pontuação, rótulos dos botões, ranking on/off). A **Modalidade** é **Ensino Regular** (escola) ou **Módulo fechado**: em *Ensino Regular*, escolhe-se **instituição + turno + nível + ano/série** e a **grade de alocação** (dia × horário) do turno, com os dias derivados das alocações; em *Módulo*, define-se dias/horários/total de aulas. A disciplina pode ser **criada inline** (sem sair para Configurações). Editar **reprojeta** a agenda. Criar respeita a **cota do plano** (com *upsell* ao estourar). |
+| `/instituicoes/:id/turmas` | **Turmas da escola** | Tela dedicada às turmas de uma instituição (`:id = sem-instituicao` para o legado): filtro **Ativas / Encerradas** + **busca por nome**, e o **gerenciador de férias da escola** (`<app-ferias-manager [instituicaoId]>`). O botão **"Nova turma"** leva a escola junto (`/turmas/nova?instituicao=<id>`): a turma nasce nela e, ao salvar, volta para este painel. O **seletor para mover a turma de escola** aparece só nas turmas **sem instituição** (as que já têm escola trocam ao editar). |
+| `/turmas/nova` · `/turmas/:id/editar` | **Nova / Editar turma** | Formulário reativo com modalidade, cor, disciplina e a config de **Pontuação & Gamificação** (liga/desliga, nome da pontuação, rótulos dos botões, ranking on/off). A **Modalidade** é **Ensino Regular** (escola) ou **Módulo fechado**: o campo **Instituição** é geral (pré-selecionado quando vem do painel da escola; obrigatório só no *Ensino Regular*, opcional no *Módulo*); em *Ensino Regular*, escolhe-se **turno + nível + ano/série** e a **grade de alocação** (dia × horário) do turno, com os dias derivados das alocações; em *Módulo*, define-se dias/horários/total de aulas. A disciplina pode ser **criada inline** (sem sair para Configurações). Editar **reprojeta** a agenda. Criar respeita a **cota do plano** (com *upsell* ao estourar). |
 | `/turmas/:id` | **Detalhe da turma** | Exibe o **PIN da turma** e uma **barra de progresso** do curso (que segue o nome da pontuação como base coletiva quando ativa). Turmas legadas (PIN 6 díg) mostram um **aviso + modal para migrar aos Smart PINs** (2 díg). Abas: **Agenda**, **Alunos** (cartas + **modal do aluno**; cadastro é recurso do **plano Mestre** — planos inferiores veem bloqueio), **Equipes** (*kanban* + **cargos**) e **Jogos** (Qlicks da turma, com **Adicionar jogo** da biblioteca — N:N). |
 | `/turmas/:id/dinamica` | **Nova dinâmica** | Sorteio de **squads**: nº de equipes, papéis/temas em *chips*, e a **roleta** que renderiza os grupos. Recurso do **plano Mestre**. |
 | `/jogos` · `/jogos/qlick` | **Jogos / Tichr Qlick** | Vitrine de jogos e a mini-landing do **Tichr Qlick** (quiz ao vivo). Recurso do **plano PhD** (upsell nos inferiores). |
@@ -145,6 +145,23 @@ estilo app), autenticada por **PIN** e com token próprio. O aluno entra pela jo
   para a partida.
 - **IA com saldo do dia:** o botão de gerar conteúdo por IA mostra quantas gerações ainda
   restam no dia (o limite é ajustável pelo admin) em vez de travar sempre no primeiro uso.
+- **Partida casual:** no lobby dos três jogos, o checkbox **"Vale para o ranking da turma"**
+  (`<app-vale-ranking>`, marcado por padrão) decide se a partida soma no ranking. Desmarcado, a
+  partida é um treino: placar e log no fim, sem XP. Só aparece com turma e trava ao iniciar. O
+  selo **"Casual"** (classe global `.selo-casual`) avisa no telão e no celular.
+- **Log de pontuação:** no fim de qualquer partida, cada jogador do ranking é clicável e abre
+  `<app-log-pontuacao>` (modal no telão, folha no celular): os eventos que geraram pontos, o
+  total e o que entrou no ranking da turma (ou "Partida casual" / "Partida sem turma"). É
+  público para toda a sala. No Wor, o celular e o telão listam os jogadores ordenados pelo que
+  cada um levou (com o ×0,5 da equipe não campeã); no Isolateus, o celular ganhou o ranking final.
+- **Pausa (spec 028):** nos três jogos, o telão do professor tem **"Pausar"** com a partida em
+  andamento. Pausada, todas as telas (os três telões e os três celulares) mostram o modal
+  `<app-partida-pausada>` (`ui/`, dumb) com o nome do jogo, o título da partida e *"Partida
+  pausada. Aguardando o professor retomar."*, cobrindo e bloqueando o fundo; no telão ele traz
+  **"Retomar partida"**. Os cronômetros congelam (`core/pausa.ts`: o relógio da partida conta até
+  `pausadaEm`), o telão para de cobrar o `/tempo` e o pulso da noite, e o servidor recusa todo
+  comando (409 `PARTIDA_PAUSADA`, sem o modal global de erro). Ao retomar, cada relógio volta com
+  o tempo que faltava. Para encerrar, retoma-se antes.
 
 ### Tichr Qlick: quiz ao vivo em tempo real (Plano PhD)
 
@@ -201,6 +218,10 @@ precisa estar no lugar para agir — e é a turma **acertando a questão da sua 
 repele as abduções e reergue os setores destruídos. Errar derruba a **Barra de Esperança**.
 O jogo é o embrulho; o conteúdo cobrado é o seu.
 
+- **Pontua quem acerta:** Aldeões e Ameaças pontuam do mesmo jeito, só pela resposta certa
+  (acerto + rapidez). Vencer a partida ou a vila errar não dá pontos (Tabela de Recompensas
+  atualizada).
+
 - **O Voto de Silêncio:** ninguém joga com o nome real, e ninguém escolhe o próprio. Ao
   começar a investigação, cada habitante recebe um **codinome de cidade** (Reykjavík,
   Bucareste, Nairóbi…). O lobby é **cego** de propósito: o telão mostra quantos entraram,
@@ -239,8 +260,18 @@ O jogo é o embrulho; o conteúdo cobrado é o seu.
   escolhido em cards que explicam o que cada um faz:
   **Controle Mental** (na noite seguinte, age a partir do setor de outro habitante, que não fica
   sabendo — preso, ele conta como inocente), **Contágio** (um colega sorteado vira Ameaça também,
-  e a Esperança cai em silêncio; só a Ameaça original contagia) e **Delírio Coletivo** (a vila
+  e a Esperança cai em silêncio; só a Ameaça original contagia, e só a cada **2 acertos** dela: o
+  card mostra *"Contágio: 1 de 2 acertos"* enquanto recarrega) e **Delírio Coletivo** (a vila
   inteira troca de nome entre si). Com mais de uma Ameaça, a vila só vence prendendo todas.
+- **A fuga da Quarentena:** com mais de uma Ameaça, a que está presa vê na tela hackeada, de
+  noite, o botão **"Forçar invasão"** (o Aldeão preso não vê). A vila só fica sabendo que *"algo
+  tenta romper a Quarentena"*, sem nome, e a questão do dia abre mesmo sem outra disputa. Se a
+  Ameaça presa acertar e a maioria dos aldeões na vila errar, ela foge e volta livre a um setor
+  sorteado, com um card que diz quem fugiu; senão, *"A Quarentena resistiu"*. Uma tentativa por
+  noite.
+- **Linguagem imprópria no Isolateus:** palavrão no debate da Quarentena ou no Sinal de Rádio não
+  é publicado: o campo avisa *"Mensagem bloqueada por linguagem imprópria. Você perdeu 1000 XP."*
+  e mantém o texto para o aluno editar. Ninguém mais fica sabendo (o Sinal é anônimo).
 - **A Ameaça não repete:** numa mesma turma, quem já foi o infiltrado só volta a ser depois que
   todos os presentes tiverem sido.
 - **A Quarentena:** um debate cronometrado seguido de votação no suspeito, convocado de
