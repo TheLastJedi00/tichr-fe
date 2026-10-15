@@ -428,6 +428,17 @@ export class TurmaApiService {
     );
   }
 
+  /** Professor, no lobby: a partida vale para o ranking da turma ou é casual. */
+  definirValeRankingQlick(
+    partidaId: string,
+    valeRanking: boolean,
+  ): Observable<Partida> {
+    return this.http.post<Partida>(
+      `${this.base}/partidas/${partidaId}/vale-ranking`,
+      { valeRanking },
+    );
+  }
+
   /** Aluno: submete a resposta da pergunta corrente. */
   responderQlick(
     partidaId: string,

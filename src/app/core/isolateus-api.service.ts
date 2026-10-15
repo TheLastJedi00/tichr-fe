@@ -71,6 +71,13 @@ export class IsolateusApiService {
   verPartida(id: string): Observable<IsolateusMatch> {
     return this.http.get<IsolateusMatch>(`${this.base}/isolateus/matches/${id}`);
   }
+  /** Lobby: a partida vale para o ranking da turma ou é casual. */
+  definirValeRanking(id: string, valeRanking: boolean): Observable<IsolateusMatch> {
+    return this.http.post<IsolateusMatch>(
+      `${this.base}/isolateus/matches/${id}/vale-ranking`,
+      { valeRanking },
+    );
+  }
   /** Remove um habitante do lobby (entrou na partida errada). Só no LOBBY. */
   removerInscrito(id: string, alunoId: string): Observable<IsolateusMatch> {
     return this.http.post<IsolateusMatch>(
