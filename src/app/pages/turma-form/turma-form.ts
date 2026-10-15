@@ -119,6 +119,19 @@ const DIAS_UTEIS = [
           </select>
         </label>
 
+        <!-- Campo geral: obrigatório na turma regular, opcional no módulo. -->
+        @if (instituicoes().length) {
+          <label class="campo">
+            <span>Instituição (escola)</span>
+            <select class="tichr-input" formControlName="instituicaoId">
+              <option value="">{{ ehRegular() ? '— Selecione —' : '— Sem instituição —' }}</option>
+              @for (i of instituicoes(); track i.id) {
+                <option [value]="i.id">{{ i.nome }}</option>
+              }
+            </select>
+          </label>
+        }
+
         @if (isModulo()) {
           <label class="campo">
             <span>Total de aulas</span>
@@ -163,17 +176,7 @@ const DIAS_UTEIS = [
         @if (ehRegular()) {
           <fieldset class="grupo">
             <legend>Ensino Regular (escola)</legend>
-            @if (instituicoes().length) {
-              <label class="campo">
-                <span>Instituição (escola)</span>
-                <select class="tichr-input" formControlName="instituicaoId">
-                  <option value="">— Selecione —</option>
-                  @for (i of instituicoes(); track i.id) {
-                    <option [value]="i.id">{{ i.nome }}</option>
-                  }
-                </select>
-              </label>
-            } @else {
+            @if (!instituicoes().length) {
               <p class="hint">
                 Você ainda não tem escolas. Cadastre uma em
                 <a routerLink="/turmas">Minhas Turmas</a>.
@@ -489,6 +492,8 @@ export class TurmaForm {
   private readonly profileService = inject(ProfileService);
 
   readonly initial = input<Turma | null>(null);
+  /** Turma nova criada no painel de uma instituição: já vem selecionada. */
+  readonly instituicaoInicial = input<string | null>(null);
   readonly submitting = input(false);
   readonly submitLabel = input('Salvar');
   readonly save = output<CriarTurmaPayload>();
@@ -641,6 +646,11 @@ export class TurmaForm {
     this.instituicaoApi.getInstituicoes().subscribe({
       next: (l) => {
         this.instituicoes.set(l);
+        // Veio do painel da instituição: pré-seleciona (só se for do professor).
+        const pre = this.instituicaoInicial();
+        if (pre && !this.initial() && l.some((i) => i.id === pre)) {
+          this.form.controls.instituicaoId.setValue(pre);
+        }
         // Turma sem turno definido (legado) assume o 1º turno da escola.
         const turnos = this.turnosDisponiveis();
         if (turnos.length && !turnos.includes(this.turnoSig() as TipoTurno)) {
@@ -777,7 +787,14 @@ export class TurmaForm {
             anoSerie: raw.anoSerie,
             gradeHoraria: grade,
           }
-        : { ensinoRegular: false }),
+        : {
+            ensinoRegular: false,
+            // Módulo também pode ser de uma instituição (painel da escola).
+            // Vazio na edição de uma turma que tinha instituição = desvincular.
+            ...(raw.instituicaoId || this.initial()?.instituicaoId
+              ? { instituicaoId: raw.instituicaoId }
+              : {}),
+          }),
       ...(!this.ehRegular() && raw.horaInicio ? { horaInicio: raw.horaInicio } : {}),
       ...(!this.ehRegular() && raw.horaFim ? { horaFim: raw.horaFim } : {}),
       ...(tipoModalidade === 'MODULO_FECHADO'

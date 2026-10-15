@@ -94,7 +94,7 @@ import { RegrasJogoView } from '../../ui/regras-jogo/regras-jogo';
       <h2 class="recompensas__tit">Tabela de Recompensas (XP)</h2>
       <p class="recompensas__sub">
         Quanto vale cada jogada — a turma joga sabendo exatamente o que está em
-        disputa. Até o infiltrado pontua, se conseguir enganar a vila.
+        disputa. Aldeões e infiltrados pontuam do mesmo jeito: acertando a questão.
       </p>
       <app-regras-jogo [regras]="regras" [mostrarResumo]="false" [mostrarComo]="false" />
     </section>

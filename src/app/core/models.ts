@@ -486,6 +486,41 @@ export interface Partida {
   placar: PlacarItem[];
   rankingParcial?: PlacarItem[];
   rankingFinal?: Array<{ posicao: number } & PlacarItem>;
+  /** Desmarcado no lobby, a partida é casual (não soma no ranking). Ausente = vale. */
+  valeRanking?: boolean;
+  /** De onde veio cada ponto. Só no encerramento. */
+  logPontuacao?: LogPontuacaoJogador[];
+}
+
+// --- Log de pontuação (fim de partida, todos os jogos) ---
+
+export type FontePontos =
+  | 'ACERTO'
+  | 'DANO'
+  | 'CRITICO'
+  | 'CATAPULTA'
+  | 'ARRISCAR'
+  | 'HP_FINAL'
+  | 'FATOR_COLOCACAO';
+
+export interface ItemLogPontos {
+  /** Pergunta (Qlick), rodada (Wor) ou noite (Isolateus), 1-based. */
+  rodada: number;
+  fonte: FontePontos;
+  /** Texto pronto para a tela. */
+  descricao: string;
+  /** Pode ser negativo (o fator de colocação do Wor). */
+  pontos: number;
+}
+
+export interface LogPontuacaoJogador {
+  alunoId: string;
+  nome: string;
+  /** Pontos da partida (os mesmos do ranking final). */
+  totalPartida: number;
+  /** O que de fato entrou no ranking da turma (0 se casual ou sem turma). */
+  creditoRanking: number;
+  itens: ItemLogPontos[];
 }
 
 export interface QlickDoDia {
@@ -720,6 +755,10 @@ export interface WorMatch {
   vencedorEquipeId?: string | null;
   /** Quanto valem os pontos da partida (1x a 10x, escolhido no lobby). Ausente = 1. */
   multiplicador?: number;
+  /** Desmarcado no lobby, a partida é casual (não soma no ranking). Ausente = vale. */
+  valeRanking?: boolean;
+  /** De onde veio cada ponto, por aluno. Só no encerramento. */
+  logPontuacao?: LogPontuacaoJogador[];
 }
 
 /** Ação de um membro na rodada (para o cliente saber quem já jogou). */
@@ -1027,6 +1066,10 @@ export interface IsolateusMatch {
   veredito?: VereditoIsolateus | null;
   /** O placar só é publicado no encerramento (ao vivo, denunciaria os reais). */
   rankingFinal: PlacarIsolateus[];
+  /** Desmarcado no lobby, a partida é casual (não soma no ranking). Ausente = vale. */
+  valeRanking?: boolean;
+  /** De onde veio cada ponto. Só no encerramento, como o placar. */
+  logPontuacao?: LogPontuacaoJogador[];
 }
 
 /**
