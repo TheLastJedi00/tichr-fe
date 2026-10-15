@@ -89,10 +89,11 @@ const CARDS_DE_PODER: ReadonlyArray<{
     id: 'CONTAGIO',
     nome: 'Contágio',
     texto:
-      'Ao amanhecer, um aldeão real, sorteado, vira uma Ameaça como você: joga a própria jogada toda noite e conhece você. Cada contágio drena a Esperança da vila. Só você, a Ameaça original, pode contagiar.',
+      'Ao amanhecer, um aldeão real, sorteado, vira uma Ameaça como você: joga a própria jogada toda noite e conhece você. Cada contágio drena a Esperança da vila. Só você, a Ameaça original, pode contagiar, e só a cada 2 acertos seus.',
     duracao: 'até o fim da partida',
     vilaVe: 'a Esperança caindo, sem aviso',
-    indisponivel: 'Só a Ameaça original contagia — e é preciso haver um aldeão real livre.',
+    indisponivel:
+      'Só a Ameaça original contagia, a cada 2 acertos dela, e é preciso haver um aldeão real livre.',
   },
   {
     id: 'DELIRIO',
@@ -104,6 +105,20 @@ const CARDS_DE_PODER: ReadonlyArray<{
     indisponivel: 'Indisponível agora.',
   },
 ];
+
+/**
+ * O aviso do palavrão barrado pelo servidor (422 `MENSAGEM_BLOQUEADA`), ou
+ * `null` para qualquer outro erro. O texto digitado continua no campo.
+ */
+function mensagemBloqueada(e: {
+  error?: { code?: string; message?: string };
+}): string | null {
+  if (e.error?.code !== 'MENSAGEM_BLOQUEADA') return null;
+  return (
+    e.error.message ??
+    'Mensagem bloqueada por linguagem imprópria. Você perdeu 1000 XP.'
+  );
+}
 
 /**
  * O celular do habitante. Descobre a investigação da turma sozinho (sonda de 4s,
@@ -428,6 +443,7 @@ const CARDS_DE_PODER: ReadonlyArray<{
                     (input)="sinalTexto.set($any($event.target).value)"
                     placeholder="Tente guiar os sobreviventes contra as mentiras…"
                   ></textarea>
+                  @if (avisoSinal()) { <p class="aviso">{{ avisoSinal() }}</p> }
                   <button class="btn-iso" type="submit" [disabled]="enviando() || !sinalTexto().trim()">
                     Enviar sinal
                   </button>
@@ -540,6 +556,7 @@ const CARDS_DE_PODER: ReadonlyArray<{
                     (input)="debateTexto.set($any($event.target).value)"
                     placeholder="Acuse, defenda-se, diga onde você passou a noite…"
                   ></textarea>
+                  @if (avisoDebate()) { <p class="aviso">{{ avisoDebate() }}</p> }
                   <button class="btn-iso" type="submit" [disabled]="enviando() || !debateTexto().trim()">
                     Falar
                   </button>
@@ -844,6 +861,8 @@ const CARDS_DE_PODER: ReadonlyArray<{
                           <button class="btn-iso" type="button" [disabled]="enviando()" (click)="escolherPoder(card.id)">
                             Usar {{ card.nome }}
                           </button>
+                        } @else if (card.id === 'CONTAGIO' && recargaContagio(); as recarga) {
+                          <span class="poder__recarga">{{ recarga }}</span>
                         } @else {
                           <span class="muted">{{ card.indisponivel }}</span>
                         }
@@ -890,6 +909,7 @@ const CARDS_DE_PODER: ReadonlyArray<{
     .registro { display: flex; flex-direction: column; gap: 0.5rem; }
     .campo > span { display: block; margin-bottom: 0.375rem; font-size: 0.85rem; font-weight: 700; color: var(--text-muted); }
     .aviso { margin: 0; color: var(--danger); font-weight: 600; font-size: 0.9rem; }
+    .poder__recarga { font-weight: 800; font-size: 0.9rem; color: var(--text-muted); }
     .btn-iso { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.9rem 1.2rem; border: none; border-radius: 12px; cursor: pointer; font: inherit; font-weight: 800; color: #fff; background: linear-gradient(135deg, #84cc16, #4d7c0f); }
     .btn-iso:disabled { opacity: 0.55; cursor: not-allowed; }
     .invasao { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; margin-top: 0.75rem; text-align: center; }
@@ -1180,6 +1200,16 @@ export class StudentIsolateusPage {
   protected readonly respostaIndex = signal<number | null>(null);
   protected readonly sinalTexto = signal('');
   protected readonly debateTexto = signal('');
+  /** O palavrão barrado (422): o aviso fica no campo, com o texto mantido. */
+  protected readonly avisoSinal = signal('');
+  protected readonly avisoDebate = signal('');
+
+  /** "Contágio: 1 de 2 acertos" enquanto a original recarrega; null fora disso. */
+  protected readonly recargaContagio = computed(() => {
+    const r = this.painel()?.contagioAcertos;
+    if (!r || r.atual >= r.necessario) return null;
+    return `Contágio: ${r.atual} de ${r.necessario} acertos`;
+  });
   protected readonly votei = signal(false);
   /** Votei em quem volta pelo resgate desta rodada (otimista). */
   protected readonly voteiResgate = signal(false);
@@ -1961,12 +1991,16 @@ export class StudentIsolateusPage {
     const texto = this.sinalTexto().trim();
     if (!this.partidaId || !texto || this.enviando()) return;
     this.enviando.set(true);
+    this.avisoSinal.set('');
     this.api.sinalDeRadio(this.partidaId, texto).subscribe({
       next: () => {
         this.enviando.set(false);
         this.sinalTexto.set('');
       },
-      error: () => this.enviando.set(false),
+      error: (e: { error?: { code?: string; message?: string } }) => {
+        this.enviando.set(false);
+        this.avisoSinal.set(mensagemBloqueada(e) ?? '');
+      },
     });
   }
 
@@ -1992,12 +2026,16 @@ export class StudentIsolateusPage {
     const texto = this.debateTexto().trim();
     if (!this.partidaId || !texto || this.enviando()) return;
     this.enviando.set(true);
+    this.avisoDebate.set('');
     this.api.debater(this.partidaId, texto).subscribe({
       next: () => {
         this.enviando.set(false);
         this.debateTexto.set('');
       },
-      error: () => this.enviando.set(false),
+      error: (e: { error?: { code?: string; message?: string } }) => {
+        this.enviando.set(false);
+        this.avisoDebate.set(mensagemBloqueada(e) ?? '');
+      },
     });
   }
 
