@@ -246,6 +246,28 @@ const CARDS_DE_PODER: ReadonlyArray<{
                   <app-lobby-loader />
                   <strong>A noite caiu…</strong>
                   <p class="muted">Você já não caminha por essas ruas. Aguarde o alarme.</p>
+                  <!--
+                    A invasão forçada: só a Ameaça presa recebe o campo no
+                    painel. O Aldeão preso não vê o botão.
+                  -->
+                  @if (painel()?.invasao; as inv) {
+                    @if (inv.declarada) {
+                      <p class="invasao invasao--ok">
+                        <app-icon name="lock" [size]="16" /> Invasão declarada. Prepare-se para a questão.
+                      </p>
+                    } @else if (inv.disponivel) {
+                      <div class="invasao">
+                        <button class="btn-iso" type="button" [disabled]="enviando()" (click)="invadir()">
+                          <app-icon name="alien" [size]="16" /> Forçar invasão
+                        </button>
+                        <p class="muted">
+                          Você responde a questão desta noite. Se acertar e a maioria
+                          da vila errar, você foge da Quarentena.
+                        </p>
+                      </div>
+                    }
+                    @if (erro()) { <p class="erro-invasao">{{ erro() }}</p> }
+                  }
                 </section>
               } @else {
                 <div class="noite">
@@ -870,6 +892,9 @@ const CARDS_DE_PODER: ReadonlyArray<{
     .aviso { margin: 0; color: var(--danger); font-weight: 600; font-size: 0.9rem; }
     .btn-iso { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.9rem 1.2rem; border: none; border-radius: 12px; cursor: pointer; font: inherit; font-weight: 800; color: #fff; background: linear-gradient(135deg, #84cc16, #4d7c0f); }
     .btn-iso:disabled { opacity: 0.55; cursor: not-allowed; }
+    .invasao { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; margin-top: 0.75rem; text-align: center; }
+    .invasao--ok { flex-direction: row; justify-content: center; font-weight: 800; color: #4d7c0f; }
+    .erro-invasao { margin: 0.5rem 0 0; color: var(--danger); font-size: 0.85rem; text-align: center; }
     .full { width: 100%; margin-top: 0.5rem; }
     .revelacao {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -1568,6 +1593,29 @@ export class StudentIsolateusPage {
       !!saude?.intacto &&
       this.resgataveis(p).length > 0
     );
+  }
+
+  /**
+   * A Ameaça presa declara a invasão da noite. Otimista: o painel marca
+   * "declarada" na hora; o servidor é o juiz e o painel volta ao real.
+   */
+  protected invadir(): void {
+    const pnl = this.painel();
+    if (!this.partidaId || !pnl?.invasao?.disponivel || this.enviando()) return;
+    this.enviando.set(true);
+    this.erro.set('');
+    this.painel.set({ ...pnl, invasao: { disponivel: false, declarada: true } });
+    this.api.invadir(this.partidaId).subscribe({
+      next: () => {
+        this.enviando.set(false);
+        this.carregarPainel(false);
+      },
+      error: (e: { error?: { message?: string } }) => {
+        this.enviando.set(false);
+        this.erro.set(e.error?.message ?? 'Não foi possível declarar a invasão.');
+        this.carregarPainel(false);
+      },
+    });
   }
 
   protected resgatar(): void {
