@@ -16,6 +16,7 @@ import { Card } from '../../ui/card/card';
 import { Confetti } from '../../ui/confetti/confetti';
 import { Icon } from '../../ui/icon/icon';
 import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
+import { LogPontuacaoComponent } from '../../ui/log-pontuacao/log-pontuacao';
 import { Spinner } from '../../ui/spinner/spinner';
 
 /**
@@ -26,7 +27,7 @@ import { Spinner } from '../../ui/spinner/spinner';
   selector: 'app-student-qlick-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Card, Spinner, RouterLink, LobbyLoader, Confetti, Icon],
+  imports: [Card, Spinner, RouterLink, LobbyLoader, Confetti, Icon, LogPontuacaoComponent],
   template: `
     <h1 class="title">
       Tichr Qlick
@@ -153,7 +154,15 @@ import { Spinner } from '../../ui/spinner/spinner';
             }
             <ol class="podio">
               @for (r of (p.rankingFinal ?? []); track r.alunoId) {
-                <li class="podio__row podio__row--{{ r.posicao }}" [class.podio__row--eu]="r.alunoId === meuId">
+                <li
+                  class="podio__row podio__row--{{ r.posicao }}"
+                  [class.podio__row--eu]="r.alunoId === meuId"
+                  [class.clicavel]="!!p.logPontuacao"
+                  [attr.role]="p.logPontuacao ? 'button' : null"
+                  [attr.tabindex]="p.logPontuacao ? 0 : null"
+                  (click)="abrirLog(r.alunoId)"
+                  (keydown.enter)="abrirLog(r.alunoId)"
+                >
                   <span class="podio__medal">
                     @if (r.posicao <= 3) {
                       <app-icon name="medal" [size]="22" class="medal--{{ r.posicao }}" />
@@ -165,9 +174,25 @@ import { Spinner } from '../../ui/spinner/spinner';
               }
             </ol>
             @if (meusPontosFinais(p); as pts) {
-              <p class="portal">+{{ pts }} pontos somados ao seu XP do portal <app-icon name="sparkles" [size]="16" /></p>
+              @if (p.valeRanking === false) {
+                <p class="portal portal--casual">Partida casual: seus {{ pts }} pontos não somaram no ranking.</p>
+              } @else {
+                <p class="portal">+{{ pts }} pontos somados ao seu XP do portal <app-icon name="sparkles" [size]="16" /></p>
+              }
+            }
+            @if (p.logPontuacao) {
+              <p class="muted dica">Toque em um colega para ver de onde vieram os pontos.</p>
             }
           </app-card>
+          <app-log-pontuacao
+            modo="sheet"
+            [jogador]="logJogador()"
+            [posicao]="logPosicao()"
+            [unidade]="unidade()"
+            [temTurma]="!!p.turmaId"
+            [casual]="p.valeRanking === false"
+            (fechar)="logAberto.set(null)"
+          />
           <a class="btn-primary full sair" routerLink="/aluno/dashboard">Voltar ao início</a>
         }
       }
@@ -292,6 +317,10 @@ import { Spinner } from '../../ui/spinner/spinner';
     .medal--2 { color: #94a3b8; }
     .medal--3 { color: #b45309; }
     .portal { margin: 1rem 0 0; text-align: center; font-weight: 700; color: #16a34a; }
+    .portal--casual { color: var(--text-muted); }
+    .clicavel { cursor: pointer; }
+    .clicavel:hover, .clicavel:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+    .dica { margin: 0.75rem 0 0; text-align: center; font-size: 0.85rem; }
     .sair { display: block; margin-top: 1rem; text-align: center; text-decoration: none; }
   `,
 })
@@ -405,6 +434,21 @@ export class StudentQlickPage {
   protected minhaPos(p: Partida): { posicao: number; pontos: number } | null {
     const i = p.placar.findIndex((r) => r.alunoId === this.meuId);
     return i < 0 ? null : { posicao: i + 1, pontos: p.placar[i].pontos };
+  }
+
+  // --- Log de pontuação (fim de partida): público para toda a sala ---
+  protected readonly unidade = this.studentAuth.nomePontuacao;
+  protected readonly logAberto = signal<string | null>(null);
+  protected readonly logJogador = computed(() => {
+    const id = this.logAberto();
+    return this.partida()?.logPontuacao?.find((l) => l.alunoId === id) ?? null;
+  });
+  protected readonly logPosicao = computed(() => {
+    const id = this.logAberto();
+    return this.partida()?.rankingFinal?.find((r) => r.alunoId === id)?.posicao ?? null;
+  });
+  protected abrirLog(alunoId: string): void {
+    if (this.partida()?.logPontuacao) this.logAberto.set(alunoId);
   }
 
   protected minhaPosFinal(p: Partida): number | null {

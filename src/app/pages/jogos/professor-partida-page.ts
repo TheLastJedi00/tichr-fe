@@ -17,6 +17,7 @@ import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { Modal } from '../../ui/modal/modal';
 import { Spinner } from '../../ui/spinner/spinner';
 import { ValeRankingComponent } from '../../ui/vale-ranking/vale-ranking';
+import { LogPontuacaoComponent } from '../../ui/log-pontuacao/log-pontuacao';
 
 /**
  * Sala do professor (tempo real). Escuta a partida via onSnapshot e comanda a
@@ -27,7 +28,7 @@ import { ValeRankingComponent } from '../../ui/vale-ranking/vale-ranking';
   selector: 'app-professor-partida-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Card, Spinner, Icon, Modal, LobbyLoader, ValeRankingComponent],
+  imports: [Card, Spinner, Icon, Modal, LobbyLoader, ValeRankingComponent, LogPontuacaoComponent],
   template: `
     @if (partida(); as p) {
       <header class="head">
@@ -152,7 +153,14 @@ import { ValeRankingComponent } from '../../ui/vale-ranking/vale-ranking';
             <h2 class="podio__tit">Pódio final</h2>
             <ol class="podio">
               @for (r of (p.rankingFinal ?? []); track r.alunoId) {
-                <li class="podio__row podio__row--{{ r.posicao }}">
+                <li
+                  class="podio__row podio__row--{{ r.posicao }}"
+                  [class.clicavel]="!!p.logPontuacao"
+                  [attr.role]="p.logPontuacao ? 'button' : null"
+                  [attr.tabindex]="p.logPontuacao ? 0 : null"
+                  (click)="abrirLog(r.alunoId)"
+                  (keydown.enter)="abrirLog(r.alunoId)"
+                >
                   <span class="podio__medal">
                     @if (r.posicao <= 3) {
                       <app-icon name="medal" [size]="22" class="medal--{{ r.posicao }}" />
@@ -163,7 +171,18 @@ import { ValeRankingComponent } from '../../ui/vale-ranking/vale-ranking';
                 </li>
               }
             </ol>
+            @if (p.logPontuacao) {
+              <p class="muted dica">Toque em um aluno para ver de onde vieram os pontos.</p>
+            }
           </app-card>
+          <app-log-pontuacao
+            [jogador]="logJogador()"
+            [posicao]="logPosicao()"
+            [unidade]="turma()?.nomePontuacao || 'XP'"
+            [temTurma]="!!p.turmaId"
+            [casual]="p.valeRanking === false"
+            (fechar)="logAberto.set(null)"
+          />
           <p class="fim">Qlick encerrado — a sala foi fechada para os alunos.</p>
           <button class="btn-primary full" type="button" (click)="sair()">
             Concluir e voltar aos Qlicks
@@ -264,6 +283,9 @@ import { ValeRankingComponent } from '../../ui/vale-ranking/vale-ranking';
     .medal--1 { color: #f59e0b; }
     .medal--2 { color: #94a3b8; }
     .medal--3 { color: #b45309; }
+    .clicavel { cursor: pointer; }
+    .clicavel:hover, .clicavel:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+    .dica { margin: 0.75rem 0 0; text-align: center; font-size: 0.85rem; }
   `,
 })
 export class ProfessorPartidaPage {
@@ -327,6 +349,20 @@ export class ProfessorPartidaPage {
 
     const tick = setInterval(() => this.agora.set(Date.now()), 500);
     this.destroyRef.onDestroy(() => clearInterval(tick));
+  }
+
+  // --- Log de pontuação (fim de partida) ---
+  protected readonly logAberto = signal<string | null>(null);
+  protected readonly logJogador = computed(() => {
+    const id = this.logAberto();
+    return this.partida()?.logPontuacao?.find((l) => l.alunoId === id) ?? null;
+  });
+  protected readonly logPosicao = computed(() => {
+    const id = this.logAberto();
+    return this.partida()?.rankingFinal?.find((r) => r.alunoId === id)?.posicao ?? null;
+  });
+  protected abrirLog(alunoId: string): void {
+    if (this.partida()?.logPontuacao) this.logAberto.set(alunoId);
   }
 
   // --- Partida casual (lobby) ---

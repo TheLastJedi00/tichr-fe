@@ -24,6 +24,7 @@ import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { Modal } from '../../ui/modal/modal';
 import { Spinner } from '../../ui/spinner/spinner';
 import { ValeRankingComponent } from '../../ui/vale-ranking/vale-ranking';
+import { LogPontuacaoComponent } from '../../ui/log-pontuacao/log-pontuacao';
 
 /** Janelas cronometradas — espelham as constantes `ISOLATEUS` do backend. */
 const LIMITE_DEBATE_S = 90;
@@ -60,6 +61,7 @@ const MIN_REAIS = 4;
     IsolateusDiario,
     IsolateusEvento,
     ValeRankingComponent,
+    LogPontuacaoComponent,
   ],
   template: `
     <a class="voltar" routerLink="/jogos/isolateus">‹ Minhas investigações</a>
@@ -356,13 +358,30 @@ const MIN_REAIS = 4;
               }
               <ol class="ranking">
                 @for (r of p.rankingFinal; track r.alunoId) {
-                  <li>
+                  <li
+                    [class.clicavel]="!!p.logPontuacao"
+                    [attr.role]="p.logPontuacao ? 'button' : null"
+                    [attr.tabindex]="p.logPontuacao ? 0 : null"
+                    (click)="abrirLog(r.alunoId)"
+                    (keydown.enter)="abrirLog(r.alunoId)"
+                  >
                     <span class="pos">{{ r.posicao }}º</span>
                     <span class="rk-nome">{{ r.nome }}</span>
-                    <span class="rk-pts">{{ r.pontos }} XP</span>
+                    <span class="rk-pts">{{ r.pontos }} {{ unidade() }}</span>
                   </li>
                 }
               </ol>
+              @if (p.logPontuacao) {
+                <p class="muted center">Toque em um habitante para ver de onde vieram os pontos.</p>
+              }
+              <app-log-pontuacao
+                [jogador]="logJogador()"
+                [posicao]="logPosicao()"
+                [unidade]="unidade()"
+                [temTurma]="!!p.turmaId"
+                [casual]="p.valeRanking === false"
+                (fechar)="logAberto.set(null)"
+              />
             }
           }
 
@@ -570,6 +589,8 @@ const MIN_REAIS = 4;
     .pos { font-weight: 900; color: var(--text-muted); min-width: 2.5ch; }
     .rk-nome { flex: 1; font-weight: 700; }
     .rk-pts { font-weight: 800; color: #4d7c0f; }
+    .ranking li.clicavel { cursor: pointer; }
+    .ranking li.clicavel:hover, .ranking li.clicavel:focus-visible { border-color: #4d7c0f; outline: none; }
     .btn-delirio { align-self: center; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.9rem; border: 2px solid #7c3aed; background: var(--surface); color: #7c3aed; font: inherit; font-weight: 800; font-size: 0.85rem; cursor: pointer; }
     .btn-delirio:disabled { opacity: 0.55; cursor: not-allowed; }
     .resgate__tag { color: #e11d48; }
@@ -686,7 +707,10 @@ export class IsolateusProjetorPage {
       if (!p.turmaId) return;
       this.turmas
         .getTurma(p.turmaId)
-        .subscribe((t) => this.pin.set(t.pinTurma ?? null));
+        .subscribe((t) => {
+          this.pin.set(t.pinTurma ?? null);
+          this.unidade.set(t.nomePontuacao || 'XP');
+        });
       this.turmas.getAlunos(p.turmaId).subscribe((a) => this.alunos.set(a));
     });
 
@@ -796,6 +820,22 @@ export class IsolateusProjetorPage {
       return;
     }
     this.acao(this.api.removerInscrito(this.matchId, alunoId));
+  }
+
+  // --- Log de pontuação (fim de partida) ---
+  /** O nome da pontuação da turma (padrão "XP"). */
+  protected readonly unidade = signal('XP');
+  protected readonly logAberto = signal<string | null>(null);
+  protected readonly logJogador = computed(() => {
+    const id = this.logAberto();
+    return this.partida()?.logPontuacao?.find((l) => l.alunoId === id) ?? null;
+  });
+  protected readonly logPosicao = computed(() => {
+    const id = this.logAberto();
+    return this.partida()?.rankingFinal.find((r) => r.alunoId === id)?.posicao ?? null;
+  });
+  protected abrirLog(alunoId: string): void {
+    if (this.partida()?.logPontuacao) this.logAberto.set(alunoId);
   }
 
   // --- Partida casual (lobby) ---

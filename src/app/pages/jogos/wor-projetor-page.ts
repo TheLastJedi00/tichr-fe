@@ -12,6 +12,8 @@ import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { Modal } from '../../ui/modal/modal';
 import { Spinner } from '../../ui/spinner/spinner';
 import { ValeRankingComponent } from '../../ui/vale-ranking/vale-ranking';
+import { LogPontuacaoComponent } from '../../ui/log-pontuacao/log-pontuacao';
+import { rankingDoLog } from '../../core/log-pontuacao';
 
 /**
  * Tela do projetor (professor/orquestrador). Escuta a raiz + todas as equipes
@@ -22,7 +24,7 @@ import { ValeRankingComponent } from '../../ui/vale-ranking/vale-ranking';
   selector: 'app-wor-projetor-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Spinner, LobbyLoader, Modal, ActionCard, ValeRankingComponent],
+  imports: [RouterLink, Icon, Spinner, LobbyLoader, Modal, ActionCard, ValeRankingComponent, LogPontuacaoComponent],
   template: `
     @if (narrador.card(); as c) {
       <app-action-card [card]="c" />
@@ -171,6 +173,32 @@ import { ValeRankingComponent } from '../../ui/vale-ranking/vale-ranking';
               <app-icon name="trophy" [size]="22" />
               Vitória: {{ vencedorNome() }}
             </div>
+            @if (logOrdenado().length) {
+              <ol class="log-lista">
+                @for (l of logOrdenado(); track l.alunoId) {
+                  <li
+                    class="log-lista__row"
+                    role="button"
+                    tabindex="0"
+                    (click)="logAberto.set(l.alunoId)"
+                    (keydown.enter)="logAberto.set(l.alunoId)"
+                  >
+                    <span class="log-lista__pos">{{ l.posicao }}º</span>
+                    <span class="log-lista__nome">{{ l.nome }}</span>
+                    <span class="log-lista__pts">{{ l.pontos }}</span>
+                  </li>
+                }
+              </ol>
+              <p class="muted center">Toque em um aluno para ver de onde vieram os pontos.</p>
+              <app-log-pontuacao
+                [jogador]="logJogador()"
+                [posicao]="logPosicao()"
+                [unidade]="unidade()"
+                [temTurma]="!!m.turmaId"
+                [casual]="m.valeRanking === false"
+                (fechar)="logAberto.set(null)"
+              />
+            }
           } @else {
             <button class="btn-outline" type="button" [disabled]="ocupado()" (click)="pular()">Pular palavra</button>
           }
@@ -285,6 +313,13 @@ import { ValeRankingComponent } from '../../ui/vale-ranking/vale-ranking';
     .hpbar span { display: block; height: 100%; transition: width 0.4s ease; }
     .hp { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); }
     .fim { display: flex; align-items: center; gap: 0.5rem; padding: 1rem; border-radius: 12px; background: color-mix(in srgb, #f59e0b 14%, transparent); color: #b45309; font-weight: 800; justify-content: center; }
+    .log-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+    .log-lista__row { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.85rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); cursor: pointer; }
+    .log-lista__row:hover, .log-lista__row:focus-visible { border-color: var(--primary); outline: none; }
+    .log-lista__row--eu { border-width: 2px; border-color: var(--primary); }
+    .log-lista__pos { font-weight: 900; color: var(--text-muted); min-width: 2.5ch; }
+    .log-lista__nome { flex: 1 1 auto; font-weight: 700; }
+    .log-lista__pts { font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums; }
     .carregando { display: flex; justify-content: center; padding: 3rem 0; color: #b45309; }
   `,
 })
@@ -368,7 +403,10 @@ export class WorProjetorPage {
     this.api.verPartida(this.matchId).subscribe((v) => {
       const turmaId = v.match.turmaId;
       if (!turmaId) return;
-      this.turmas.getTurma(turmaId).subscribe((t) => this.pin.set(t.pinTurma ?? null));
+      this.turmas.getTurma(turmaId).subscribe((t) => {
+        this.pin.set(t.pinTurma ?? null);
+        this.unidade.set(t.nomePontuacao || 'XP');
+      });
       this.turmas.getAlunos(turmaId).subscribe((a) => this.alunos.set(a));
     });
     // O projetor (sempre presente) fecha a rodada quando o cronômetro zera.
@@ -463,6 +501,18 @@ export class WorProjetorPage {
       },
     });
   }
+  // --- Log de pontuação (fim de partida) ---
+  /** O nome da pontuação da turma (padrão "XP"). */
+  protected readonly unidade = signal('XP');
+  protected readonly logOrdenado = computed(() =>
+    rankingDoLog(this.match()?.logPontuacao),
+  );
+  protected readonly logAberto = signal<string | null>(null);
+  protected readonly logJogador = computed(
+    () => this.logOrdenado().find((l) => l.alunoId === this.logAberto()) ?? null,
+  );
+  protected readonly logPosicao = computed(() => this.logJogador()?.posicao ?? null);
+
   // --- Partida casual (lobby) ---
   /** O valor escolhido aqui, antes de o snapshot confirmar. */
   private readonly valeRankingLocal = signal<boolean | null>(null);

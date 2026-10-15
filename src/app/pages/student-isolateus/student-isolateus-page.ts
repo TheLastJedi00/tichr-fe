@@ -32,6 +32,7 @@ import { StudentAuthService } from '../../core/student-auth.service';
 import { ThemeService } from '../../core/theme.service';
 import { Icon } from '../../ui/icon/icon';
 import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
+import { LogPontuacaoComponent } from '../../ui/log-pontuacao/log-pontuacao';
 import { IsolateusDiario } from '../../ui/isolateus-diario/isolateus-diario';
 import { IsolateusEvento } from '../../ui/isolateus-evento/isolateus-evento';
 import { IsolateusBrilho } from '../../ui/isolateus-brilho/isolateus-brilho';
@@ -128,6 +129,7 @@ const CARDS_DE_PODER: ReadonlyArray<{
     IsolateusEvento,
     IsolateusPersonagem,
     IsolateusBrilho,
+    LogPontuacaoComponent,
   ],
   template: `
     @if (carregando()) {
@@ -594,8 +596,40 @@ const CARDS_DE_PODER: ReadonlyArray<{
               @if (minhaPosicao(p); as eu) {
                 <p class="lead center">
                   Você terminou em {{ eu.posicao }}º com <b>{{ eu.pontos }}</b> pontos,
-                  somados ao seu XP do portal.
+                  @if (p.valeRanking === false) {
+                    mas a partida foi casual e eles não somaram no ranking.
+                  } @else {
+                    somados ao seu XP do portal.
+                  }
                 </p>
+              }
+              @if (p.logPontuacao) {
+                <ol class="placar-fim">
+                  @for (r of p.rankingFinal; track r.alunoId) {
+                    <li
+                      class="placar-fim__row"
+                      [class.placar-fim__row--eu]="r.alunoId === meuId"
+                      role="button"
+                      tabindex="0"
+                      (click)="logAberto.set(r.alunoId)"
+                      (keydown.enter)="logAberto.set(r.alunoId)"
+                    >
+                      <span class="placar-fim__pos">{{ r.posicao }}º</span>
+                      <span class="placar-fim__nome">{{ r.nome }}</span>
+                      <span class="placar-fim__pts">{{ r.pontos }}</span>
+                    </li>
+                  }
+                </ol>
+                <p class="muted center">Toque em um habitante para ver de onde vieram os pontos.</p>
+                <app-log-pontuacao
+                  modo="sheet"
+                  [jogador]="logJogador()"
+                  [posicao]="logPosicao()"
+                  [unidade]="unidade()"
+                  [temTurma]="!!p.turmaId"
+                  [casual]="p.valeRanking === false"
+                  (fechar)="logAberto.set(null)"
+                />
               }
               <a class="btn-outline full sair" routerLink="/aluno/dashboard">Voltar ao início</a>
             }
@@ -976,6 +1010,13 @@ const CARDS_DE_PODER: ReadonlyArray<{
     .composer__lbl { font-size: 0.78rem; font-weight: 800; color: var(--text-muted); }
     .composer textarea { resize: vertical; font: inherit; }
     .center { text-align: center; }
+    .placar-fim { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+    .placar-fim__row { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.85rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); cursor: pointer; }
+    .placar-fim__row:hover, .placar-fim__row:focus-visible { border-color: #4d7c0f; outline: none; }
+    .placar-fim__row--eu { border-width: 2px; border-color: #4d7c0f; }
+    .placar-fim__pos { font-weight: 900; color: var(--text-muted); min-width: 2.5ch; }
+    .placar-fim__nome { flex: 1 1 auto; font-weight: 700; }
+    .placar-fim__pts { font-weight: 800; color: #4d7c0f; font-variant-numeric: tabular-nums; }
     /* Quarentena */
     .card-global { padding: 0.9rem; border-radius: 12px; font-weight: 800; font-size: 0.95rem; text-align: center; color: #fff; background: var(--danger); }
     .card-global--ok { background: var(--success); }
@@ -1016,7 +1057,7 @@ export class StudentIsolateusPage {
   private readonly destroyRef = inject(DestroyRef);
   private readonly tema = inject(ThemeService);
 
-  private readonly meuId = this.studentAuth.aluno()?.id ?? '';
+  protected readonly meuId = this.studentAuth.aluno()?.id ?? '';
 
   protected readonly partida = signal<IsolateusMatch | null>(null);
   protected readonly painel = signal<PainelIsolateus | null>(null);
@@ -1988,4 +2029,16 @@ export class StudentIsolateusPage {
   protected minhaPosicao(p: IsolateusMatch) {
     return p.rankingFinal.find((r) => r.alunoId === this.meuId) ?? null;
   }
+
+  // --- Log de pontuação (fim de partida): público para toda a vila ---
+  protected readonly unidade = this.studentAuth.nomePontuacao;
+  protected readonly logAberto = signal<string | null>(null);
+  protected readonly logJogador = computed(() => {
+    const id = this.logAberto();
+    return this.partida()?.logPontuacao?.find((l) => l.alunoId === id) ?? null;
+  });
+  protected readonly logPosicao = computed(() => {
+    const id = this.logAberto();
+    return this.partida()?.rankingFinal.find((r) => r.alunoId === id)?.posicao ?? null;
+  });
 }
