@@ -480,6 +480,8 @@ export interface Partida {
   totalPerguntas: number;
   duracaoSegundos: number;
   perguntaIniciadaEm?: string | null;
+  /** Pausada pelo professor (ISO); null/ausente = rodando. Os relógios param. */
+  pausadaEm?: string | null;
   perguntaPublica?: { enunciado: string; alternativas: string[] } | null;
   corretaIndex?: number | null;
   inscritos: { alunoId: string; nome: string }[];
@@ -745,6 +747,8 @@ export interface WorMatch {
   acoesRodada: AcaoMembroWor[];
   /** Início do turno/rodada atual (ISO) — base do cronômetro de 1 min. */
   rodadaIniciadaEm?: string | null;
+  /** Pausada pelo professor (ISO); null/ausente = rodando. Os relógios param. */
+  pausadaEm?: string | null;
   /** Snapshot de todas as equipes (o aluno vê os castelos rivais pela raiz). */
   placar: PlacarEquipe[];
   /** Resultado da última rodada (reveal + quem atacou). */
@@ -901,7 +905,8 @@ export interface MensagemDebate {
 }
 
 export interface AlertaRodada {
-  tipo: 'SABOTAGEM' | 'ABDUCAO';
+  /** `INVASAO`: só uma Ameaça presa tentando fugir abriu a questão. */
+  tipo: 'SABOTAGEM' | 'ABDUCAO' | 'INVASAO';
   texto: string;
 }
 
@@ -937,6 +942,8 @@ export type TipoAcontecimento =
   | 'BRILHO'
   /** O resgate pela Saúde: organizado, cancelado, fracassado ou concluído. */
   | 'RESGATE'
+  /** A invasão forçada da Ameaça presa: contida ou fuga. */
+  | 'INVASAO'
   | 'VEREDITO'
   | 'FIM';
 
@@ -986,6 +993,8 @@ export interface IsolateusMatch {
   nome: string;
   status: StatusIsolateus;
   criadaEm?: string | null;
+  /** Pausada pelo professor (ISO); null/ausente = rodando. Os relógios param. */
+  pausadaEm?: string | null;
 
   esperanca: number;
   setores: SetorVila[];
@@ -1096,6 +1105,10 @@ export interface PainelIsolateus {
   controle?: { habitanteId: string; nome: string } | null;
   /** Quem está AGORA no setor de onde ela age (o dela ou o do controlado). */
   fileira?: { setorId: string; habitantes: { id: string; nome: string }[] };
+  /** Só para a Ameaça presa: a invasão forçada desta noite. */
+  invasao?: { disponivel: boolean; declarada: boolean };
+  /** Só para a original: a recarga do Contágio (acertos desde o último). */
+  contagioAcertos?: { atual: number; necessario: number };
 }
 
 /** Os Poderes Alienígenas que a Ameaça ganha ao acertar a questão. */

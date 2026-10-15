@@ -99,6 +99,20 @@ export class WorApiService {
       {},
     );
   }
+  /** Pausa a batalha: todo comando é recusado até retomar. */
+  pausar(matchId: string): Observable<WorMatchView> {
+    return this.http.post<WorMatchView>(
+      `${this.base}/wor/matches/${matchId}/pausar`,
+      {},
+    );
+  }
+  /** Retoma: a rodada volta com o tempo que faltava. */
+  retomar(matchId: string): Observable<WorMatchView> {
+    return this.http.post<WorMatchView>(
+      `${this.base}/wor/matches/${matchId}/retomar`,
+      {},
+    );
+  }
   /** Encerra a rodada por tempo esgotado (o projetor dispara ao zerar o cronômetro). */
   tempo(matchId: string): Observable<WorMatchView> {
     return this.http.post<WorMatchView>(

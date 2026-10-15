@@ -125,6 +125,20 @@ export class IsolateusApiService {
       {},
     );
   }
+  /** Pausa a investigação: todo comando é recusado até retomar. */
+  pausar(id: string): Observable<IsolateusMatch> {
+    return this.http.post<IsolateusMatch>(
+      `${this.base}/isolateus/matches/${id}/pausar`,
+      {},
+    );
+  }
+  /** Retoma: cada relógio volta com o tempo que faltava. */
+  retomar(id: string): Observable<IsolateusMatch> {
+    return this.http.post<IsolateusMatch>(
+      `${this.base}/isolateus/matches/${id}/retomar`,
+      {},
+    );
+  }
   /** @deprecated O telão usa `pularFase`. */
   proxima(id: string): Observable<IsolateusMatch> {
     return this.http.post<IsolateusMatch>(
@@ -172,6 +186,16 @@ export class IsolateusApiService {
     return this.http.post<PainelIsolateus>(
       `${this.base}/aluno/isolateus/${id}/poder`,
       { poder, alvoId },
+    );
+  }
+  /**
+   * A invasão forçada: a Ameaça presa declara, de noite, que vai romper a
+   * Quarentena. A questão do dia decide a fuga.
+   */
+  invadir(id: string): Observable<IsolateusMatch> {
+    return this.http.post<IsolateusMatch>(
+      `${this.base}/aluno/isolateus/${id}/invasao`,
+      {},
     );
   }
   /** O deslocamento da noite: anda um setor pelas estradas do mapa. */
