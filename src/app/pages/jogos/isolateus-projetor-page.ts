@@ -25,6 +25,8 @@ import { Modal } from '../../ui/modal/modal';
 import { Spinner } from '../../ui/spinner/spinner';
 import { ValeRankingComponent } from '../../ui/vale-ranking/vale-ranking';
 import { LogPontuacaoComponent } from '../../ui/log-pontuacao/log-pontuacao';
+import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausada';
+import { podePausar } from '../../core/pausa';
 
 /** Janelas cronometradas — espelham as constantes `ISOLATEUS` do backend. */
 const LIMITE_DEBATE_S = 90;
@@ -62,6 +64,7 @@ const MIN_REAIS = 4;
     IsolateusEvento,
     ValeRankingComponent,
     LogPontuacaoComponent,
+    PartidaPausadaComponent,
   ],
   template: `
     <a class="voltar" routerLink="/jogos/isolateus">‹ Minhas investigações</a>
@@ -403,6 +406,13 @@ const MIN_REAIS = 4;
             por fora e embaralha os codinomes da vila na hora. O aviso no Diário
             é o mesmo do poder da Ameaça — a turma não sabe quem causou.
           -->
+          <!-- A pausa: todo relógio para e um modal cobre todas as telas. -->
+          @if (podePausar(p.status) && !p.pausadaEm) {
+            <button class="btn-pausar" type="button" [disabled]="ocupado()" (click)="pausar()">
+              <app-icon name="pause" [size]="14" /> Pausar
+            </button>
+          }
+
           @if (p.status !== 'ENCERRADO') {
             <button class="btn-delirio" type="button" [disabled]="ocupado()" (click)="confirmarDelirio.set(true)">
               <app-icon name="dice" [size]="14" /> Delírio coletivo
@@ -492,6 +502,15 @@ const MIN_REAIS = 4;
           <button class="btn-primary" type="button" (click)="assistencia.set(false)">Fechar</button>
         </div>
       </app-modal>
+      @if (p.pausadaEm) {
+        <app-partida-pausada
+          jogo="Tichr Isolateus"
+          [titulo]="p.nome"
+          [professor]="true"
+          [carregando]="ocupado()"
+          (retomar)="retomar()"
+        />
+      }
     } @else {
       <div class="loading"><app-spinner [size]="32" /></div>
     }
@@ -593,6 +612,9 @@ const MIN_REAIS = 4;
     .ranking li.clicavel:hover, .ranking li.clicavel:focus-visible { border-color: #4d7c0f; outline: none; }
     .btn-delirio { align-self: center; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.9rem; border: 2px solid #7c3aed; background: var(--surface); color: #7c3aed; font: inherit; font-weight: 800; font-size: 0.85rem; cursor: pointer; }
     .btn-delirio:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-pausar { align-self: center; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.9rem; border: 2px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-weight: 800; font-size: 0.85rem; cursor: pointer; }
+    .btn-pausar:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+    .btn-pausar:disabled { opacity: 0.55; cursor: not-allowed; }
     .resgate__tag { color: #e11d48; }
     .resgate__aviso { color: #e11d48; }
     .agrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.5rem; }
@@ -656,7 +678,11 @@ export class IsolateusProjetorPage {
     const limite = this.limiteDaFase();
     if (!p || !p.faseIniciadaEm || !limite) return limite;
     const fim = Date.parse(p.faseIniciadaEm) + limite * 1000;
-    const s = Math.ceil((fim - this.cronometro.agora(this.relogio())) / 1000);
+    // Pausada, o relógio para no instante da pausa (já no relógio do servidor).
+    const agora = p.pausadaEm
+      ? Date.parse(p.pausadaEm)
+      : this.cronometro.agora(this.relogio());
+    const s = Math.ceil((fim - agora) / 1000);
     return Math.max(0, Math.min(limite, s));
   });
 
@@ -752,7 +778,8 @@ export class IsolateusProjetorPage {
    * NPCs não pararem de "anunciar" se poucos alunos estiverem com a tela aberta.
    */
   private pulsoDaNoite(): void {
-    if (this.partida()?.status !== 'DESLOCAMENTO') return;
+    const p = this.partida();
+    if (p?.status !== 'DESLOCAMENTO' || p.pausadaEm) return;
     const agora = Date.now();
     if (agora < this.proximoPulso) return;
     this.proximoPulso =
@@ -772,6 +799,7 @@ export class IsolateusProjetorPage {
     const p = this.partida();
     this.cronometro.sincronizar(p?.faseIniciadaEm ?? null);
     if (!p || !p.faseIniciadaEm || !this.limiteDaFase()) return;
+    if (p.pausadaEm) return; // pausada: o telão não cobra o prazo
     if (!this.cronometro.devoCobrar(Date.now(), this.restante() <= 0)) return;
     this.api.tempo(this.matchId).subscribe({ next: () => {}, error: () => {} });
   }
@@ -899,6 +927,13 @@ export class IsolateusProjetorPage {
   protected delirio(): void {
     this.confirmarDelirio.set(false);
     this.acao(this.api.delirio(this.matchId));
+  }
+  protected readonly podePausar = podePausar;
+  protected pausar(): void {
+    this.acao(this.api.pausar(this.matchId));
+  }
+  protected retomar(): void {
+    this.acao(this.api.retomar(this.matchId));
   }
   /** O sinal da aula bateu: a investigação termina onde está. */
   protected encerrar(): void {

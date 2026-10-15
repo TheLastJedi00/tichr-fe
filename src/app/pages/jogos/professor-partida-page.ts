@@ -18,6 +18,8 @@ import { Modal } from '../../ui/modal/modal';
 import { Spinner } from '../../ui/spinner/spinner';
 import { ValeRankingComponent } from '../../ui/vale-ranking/vale-ranking';
 import { LogPontuacaoComponent } from '../../ui/log-pontuacao/log-pontuacao';
+import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausada';
+import { podePausar, relogioDaPartida } from '../../core/pausa';
 
 /**
  * Sala do professor (tempo real). Escuta a partida via onSnapshot e comanda a
@@ -28,7 +30,16 @@ import { LogPontuacaoComponent } from '../../ui/log-pontuacao/log-pontuacao';
   selector: 'app-professor-partida-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Card, Spinner, Icon, Modal, LobbyLoader, ValeRankingComponent, LogPontuacaoComponent],
+  imports: [
+    Card,
+    Spinner,
+    Icon,
+    Modal,
+    LobbyLoader,
+    ValeRankingComponent,
+    LogPontuacaoComponent,
+    PartidaPausadaComponent,
+  ],
   template: `
     @if (partida(); as p) {
       <header class="head">
@@ -38,6 +49,11 @@ import { LogPontuacaoComponent } from '../../ui/log-pontuacao/log-pontuacao';
             <span class="selo-casual" title="Os pontos desta partida não somam no ranking da turma">Casual</span>
           }
           <span class="status status--{{ p.status.toLowerCase() }}">{{ rotulo(p.status) }}</span>
+          @if (podePausar(p.status) && !p.pausadaEm) {
+            <button class="btn-pausar" type="button" [disabled]="processando()" (click)="comando('pausar')">
+              <app-icon name="pause" [size]="14" /> Pausar
+            </button>
+          }
           @if (p.status !== 'ENCERRADO') {
             <button class="btn-encerrar" type="button" [disabled]="processando()" (click)="comando('encerrar')">
               Encerrar
@@ -189,6 +205,15 @@ import { LogPontuacaoComponent } from '../../ui/log-pontuacao/log-pontuacao';
           </button>
         }
       }
+      @if (p.pausadaEm) {
+        <app-partida-pausada
+          jogo="Tichr Qlick"
+          [titulo]="p.titulo"
+          [professor]="true"
+          [carregando]="processando()"
+          (retomar)="comando('retomar')"
+        />
+      }
     } @else {
       <div class="loading"><app-spinner [size]="32" /></div>
     }
@@ -245,6 +270,9 @@ import { LogPontuacaoComponent } from '../../ui/log-pontuacao/log-pontuacao';
     .btn-encerrar { font-size: 0.8rem; font-weight: 700; padding: 0.3rem 0.7rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: #dc2626; cursor: pointer; }
     .btn-encerrar:hover:not(:disabled) { border-color: #dc2626; }
     .btn-encerrar:disabled { opacity: 0.5; }
+    .btn-pausar { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.8rem; font-weight: 700; padding: 0.3rem 0.7rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; }
+    .btn-pausar:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+    .btn-pausar:disabled { opacity: 0.5; }
     .fim { text-align: center; color: var(--text-muted); margin: 1rem 0 0.75rem; }
     .loading { display: flex; justify-content: center; padding: 3rem 0; color: var(--primary); }
     .lead { font-weight: 600; margin: 0 0 0.75rem; }
@@ -332,7 +360,8 @@ export class ProfessorPartidaPage {
     const p = this.partida();
     if (!p || p.status !== 'QUESTAO_ATIVA' || !p.perguntaIniciadaEm) return 0;
     const fim = Date.parse(p.perguntaIniciadaEm) + p.duracaoSegundos * 1000;
-    return Math.max(0, Math.ceil((fim - this.agora()) / 1000));
+    // Pausada, o relógio para no instante da pausa.
+    return Math.max(0, Math.ceil((fim - relogioDaPartida(this.agora(), p)) / 1000));
   });
 
   constructor() {
@@ -389,7 +418,11 @@ export class ProfessorPartidaPage {
     });
   }
 
-  protected comando(cmd: 'iniciar' | 'proxima' | 'apurar' | 'encerrar'): void {
+  protected readonly podePausar = podePausar;
+
+  protected comando(
+    cmd: 'iniciar' | 'proxima' | 'apurar' | 'encerrar' | 'pausar' | 'retomar',
+  ): void {
     this.processando.set(true);
     this.api.comandoPartida(this.partidaId, cmd).subscribe({
       next: () => this.processando.set(false),

@@ -33,6 +33,7 @@ import { ThemeService } from '../../core/theme.service';
 import { Icon } from '../../ui/icon/icon';
 import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { LogPontuacaoComponent } from '../../ui/log-pontuacao/log-pontuacao';
+import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausada';
 import { IsolateusDiario } from '../../ui/isolateus-diario/isolateus-diario';
 import { IsolateusEvento } from '../../ui/isolateus-evento/isolateus-evento';
 import { IsolateusBrilho } from '../../ui/isolateus-brilho/isolateus-brilho';
@@ -130,6 +131,7 @@ const CARDS_DE_PODER: ReadonlyArray<{
     IsolateusPersonagem,
     IsolateusBrilho,
     LogPontuacaoComponent,
+    PartidaPausadaComponent,
   ],
   template: `
     @if (carregando()) {
@@ -847,6 +849,11 @@ const CARDS_DE_PODER: ReadonlyArray<{
         <a class="btn-outline" routerLink="/aluno/dashboard">Voltar ao início</a>
       </section>
     }
+    @if (partida(); as p) {
+      @if (p.pausadaEm) {
+        <app-partida-pausada jogo="Tichr Isolateus" [titulo]="p.nome" />
+      }
+    }
   `,
   styles: `
     :host { display: block; }
@@ -1198,7 +1205,11 @@ export class StudentIsolateusPage {
     const limite = this.limiteDaFase();
     if (!limite) return 0;
     const fim = Date.parse(p.faseIniciadaEm) + limite * 1000;
-    const s = Math.ceil((fim - this.cronometro.agora(this.relogio())) / 1000);
+    // Pausada, o relógio para no instante da pausa (já no relógio do servidor).
+    const agora = p.pausadaEm
+      ? Date.parse(p.pausadaEm)
+      : this.cronometro.agora(this.relogio());
+    const s = Math.ceil((fim - agora) / 1000);
     return Math.max(0, Math.min(limite, s));
   });
 
@@ -1278,6 +1289,7 @@ export class StudentIsolateusPage {
     this.cronometro.sincronizar(p?.faseIniciadaEm ?? null);
     if (!p || !this.partidaId || !p.faseIniciadaEm) return;
     if (!this.limiteDaFase()) return;
+    if (p.pausadaEm) return; // pausada: ninguém cobra o prazo
     if (!this.cronometro.devoCobrar(Date.now(), this.restante() <= 0)) return;
     this.api
       .tempoAluno(this.partidaId)
@@ -1465,6 +1477,7 @@ export class StudentIsolateusPage {
   private pulsoDaNoite(): void {
     const p = this.partida();
     if (!p || !this.partidaId || p.status !== 'DESLOCAMENTO') return;
+    if (p.pausadaEm) return; // pausada: o pulso para junto do relógio
     if (this.foraDaVila() || !this.meuHabitante()) return;
     const agora = Date.now();
     if (agora < this.proximoPulso) return;
