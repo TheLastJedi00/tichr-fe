@@ -503,7 +503,9 @@ export type FontePontos =
   | 'CATAPULTA'
   | 'ARRISCAR'
   | 'HP_FINAL'
-  | 'FATOR_COLOCACAO';
+  | 'FATOR_COLOCACAO'
+  | 'ACERTO_PALAVRA'
+  | 'ACERTO_LETRA';
 
 export interface ItemLogPontos {
   /** Pergunta (Qlick), rodada (Wor) ou noite (Isolateus), 1-based. */
@@ -692,7 +694,8 @@ export type TipoAcaoGlobal =
   | 'USURPACAO'
   | 'DANO_CRITICO'
   | 'DICA'
-  | 'MODERACAO';
+  | 'MODERACAO'
+  | 'QUEDA';
 
 /**
  * Ação de impacto narrada em todas as telas ao mesmo tempo. Chega por fan-out:
@@ -725,6 +728,8 @@ export interface WorTeam {
   membros: { alunoId: string; nome: string }[];
   /** Último Action Card (fan-out) — como a narração global alcança o aluno. */
   lastGlobalAction?: LastGlobalAction | null;
+  /** Bônus pessoal de cada membro (+1000 palavra, +300 letra), por alunoId. */
+  pontosIndividuais?: Record<string, number>;
 }
 
 export interface WorMatch {
@@ -741,11 +746,16 @@ export interface WorMatch {
   letrasTentadas: string[];
   cartasVisiveis: string[];
   totalCartas: number;
-  turnoEquipeId?: string | null;
   ordemEquipes: string[];
-  /** Ações já feitas pelos membros da equipe do turno nesta rodada. */
-  acoesRodada: AcaoMembroWor[];
-  /** Início do turno/rodada atual (ISO) — base do cronômetro de 1 min. */
+  /** Quem já agiu na rodada em curso (alunoId). A letra fica no servidor. */
+  jaAgiram?: string[];
+  /** Equipes que já fecharam a rodada em curso, na ordem de chegada. */
+  equipesFechadas?: EquipeFechadaWor[];
+  /** Eventos da rodada que não congelam o jogo (ataque, dica, erro ao arriscar). */
+  feedRodada?: ItemFeedWor[];
+  /** Último `seq` do feed (não zera entre rodadas: é o gatilho do cliente). */
+  feedSeq?: number;
+  /** Início da rodada atual (ISO) — o relógio único de 1 min de todas as equipes. */
   rodadaIniciadaEm?: string | null;
   /** Pausada pelo professor (ISO); null/ausente = rodando. Os relógios param. */
   pausadaEm?: string | null;
@@ -765,13 +775,29 @@ export interface WorMatch {
   logPontuacao?: LogPontuacaoJogador[];
 }
 
-/** Ação de um membro na rodada (para o cliente saber quem já jogou). */
-export interface AcaoMembroWor {
-  alunoId: string;
-  tipo: 'LETRA' | 'ARRISCAR';
-  letra?: string;
-  acertou: boolean;
+/** Como a equipe fechou a rodada. `CAIU` = o castelo caiu antes de ela fechar. */
+export type ResultadoFechamentoWor = 'ATACAR' | 'DICA' | 'NADA' | 'CAIU';
+
+/** Equipe que já fechou a rodada (1 = fechou primeiro). */
+export interface EquipeFechadaWor {
+  equipeId: string;
   ordem: number;
+  resultado: ResultadoFechamentoWor;
+}
+
+/** Evento da rodada sem congelamento. `seq` não zera entre rodadas. */
+export interface ItemFeedWor {
+  seq: number;
+  tipo: 'ATAQUE' | 'DICA' | 'DANO_CRITICO';
+  mensagem: string;
+  em: string;
+}
+
+/** O que a equipe do aluno já jogou na rodada (`GET /aluno/wor/:id/rodada`). */
+export interface RodadaDaEquipeWor {
+  equipeId: string;
+  fechou: { ordem: number; resultado: ResultadoFechamentoWor } | null;
+  acoes: { alunoId: string; nome: string; tipo: 'LETRA' | 'ARRISCAR'; letra?: string }[];
 }
 
 /** Snapshot público de uma equipe (castelo) na raiz da partida. */
@@ -785,17 +811,23 @@ export interface PlacarEquipe {
   pontos?: number;
 }
 
-/** Resultado da última rodada resolvida — reveal + quem atacou quem. */
-export interface ResumoRodada {
-  seq: number;
+/** O resultado de uma equipe na rodada fechada. */
+export interface ResultadoRodadaWor {
   equipeId: string;
   equipeNome: string;
+  ordem: number;
   acertadores: { nome: string; letra: string }[];
-  acao: 'ATACAR' | 'DICA' | 'NADA';
+  acao: ResultadoFechamentoWor;
   alvoEquipeId?: string;
   alvoNome?: string;
   dano?: number;
   critico?: boolean;
+}
+
+/** A última rodada fechada: reveal com o resultado de cada equipe, em ordem. */
+export interface ResumoRodada {
+  seq: number;
+  resultados: ResultadoRodadaWor[];
   porTempo?: boolean;
 }
 

@@ -56,7 +56,7 @@ O diferencial visível está na **demonstração interativa da landing page** e 
 | `/jogos` · `/jogos/qlick` | **Jogos / Tichr Qlick** | Vitrine de jogos e a mini-landing do **Tichr Qlick** (quiz ao vivo). Recurso do **plano PhD** (upsell nos inferiores). |
 | `/jogos/wor` · `.../novo` · `.../meus` · `.../partida/:id` | **Tichr Wor** | Guerra de castelos PvP: landing interna, **wizard de criação** (arsenal **forjado por IA** — 5 palavras com 3 dicas a partir de uma instrução —, reordenar por drag-and-drop), lista de batalhas e a **tela do projetor** (lobby → jogo, realtime). |
 | `/jogos/isolateus` · `.../novo` · `.../editar/:id` · `.../partida/:id` | **Tichr Isolateus** | Dedução social: landing de primeiro uso, **estúdio** das 10 questões (com geração por IA) e o **telão do Comando Central** — lobby cego, Barra de Esperança, o **mapa da vila com quem está em cada setor** (visão onisciente, o oposto do celular), chat de rumores, Diário da Vila e card de veredito. O telão conduz o relógio — mas não sozinho: qualquer aparelho da partida cobra a fase vencida, e o professor pode **encerrar a investigação a qualquer momento**. Recurso do **plano PhD**. |
-| `/aluno/wor` | **Wor (aluno)** | Cliente **mobile-first**: teclado de letras, **Dilema Tático** (atacar/comprar dica), **Risco Heroico**, **modal da Queda da Horda**, animação de dano e o **chat privado da equipe**. Escuta só o próprio castelo (realtime barato). |
+| `/aluno/wor` | **Wor (aluno)** | Cliente **mobile-first**: teclado de letras aberto a cada rodada (todas as equipes jogam juntas), voto (atacar/comprar dica), **Risco Heroico**, letras da equipe na rodada, feed dos ataques, reveal do fim da rodada, **modal da Queda da Horda**, animação de dano, **bônus pessoal** no fim e o **chat privado da equipe**. Escuta só o próprio castelo (realtime barato). |
 | `/jogos/qlick/meus` | **Meus Qlicks** | Lista dos quizzes do professor; **Rodar** pergunta "para qual turma?" quando o Qlick está em várias (N:N). |
 | `/jogos/qlick/novo` · `/editar/:id` | **Estúdio do Qlick** | Formulário reativo (FormArray) de perguntas → alternativas, com marcação da correta e duração. |
 | `/jogos/qlick/partida/:id` | **Sala do professor** | Comanda a partida em tempo real; o **lobby** exibe o **PIN da turma em tamanho grande** + um **modal de assistência** (grid de alunos com o PIN revelado por toque, em *flip*). Depois: pergunta (timer + revelar), ranking da rodada e pódio. |
@@ -181,19 +181,35 @@ cliente (ver [arquitetura](#arquitetura--stack)):
   o cliente só **observa** o documento da partida via `onSnapshot`. A resposta correta
   nunca trafega durante a pergunta.
 
+### Tichr Wor: todas as equipes ao mesmo tempo
+
+Desde a v0.36.0 não há turno: em cada rodada, **todas as equipes** jogam a mesma palavra no
+mesmo cronômetro de 1 minuto, como no Qlick. Turma grande não espera mais o rodízio.
+
+- **Quem fecha primeiro ataca primeiro:** a equipe fecha a rodada quando todos os membros
+  jogaram, e o dano cai na hora. Se o castelo de uma equipe cair antes de ela fechar, o ataque
+  dela é perdido. O telão e os celulares mostram a ordem ("1º", "2º"…) e quantas equipes já
+  fecharam.
+- **Letras às cegas:** as letras e as dicas só aparecem quando a rodada acaba. Cada aluno vê as
+  letras que a própria equipe já jogou, sem saber se acertaram; as rivais não veem nada.
+- **Fim da rodada:** um painel mostra o resultado de cada equipe, na ordem em que fecharam
+  (quem acertou, quem atacou quem, quem comprou dica, quem caiu).
+- **Bônus pessoal:** quem acerta a palavra ao arriscar ganha **+1000** e cada letra certa vale
+  **+300**, só para quem acertou e sem o corte da equipe não campeã. O celular mostra o bônus no
+  fim da batalha.
+
 ### Tichr Wor: narração ao vivo (Action Cards)
 
-As jogadas de impacto da batalha são narradas **ao mesmo tempo em todas as telas** — no
-celular de cada aluno e no telão — para que quem está fora do turno não perca o que
-aconteceu:
+Os eventos grandes da batalha são narrados **ao mesmo tempo em todas as telas**, no celular de
+cada aluno e no telão:
 
-- **Os gatilhos:** ataque ao castelo rival, Risco Heroico bem-sucedido (cura), Dano Crítico
-  (arriscou e errou), Usurpação (a Horda roubou o castelo do líder) e a compra de dica.
+- **Os gatilhos:** Risco Heroico certo (cura ou Catapulta), Usurpação (a Horda roubou o castelo
+  do líder), **Queda** (um castelo caiu e virou Horda) e a moderação do chat.
 - **A interrupção:** o card ocupa o centro da tela por **3 segundos**, com os inputs
-  **travados** — e o **cronômetro não corre** nesse intervalo (o backend nasce a rodada 3s à
-  frente, então a equipe da vez não é punida pela narração).
-- **Ataque é da equipe:** o dano nasce da votação da rodada inteira, então o card nomeia a
-  **equipe**. Risco Heroico, Dano Crítico e Usurpação nomeiam o **aluno** — são individuais.
+  **travados** — e o **cronômetro não corre** nesse intervalo.
+- **Feed sem interrupção:** ataques, compra de dica e erro ao arriscar acontecem muitas vezes por
+  rodada com as equipes em paralelo, então aparecem num **feed** (lateral no telão, aviso curto no
+  celular) que não trava ninguém.
 - **Recuperar HP ou Catapulta:** quem arrisca a palavra escolhe, junto do palpite, a recompensa
   da equipe se acertar — **curar 400 de HP** do próprio castelo ou disparar a **Catapulta**, 300 de
   dano num castelo rival de pé (que pode cair e virar Horda). A Horda continua usurpando.

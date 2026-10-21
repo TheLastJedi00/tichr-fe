@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { RealtimeService } from '../../core/realtime.service';
 import { StudentAuthService } from '../../core/student-auth.service';
@@ -15,9 +16,12 @@ import { WorApiService } from '../../core/wor-api.service';
 import { FREEZE_MS, NarradorCards, cardNoAr } from '../../core/action-card';
 import {
   EfeitoRisco,
+  ItemFeedWor,
   MensagemChatWor,
   PlacarEquipe,
+  ResultadoRodadaWor,
   ResumoRodada,
+  RodadaDaEquipeWor,
   WorMatch,
   WorTeam,
 } from '../../core/models';
@@ -38,11 +42,14 @@ const LIMITE_RODADA_S = 60;
 /** Espelham `WOR.CURA_MASSIVA` e `WOR.DANO_CATAPULTA` do backend (só para o texto). */
 const CURA_MASSIVA = 400;
 const DANO_CATAPULTA = 300;
+/** Quanto tempo um item do feed fica na tela do celular. */
+const FEED_MS = 4000;
 
 /**
  * Cliente do aluno (mobile-first). Escuta o próprio time (dano barato) + a raiz
  * (que carrega o placar de TODAS as equipes, o resumo da última rodada e o
- * cronômetro). Cada membro chuta uma letra e vota o alvo, ou arrisca a palavra.
+ * cronômetro). Não há turno (029): todas as equipes jogam a mesma rodada, e
+ * cada membro chuta uma letra e vota o alvo, ou arrisca a palavra.
  */
 @Component({
   selector: 'app-student-wor-page',
@@ -56,6 +63,7 @@ const DANO_CATAPULTA = 300;
     Confetti,
     ActionCard,
     RouterLink,
+    NgTemplateOutlet,
     WorChat,
     LogPontuacaoComponent,
     PartidaPausadaComponent,
@@ -66,19 +74,34 @@ const DANO_CATAPULTA = 300;
     }
 
     <div class="wrap" [class.dano]="piscar()">
-      @if (resumoBanner(); as r) {
-        <div class="reveal" [class.reveal--eu]="r.acao === 'ATACAR' && souEu(r.alvoEquipeId)">
-          <strong>{{ r.equipeNome }}</strong>
-          @if (r.acertadores.length) {
-            <span class="reveal__ok">acertou {{ acertadoresTxt(r) }}</span>
-          } @else {
-            <span>não acertou{{ r.porTempo ? ' (tempo!)' : '' }}</span>
+      @if (resumoBanner(); as rr) {
+        <div class="fim-rodada" aria-live="polite">
+          <span class="fim-rodada__tit">Fim da rodada{{ rr.porTempo ? ' (tempo!)' : '' }}</span>
+          @for (r of rr.resultados; track r.equipeId) {
+            <div class="rodada-res" [class.rodada-res--eu]="r.acao === 'ATACAR' && souEu(r.alvoEquipeId)">
+              <span class="rodada-res__pos">{{ r.ordem }}º</span>
+              <strong>{{ r.equipeNome }}</strong>
+              @if (r.acertadores.length) {
+                <span class="rodada-res__ok">acertou {{ acertadoresTxt(r) }}</span>
+              } @else {
+                <span>não acertou</span>
+              }
+              @switch (r.acao) {
+                @case ('ATACAR') {
+                  <span class="rodada-res__hit">→ atacou {{ r.alvoNome }} (-{{ r.dano }}{{ r.critico ? ' CRÍTICO' : '' }})</span>
+                }
+                @case ('DICA') { <span>→ comprou dica</span> }
+                @case ('CAIU') { <span class="rodada-res__hit">→ caiu antes de atacar</span> }
+              }
+            </div>
           }
-          @switch (r.acao) {
-            @case ('ATACAR') {
-              <span class="reveal__hit">→ atacou {{ r.alvoNome }} (-{{ r.dano }}{{ r.critico ? ' CRÍTICO' : '' }})</span>
-            }
-            @case ('DICA') { <span>→ comprou dica</span> }
+        </div>
+      }
+
+      @if (feedToasts().length) {
+        <div class="feed" aria-live="polite">
+          @for (f of feedToasts(); track f.seq) {
+            <div class="feed__item" [class.feed__item--erro]="f.tipo === 'DANO_CRITICO'">{{ f.mensagem }}</div>
           }
         </div>
       }
@@ -135,7 +158,7 @@ const DANO_CATAPULTA = 300;
           @if (m.status === 'EM_ANDAMENTO') {
             <div class="timer" [class.timer--fim]="restante() <= 10">
               <app-icon name="alert" [size]="14" />
-              {{ turnoNome() }} · {{ restante() }}s
+              Rodada · {{ restante() }}s · {{ fechadas() }} de {{ placar().length }} equipes fecharam
             </div>
           }
 
@@ -153,6 +176,11 @@ const DANO_CATAPULTA = 300;
               {{ venci() ? 'Sua equipe venceu a batalha!' : vencedorNome() + ' venceu a batalha.' }}
             </div>
             <p class="aguarde">Seu castelo terminou com {{ t.hp }} HP.</p>
+            @if (meuBonus() > 0) {
+              <p class="bonus-pessoal">
+                <app-icon name="sparkles" [size]="16" /> +{{ meuBonus() }} de bônus pessoal pelos seus acertos
+              </p>
+            }
             @if (logOrdenado().length) {
               <ol class="log-lista">
                 @for (l of logOrdenado(); track l.alunoId) {
@@ -182,17 +210,27 @@ const DANO_CATAPULTA = 300;
               />
             }
             <a class="btn-primary voltar-btn" routerLink="/aluno/dashboard">Voltar ao início</a>
-          } @else if (!ehMeuTurno()) {
-            <p class="aguarde">Aguarde o turno da {{ turnoNome() }}…</p>
+          } @else if (minhaFechada(); as f) {
+            <div class="painel">
+              @if (f.resultado === 'CAIU') {
+                <p class="aguarde">Seu castelo caiu nesta rodada. Na próxima, a Horda tenta a Invasão.</p>
+              } @else {
+                <app-lobby-loader />
+                <p class="aguarde">Sua equipe fechou em {{ f.ordem }}º! Aguardando as outras equipes…</p>
+              }
+              <ng-container [ngTemplateOutlet]="pendentes" />
+            </div>
           } @else if (jaJoguei()) {
             <div class="painel">
               <app-lobby-loader />
               <p class="aguarde">Você jogou! Aguardando os outros membros da sua equipe…</p>
+              <ng-container [ngTemplateOutlet]="pendentes" />
             </div>
           } @else {
             <div class="painel">
+              <ng-container [ngTemplateOutlet]="pendentes" />
               @if (!t.isHorde) {
-                <h2>Sua vez — escolha uma letra</h2>
+                <h2>Escolha uma letra</h2>
                 <div class="teclado">
                   @for (l of letras; track l) {
                     <button
@@ -226,14 +264,14 @@ const DANO_CATAPULTA = 300;
               @for (e of placar(); track e.id) {
                 <div
                   class="castelo"
-                  [class.castelo--turno]="e.id === m.turnoEquipeId"
+                  [class.castelo--fechou]="!!ordemDe(e.id)"
                   [class.castelo--eu]="souEu(e.id)"
                   [style.--cor]="e.cor"
                 >
                   <span class="castelo__nome">
                     <app-icon [name]="e.isHorde ? 'sword' : 'castle'" [size]="14" /> {{ e.nome }}
                     @if (souEu(e.id)) { <span class="castelo__tag">você</span> }
-                    @if (e.id === m.turnoEquipeId) { <span class="castelo__tag castelo__tag--turno">jogando</span> }
+                    @if (ordemDe(e.id); as o) { <span class="castelo__tag castelo__tag--fechou">fechou {{ o }}º</span> }
                   </span>
                   <span class="castelo__bar"><span [style.width.%]="hpPct(e.hp)" [style.background]="e.cor"></span></span>
                   <span class="castelo__hp">{{ e.hp }}</span>
@@ -346,12 +384,26 @@ const DANO_CATAPULTA = 300;
       />
     }
 
+    <!-- Letras que a minha equipe já jogou nesta rodada (sem certo/errado até o reveal) -->
+    <ng-template #pendentes>
+      @if (pendentesEquipe().length) {
+        <div class="pendentes">
+          <span class="pendentes__tit">Sua equipe nesta rodada</span>
+          @for (p of pendentesEquipe(); track p.alunoId) {
+            <span class="pendente">{{ p.nome }}: <b>{{ p.letra ?? 'arriscou' }}</b></span>
+          }
+        </div>
+      }
+    </ng-template>
+
     <!-- Modal: quem atacou o seu castelo -->
-    @if (danoModal(); as r) {
+    @if (danoModal(); as ataques) {
       <app-modal [open]="true" title="Seu castelo foi atacado!" (close)="danoModal.set(null)">
-        <p class="aviso">
-          <b>{{ r.equipeNome }}</b> atirou no seu castelo · <b>-{{ r.dano }} HP</b>{{ r.critico ? ' (CRÍTICO!)' : '' }}.
-        </p>
+        @for (r of ataques; track r.equipeId) {
+          <p class="aviso">
+            <b>{{ r.equipeNome }}</b> (fechou em {{ r.ordem }}º) atirou no seu castelo · <b>-{{ r.dano }} HP</b>{{ r.critico ? ' (CRÍTICO!)' : '' }}.
+          </p>
+        }
         <button modal-actions class="btn-primary" type="button" (click)="danoModal.set(null)">Vamos revidar!</button>
       </app-modal>
     }
@@ -359,7 +411,7 @@ const DANO_CATAPULTA = 300;
     @if (modalHorda()) {
       <app-modal [open]="true" title="Seu Castelo Caiu… Mas a Guerra Não Acabou!" (close)="modalHorda.set(false)">
         <p class="aviso">Sua equipe agora é uma <b>Horda Bárbara</b>.</p>
-        <p class="aviso">Vocês não podem mais chutar letras nem comprar dicas. No seu turno, a única jogada é a <b>Invasão</b>: adivinhar a palavra inteira.</p>
+        <p class="aviso">Vocês não podem mais chutar letras nem comprar dicas. A cada rodada, a única jogada é a <b>Invasão</b>: adivinhar a palavra inteira.</p>
         <p class="aviso">Se acertarem, roubam o castelo da equipe em 1º lugar e assumem a liderança!</p>
         <button modal-actions class="btn-primary" type="button" (click)="modalHorda.set(false)">Entendido, vamos à forra!</button>
       </app-modal>
@@ -378,11 +430,22 @@ const DANO_CATAPULTA = 300;
     .wrap.dano { animation: flash 0.5s ease; }
     @keyframes flash { 0%, 100% { background: transparent; } 30% { background: color-mix(in srgb, var(--danger) 30%, transparent); } }
     @media (prefers-reduced-motion: reduce) { .wrap.dano { animation: none; } }
-    .reveal { padding: 0.6rem 0.8rem; border-radius: 10px; background: var(--surface-alt); font-size: 0.88rem; color: var(--text); display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: baseline; }
-    .reveal--eu { background: color-mix(in srgb, var(--danger) 22%, transparent); }
-    .reveal strong { color: var(--text); }
-    .reveal__ok { color: #16a34a; font-weight: 700; }
-    .reveal__hit { font-weight: 800; }
+    .rodada-res { padding: 0.6rem 0.8rem; border-radius: 10px; background: var(--surface-alt); font-size: 0.88rem; color: var(--text); display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: baseline; }
+    .rodada-res--eu { background: color-mix(in srgb, var(--danger) 22%, transparent); }
+    .rodada-res strong { color: var(--text); }
+    .rodada-res__ok { color: #16a34a; font-weight: 700; }
+    .rodada-res__hit { font-weight: 800; }
+    .fim-rodada { display: flex; flex-direction: column; gap: 0.35rem; }
+    .fim-rodada__tit { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+    .rodada-res__pos { font-weight: 800; color: var(--text-muted); }
+    /* Feed da rodada: toasts que não travam nada (029 §3). */
+    .feed { display: flex; flex-direction: column; gap: 0.3rem; }
+    .feed__item { padding: 0.45rem 0.7rem; border-radius: 8px; border-left: 4px solid var(--primary); background: var(--surface-alt); font-size: 0.82rem; font-weight: 600; color: var(--text); }
+    .feed__item--erro { border-left-color: var(--danger); }
+    .pendentes { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; justify-content: center; }
+    .pendentes__tit { width: 100%; text-align: center; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
+    .pendente { padding: 0.2rem 0.55rem; border-radius: 999px; border: 1px dashed var(--border); font-size: 0.8rem; color: var(--text); }
+    .bonus-pessoal { display: flex; align-items: center; justify-content: center; gap: 0.35rem; margin: 0; font-weight: 800; color: #b45309; }
     .vazio, .lobby { display: flex; flex-direction: column; align-items: center; gap: 1rem; text-align: center; padding: 2.5rem 1rem; color: var(--text-muted); }
     .lobby h1 { margin: 0; color: var(--text); font-size: 1.4rem; }
     .aguarde { text-align: center; color: var(--text-muted); font-weight: 600; }
@@ -421,11 +484,11 @@ const DANO_CATAPULTA = 300;
     .placar { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
     .placar__tit { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 800; color: var(--text-muted); }
     .castelo { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 0.2rem 0.6rem; padding: 0.4rem 0.5rem; border-radius: 8px; border: 1px solid transparent; }
-    .castelo--turno { border-color: var(--cor); background: color-mix(in srgb, var(--cor) 10%, transparent); }
+    .castelo--fechou { border-color: var(--cor); background: color-mix(in srgb, var(--cor) 10%, transparent); }
     .castelo--eu { outline: 2px solid color-mix(in srgb, var(--cor) 60%, var(--border)); }
     .castelo__nome { display: flex; align-items: center; gap: 0.35rem; font-weight: 700; font-size: 0.9rem; color: var(--text); }
     .castelo__tag { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; padding: 0.05rem 0.35rem; border-radius: 999px; background: var(--surface-alt); color: var(--text-muted); }
-    .castelo__tag--turno { background: var(--cor); color: #fff; }
+    .castelo__tag--fechou { background: var(--cor); color: #fff; }
     .castelo__bar { grid-column: 1 / -1; height: 8px; border-radius: 999px; background: var(--surface-alt); overflow: hidden; }
     .castelo__bar span { display: block; height: 100%; transition: width 0.4s ease; }
     .castelo__hp { font-size: 0.78rem; font-weight: 800; color: var(--text-muted); font-variant-numeric: tabular-nums; }
@@ -501,8 +564,15 @@ export class StudentWorPage {
   protected readonly palpite = signal('');
   /** Banner do resultado da última rodada (todos veem; some sozinho). */
   protected readonly resumoBanner = signal<ResumoRodada | null>(null);
-  /** Modal: quem atacou o meu castelo. */
-  protected readonly danoModal = signal<ResumoRodada | null>(null);
+  /** Modal: quem atacou o meu castelo na rodada que acabou de fechar. */
+  protected readonly danoModal = signal<ResultadoRodadaWor[] | null>(null);
+  /** Eventos da rodada sem congelamento (ataque, dica, erro ao arriscar). */
+  protected readonly feedToasts = signal<ItemFeedWor[]>([]);
+  /**
+   * O que minha equipe já jogou nesta rodada. As letras pendentes não estão na
+   * raiz pública (seriam copiadas pelas rivais): vêm do backend, só as nossas.
+   */
+  private readonly rodadaEquipe = signal<RodadaDaEquipeWor | null>(null);
   /** Narração global (Action Cards) — chega pelo doc da própria equipe. */
   protected readonly narrador = new NarradorCards();
   private readonly relogio = signal(Date.now());
@@ -530,6 +600,9 @@ export class StudentWorPage {
   private ultimoHp = Infinity;
   private jaEraHorda = false;
   private ultimoSeq = 0;
+  private ultimoFeed = 0;
+  /** Quem da minha equipe já agiu, para saber quando recarregar as pendentes. */
+  private chaveRodada = '';
 
   /** Membros da minha equipe, comigo em primeiro e marcado. */
   protected readonly meusMembros = computed(() =>
@@ -538,11 +611,24 @@ export class StudentWorPage {
       .sort((a, b) => Number(b.eu) - Number(a.eu)),
   );
 
-  protected readonly ehMeuTurno = computed(
-    () => !!this.myTeamId && this.root()?.turnoEquipeId === this.myTeamId,
-  );
   protected readonly jaJoguei = computed(
-    () => this.root()?.acoesRodada?.some((a) => a.alunoId === this.alunoId) ?? false,
+    () => this.root()?.jaAgiram?.includes(this.alunoId) ?? false,
+  );
+  /** Minha equipe já fechou a rodada (ordem de chegada), ou null. */
+  protected readonly minhaFechada = computed(
+    () =>
+      this.root()?.equipesFechadas?.find((f) => f.equipeId === this.myTeamId) ??
+      null,
+  );
+  protected readonly fechadas = computed(
+    () => this.root()?.equipesFechadas?.length ?? 0,
+  );
+  protected readonly pendentesEquipe = computed(
+    () => this.rodadaEquipe()?.acoes ?? [],
+  );
+  /** Bônus pessoal (+1000 palavra, +300 letra) do aluno nesta partida. */
+  protected readonly meuBonus = computed(
+    () => this.team()?.pontosIndividuais?.[this.alunoId] ?? 0,
   );
   protected readonly semCartas = computed(() => {
     const m = this.root();
@@ -558,9 +644,6 @@ export class StudentWorPage {
       'A equipe vencedora',
   );
   protected readonly placar = computed<PlacarEquipe[]>(() => this.root()?.placar ?? []);
-  protected readonly turnoNome = computed(
-    () => this.placar().find((e) => e.id === this.root()?.turnoEquipeId)?.nome ?? 'sua equipe',
-  );
   /**
    * Segundos restantes da rodada. Congelado, o início vem do FUTURO (o servidor
    * o empurra enquanto o card está no ar): o teto de 60s segura o relógio parado
@@ -612,7 +695,11 @@ export class StudentWorPage {
   protected souEu(id?: string): boolean {
     return !!id && id === this.myTeamId;
   }
-  protected acertadoresTxt(r: ResumoRodada): string {
+  /** Ordem em que a equipe fechou a rodada em curso (0 = ainda não fechou). */
+  protected ordemDe(id: string): number {
+    return this.root()?.equipesFechadas?.find((f) => f.equipeId === id)?.ordem ?? 0;
+  }
+  protected acertadoresTxt(r: ResultadoRodadaWor): string {
     return r.acertadores.map((a) => `${a.nome} (${a.letra})`).join(', ');
   }
   protected letraUsada(l: string): boolean {
@@ -620,7 +707,7 @@ export class StudentWorPage {
     if (!m) return false;
     return (
       m.letrasTentadas.includes(l) ||
-      (m.acoesRodada?.some((a) => a.tipo === 'LETRA' && a.letra === l) ?? false)
+      this.pendentesEquipe().some((a) => a.letra === l)
     );
   }
 
@@ -645,6 +732,7 @@ export class StudentWorPage {
         this.matchId.set(v.match.id);
         this.root.set(v.match);
         this.ultimoSeq = v.match.resumoRodada?.seq ?? 0; // baseline (não replay ao entrar)
+        this.ultimoFeed = v.match.feedSeq ?? 0;
         this.narrador.ignorarAtual(v.match.lastGlobalAction);
         this.inscrito.set(v.match.inscritos.some((i) => i.alunoId === this.alunoId));
         this.resolverEquipe(v.teams);
@@ -668,6 +756,8 @@ export class StudentWorPage {
         if (m.status === 'ENCERRADO' && !this.todosTeams().length) {
           this.api.partidaAtual().subscribe((v) => v && this.todosTeams.set(v.teams));
         }
+        this.receberFeed(m);
+        this.sincronizarRodada(m);
         // Reveal do resultado quando uma nova rodada resolve. Com um card no ar,
         // o banner espera a narração terminar — os dois não disputam a tela.
         const r = m.resumoRodada;
@@ -684,13 +774,50 @@ export class StudentWorPage {
 
   /** Banner do resultado (todos) + modal de dano quando meu castelo foi o alvo. */
   private mostrarResumo(r: ResumoRodada): void {
+    if (!r.resultados?.length) return;
     this.resumoBanner.set(r);
     setTimeout(() => {
       if (this.resumoBanner()?.seq === r.seq) this.resumoBanner.set(null);
-    }, 5000);
-    if (r.acao === 'ATACAR' && r.alvoEquipeId === this.myTeamId) {
-      this.danoModal.set(r);
+    }, 6000);
+    const contraMim = r.resultados.filter(
+      (x) => x.acao === 'ATACAR' && x.alvoEquipeId === this.myTeamId,
+    );
+    if (contraMim.length) this.danoModal.set(contraMim);
+  }
+
+  /** Itens novos do feed viram toast curto, sem travar os inputs. */
+  private receberFeed(m: WorMatch): void {
+    const novos = (m.feedRodada ?? []).filter((f) => f.seq > this.ultimoFeed);
+    if (!novos.length) return;
+    this.ultimoFeed = Math.max(...novos.map((f) => f.seq));
+    this.feedToasts.update((atual) => [...novos.reverse(), ...atual].slice(0, 3));
+    for (const f of novos) {
+      setTimeout(
+        () => this.feedToasts.update((atual) => atual.filter((x) => x.seq !== f.seq)),
+        FEED_MS,
+      );
     }
+  }
+
+  /**
+   * Recarrega as letras pendentes da minha equipe quando alguém dela age (ou a
+   * rodada vira). A raiz só diz QUEM agiu; a letra vem do backend.
+   */
+  private sincronizarRodada(m: WorMatch): void {
+    const matchId = this.matchId();
+    const meus = new Set((this.team()?.membros ?? []).map((mb) => mb.alunoId));
+    const agiram = (m.jaAgiram ?? []).filter((id) => meus.has(id));
+    const chave = `${m.resumoRodada?.seq ?? 0}:${m.ondaIndex}:${agiram.join(',')}`;
+    if (!matchId || chave === this.chaveRodada) return;
+    this.chaveRodada = chave;
+    if (!agiram.length || m.status !== 'EM_ANDAMENTO') {
+      this.rodadaEquipe.set(null);
+      return;
+    }
+    this.api.rodadaDaEquipe(matchId).subscribe({
+      next: (r) => this.rodadaEquipe.set(r),
+      error: () => undefined,
+    });
   }
 
   private resolverEquipe(teams: WorTeam[]): void {
@@ -700,6 +827,8 @@ export class StudentWorPage {
     this.team.set(mine);
     this.ultimoHp = mine.hp;
     this.jaEraHorda = mine.isHorde;
+    const raiz = this.root();
+    if (raiz) this.sincronizarRodada(raiz);
     this.realtime
       .escutarTeam(this.matchId()!, mine.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
