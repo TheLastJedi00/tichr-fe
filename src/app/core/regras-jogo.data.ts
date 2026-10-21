@@ -40,18 +40,20 @@ const WOR: RegrasJogo = {
     'Batalha de castelos por palavras. Cada equipe defende uma fortaleza de 1000 HP e ataca as rivais acertando letras da palavra secreta.',
   como: [
     {
-      titulo: 'O turno é da equipe',
+      titulo: 'Todas as equipes ao mesmo tempo',
       itens: [
-        'As equipes jogam em rodízio. No turno da sua equipe, cada membro age uma vez.',
-        'Na sua vez você chuta uma letra e vota: atacar um castelo rival ou comprar uma dica.',
-        'A rodada só resolve quando todos os membros jogaram — ou quando o cronômetro de 1 minuto zera.',
+        'Não há turno: em cada rodada, todas as equipes jogam a mesma palavra, no mesmo cronômetro de 1 minuto.',
+        'Cada membro age uma vez por rodada: chuta uma letra e vota (atacar um castelo rival ou comprar uma dica).',
+        'Sua equipe fecha a rodada quando todos os membros jogaram. Quem fecha primeiro ataca primeiro.',
         'Entre os que acertaram a letra, a ação mais votada vence. Empate: vale o voto de quem acertou primeiro.',
+        'As letras e as dicas só aparecem quando a rodada acaba (todas as equipes fecharam ou o tempo zerou). Ninguém copia a letra de ninguém.',
       ],
     },
     {
       titulo: 'Ataque e dano',
       itens: [
-        'Se a equipe acertou letras e votou atacar, o castelo alvo perde 100 de HP.',
+        'Se a equipe acertou letras e votou atacar, o castelo alvo perde 100 de HP na hora em que ela fecha a rodada.',
+        'Se o seu castelo cair antes de a sua equipe fechar a rodada, o ataque dela é perdido.',
         'Ataque perfeito: se TODOS os membros da equipe acertarem a letra (equipes de 2+), o dano dobra para 200.',
         'Comprar dica sacrifica o ataque da rodada, mas revela mais uma carta da palavra (até 3).',
       ],
@@ -59,8 +61,8 @@ const WOR: RegrasJogo = {
     {
       titulo: 'Risco Heroico',
       itens: [
-        'A qualquer momento do seu turno você pode arriscar a palavra inteira.',
-        'Acertou: a onda avança na hora e quem arriscou escolhe a recompensa da equipe —',
+        'A qualquer momento da rodada você pode arriscar a palavra inteira.',
+        'Acertou: a onda acaba na hora para todas as equipes e quem arriscou escolhe a recompensa da equipe —',
         'Recuperar HP: seu castelo recupera 400 de HP.',
         'Catapulta: 300 de dano no castelo rival que você escolher (se o HP dele zerar, ele vira Horda).',
         'Errou: seu PRÓPRIO castelo sofre 200 de Dano Crítico.',
@@ -99,12 +101,14 @@ const WOR: RegrasJogo = {
     { acao: 'Risco Heroico certeiro (ou Invasão da Horda)', valor: '+300', detalhe: 'além de curar 400 de HP, disparar a Catapulta ou roubar o castelo' },
     { acao: 'Catapulta no castelo rival', valor: '+300', detalhe: 'o dano causado vira pontos, além do bônus do Risco Heroico' },
     { acao: 'Castelo de pé no fim da batalha', valor: '+1 por HP restante', detalhe: 'terminar intacto vale até +1000' },
+    { acao: 'Bônus pessoal: acertar a palavra ao arriscar', valor: '+1000', detalhe: 'só para quem arriscou, além do bônus da equipe' },
+    { acao: 'Bônus pessoal: acertar uma letra', valor: '+300', detalhe: 'só para quem chutou, entra quando a rodada acaba' },
     { acao: 'Comprar dica', valor: '0', detalhe: 'sacrifica o ataque da rodada em troca de uma carta' },
     { acao: 'Errar a letra ou o Risco Heroico', valor: '0', detalhe: 'errar o risco ainda custa 200 de HP' },
     { acao: 'Linguagem imprópria no chat', valor: '−1000 XP', detalhe: 'direto no ranking de quem escreveu, e −100 de HP no castelo da equipe' },
   ],
   conversao:
-    'Ao fim da batalha, os pontos de combate viram XP do ranking da turma na proporção de 1 para 1. A equipe campeã recebe o valor cheio; as demais, metade. Todos os membros da equipe recebem o mesmo XP. O professor pode valer a partida de 1x a 10x antes de começar: todos os pontos (e o XP) são multiplicados.',
+    'Ao fim da batalha, os pontos de combate viram XP do ranking da turma na proporção de 1 para 1. A equipe campeã recebe o valor cheio; as demais, metade. Todos os membros da equipe recebem o mesmo XP dos pontos da equipe, e cada aluno soma o próprio bônus pessoal inteiro, mesmo numa equipe que não venceu. O professor pode valer a partida de 1x a 10x antes de começar: todos os pontos (e o XP) são multiplicados.',
 };
 
 const QLICK: RegrasJogo = {
