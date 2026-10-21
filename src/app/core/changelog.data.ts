@@ -18,6 +18,28 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.36.0',
+    data: '2026-10-21',
+    titulo: 'Wor: todas as equipes ao mesmo tempo',
+    itens: [
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Tichr Wor sem turno: agora todas as equipes jogam a mesma palavra ao mesmo tempo, no mesmo cronômetro de 1 minuto. A equipe que fecha a rodada primeiro ataca primeiro, e uma equipe que perde o castelo antes de fechar perde o ataque. Turmas grandes não esperam mais a vez.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Tichr Wor: bônus pessoal para quem joga bem. Acertar a palavra ao arriscar vale +1000 e cada letra certa vale +300, só para quem acertou, mesmo numa equipe que não venceu.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Tichr Wor: as letras e as dicas aparecem quando a rodada acaba, junto de um resumo de cada equipe na ordem em que fecharam. Durante a rodada, você vê as letras que a sua equipe já jogou, e os ataques aparecem num aviso rápido que não trava a tela.',
+      },
+    ],
+  },
+  {
     versao: 'v0.35.0',
     data: '2026-10-15',
     titulo: 'Pausa, fuga e linguagem',
