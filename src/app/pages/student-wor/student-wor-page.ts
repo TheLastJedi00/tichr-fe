@@ -75,23 +75,23 @@ const FEED_MS = 4000;
 
     <div class="wrap" [class.dano]="piscar()">
       @if (resumoBanner(); as rr) {
-        <div class="reveal-lista" aria-live="polite">
-          <span class="reveal-lista__tit">Fim da rodada{{ rr.porTempo ? ' (tempo!)' : '' }}</span>
+        <div class="fim-rodada" aria-live="polite">
+          <span class="fim-rodada__tit">Fim da rodada{{ rr.porTempo ? ' (tempo!)' : '' }}</span>
           @for (r of rr.resultados; track r.equipeId) {
-            <div class="reveal" [class.reveal--eu]="r.acao === 'ATACAR' && souEu(r.alvoEquipeId)">
-              <span class="reveal__pos">{{ r.ordem }}º</span>
+            <div class="rodada-res" [class.rodada-res--eu]="r.acao === 'ATACAR' && souEu(r.alvoEquipeId)">
+              <span class="rodada-res__pos">{{ r.ordem }}º</span>
               <strong>{{ r.equipeNome }}</strong>
               @if (r.acertadores.length) {
-                <span class="reveal__ok">acertou {{ acertadoresTxt(r) }}</span>
+                <span class="rodada-res__ok">acertou {{ acertadoresTxt(r) }}</span>
               } @else {
                 <span>não acertou</span>
               }
               @switch (r.acao) {
                 @case ('ATACAR') {
-                  <span class="reveal__hit">→ atacou {{ r.alvoNome }} (-{{ r.dano }}{{ r.critico ? ' CRÍTICO' : '' }})</span>
+                  <span class="rodada-res__hit">→ atacou {{ r.alvoNome }} (-{{ r.dano }}{{ r.critico ? ' CRÍTICO' : '' }})</span>
                 }
                 @case ('DICA') { <span>→ comprou dica</span> }
-                @case ('CAIU') { <span class="reveal__hit">→ caiu antes de atacar</span> }
+                @case ('CAIU') { <span class="rodada-res__hit">→ caiu antes de atacar</span> }
               }
             </div>
           }
@@ -430,14 +430,14 @@ const FEED_MS = 4000;
     .wrap.dano { animation: flash 0.5s ease; }
     @keyframes flash { 0%, 100% { background: transparent; } 30% { background: color-mix(in srgb, var(--danger) 30%, transparent); } }
     @media (prefers-reduced-motion: reduce) { .wrap.dano { animation: none; } }
-    .reveal { padding: 0.6rem 0.8rem; border-radius: 10px; background: var(--surface-alt); font-size: 0.88rem; color: var(--text); display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: baseline; }
-    .reveal--eu { background: color-mix(in srgb, var(--danger) 22%, transparent); }
-    .reveal strong { color: var(--text); }
-    .reveal__ok { color: #16a34a; font-weight: 700; }
-    .reveal__hit { font-weight: 800; }
-    .reveal-lista { display: flex; flex-direction: column; gap: 0.35rem; }
-    .reveal-lista__tit { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
-    .reveal__pos { font-weight: 800; color: var(--text-muted); }
+    .rodada-res { padding: 0.6rem 0.8rem; border-radius: 10px; background: var(--surface-alt); font-size: 0.88rem; color: var(--text); display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: baseline; }
+    .rodada-res--eu { background: color-mix(in srgb, var(--danger) 22%, transparent); }
+    .rodada-res strong { color: var(--text); }
+    .rodada-res__ok { color: #16a34a; font-weight: 700; }
+    .rodada-res__hit { font-weight: 800; }
+    .fim-rodada { display: flex; flex-direction: column; gap: 0.35rem; }
+    .fim-rodada__tit { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+    .rodada-res__pos { font-weight: 800; color: var(--text-muted); }
     /* Feed da rodada: toasts que não travam nada (029 §3). */
     .feed { display: flex; flex-direction: column; gap: 0.3rem; }
     .feed__item { padding: 0.45rem 0.7rem; border-radius: 8px; border-left: 4px solid var(--primary); background: var(--surface-alt); font-size: 0.82rem; font-weight: 600; color: var(--text); }
