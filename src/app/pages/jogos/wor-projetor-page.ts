@@ -5,7 +5,7 @@ import { RealtimeService } from '../../core/realtime.service';
 import { WorApiService } from '../../core/wor-api.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { NarradorCards } from '../../core/action-card';
-import { Aluno, WorTeam } from '../../core/models';
+import { Aluno, ResultadoRodadaWor, WorTeam } from '../../core/models';
 import { ActionCard } from '../../ui/action-card/action-card';
 import { Icon } from '../../ui/icon/icon';
 import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
@@ -154,7 +154,7 @@ import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausad
 
           @if (m.status === 'EM_ANDAMENTO') {
             <div class="timer" [class.timer--fim]="restante() <= 10">
-              Turno da {{ turnoNome() }} · {{ restante() }}s
+              Rodada · {{ restante() }}s · {{ fechadas() }} de {{ teams().length }} equipes fecharam
             </div>
           }
 
@@ -166,12 +166,12 @@ import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausad
 
           <div class="fortalezas">
             @for (t of teams(); track t.id) {
-              <div class="fort" [class.fort--turno]="t.id === m.turnoEquipeId" [class.fort--horda]="t.isHorde">
+              <div class="fort" [class.fort--fechou]="!!ordemDe(t.id)" [class.fort--horda]="t.isHorde">
                 <span class="fort__top">
                   <app-icon [name]="t.isHorde ? 'sword' : 'castle'" [size]="16" />
                   <strong>{{ t.nome }}</strong>
                   @if (t.isHorde) { <span class="tag">Horda</span> }
-                  @if (t.id === m.turnoEquipeId) { <span class="tag tag--turno">Turno</span> }
+                  @if (ordemDe(t.id); as o) { <span class="tag tag--fechou">{{ o }}º</span> }
                 </span>
                 <span class="pontos"><app-icon name="trophy" [size]="13" /> {{ t.pontos ?? 0 }} pts</span>
                 <span class="hpbar"><span [style.width.%]="t.hp / 10" [style.background]="t.cor"></span></span>
@@ -179,6 +179,41 @@ import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausad
               </div>
             }
           </div>
+
+          @if (m.status === 'EM_ANDAMENTO') {
+            <div class="rodada-info">
+              <div class="painel-feed" aria-live="polite">
+                <span class="painel-feed__tit">Nesta rodada</span>
+                @for (f of feedInvertido(); track f.seq) {
+                  <div class="feed__item" [class.feed__item--erro]="f.tipo === 'DANO_CRITICO'">{{ f.mensagem }}</div>
+                } @empty {
+                  <p class="muted">As equipes estão respondendo…</p>
+                }
+              </div>
+              @if (m.resumoRodada?.resultados?.length) {
+                <div class="painel-feed">
+                  <span class="painel-feed__tit">
+                    Rodada anterior{{ m.resumoRodada?.porTempo ? ' (tempo!)' : '' }}
+                  </span>
+                  @for (r of m.resumoRodada!.resultados; track r.equipeId) {
+                    <div class="resultado">
+                      <b>{{ r.ordem }}º {{ r.equipeNome }}</b>
+                      @if (r.acertadores.length) {
+                        <span class="resultado__ok">acertou {{ acertadoresTxt(r) }}</span>
+                      } @else {
+                        <span>não acertou</span>
+                      }
+                      @switch (r.acao) {
+                        @case ('ATACAR') { <span>→ {{ r.alvoNome }} −{{ r.dano }}{{ r.critico ? ' CRÍTICO' : '' }}</span> }
+                        @case ('DICA') { <span>→ comprou dica</span> }
+                        @case ('CAIU') { <span>→ caiu antes de atacar</span> }
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
 
           @if (m.status === 'ENCERRADO') {
             <div class="fim">
@@ -330,12 +365,21 @@ import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausad
     .fortalezas { display: flex; flex-direction: column; gap: 0.6rem; }
     @media (min-width: 640px) { .fortalezas { display: grid; grid-template-columns: 1fr 1fr; } }
     .fort { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.9rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
-    .fort--turno { border-color: #b45309; box-shadow: 0 0 0 2px color-mix(in srgb, #b45309 30%, transparent); }
+    .fort--fechou { border-color: #b45309; box-shadow: 0 0 0 2px color-mix(in srgb, #b45309 30%, transparent); }
     .fort--horda { opacity: 0.75; }
     .fort__top { display: flex; align-items: center; gap: 0.4rem; }
     .fort__top strong { flex: 1; min-width: 0; }
     .tag { font-size: 0.68rem; font-weight: 800; text-transform: uppercase; padding: 0.1rem 0.4rem; border-radius: 999px; background: var(--surface-alt); color: var(--text-muted); }
-    .tag--turno { background: #b45309; color: #fff; }
+    .tag--fechou { background: #b45309; color: #fff; }
+    /* Feed da rodada (sem congelar) + reveal da rodada anterior, em ordem de chegada. */
+    .rodada-info { display: flex; flex-direction: column; gap: 0.75rem; }
+    @media (min-width: 640px) { .rodada-info { display: grid; grid-template-columns: 1fr 1fr; align-items: start; } }
+    .painel-feed { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.75rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); min-width: 0; }
+    .painel-feed__tit { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+    .feed__item { padding: 0.45rem 0.7rem; border-radius: 8px; border-left: 4px solid var(--primary); background: var(--surface-alt); font-weight: 600; font-size: 0.9rem; }
+    .feed__item--erro { border-left-color: var(--danger); }
+    .resultado { display: flex; flex-wrap: wrap; gap: 0.35rem; font-size: 0.9rem; }
+    .resultado__ok { color: #16a34a; font-weight: 700; }
     .pontos { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.9rem; font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums; }
     .hpbar { height: 10px; border-radius: 999px; background: var(--surface-alt); overflow: hidden; }
     .hpbar span { display: block; height: 100%; transition: width 0.4s ease; }
@@ -398,9 +442,21 @@ export class WorProjetorPage {
   private readonly destroyRef = inject(DestroyRef);
   private tempoDisparadoEm: string | null = null;
 
-  protected readonly turnoNome = computed(
-    () => this.teams().find((t) => t.id === this.match()?.turnoEquipeId)?.nome ?? 'equipe',
+  /** Quantas equipes já fecharam a rodada em curso (não há turno: todas jogam juntas). */
+  protected readonly fechadas = computed(
+    () => this.match()?.equipesFechadas?.length ?? 0,
   );
+  /** Feed da rodada, o mais novo em cima. */
+  protected readonly feedInvertido = computed(() =>
+    [...(this.match()?.feedRodada ?? [])].reverse(),
+  );
+  /** Ordem em que a equipe fechou a rodada em curso (0 = ainda respondendo). */
+  protected ordemDe(id: string): number {
+    return this.match()?.equipesFechadas?.find((f) => f.equipeId === id)?.ordem ?? 0;
+  }
+  protected acertadoresTxt(r: ResultadoRodadaWor): string {
+    return r.acertadores.map((a) => `${a.nome} (${a.letra})`).join(', ');
+  }
   /**
    * Segundos restantes da rodada. Congelada, ela começa no FUTURO (o servidor
    * empurra o início enquanto o card está no ar): o teto de 60s segura o relógio
