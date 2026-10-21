@@ -6,6 +6,7 @@ import {
   CriarWorJogoPayload,
   EfeitoRisco,
   MensagemChatWor,
+  RodadaDaEquipeWor,
   WorJogo,
   WorMatch,
   WorMatchView,
@@ -157,6 +158,13 @@ export class WorApiService {
     return this.http.post<WorMatchView>(
       `${this.base}/aluno/wor/${matchId}/arriscar`,
       { palavra, efeito, alvoEquipeId },
+    );
+  }
+
+  /** O que a equipe do aluno já jogou na rodada em curso (letras pendentes, sem acerto). */
+  rodadaDaEquipe(matchId: string): Observable<RodadaDaEquipeWor> {
+    return this.http.get<RodadaDaEquipeWor>(
+      `${this.base}/aluno/wor/${matchId}/rodada`,
     );
   }
 
