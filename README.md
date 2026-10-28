@@ -114,6 +114,13 @@ UI de pontuação aparece **visível porém travada** (opacidade + cadeado + `cu
 e o clique abre um **upsell** que leva a `/planos`; o toggle "Habilitar Portal Gamificado" no
 formulário de turma fica **travado em off**. O backend reforça com `403 GAMIFICACAO_LOCKED`.
 
+**Medalhas na lista de alunos (aba Alunos):** com a pontuação ativa, cada card de aluno ganha um
+gradiente quase transparente na cor do seu nível (Bronze, Prata, Ouro, Diamante, Platina);
+Diamante e Platina brilham em volta do card, e a Platina tem um reflexo metálico no fundo e no
+texto do nível. Ao ordenar pela pontuação, a lista mostra a **colocação** no estilo de partida
+ranqueada (medalhas ouro/prata/bronze no top 3, depois 4º, 5º…), na mesma ordem do ranking do
+portal. É a única exceção ao design flat do app.
+
 ### Portal do aluno (Plano PhD)
 
 Experiência **isolada** do painel do professor (sem menu lateral, com barra inferior
@@ -335,6 +342,11 @@ O jogo é o embrulho; o conteúdo cobrado é o seu.
 - **Encerrar quando o sinal bate:** o professor termina a investigação **a qualquer momento**,
   sem esperar as questões acabarem. O veredito sai pelo estado da vila naquele instante — setores
   de pé, habitantes na vila — e o XP já conquistado é creditado normalmente.
+- **A revelação no fim:** quando a partida acaba, o ranking final mostra quem jogava cada
+  cidade (o nome do aluno aparece acima do codinome) e quem era a Ameaça: selo **Alienígena**
+  para a original, com a linha destacada, e **Contagiado** para quem foi convertido. O card do
+  resultado nomeia o Alienígena. Vale no telão e no celular; durante a partida nada disso
+  aparece.
 - **As 10 questões** são escritas pelo professor ou **geradas por IA** a partir da disciplina
   e do tópico (1×/dia, com cota própria — não consome a do Qlick nem a do Wor).
 
