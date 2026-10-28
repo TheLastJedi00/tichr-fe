@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { Partida, QlickDoDia } from '../../core/models';
+import { MinhaPerguntaQlick, Partida, QlickDoDia } from '../../core/models';
 import { RealtimeService } from '../../core/realtime.service';
 import { StudentAuthService } from '../../core/student-auth.service';
 import { TurmaApiService } from '../../core/turma-api.service';
@@ -79,21 +79,27 @@ import { Spinner } from '../../ui/spinner/spinner';
               <span class="q__conta">Pergunta {{ p.perguntaAtual + 1 }} de {{ p.totalPerguntas }}</span>
               <span class="timer" [class.timer--fim]="restante() <= 5">{{ restante() }}s</span>
             </div>
-            <h2 class="q__enun">{{ p.perguntaPublica?.enunciado }}</h2>
-            <div class="grid">
-              @for (a of p.perguntaPublica?.alternativas ?? []; track $index) {
-                <button
-                  class="opt opt--{{ $index }}"
-                  type="button"
-                  [class.opt--escolhida]="respostaIndex() === $index"
-                  [class.opt--apagada]="respostaIndex() !== null && respostaIndex() !== $index"
-                  [disabled]="respostaIndex() !== null || restante() === 0 || enviando()"
-                  (click)="responder($index)"
-                >
-                  <span class="opt__key">{{ letra($index) }}</span>{{ a }}
-                </button>
-              }
-            </div>
+            @if (perguntaDaVez(); as q) {
+              <h2 class="q__enun">{{ q.enunciado }}</h2>
+              <div class="grid">
+                @for (a of q.alternativas; track $index) {
+                  <button
+                    class="opt opt--{{ $index }}"
+                    type="button"
+                    [class.opt--escolhida]="respostaIndex() === $index"
+                    [class.opt--apagada]="respostaIndex() !== null && respostaIndex() !== $index"
+                    [disabled]="respostaIndex() !== null || restante() === 0 || enviando()"
+                    (click)="responder($index)"
+                  >
+                    <span class="opt__key">{{ letra($index) }}</span>{{ a }}
+                  </button>
+                }
+              </div>
+            } @else if (!inscrito()) {
+              <p class="muted center">Você não entrou nesta partida. Aguarde a próxima!</p>
+            } @else {
+              <div class="loading"><app-spinner [size]="28" /></div>
+            }
             @if (respostaIndex() !== null) {
               <p class="q__status">Resposta enviada! Aguardando os colegas…</p>
             } @else if (restante() === 0) {
@@ -103,35 +109,39 @@ import { Spinner } from '../../ui/spinner/spinner';
         }
 
         @case ('RANKING_PARCIAL') {
-          @if (acertou(p)) { <app-confetti /> }
-          <app-card>
-            <div
-              class="reveal"
-              [class.reveal--ok]="respondeu() && acertou(p)"
-              [class.reveal--erro]="respondeu() && !acertou(p)"
-            >
-              @if (!respondeu()) {
-                <div class="veredito veredito--neutro"><span class="veredito__ic">–</span> Você não respondeu</div>
-              } @else if (acertou(p)) {
-                <div class="veredito veredito--ok"><span class="veredito__ic"><app-icon name="check" [size]="18" /></span> Você acertou! <app-icon name="sparkles" [size]="18" /></div>
-              } @else {
-                <div class="veredito veredito--erro"><span class="veredito__ic"><app-icon name="x" [size]="18" /></span> Não foi dessa vez</div>
-              }
-              <ul class="alts">
-                @for (a of p.perguntaPublica?.alternativas ?? []; track $index) {
-                  <li
-                    class="alt alt--{{ $index }}"
-                    [class.alt--correta]="$index === p.corretaIndex"
-                    [class.alt--errada]="$index !== p.corretaIndex"
-                    [class.alt--shake]="$index === respostaIndex() && $index !== p.corretaIndex"
-                  >
-                    <span class="alt__key">{{ letra($index) }}</span>{{ a }}
-                    @if ($index === p.corretaIndex) { <span class="alt__ok"><app-icon name="check" [size]="14" /> correta</span> }
-                  </li>
+          @if (perguntaDaVez(); as q) {
+            @if (acertou()) { <app-confetti /> }
+            <app-card>
+              <div
+                class="reveal"
+                [class.reveal--ok]="respondeu() && acertou()"
+                [class.reveal--erro]="respondeu() && !acertou()"
+              >
+                @if (!respondeu()) {
+                  <div class="veredito veredito--neutro"><span class="veredito__ic">–</span> Você não respondeu</div>
+                } @else if (acertou()) {
+                  <div class="veredito veredito--ok"><span class="veredito__ic"><app-icon name="check" [size]="18" /></span> Você acertou! <app-icon name="sparkles" [size]="18" /></div>
+                } @else {
+                  <div class="veredito veredito--erro"><span class="veredito__ic"><app-icon name="x" [size]="18" /></span> Não foi dessa vez</div>
                 }
-              </ul>
-            </div>
-          </app-card>
+                <ul class="alts">
+                  @for (a of q.alternativas; track $index) {
+                    <li
+                      class="alt alt--{{ $index }}"
+                      [class.alt--correta]="$index === q.corretaIndex"
+                      [class.alt--errada]="$index !== q.corretaIndex"
+                      [class.alt--shake]="$index === respostaIndex() && $index !== q.corretaIndex"
+                    >
+                      <span class="alt__key">{{ letra($index) }}</span>{{ a }}
+                      @if ($index === q.corretaIndex) { <span class="alt__ok"><app-icon name="check" [size]="14" /> correta</span> }
+                    </li>
+                  }
+                </ul>
+              </div>
+            </app-card>
+          } @else if (inscrito()) {
+            <app-card><div class="loading"><app-spinner [size]="28" /></div></app-card>
+          }
 
           @if (minhaPos(p); as pos) {
             <app-card>
@@ -354,6 +364,33 @@ export class StudentQlickPage {
   private readonly agora = signal(Date.now());
   protected readonly meuId = this.studentAuth.aluno()?.id ?? '';
   private ultimaPergunta = -1;
+  /** A pergunta do aluno, na ordem dele (vem por REST: spec 031). */
+  protected readonly minha = signal<MinhaPerguntaQlick | null>(null);
+  /** `status:rodada` da última busca de `minha`, para não repetir a cada snapshot. */
+  private ultimaBusca = '';
+
+  /**
+   * O que a tela mostra na rodada. Embaralhada, só vale a pergunta do aluno
+   * (a pública estaria em outra ordem). No ranking, só depois de vir a correta.
+   */
+  protected readonly perguntaDaVez = computed(() => {
+    const p = this.partida();
+    if (!p) return null;
+    const embaralha = !!p.embaralharPerguntas || !!p.embaralharAlternativas;
+    const m = this.minha();
+    const q =
+      m && m.rodada === p.perguntaAtual
+        ? {
+            enunciado: m.enunciado,
+            alternativas: m.alternativas,
+            corretaIndex: m.corretaIndex ?? (embaralha ? null : p.corretaIndex ?? null),
+          }
+        : !embaralha && p.perguntaPublica
+          ? { ...p.perguntaPublica, corretaIndex: p.corretaIndex ?? null }
+          : null;
+    if (q && p.status === 'RANKING_PARCIAL' && q.corretaIndex === null) return null;
+    return q;
+  });
 
   protected readonly inscrito = computed(() =>
     this.partida()?.inscritos.some((i) => i.alunoId === this.meuId) ?? false,
@@ -411,11 +448,36 @@ export class StudentQlickPage {
           if (p && p.perguntaAtual !== this.ultimaPergunta) {
             this.ultimaPergunta = p.perguntaAtual;
             this.respostaIndex.set(null);
+            this.minha.set(null);
           }
           this.partida.set(p);
+          if (p) this.buscarMinhaPergunta(p);
         },
         error: () => {},
       });
+  }
+
+  /**
+   * Busca a pergunta do aluno ao entrar numa rodada e de novo na apuração
+   * (que traz a correta). Recarregar no meio da rodada restaura a escolha.
+   */
+  private buscarMinhaPergunta(p: Partida): void {
+    if (p.status !== 'QUESTAO_ATIVA' && p.status !== 'RANKING_PARCIAL') return;
+    if (!p.inscritos.some((i) => i.alunoId === this.meuId)) return;
+    const chave = `${p.status}:${p.perguntaAtual}`;
+    if (chave === this.ultimaBusca) return;
+    this.ultimaBusca = chave;
+    this.api.minhaPerguntaQlick(p.id).subscribe({
+      next: (m) => {
+        if (m.rodada !== this.partida()?.perguntaAtual) return; // rodada já passou
+        this.minha.set(m);
+        if (m.respondida && this.respostaIndex() === null) {
+          this.respostaIndex.set(m.alternativaEscolhida ?? null);
+        }
+      },
+      // Falhou: libera nova tentativa no próximo snapshot.
+      error: () => (this.ultimaBusca = ''),
+    });
   }
 
   protected inscrever(): void {
@@ -442,8 +504,11 @@ export class StudentQlickPage {
     });
   }
 
-  protected acertou(p: Partida): boolean {
-    return this.respostaIndex() !== null && this.respostaIndex() === p.corretaIndex;
+  protected acertou(): boolean {
+    return (
+      this.respostaIndex() !== null &&
+      this.respostaIndex() === this.perguntaDaVez()?.corretaIndex
+    );
   }
 
   protected minhaPos(p: Partida): { posicao: number; pontos: number } | null {
