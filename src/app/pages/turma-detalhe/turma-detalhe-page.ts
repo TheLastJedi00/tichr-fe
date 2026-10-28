@@ -235,7 +235,11 @@ type Ordenacao = 'nome' | 'pontuacao';
                       <span class="lista__info">
                         <span class="lista__nome">{{ a.nome }}</span>
                         @if (cfg().pontuacaoAtiva) {
-                          <span class="lista__nivel" [style.color]="nivelDe(a.xpTotal ?? 0).cor">
+                          <span
+                            class="lista__nivel"
+                            [class.lista__nivel--platina]="nivelDe(a.xpTotal ?? 0).chave === 'platina'"
+                            [style.color]="nivelDe(a.xpTotal ?? 0).chave === 'platina' ? null : nivelDe(a.xpTotal ?? 0).cor"
+                          >
                             {{ nivelDe(a.xpTotal ?? 0).nome }}
                           </span>
                         }
@@ -771,6 +775,42 @@ type Ordenacao = 'nome' | 'pontuacao';
       background:
         linear-gradient(90deg, color-mix(in srgb, var(--nivel-cor) 16%, transparent), transparent 75%),
         var(--surface-alt);
+    }
+    /*
+     * Platina: no lugar da cor sólida, faixas claras e escuras do roxo-prata,
+     * como metal polido. No fundo vai num ::before em baixa opacidade; no
+     * texto "Platina", via background-clip.
+     */
+    .lista__item--platina { position: relative; isolation: isolate; }
+    .lista__item--platina::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      border-radius: inherit;
+      pointer-events: none;
+      opacity: 0.22;
+      background: linear-gradient(
+        115deg,
+        transparent 0%,
+        #ddd6fe 18%,
+        #8b5cf6 32%,
+        #f5f3ff 46%,
+        #a78bfa 60%,
+        #ede9fe 72%,
+        transparent 95%
+      );
+    }
+    .lista__nivel--platina {
+      color: transparent;
+      background: linear-gradient(100deg, #6d28d9 0%, #c4b5fd 30%, #7c3aed 50%, #ddd6fe 68%, #8b5cf6 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
+    /* No escuro, as faixas escuras somem no fundo: o reflexo usa tons claros. */
+    :host-context(html[data-theme='dark']) .lista__item--platina::before { opacity: 0.14; }
+    :host-context(html[data-theme='dark']) .lista__nivel--platina {
+      background-image: linear-gradient(100deg, #c4b5fd 0%, #f5f3ff 30%, #a78bfa 50%, #ede9fe 68%, #c4b5fd 100%);
     }
     .lista__item--diamante,
     .lista__item--platina {
