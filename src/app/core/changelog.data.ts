@@ -18,6 +18,33 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.38.0',
+    data: '2026-10-28',
+    titulo: 'Qlick contra a cola',
+    itens: [
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Tichr Qlick: no lobby, escolha embaralhar as perguntas, as alternativas ou as duas. Cada aluno recebe as perguntas em outra ordem e vê as alternativas em outra posição, então "é a C" não serve para o colega ao lado.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Tichr Qlick: o telão mostra quantos alunos já responderam a pergunta. Com as perguntas embaralhadas, o telão mostra só a rodada e o cronômetro, e cada aluno vê a sua pergunta no celular.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Tichr Qlick: se o aluno recarregar a página no meio da pergunta, a resposta que ele já deu continua marcada.',
+      },
+      {
+        categoria: 'Correção',
+        texto:
+          'Tichr Qlick: o resultado da rodada voltou a aparecer no celular do aluno, com a resposta certa e se ele acertou.',
+      },
+    ],
+  },
+  {
     versao: 'v0.37.0',
     data: '2026-10-28',
     titulo: 'Isolateus revelado e medalhas na lista de alunos',
