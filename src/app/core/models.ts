@@ -999,8 +999,13 @@ export interface VereditoIsolateus {
 export interface PlacarIsolateus {
   posicao: number;
   alunoId: string;
+  /** Codinome da cidade. */
   nome: string;
   pontos: number;
+  /** Nome real do aluno (spec 030). Só no fim; ausente sem turma ou em partida antiga. */
+  jogador?: string;
+  /** Papel revelado no fim (spec 030). Ausente = aldeão ou partida antiga. */
+  papel?: 'ALIEN' | 'CONTAGIADO';
 }
 
 /** Um aviso de saída da noite: o habitante escolheu ir para `para`. */

@@ -11,6 +11,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { IsolateusApiService } from '../../core/isolateus-api.service';
 import { rotuloBrilho, setoresBrilhando } from '../../core/isolateus-mapa';
+import { alienDoPlacar, ROTULO_PAPEL } from '../../core/isolateus-placar';
 import { RelogioDaFase } from '../../core/isolateus-relogio';
 import { Aluno, IsolateusMatch } from '../../core/models';
 import { RealtimeService } from '../../core/realtime.service';
@@ -357,11 +358,18 @@ const MIN_REAIS = 4;
                   <app-icon [name]="v.lado === 'VILA' ? 'trophy' : 'alien'" [size]="26" />
                   <strong>{{ v.lado === 'VILA' ? 'A VILA VENCEU' : 'A AMEAÇA VENCEU' }}</strong>
                   <p>{{ v.motivo }}</p>
+                  @if (alien(); as a) {
+                    <p class="fim__alien">
+                      O Alienígena era
+                      @if (a.jogador) { <b>{{ a.jogador }}</b> ({{ a.nome }}) } @else { <b>{{ a.nome }}</b> }
+                    </p>
+                  }
                 </div>
               }
               <ol class="ranking">
                 @for (r of p.rankingFinal; track r.alunoId) {
                   <li
+                    [class.rk-alien]="r.papel === 'ALIEN'"
                     [class.clicavel]="!!p.logPontuacao"
                     [attr.role]="p.logPontuacao ? 'button' : null"
                     [attr.tabindex]="p.logPontuacao ? 0 : null"
@@ -369,7 +377,17 @@ const MIN_REAIS = 4;
                     (keydown.enter)="abrirLog(r.alunoId)"
                   >
                     <span class="pos">{{ r.posicao }}º</span>
-                    <span class="rk-nome">{{ r.nome }}</span>
+                    <span class="rk-quem">
+                      @if (r.jogador) { <span class="rk-jogador">{{ r.jogador }}</span> }
+                      <span class="rk-nome">
+                        {{ r.nome }}
+                        @if (r.papel; as papel) {
+                          <span class="selo-papel" [class.selo-papel--contagiado]="papel === 'CONTAGIADO'">
+                            <app-icon name="alien" [size]="13" /> {{ rotuloPapel[papel] }}
+                          </span>
+                        }
+                      </span>
+                    </span>
                     <span class="rk-pts">{{ r.pontos }} {{ unidade() }}</span>
                   </li>
                 }
@@ -606,7 +624,13 @@ const MIN_REAIS = 4;
     .ranking { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
     .ranking li { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.85rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
     .pos { font-weight: 900; color: var(--text-muted); min-width: 2.5ch; }
-    .rk-nome { flex: 1; font-weight: 700; }
+    .rk-quem { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.1rem; }
+    .rk-jogador { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rk-nome { display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem; font-weight: 700; }
+    .ranking li.rk-alien { border: 2px solid #84cc16; }
+    .selo-papel { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: #fff; background: #4d7c0f; }
+    .selo-papel--contagiado { color: #3f6212; background: #ecfccb; }
+    .fim__alien { font-size: 1.05rem; }
     .rk-pts { font-weight: 800; color: #4d7c0f; }
     .ranking li.clicavel { cursor: pointer; }
     .ranking li.clicavel:hover, .ranking li.clicavel:focus-visible { border-color: #4d7c0f; outline: none; }
@@ -862,6 +886,9 @@ export class IsolateusProjetorPage {
     const id = this.logAberto();
     return this.partida()?.rankingFinal.find((r) => r.alunoId === id)?.posicao ?? null;
   });
+  // --- Revelação (spec 030): quem era a Ameaça e quem jogava cada cidade ---
+  protected readonly alien = computed(() => alienDoPlacar(this.partida()?.rankingFinal ?? []));
+  protected readonly rotuloPapel = ROTULO_PAPEL;
   protected abrirLog(alunoId: string): void {
     if (this.partida()?.logPontuacao) this.logAberto.set(alunoId);
   }
