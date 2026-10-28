@@ -15,6 +15,7 @@ import {
   CriarTurmaPayload,
   Equipe,
   Ferias,
+  MinhaPerguntaQlick,
   Partida,
   PerguntaQlick,
   PlanoAula,
@@ -442,6 +443,24 @@ export class TurmaApiService {
     return this.http.post<Partida>(
       `${this.base}/partidas/${partidaId}/vale-ranking`,
       { valeRanking },
+    );
+  }
+
+  /** Professor, no lobby: embaralhar perguntas e/ou alternativas por aluno. */
+  definirEmbaralhamentoQlick(
+    partidaId: string,
+    opcoes: { embaralharPerguntas?: boolean; embaralharAlternativas?: boolean },
+  ): Observable<Partida> {
+    return this.http.post<Partida>(
+      `${this.base}/partidas/${partidaId}/embaralhamento`,
+      opcoes,
+    );
+  }
+
+  /** Aluno: a sua pergunta da rodada corrente (na ordem dele). */
+  minhaPerguntaQlick(partidaId: string): Observable<MinhaPerguntaQlick> {
+    return this.http.get<MinhaPerguntaQlick>(
+      `${this.base}/aluno/qlick/${partidaId}/minha-pergunta`,
     );
   }
 

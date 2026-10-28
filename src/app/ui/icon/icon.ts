@@ -55,7 +55,9 @@ export type IconName =
   | 'arrow-right'
   // A pausa do professor (Qlick, Wor e Isolateus).
   | 'pause'
-  | 'play';
+  | 'play'
+  // Perguntas embaralhadas por aluno (Qlick).
+  | 'shuffle';
 
 /**
  * Componente burro de icones. Centraliza os SVGs e herda a cor do texto
@@ -305,6 +307,13 @@ export type IconName =
         @case ('send') {
           <path d="M22 2 11 13" />
           <path d="M22 2 15 22l-4-9-9-4 20-7Z" />
+        }
+        @case ('shuffle') {
+          <path d="m18 14 4 4-4 4" />
+          <path d="m18 2 4 4-4 4" />
+          <path d="M2 18h2a4 4 0 0 0 3.3-1.7l5.4-7.6A4 4 0 0 1 16 7h6" />
+          <path d="M2 6h2a4 4 0 0 1 3.6 2.2" />
+          <path d="M22 18h-6a4 4 0 0 1-3.3-1.8l-.4-.5" />
         }
       }
     </svg>
