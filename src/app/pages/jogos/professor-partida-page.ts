@@ -17,6 +17,7 @@ import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { Modal } from '../../ui/modal/modal';
 import { Spinner } from '../../ui/spinner/spinner';
 import { ValeRankingComponent } from '../../ui/vale-ranking/vale-ranking';
+import { OpcaoLobbyComponent } from '../../ui/opcao-lobby/opcao-lobby';
 import { LogPontuacaoComponent } from '../../ui/log-pontuacao/log-pontuacao';
 import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausada';
 import { podePausar, relogioDaPartida } from '../../core/pausa';
@@ -37,6 +38,7 @@ import { podePausar, relogioDaPartida } from '../../core/pausa';
     Modal,
     LobbyLoader,
     ValeRankingComponent,
+    OpcaoLobbyComponent,
     LogPontuacaoComponent,
     PartidaPausadaComponent,
   ],
@@ -97,11 +99,27 @@ import { podePausar, relogioDaPartida } from '../../core/pausa';
                 (mudou)="mudarValeRanking($event)"
               />
             }
+            <app-opcao-lobby
+              class="vale"
+              rotulo="Embaralhar perguntas"
+              dica="Cada aluno recebe as perguntas em ordem diferente. O enunciado não aparece no telão."
+              [valor]="embaralharPerguntas()"
+              [desabilitado]="salvandoEmbaralhamento()"
+              (mudou)="mudarEmbaralhamento('embaralharPerguntas', $event)"
+            />
+            <app-opcao-lobby
+              class="vale"
+              rotulo="Embaralhar alternativas"
+              dica="Cada aluno vê as alternativas em ordem diferente."
+              [valor]="embaralharAlternativas()"
+              [desabilitado]="salvandoEmbaralhamento()"
+              (mudou)="mudarEmbaralhamento('embaralharAlternativas', $event)"
+            />
             @if (erro()) { <p class="erro">{{ erro() }}</p> }
             <button
               class="btn-primary full"
               type="button"
-              [disabled]="p.inscritos.length === 0 || processando() || salvandoValeRanking()"
+              [disabled]="p.inscritos.length === 0 || processando() || salvandoValeRanking() || salvandoEmbaralhamento()"
               (click)="comando('iniciar')"
             >
               Iniciar Qlick ({{ p.inscritos.length }} inscritos)
@@ -414,6 +432,42 @@ export class ProfessorPartidaPage {
         this.valeRankingLocal.set(null);
         this.salvandoValeRanking.set(false);
         this.erro.set('Não foi possível mudar se a partida vale para o ranking.');
+      },
+    });
+  }
+
+  // --- Embaralhamento por aluno (lobby) ---
+  /** Os valores escolhidos aqui, antes de o snapshot confirmar. */
+  private readonly embaralhamentoLocal = signal<{
+    embaralharPerguntas?: boolean;
+    embaralharAlternativas?: boolean;
+  }>({});
+  protected readonly embaralharPerguntas = computed(
+    () =>
+      this.embaralhamentoLocal().embaralharPerguntas ??
+      !!this.partida()?.embaralharPerguntas,
+  );
+  protected readonly embaralharAlternativas = computed(
+    () =>
+      this.embaralhamentoLocal().embaralharAlternativas ??
+      !!this.partida()?.embaralharAlternativas,
+  );
+  protected readonly salvandoEmbaralhamento = signal(false);
+
+  protected mudarEmbaralhamento(
+    campo: 'embaralharPerguntas' | 'embaralharAlternativas',
+    valor: boolean,
+  ): void {
+    this.embaralhamentoLocal.update((o) => ({ ...o, [campo]: valor }));
+    this.salvandoEmbaralhamento.set(true);
+    this.erro.set(null);
+    this.api.definirEmbaralhamentoQlick(this.partidaId, { [campo]: valor }).subscribe({
+      next: () => this.salvandoEmbaralhamento.set(false),
+      error: () => {
+        // O servidor recusou (ex.: a partida começou): volta ao valor real.
+        this.embaralhamentoLocal.update((o) => ({ ...o, [campo]: undefined }));
+        this.salvandoEmbaralhamento.set(false);
+        this.erro.set('Não foi possível mudar o embaralhamento.');
       },
     });
   }
