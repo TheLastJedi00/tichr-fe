@@ -213,7 +213,9 @@ type Ordenacao = 'nome' | 'pontuacao';
 
               <ul class="lista">
                 @for (a of alunosOrdenados(); track a.id; let i = $index) {
-                  <li class="lista__item">
+                  <li
+                    class="lista__item {{ cfg().pontuacaoAtiva ? 'lista__item--' + nivelDe(a.xpTotal ?? 0).chave : '' }}"
+                  >
                     <button
                       class="lista__click"
                       type="button"
@@ -754,6 +756,27 @@ type Ordenacao = 'nome' | 'pontuacao';
       gap: 0.4rem;
       border-radius: var(--radius);
       background: var(--surface-alt);
+    }
+    /*
+     * Cor do nível no card (spec 030 §2.2). Exceção ao design flat do
+     * strategy.md, só aqui: gradiente quase transparente da cor do nível e,
+     * em Diamante/Platina, um brilho em volta do card.
+     */
+    .lista__item--bronze { --nivel-cor: var(--nivel-bronze); }
+    .lista__item--prata { --nivel-cor: var(--nivel-prata); }
+    .lista__item--ouro { --nivel-cor: var(--nivel-ouro); }
+    .lista__item--diamante { --nivel-cor: var(--nivel-diamante); }
+    .lista__item--platina { --nivel-cor: var(--nivel-platina); }
+    .lista__item[class*='lista__item--'] {
+      background:
+        linear-gradient(90deg, color-mix(in srgb, var(--nivel-cor) 16%, transparent), transparent 75%),
+        var(--surface-alt);
+    }
+    .lista__item--diamante,
+    .lista__item--platina {
+      box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--nivel-cor) 55%, transparent),
+        0 0 14px color-mix(in srgb, var(--nivel-cor) 45%, transparent);
     }
     .lista__click {
       flex: 1;
