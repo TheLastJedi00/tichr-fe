@@ -212,14 +212,24 @@ type Ordenacao = 'nome' | 'pontuacao';
               </div>
 
               <ul class="lista">
-                @for (a of alunosOrdenados(); track a.id) {
+                @for (a of alunosOrdenados(); track a.id; let i = $index) {
                   <li class="lista__item">
                     <button
                       class="lista__click"
                       type="button"
                       (click)="abrirDetalhe(a)"
                     >
-                      <span class="lista__avatar"><app-icon name="user" [size]="18" /></span>
+                      @if (cfg().pontuacaoAtiva && ordenacao() === 'pontuacao') {
+                        <span class="lista__pos" [attr.aria-label]="i + 1 + 'º lugar'">
+                          @if (i < 3) {
+                            <app-icon name="medal" [size]="20" class="medal--{{ i + 1 }}" />
+                          } @else {
+                            {{ i + 1 }}º
+                          }
+                        </span>
+                      } @else {
+                        <span class="lista__avatar"><app-icon name="user" [size]="18" /></span>
+                      }
                       <span class="lista__info">
                         <span class="lista__nome">{{ a.nome }}</span>
                         @if (cfg().pontuacaoAtiva) {
@@ -785,6 +795,18 @@ type Ordenacao = 'nome' | 'pontuacao';
     .campo > span { display: block; margin-bottom: 0.35rem; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
 
     .lista__avatar { display: inline-flex; flex: 0 0 auto; color: var(--text-muted); }
+    /* Colocação no estilo do ranking do portal (student-ranking-page). */
+    .lista__pos {
+      flex: 0 0 auto;
+      min-width: 2rem;
+      display: inline-flex;
+      justify-content: center;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+    .medal--1 { color: #f59e0b; }
+    .medal--2 { color: #94a3b8; }
+    .medal--3 { color: #b45309; }
     .pinturma { margin: -0.25rem 0 0.75rem; font-size: 0.9rem; }
     .pinturma strong { font-variant-numeric: tabular-nums; letter-spacing: 0.08em; }
     .pinturma__hint { color: var(--text-muted); }
