@@ -212,18 +212,34 @@ type Ordenacao = 'nome' | 'pontuacao';
               </div>
 
               <ul class="lista">
-                @for (a of alunosOrdenados(); track a.id) {
-                  <li class="lista__item">
+                @for (a of alunosOrdenados(); track a.id; let i = $index) {
+                  <li
+                    class="lista__item {{ cfg().pontuacaoAtiva ? 'lista__item--' + nivelDe(a.xpTotal ?? 0).chave : '' }}"
+                  >
                     <button
                       class="lista__click"
                       type="button"
                       (click)="abrirDetalhe(a)"
                     >
-                      <span class="lista__avatar"><app-icon name="user" [size]="18" /></span>
+                      @if (cfg().pontuacaoAtiva && ordenacao() === 'pontuacao') {
+                        <span class="lista__pos" [attr.aria-label]="i + 1 + 'º lugar'">
+                          @if (i < 3) {
+                            <app-icon name="medal" [size]="20" class="medal--{{ i + 1 }}" />
+                          } @else {
+                            {{ i + 1 }}º
+                          }
+                        </span>
+                      } @else {
+                        <span class="lista__avatar"><app-icon name="user" [size]="18" /></span>
+                      }
                       <span class="lista__info">
                         <span class="lista__nome">{{ a.nome }}</span>
                         @if (cfg().pontuacaoAtiva) {
-                          <span class="lista__nivel" [style.color]="nivelDe(a.xpTotal ?? 0).cor">
+                          <span
+                            class="lista__nivel"
+                            [class.lista__nivel--platina]="nivelDe(a.xpTotal ?? 0).chave === 'platina'"
+                            [style.color]="nivelDe(a.xpTotal ?? 0).chave === 'platina' ? null : nivelDe(a.xpTotal ?? 0).cor"
+                          >
                             {{ nivelDe(a.xpTotal ?? 0).nome }}
                           </span>
                         }
@@ -745,6 +761,63 @@ type Ordenacao = 'nome' | 'pontuacao';
       border-radius: var(--radius);
       background: var(--surface-alt);
     }
+    /*
+     * Cor do nível no card (spec 030 §2.2). Exceção ao design flat do
+     * strategy.md, só aqui: gradiente quase transparente da cor do nível e,
+     * em Diamante/Platina, um brilho em volta do card.
+     */
+    .lista__item--bronze { --nivel-cor: var(--nivel-bronze); }
+    .lista__item--prata { --nivel-cor: var(--nivel-prata); }
+    .lista__item--ouro { --nivel-cor: var(--nivel-ouro); }
+    .lista__item--diamante { --nivel-cor: var(--nivel-diamante); }
+    .lista__item--platina { --nivel-cor: var(--nivel-platina); }
+    .lista__item[class*='lista__item--'] {
+      background:
+        linear-gradient(90deg, color-mix(in srgb, var(--nivel-cor) 16%, transparent), transparent 75%),
+        var(--surface-alt);
+    }
+    /*
+     * Platina: no lugar da cor sólida, faixas claras e escuras do roxo-prata,
+     * como metal polido. No fundo vai num ::before em baixa opacidade; no
+     * texto "Platina", via background-clip.
+     */
+    .lista__item--platina { position: relative; isolation: isolate; }
+    .lista__item--platina::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      border-radius: inherit;
+      pointer-events: none;
+      opacity: 0.22;
+      background: linear-gradient(
+        115deg,
+        transparent 0%,
+        #ddd6fe 18%,
+        #8b5cf6 32%,
+        #f5f3ff 46%,
+        #a78bfa 60%,
+        #ede9fe 72%,
+        transparent 95%
+      );
+    }
+    .lista__nivel--platina {
+      color: transparent;
+      background: linear-gradient(100deg, #6d28d9 0%, #c4b5fd 30%, #7c3aed 50%, #ddd6fe 68%, #8b5cf6 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
+    /* No escuro, as faixas escuras somem no fundo: o reflexo usa tons claros. */
+    :host-context(html[data-theme='dark']) .lista__item--platina::before { opacity: 0.14; }
+    :host-context(html[data-theme='dark']) .lista__nivel--platina {
+      background-image: linear-gradient(100deg, #c4b5fd 0%, #f5f3ff 30%, #a78bfa 50%, #ede9fe 68%, #c4b5fd 100%);
+    }
+    .lista__item--diamante,
+    .lista__item--platina {
+      box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--nivel-cor) 55%, transparent),
+        0 0 14px color-mix(in srgb, var(--nivel-cor) 45%, transparent);
+    }
     .lista__click {
       flex: 1;
       display: flex;
@@ -785,6 +858,18 @@ type Ordenacao = 'nome' | 'pontuacao';
     .campo > span { display: block; margin-bottom: 0.35rem; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
 
     .lista__avatar { display: inline-flex; flex: 0 0 auto; color: var(--text-muted); }
+    /* Colocação no estilo do ranking do portal (student-ranking-page). */
+    .lista__pos {
+      flex: 0 0 auto;
+      min-width: 2rem;
+      display: inline-flex;
+      justify-content: center;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+    .medal--1 { color: #f59e0b; }
+    .medal--2 { color: #94a3b8; }
+    .medal--3 { color: #b45309; }
     .pinturma { margin: -0.25rem 0 0.75rem; font-size: 0.9rem; }
     .pinturma strong { font-variant-numeric: tabular-nums; letter-spacing: 0.08em; }
     .pinturma__hint { color: var(--text-muted); }

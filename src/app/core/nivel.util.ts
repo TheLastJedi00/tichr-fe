@@ -19,7 +19,11 @@ export const NIVEIS_DEFAULT: LimiaresNivel = {
   platina: 4000,
 };
 
+/** Chave estável do nível, para classes CSS (o `nome` é texto de exibição). */
+export type ChaveNivel = 'bronze' | 'prata' | 'ouro' | 'diamante' | 'platina';
+
 export interface NivelInfo {
+  chave: ChaveNivel;
   nome: string;
   cor: string;
   /** XP de entrada no tier atual. */
@@ -28,6 +32,7 @@ export interface NivelInfo {
   proxMin: number | null;
 }
 
+/** Os mesmos hex das variáveis `--nivel-*` do styles.scss. */
 const CORES: Record<string, string> = {
   Bronze: '#a97142',
   Prata: '#9ca3af',
@@ -53,11 +58,11 @@ export function nivelDeXp(
 ): NivelInfo {
   const l = normalizarLimiares(limiares);
   const tiers = [
-    { nome: 'Bronze', min: 0 },
-    { nome: 'Prata', min: l.prata },
-    { nome: 'Ouro', min: l.ouro },
-    { nome: 'Diamante', min: l.diamante },
-    { nome: 'Platina', min: l.platina },
+    { chave: 'bronze' as const, nome: 'Bronze', min: 0 },
+    { chave: 'prata' as const, nome: 'Prata', min: l.prata },
+    { chave: 'ouro' as const, nome: 'Ouro', min: l.ouro },
+    { chave: 'diamante' as const, nome: 'Diamante', min: l.diamante },
+    { chave: 'platina' as const, nome: 'Platina', min: l.platina },
   ];
   const pontos = Math.max(0, xp);
   let idx = 0;
@@ -67,6 +72,7 @@ export function nivelDeXp(
   const tier = tiers[idx];
   const prox = tiers[idx + 1];
   return {
+    chave: tier.chave,
     nome: tier.nome,
     cor: CORES[tier.nome],
     atualMin: tier.min,

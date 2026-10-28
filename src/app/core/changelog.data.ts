@@ -18,6 +18,28 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.37.0',
+    data: '2026-10-28',
+    titulo: 'Isolateus revelado e medalhas na lista de alunos',
+    itens: [
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Tichr Isolateus: no fim da partida, o ranking revela quem era o Alienígena e quem foi contagiado, e mostra o nome de quem jogava cada cidade. O resultado final também diz quem era o Alienígena.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Lista de alunos da turma: ao ordenar pela pontuação, cada aluno mostra a colocação, com medalhas para os três primeiros.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Lista de alunos da turma: o card de cada aluno ganha a cor do seu nível. Diamante e Platina brilham, e a Platina tem um reflexo metálico.',
+      },
+    ],
+  },
+  {
     versao: 'v0.36.0',
     data: '2026-10-21',
     titulo: 'Wor: todas as equipes ao mesmo tempo',
