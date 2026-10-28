@@ -130,15 +130,32 @@ import { podePausar, relogioDaPartida } from '../../core/pausa';
         @case ('QUESTAO_ATIVA') {
           <app-card>
             <div class="q__top">
-              <span class="q__conta">Pergunta {{ p.perguntaAtual + 1 }} de {{ p.totalPerguntas }}</span>
+              <span class="q__conta">
+                {{ p.embaralharPerguntas ? 'Rodada' : 'Pergunta' }} {{ p.perguntaAtual + 1 }} de {{ p.totalPerguntas }}
+              </span>
               <span class="timer" [class.timer--fim]="restante() <= 5">{{ restante() }}s</span>
             </div>
-            <h2 class="q__enun">{{ p.perguntaPublica?.enunciado }}</h2>
-            <ul class="alts">
-              @for (a of p.perguntaPublica?.alternativas ?? []; track $index) {
-                <li class="alt"><span class="alt__key">{{ letra($index) }}</span>{{ a }}</li>
-              }
-            </ul>
+            @if (p.embaralharPerguntas) {
+              <!-- Cada aluno está numa pergunta: o enunciado fica só no celular. -->
+              <div class="emb">
+                <app-icon name="shuffle" [size]="28" />
+                <p>Cada aluno está respondendo uma pergunta diferente no celular.</p>
+              </div>
+            } @else {
+              <h2 class="q__enun">{{ p.perguntaPublica?.enunciado }}</h2>
+              <ul class="alts">
+                @for (a of p.perguntaPublica?.alternativas ?? []; track $index) {
+                  <li class="alt">
+                    <!-- Alternativas embaralhadas: a letra de cada aluno é outra. -->
+                    @if (!p.embaralharAlternativas) { <span class="alt__key">{{ letra($index) }}</span> }
+                    {{ a }}
+                  </li>
+                }
+              </ul>
+            }
+            <p class="contador">
+              <strong>{{ p.respondidosRodada ?? 0 }}</strong> de {{ p.inscritos.length }} responderam
+            </p>
             <button class="btn-primary full" type="button" [disabled]="processando()" (click)="comando('apurar')">
               Revelar resposta
             </button>
@@ -146,17 +163,20 @@ import { podePausar, relogioDaPartida } from '../../core/pausa';
         }
 
         @case ('RANKING_PARCIAL') {
-          <app-card>
-            <span class="q__conta">Resposta da pergunta {{ p.perguntaAtual + 1 }}</span>
-            <ul class="alts">
-              @for (a of p.perguntaPublica?.alternativas ?? []; track $index) {
-                <li class="alt" [class.alt--correta]="$index === p.corretaIndex">
-                  <span class="alt__key">{{ letra($index) }}</span>{{ a }}
-                  @if ($index === p.corretaIndex) { <span class="alt__ok"><app-icon name="check" [size]="14" /> correta</span> }
-                </li>
-              }
-            </ul>
-          </app-card>
+          @if (!p.embaralharPerguntas) {
+            <app-card>
+              <span class="q__conta">Resposta da pergunta {{ p.perguntaAtual + 1 }}</span>
+              <ul class="alts">
+                @for (a of p.perguntaPublica?.alternativas ?? []; track $index) {
+                  <li class="alt" [class.alt--correta]="$index === p.corretaIndex">
+                    @if (!p.embaralharAlternativas) { <span class="alt__key">{{ letra($index) }}</span> }
+                    {{ a }}
+                    @if ($index === p.corretaIndex) { <span class="alt__ok"><app-icon name="check" [size]="14" /> correta</span> }
+                  </li>
+                }
+              </ul>
+            </app-card>
+          }
 
           <app-card>
             <h3 class="rk__tit">Ranking geral</h3>
@@ -312,6 +332,10 @@ import { podePausar, relogioDaPartida } from '../../core/pausa';
     .alt { display: flex; align-items: center; gap: 0.6rem; padding: 0.75rem 0.9rem; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); font-weight: 600; }
     .alt--correta { border-color: #16a34a; background: color-mix(in srgb, #16a34a 12%, transparent); }
     .alt__key { flex: 0 0 auto; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 999px; background: var(--surface-alt); font-size: 0.8rem; font-weight: 800; }
+    .emb { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1.5rem 0.5rem; text-align: center; color: var(--primary); }
+    .emb p { margin: 0; color: var(--text-muted); font-weight: 600; }
+    .contador { margin: 0 0 1rem; text-align: center; color: var(--text-muted); }
+    .contador strong { color: var(--text); font-variant-numeric: tabular-nums; }
     .alt__ok { margin-left: auto; font-size: 0.8rem; font-weight: 800; color: #16a34a; }
     .rk__tit { margin: 0 0 0.75rem; font-size: 1.05rem; }
     .rank { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.4rem; }
