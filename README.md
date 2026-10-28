@@ -59,7 +59,7 @@ O diferencial visível está na **demonstração interativa da landing page** e 
 | `/aluno/wor` | **Wor (aluno)** | Cliente **mobile-first**: teclado de letras aberto a cada rodada (todas as equipes jogam juntas), voto (atacar/comprar dica), **Risco Heroico**, letras da equipe na rodada, feed dos ataques, reveal do fim da rodada, **modal da Queda da Horda**, animação de dano, **bônus pessoal** no fim e o **chat privado da equipe**. Escuta só o próprio castelo (realtime barato). |
 | `/jogos/qlick/meus` | **Meus Qlicks** | Lista dos quizzes do professor; **Rodar** pergunta "para qual turma?" quando o Qlick está em várias (N:N). |
 | `/jogos/qlick/novo` · `/editar/:id` | **Estúdio do Qlick** | Formulário reativo (FormArray) de perguntas → alternativas, com marcação da correta e duração. |
-| `/jogos/qlick/partida/:id` | **Sala do professor** | Comanda a partida em tempo real; o **lobby** exibe o **PIN da turma em tamanho grande** + um **modal de assistência** (grid de alunos com o PIN revelado por toque, em *flip*). Depois: pergunta (timer + revelar), ranking da rodada e pódio. |
+| `/jogos/qlick/partida/:id` | **Sala do professor** | Comanda a partida em tempo real; o **lobby** exibe o **PIN da turma em tamanho grande** + um **modal de assistência** (grid de alunos com o PIN revelado por toque, em *flip*). No lobby, as opções **Embaralhar perguntas** e **Embaralhar alternativas**. Depois: pergunta (timer + "X de Y responderam" + revelar; sem enunciado quando as perguntas estão embaralhadas), ranking da rodada e pódio. |
 | `/planos` | **Assinatura** | Vitrine dos 4 planos com o **plano atual em destaque** e troca de plano (mock). Destino do botão "Fazer upgrade" quando um recurso exige um plano superior. |
 | `/configuracoes` | **Hub de Configurações** | Índice da conta: cabeçalho com **avatar + nome** do professor e um menu para **Meu Perfil**, **Meu Plano** e a seção **Legal** (**Termos de Uso** e **Política de Privacidade**). |
 | `/configuracoes/perfil` | **Meu Perfil** | **Foto de perfil** (editar → recorte 1:1 → compressão → upload pelo backend), dados (nome, disciplina, bio), **@username** com disponibilidade em tempo real e **trava de 60 dias**, **disciplinas como cards** (modal para renomear/excluir) e **férias globais**. |
@@ -187,6 +187,13 @@ cliente (ver [arquitetura](#arquitetura--stack)):
 - **Comando via REST, estado por realtime:** toda escrita vai ao backend (fonte única);
   o cliente só **observa** o documento da partida via `onSnapshot`. A resposta correta
   nunca trafega durante a pergunta.
+- **Embaralhamento anticola:** no lobby, duas caixas independentes (ligadas por padrão):
+  **Embaralhar perguntas** (cada aluno recebe as perguntas em outra ordem) e **Embaralhar
+  alternativas** (cada aluno vê A/B/C/D em outra ordem). O aluno busca a **própria pergunta**
+  por REST (`minha-pergunta`), o que também restaura a resposta ao recarregar a página. O
+  telão se adapta: com perguntas embaralhadas mostra só a rodada, o cronômetro e
+  "X de Y responderam"; com só as alternativas, mostra o enunciado e as alternativas **sem
+  letra** e revela a correta pelo texto.
 
 ### Tichr Wor: todas as equipes ao mesmo tempo
 
