@@ -113,9 +113,9 @@ import { Spinner } from '../../ui/spinner/spinner';
             @if (acertou()) { <app-confetti /> }
             <app-card>
               <div
-                class="reveal"
-                [class.reveal--ok]="respondeu() && acertou()"
-                [class.reveal--erro]="respondeu() && !acertou()"
+                class="revela"
+                [class.revela--ok]="respondeu() && acertou()"
+                [class.revela--erro]="respondeu() && !acertou()"
               >
                 @if (!respondeu()) {
                   <div class="veredito veredito--neutro"><span class="veredito__ic">–</span> Você não respondeu</div>
@@ -280,9 +280,9 @@ import { Spinner } from '../../ui/spinner/spinner';
     .veredito--ok .veredito__ic { background: #16a34a; }
     .veredito--erro { color: #dc2626; }
     .veredito--erro .veredito__ic { background: #dc2626; }
-    .reveal { border-radius: 14px; padding: 0.4rem; transition: background 0.4s ease; }
-    .reveal--ok { background: color-mix(in srgb, #22c55e 14%, transparent); }
-    .reveal--erro { background: color-mix(in srgb, #ef4444 12%, transparent); }
+    .revela { border-radius: 14px; padding: 0.4rem; transition: background 0.4s ease; }
+    .revela--ok { background: color-mix(in srgb, #22c55e 14%, transparent); }
+    .revela--erro { background: color-mix(in srgb, #ef4444 12%, transparent); }
     .veredito--neutro { color: var(--text-muted); }
     .veredito--neutro .veredito__ic { background: var(--text-muted); }
     .alts { list-style: none; margin: 0.5rem 0 0; padding: 0; display: grid; gap: 0.5rem; }
