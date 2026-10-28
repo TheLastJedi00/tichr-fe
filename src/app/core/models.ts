@@ -490,8 +490,25 @@ export interface Partida {
   rankingFinal?: Array<{ posicao: number } & PlacarItem>;
   /** Desmarcado no lobby, a partida é casual (não soma no ranking). Ausente = vale. */
   valeRanking?: boolean;
+  /** Cada aluno recebe as perguntas em ordem própria; o telão não mostra o enunciado. */
+  embaralharPerguntas?: boolean;
+  /** Cada aluno vê as alternativas em ordem própria; o telão não mostra letras. */
+  embaralharAlternativas?: boolean;
+  /** Quantos inscritos já responderam a rodada corrente. */
+  respondidosRodada?: number;
   /** De onde veio cada ponto. Só no encerramento. */
   logPontuacao?: LogPontuacaoJogador[];
+}
+
+/** A pergunta do aluno na rodada, na ordem que ele vê (índices na ordem exibida). */
+export interface MinhaPerguntaQlick {
+  rodada: number;
+  enunciado: string;
+  alternativas: string[];
+  respondida: boolean;
+  alternativaEscolhida?: number;
+  /** Só depois da apuração (RANKING_PARCIAL). */
+  corretaIndex?: number;
 }
 
 // --- Log de pontuação (fim de partida, todos os jogos) ---
