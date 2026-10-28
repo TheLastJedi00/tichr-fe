@@ -19,6 +19,7 @@ import {
   setoresBrilhando,
   vizinhosDe,
 } from '../../core/isolateus-mapa';
+import { alienDoPlacar, ROTULO_PAPEL } from '../../core/isolateus-placar';
 import { RelogioDaFase } from '../../core/isolateus-relogio';
 import {
   DeslocamentoNoite,
@@ -632,6 +633,12 @@ function mensagemBloqueada(e: {
                   <app-icon [name]="v.lado === 'VILA' ? 'trophy' : 'alien'" [size]="34" />
                   <strong>{{ ganhei(v.lado) ? 'Você venceu!' : 'Você perdeu.' }}</strong>
                   <p>{{ v.motivo }}</p>
+                  @if (alien(); as a) {
+                    <p class="fim__alien">
+                      O Alienígena era
+                      @if (a.jogador) { <b>{{ a.jogador }}</b> ({{ a.nome }}) } @else { <b>{{ a.nome }}</b> }
+                    </p>
+                  }
                 </div>
               }
               @if (minhaPosicao(p); as eu) {
@@ -650,13 +657,24 @@ function mensagemBloqueada(e: {
                     <li
                       class="placar-fim__row"
                       [class.placar-fim__row--eu]="r.alunoId === meuId"
+                      [class.placar-fim__row--alien]="r.papel === 'ALIEN'"
                       role="button"
                       tabindex="0"
                       (click)="logAberto.set(r.alunoId)"
                       (keydown.enter)="logAberto.set(r.alunoId)"
                     >
                       <span class="placar-fim__pos">{{ r.posicao }}º</span>
-                      <span class="placar-fim__nome">{{ r.nome }}</span>
+                      <span class="placar-fim__quem">
+                        @if (r.jogador) { <span class="placar-fim__jogador">{{ r.jogador }}</span> }
+                        <span class="placar-fim__nome">
+                          {{ r.nome }}
+                          @if (r.papel; as papel) {
+                            <span class="selo-papel" [class.selo-papel--contagiado]="papel === 'CONTAGIADO'">
+                              <app-icon name="alien" [size]="12" /> {{ rotuloPapel[papel] }}
+                            </span>
+                          }
+                        </span>
+                      </span>
                       <span class="placar-fim__pts">{{ r.pontos }}</span>
                     </li>
                   }
@@ -1067,7 +1085,13 @@ function mensagemBloqueada(e: {
     .placar-fim__row:hover, .placar-fim__row:focus-visible { border-color: #4d7c0f; outline: none; }
     .placar-fim__row--eu { border-width: 2px; border-color: #4d7c0f; }
     .placar-fim__pos { font-weight: 900; color: var(--text-muted); min-width: 2.5ch; }
-    .placar-fim__nome { flex: 1 1 auto; font-weight: 700; }
+    .placar-fim__row--alien { border-width: 2px; border-color: #84cc16; }
+    .placar-fim__quem { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 0.1rem; }
+    .placar-fim__jogador { font-size: 0.72rem; font-weight: 600; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .placar-fim__nome { display: flex; align-items: center; flex-wrap: wrap; gap: 0.35rem; font-weight: 700; }
+    .selo-papel { display: inline-flex; align-items: center; gap: 0.2rem; padding: 0.05rem 0.45rem; border-radius: 999px; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: #fff; background: #4d7c0f; }
+    .selo-papel--contagiado { color: #3f6212; background: #ecfccb; }
+    .fim__alien { font-size: 1rem; }
     .placar-fim__pts { font-weight: 800; color: #4d7c0f; font-variant-numeric: tabular-nums; }
     /* Quarentena */
     .card-global { padding: 0.9rem; border-radius: 12px; font-weight: 800; font-size: 0.95rem; text-align: center; color: #fff; background: var(--danger); }
@@ -2140,4 +2164,7 @@ export class StudentIsolateusPage {
     const id = this.logAberto();
     return this.partida()?.rankingFinal.find((r) => r.alunoId === id)?.posicao ?? null;
   });
+  // --- Revelação (spec 030): quem era a Ameaça e quem jogava cada cidade ---
+  protected readonly alien = computed(() => alienDoPlacar(this.partida()?.rankingFinal ?? []));
+  protected readonly rotuloPapel = ROTULO_PAPEL;
 }
