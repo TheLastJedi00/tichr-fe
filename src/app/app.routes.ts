@@ -125,6 +125,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'denuncias',
+        loadComponent: () =>
+          import('./pages/student-denuncia/student-denuncia-page').then(
+            (m) => m.StudentDenunciaPage,
+          ),
+      },
+      {
         path: 'manual',
         loadComponent: () =>
           import('./pages/student-manual/student-manual-page').then(
@@ -314,6 +321,14 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/meu-perfil/meu-perfil-page').then(
             (m) => m.MeuPerfilPage,
+          ),
+      },
+      {
+        path: 'configuracoes/denuncias',
+        canActivate: [exigePlano('GAMIFICACAO')],
+        loadComponent: () =>
+          import('./pages/topicos-denuncia/topicos-denuncia-page').then(
+            (m) => m.TopicosDenunciaPage,
           ),
       },
       {
