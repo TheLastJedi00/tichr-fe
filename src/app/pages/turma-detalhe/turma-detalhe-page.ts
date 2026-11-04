@@ -28,6 +28,8 @@ import { planoAtendeMinimo, podeGamificar } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { ROTULO_STATUS, statusVisual } from '../../core/status-sessao';
 import { TurmaApiService } from '../../core/turma-api.service';
+import { DenunciaApiService } from '../../core/denuncia-api.service';
+import { TurmaDenuncias } from './turma-denuncias';
 import { AlunoCard } from '../../ui/aluno-card/aluno-card';
 import { Card } from '../../ui/card/card';
 import { EquipeColuna } from '../../ui/equipe-coluna/equipe-coluna';
@@ -39,7 +41,7 @@ import { RosterInput } from '../../ui/roster-input/roster-input';
 import { PreJogoAlunosModal } from '../../ui/pre-jogo-alunos-modal/pre-jogo-alunos-modal';
 import { Spinner } from '../../ui/spinner/spinner';
 
-type Aba = 'agenda' | 'alunos' | 'equipes' | 'jogos';
+type Aba = 'agenda' | 'alunos' | 'equipes' | 'jogos' | 'denuncias';
 type Ordenacao = 'nome' | 'pontuacao';
 
 /**
@@ -52,6 +54,7 @@ type Ordenacao = 'nome' | 'pontuacao';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     RouterLink,
+    TurmaDenuncias,
     Card,
     Icon,
     Spinner,
@@ -155,6 +158,19 @@ type Ordenacao = 'nome' | 'pontuacao';
         >
           Jogos ({{ qlicksDaTurma().length }})
         </button>
+        @if (podePontuar()) {
+          <button
+            class="tab"
+            [class.tab--active]="aba() === 'denuncias'"
+            type="button"
+            (click)="aba.set('denuncias')"
+          >
+            Denúncias
+            @if (pendentesDenuncia() > 0) {
+              <span class="tab__badge" [attr.aria-label]="pendentesDenuncia() + ' pendentes'">{{ pendentesDenuncia() }}</span>
+            }
+          </button>
+        }
       </nav>
 
       @switch (aba()) {
@@ -405,6 +421,14 @@ type Ordenacao = 'nome' | 'pontuacao';
           }
         }
 
+        @case ('denuncias') {
+          <app-turma-denuncias
+            [turmaId]="turmaId"
+            [pontuacaoAtiva]="cfg().pontuacaoAtiva"
+            [nomePontuacao]="cfg().nomePontuacao"
+            (pendentesMudou)="pendentesDenuncia.set($event)"
+          />
+        }
         @case ('jogos') {
           @if (qlicksDaTurma().length > 0) {
             <div class="jogos">
@@ -711,6 +735,19 @@ type Ordenacao = 'nome' | 'pontuacao';
       cursor: pointer;
     }
     .tab--active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab__badge {
+      display: inline-block;
+      min-width: 1.3em;
+      margin-left: 0.3rem;
+      padding: 0 0.35em;
+      border-radius: 999px;
+      background: var(--danger);
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 800;
+      line-height: 1.3em;
+      text-align: center;
+    }
     .sessoes { display: flex; flex-direction: column; gap: 0.5rem; }
     .sessao { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
     .sessao__n { font-weight: 600; }
@@ -1054,6 +1091,9 @@ export class TurmaDetalhePage {
   protected readonly rotuloStatus = ROTULO_STATUS;
   protected readonly turmaId = this.route.snapshot.paramMap.get('id')!;
   protected readonly aba = signal<Aba>('agenda');
+  /** Denúncias pendentes desta turma (badge da aba, spec 032). */
+  protected readonly pendentesDenuncia = signal(0);
+  private readonly denunciaApi = inject(DenunciaApiService);
   protected readonly carregando = signal(true);
   protected readonly turma = signal<Turma | null>(null);
   protected readonly alunos = signal<Aluno[]>([]);
@@ -1210,6 +1250,10 @@ export class TurmaDetalhePage {
       if (podeGamificar(this.profileService.profile()?.planoAtual)) {
         this.api.getQlicks().subscribe({
           next: (q) => this.qlicks.set(q),
+          error: () => {},
+        });
+        this.denunciaApi.pendentes().subscribe({
+          next: (p) => this.pendentesDenuncia.set(p[this.turmaId] ?? 0),
           error: () => {},
         });
       }
