@@ -1,9 +1,11 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
   signal,
 } from '@angular/core';
+import { podeGamificar } from '../../core/plano.util';
 import { RouterLink } from '@angular/router';
 import { ProfileService } from '../../core/profile.service';
 import { Avatar } from '../../ui/avatar/avatar';
@@ -51,6 +53,16 @@ import { Spinner } from '../../ui/spinner/spinner';
           </span>
           <span class="menu__go" aria-hidden="true">›</span>
         </a>
+        @if (podeGamificar()) {
+          <a class="menu__item" routerLink="/configuracoes/denuncias">
+            <span class="menu__ic"><app-icon name="flag" [size]="22" /></span>
+            <span class="menu__txt">
+              <strong>Tópicos de denúncia</strong>
+              <small>Opções prontas para os alunos denunciarem pelo portal</small>
+            </span>
+            <span class="menu__go" aria-hidden="true">›</span>
+          </a>
+        }
         <a class="menu__item" routerLink="/configuracoes/plano">
           <span class="menu__ic"><app-icon name="rocket" [size]="22" /></span>
           <span class="menu__txt">
@@ -139,6 +151,10 @@ export class ConfiguracoesPage {
   private readonly profileService = inject(ProfileService);
 
   protected readonly profile = this.profileService.profile;
+  /** Tópicos de denúncia acompanham o portal do aluno (PhD, spec 032). */
+  protected readonly podeGamificar = computed(() =>
+    podeGamificar(this.profile()?.planoAtual),
+  );
   protected readonly carregando = signal(true);
 
   constructor() {

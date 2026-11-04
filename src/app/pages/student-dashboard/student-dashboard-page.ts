@@ -108,6 +108,10 @@ import { XpBar } from '../../ui/xp-bar/xp-bar';
           <app-icon name="trophy" [size]="24" />
           <span>Ranking da turma</span>
         </a>
+        <a class="atalho" routerLink="/aluno/denuncias">
+          <app-icon name="flag" [size]="24" />
+          <span>Denunciar</span>
+        </a>
       </div>
       </div>
     }

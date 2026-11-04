@@ -5,7 +5,10 @@ import { RealtimeService } from '../../core/realtime.service';
 import { WorApiService } from '../../core/wor-api.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { NarradorCards } from '../../core/action-card';
-import { Aluno, ResultadoRodadaWor, WorTeam } from '../../core/models';
+import { Aluno, LIMITE_OCIOSIDADE_PADRAO, ResultadoRodadaWor, WorTeam } from '../../core/models';
+import { OciosidadeApiService } from '../../core/ociosidade-api.service';
+import { LimiteOciosidadeComponent } from '../../ui/limite-ociosidade/limite-ociosidade';
+import { DescontoOciosidadeComponent } from '../../ui/desconto-ociosidade/desconto-ociosidade';
 import { ActionCard } from '../../ui/action-card/action-card';
 import { Icon } from '../../ui/icon/icon';
 import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
@@ -27,6 +30,8 @@ import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausad
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    LimiteOciosidadeComponent,
+    DescontoOciosidadeComponent,
     RouterLink,
     Icon,
     Spinner,
@@ -106,6 +111,11 @@ import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausad
               (mudou)="mudarValeRanking($event)"
             />
           }
+          <app-limite-ociosidade
+            [valor]="limiteOcioso()"
+            [desabilitado]="salvandoLimite()"
+            (mudou)="mudarLimite($event)"
+          />
 
           @if (!teams().length) {
             <button
@@ -171,7 +181,7 @@ import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausad
                   <app-icon [name]="t.isHorde ? 'sword' : 'castle'" [size]="16" />
                   <strong>{{ t.nome }}</strong>
                   @if (t.isHorde) { <span class="tag">Horda</span> }
-                  @if (ordemDe(t.id); as o) { <span class="tag tag--fechou">{{ o }}º</span> }
+                  @if (ordemDe(t.id)) { <span class="tag tag--fechou">jogou</span> }
                 </span>
                 <span class="pontos"><app-icon name="trophy" [size]="13" /> {{ t.pontos ?? 0 }} pts</span>
                 <span class="hpbar"><span [style.width.%]="t.hp / 10" [style.background]="t.cor"></span></span>
@@ -208,6 +218,10 @@ import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausad
                         @case ('DICA') { <span>→ comprou dica</span> }
                         @case ('CAIU') { <span>→ caiu antes de atacar</span> }
                       }
+                      @if (r.arriscar; as a) {
+                        <span>· {{ a.nome }} arriscou e {{ a.acertou ? 'acertou' : 'errou' }}{{ textoArriscar(r) }}</span>
+                      }
+                      @if (r.caiu) { <span>· castelo caiu</span> }
                     </div>
                   }
                 </div>
@@ -225,17 +239,42 @@ import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausad
                 @for (l of logOrdenado(); track l.alunoId) {
                   <li
                     class="log-lista__row"
+                    [class.log-lista__row--ocioso]="l.ocioso"
                     role="button"
                     tabindex="0"
                     (click)="logAberto.set(l.alunoId)"
                     (keydown.enter)="logAberto.set(l.alunoId)"
                   >
                     <span class="log-lista__pos">{{ l.posicao }}º</span>
-                    <span class="log-lista__nome">{{ l.nome }}</span>
+                    <span class="log-lista__nome">
+                      {{ l.nome }}
+                      @if (l.ocioso) {
+                        <span class="ocioso-tag"><app-icon name="alert" [size]="12" /> {{ l.faltasOciosidade }} rodadas sem jogar</span>
+                      }
+                    </span>
                     <span class="log-lista__pts">{{ l.pontos }}</span>
+                    @if (l.ocioso && podeDescontar()) {
+                      @if (m.descontosOciosidade?.[l.alunoId] !== undefined) {
+                        <span class="descontado">−{{ m.descontosOciosidade?.[l.alunoId] }}</span>
+                      } @else {
+                        <button
+                          type="button"
+                          class="btn-outline btn-desc"
+                          (click)="$event.stopPropagation(); descontarDe.set(l.alunoId)"
+                          (keydown.enter)="$event.stopPropagation()"
+                        >Descontar</button>
+                      }
+                    }
                   </li>
                 }
               </ol>
+              <app-desconto-ociosidade
+                [jogador]="jogadorDesconto()"
+                [unidade]="unidade()"
+                [ocupado]="descontando()"
+                (confirmar)="confirmarDesconto($event)"
+                (fechar)="descontarDe.set(null)"
+              />
               <p class="muted center">Toque em um aluno para ver de onde vieram os pontos.</p>
               <app-log-pontuacao
                 [jogador]="logJogador()"
@@ -606,6 +645,59 @@ export class WorProjetorPage {
     () => this.valeRankingLocal() ?? this.match()?.valeRanking !== false,
   );
   protected readonly salvandoValeRanking = signal(false);
+
+  // --- Ociosidade (032) ---
+  private readonly ociosidadeApi = inject(OciosidadeApiService);
+  private readonly limiteLocal = signal<number | null>(null);
+  protected readonly limiteOcioso = computed(
+    () =>
+      this.limiteLocal() ??
+      this.match()?.limiteOciosidade ??
+      LIMITE_OCIOSIDADE_PADRAO.WOR,
+  );
+  protected readonly salvandoLimite = signal(false);
+  protected readonly descontarDe = signal<string | null>(null);
+  protected readonly descontando = signal(false);
+  protected readonly jogadorDesconto = computed(
+    () => this.logOrdenado().find((l) => l.alunoId === this.descontarDe()) ?? null,
+  );
+  /** Partida casual (ou sem turma) não mexe no ranking: não há o que descontar. */
+  protected readonly podeDescontar = computed(
+    () => !!this.match()?.turmaId && this.match()?.valeRanking !== false,
+  );
+
+  protected mudarLimite(limite: number): void {
+    this.limiteLocal.set(limite);
+    this.salvandoLimite.set(true);
+    this.ociosidadeApi.definirLimite('WOR', this.matchId, limite).subscribe({
+      next: () => this.salvandoLimite.set(false),
+      error: () => {
+        this.limiteLocal.set(null);
+        this.salvandoLimite.set(false);
+      },
+    });
+  }
+
+  protected confirmarDesconto(d: { modo: 'ZERAR_PARTIDA' | 'VALOR'; pontos?: number }): void {
+    const alunoId = this.descontarDe();
+    if (!alunoId) return;
+    this.descontando.set(true);
+    this.ociosidadeApi.descontar('WOR', this.matchId, { alunoId, ...d }).subscribe({
+      next: () => {
+        this.descontando.set(false);
+        this.descontarDe.set(null);
+      },
+      error: () => this.descontando.set(false),
+    });
+  }
+
+  protected textoArriscar(r: ResultadoRodadaWor): string {
+    const a = r.arriscar;
+    if (!a?.acertou) return ' (dano crítico no próprio castelo)';
+    if (a.efeito === 'CATAPULTA') return `: Catapulta em ${a.alvoNome} (−${a.dano ?? 0})`;
+    if (a.efeito === 'USURPACAO') return a.alvoNome ? `: roubou o castelo da ${a.alvoNome}` : ': reergueu o castelo';
+    return ': recuperou HP';
+  }
 
   protected mudarValeRanking(vale: boolean): void {
     this.valeRankingLocal.set(vale);

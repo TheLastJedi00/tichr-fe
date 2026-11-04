@@ -130,11 +130,13 @@ function mensagemBloqueada(e: {
  * componente escuta é cego de propósito, e é isso que impede um aluno com
  * DevTools de descobrir o infiltrado.
  */
+import { AlertaOciosidade } from '../../ui/alerta-ociosidade/alerta-ociosidade';
 @Component({
   selector: 'app-student-isolateus-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    AlertaOciosidade,
     RouterLink,
     Icon,
     Spinner,
@@ -255,6 +257,16 @@ function mensagemBloqueada(e: {
             </div>
           }
 
+          @if (painel()?.ociosidade; as oc) {
+            <app-alerta-ociosidade
+              class="alerta-oc"
+              singular="fase"
+              plural="fases"
+              [faltas]="oc.faltas"
+              [limite]="oc.limite"
+              [podeDescontar]="p.valeRanking !== false"
+            />
+          }
           @switch (p.status) {
             @case ('DESLOCAMENTO') {
               @if (foraDaVila()) {
@@ -915,6 +927,7 @@ function mensagemBloqueada(e: {
     }
   `,
   styles: `
+    .alerta-oc { display: block; margin: 0.5rem 0; }
     :host { display: block; }
     .loading { display: flex; justify-content: center; padding: 3rem 0; color: #4d7c0f; }
     .lead { font-weight: 700; }
@@ -1847,6 +1860,14 @@ export class StudentIsolateusPage {
       anterior?.status === 'QUESTAO_ATIVA' &&
       p.status !== 'QUESTAO_ATIVA'
     ) {
+      this.carregarPainel(false);
+    } else if (
+      anterior &&
+      anterior.status !== p.status &&
+      p.rodada === this.ultimaRodada
+    ) {
+      // Ociosidade (032): a falta entra quando o relógio fecha uma fase, e a
+      // contagem só chega pelo painel (no doc público entregaria os NPCs).
       this.carregarPainel(false);
     }
 

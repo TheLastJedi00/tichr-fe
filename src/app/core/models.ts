@@ -469,7 +469,7 @@ export interface PlacarItem {
 }
 
 /** Estado em tempo real de uma partida (lido do Firestore via onSnapshot). */
-export interface Partida {
+export interface Partida extends CamposOciosidade {
   id: string;
   qlickId: string;
   professorId: string;
@@ -522,7 +522,9 @@ export type FontePontos =
   | 'HP_FINAL'
   | 'FATOR_COLOCACAO'
   | 'ACERTO_PALAVRA'
-  | 'ACERTO_LETRA';
+  | 'ACERTO_LETRA'
+  /** 032: desconto do professor por ociosidade (negativo). */
+  | 'OCIOSIDADE';
 
 export interface ItemLogPontos {
   /** Pergunta (Qlick), rodada (Wor) ou noite (Isolateus), 1-based. */
@@ -542,7 +544,25 @@ export interface LogPontuacaoJogador {
   /** O que de fato entrou no ranking da turma (0 se casual ou sem turma). */
   creditoRanking: number;
   itens: ItemLogPontos[];
+  /** 032: rodadas em que o aluno tinha ação e não agiu (só se > 0). */
+  faltasOciosidade?: number;
+  /** 032: atingiu o limite de ociosidade da partida. */
+  ocioso?: boolean;
 }
+
+/**
+ * Ociosidade (032) — campos comuns às três partidas. `ociosidade` (faltas por
+ * aluno) só vem no Qlick e no Wor; no Isolateus as faltas ficam no cofre e o
+ * aluno recebe só as dele pelo painel.
+ */
+export interface CamposOciosidade {
+  limiteOciosidade?: number;
+  ociosidade?: Record<string, number>;
+  descontosOciosidade?: Record<string, number>;
+}
+
+/** Limite padrão de faltas por jogo (espelha o backend). */
+export const LIMITE_OCIOSIDADE_PADRAO = { QLICK: 3, WOR: 2, ISOLATEUS: 2 } as const;
 
 export interface QlickDoDia {
   partidaId: string;
@@ -747,9 +767,11 @@ export interface WorTeam {
   lastGlobalAction?: LastGlobalAction | null;
   /** Bônus pessoal de cada membro (+1000 palavra, +300 letra), por alunoId. */
   pontosIndividuais?: Record<string, number>;
+  /** Quem arriscou pela equipe na rodada em curso (032): o botão trava para os colegas. */
+  arriscouNaRodada?: string | null;
 }
 
-export interface WorMatch {
+export interface WorMatch extends CamposOciosidade {
   id: string;
   jogoId: string;
   professorId: string;
@@ -792,8 +814,11 @@ export interface WorMatch {
   logPontuacao?: LogPontuacaoJogador[];
 }
 
-/** Como a equipe fechou a rodada. `CAIU` = o castelo caiu antes de ela fechar. */
-export type ResultadoFechamentoWor = 'ATACAR' | 'DICA' | 'NADA' | 'CAIU';
+/**
+ * Como a equipe fechou a rodada. Desde a 032, durante a rodada é só `JOGOU`
+ * (o efeito sai no fechamento). `CAIU` ficou para partidas antigas.
+ */
+export type ResultadoFechamentoWor = 'ATACAR' | 'DICA' | 'NADA' | 'CAIU' | 'JOGOU';
 
 /** Equipe que já fechou a rodada (1 = fechou primeiro). */
 export interface EquipeFechadaWor {
@@ -805,7 +830,7 @@ export interface EquipeFechadaWor {
 /** Evento da rodada sem congelamento. `seq` não zera entre rodadas. */
 export interface ItemFeedWor {
   seq: number;
-  tipo: 'ATAQUE' | 'DICA' | 'DANO_CRITICO';
+  tipo: 'ATAQUE' | 'DICA' | 'DANO_CRITICO' | 'JOGOU';
   mensagem: string;
   em: string;
 }
@@ -839,6 +864,19 @@ export interface ResultadoRodadaWor {
   alvoNome?: string;
   dano?: number;
   critico?: boolean;
+  /** 032: o arriscar da equipe na rodada, se houve. */
+  arriscar?: {
+    nome: string;
+    acertou: boolean;
+    efeito?: 'CATAPULTA' | 'CURA' | 'USURPACAO';
+    alvoEquipeId?: string;
+    alvoNome?: string;
+    dano?: number;
+  };
+  /** 032: HP antes e depois do fechamento, e se o castelo caiu nele. */
+  hpAntes?: number;
+  hpDepois?: number;
+  caiu?: boolean;
 }
 
 /** A última rodada fechada: reveal com o resultado de cada equipe, em ordem. */
@@ -1039,7 +1077,7 @@ export interface MovimentoAmanhecer {
 }
 
 /** A camada pública da partida (`isolateus_partidas/{id}`), lida por snapshot. */
-export interface IsolateusMatch {
+export interface IsolateusMatch extends CamposOciosidade {
   id: string;
   jogoId: string;
   professorId: string;
@@ -1141,6 +1179,8 @@ export interface IsolateusMatch {
  */
 export interface PainelIsolateus {
   papel: 'ALDEAO' | 'AMEACA';
+  /** 032: as faltas do PRÓPRIO aluno (no Isolateus a contagem não é pública). */
+  ociosidade?: { faltas: number; limite: number; ocioso: boolean };
   habitanteId: string;
   vivo: boolean;
   preso: boolean;

@@ -24,7 +24,9 @@ import {
   RodadaDaEquipeWor,
   WorMatch,
   WorTeam,
+  LIMITE_OCIOSIDADE_PADRAO,
 } from '../../core/models';
+import { AlertaOciosidade } from '../../ui/alerta-ociosidade/alerta-ociosidade';
 import { ActionCard } from '../../ui/action-card/action-card';
 import { Confetti } from '../../ui/confetti/confetti';
 import { Icon } from '../../ui/icon/icon';
@@ -67,6 +69,7 @@ const FEED_MS = 4000;
     WorChat,
     LogPontuacaoComponent,
     PartidaPausadaComponent,
+    AlertaOciosidade,
   ],
   template: `
     @if (narrador.card(); as c) {
@@ -93,6 +96,12 @@ const FEED_MS = 4000;
                 @case ('DICA') { <span>→ comprou dica</span> }
                 @case ('CAIU') { <span class="rodada-res__hit">→ caiu antes de atacar</span> }
               }
+              @if (r.arriscar; as a) {
+                <span [class.rodada-res__hit]="!a.acertou">
+                  · {{ a.nome }} arriscou e {{ a.acertou ? 'acertou' : 'errou' }}{{ textoArriscar(r) }}
+                </span>
+              }
+              @if (r.caiu) { <span class="rodada-res__hit">· castelo caiu</span> }
             </div>
           }
         </div>
@@ -158,8 +167,9 @@ const FEED_MS = 4000;
           @if (m.status === 'EM_ANDAMENTO') {
             <div class="timer" [class.timer--fim]="restante() <= 10">
               <app-icon name="alert" [size]="14" />
-              Rodada · {{ restante() }}s · {{ fechadas() }} de {{ placar().length }} equipes fecharam
+              Rodada · {{ restante() }}s · {{ fechadas() }} de {{ placar().length }} equipes já jogaram
             </div>
+            <app-alerta-ociosidade [faltas]="minhasFaltas()" [limite]="limiteOcioso()" [podeDescontar]="m.valeRanking !== false" />
           }
 
           <div class="palavra">
@@ -216,7 +226,7 @@ const FEED_MS = 4000;
                 <p class="aguarde">Seu castelo caiu nesta rodada. Na próxima, a Horda tenta a Invasão.</p>
               } @else {
                 <app-lobby-loader />
-                <p class="aguarde">Sua equipe fechou em {{ f.ordem }}º! Aguardando as outras equipes…</p>
+                <p class="aguarde">Sua equipe já jogou! Tudo acontece quando a rodada fechar…</p>
               }
               <ng-container [ngTemplateOutlet]="pendentes" />
             </div>
@@ -242,10 +252,18 @@ const FEED_MS = 4000;
                   }
                 </div>
               }
-              <button class="btn-risco" type="button" [disabled]="travado()" (click)="modalRisco.set(true)">
+              <button
+                class="btn-risco"
+                type="button"
+                [disabled]="travado() || !!t.arriscouNaRodada"
+                (click)="modalRisco.set(true)"
+              >
                 <app-icon name="sword" [size]="16" />
                 {{ t.isHorde ? 'Tentar Invasão' : 'Arriscar a palavra' }}
               </button>
+              @if (t.arriscouNaRodada) {
+                <small class="hint">Arriscar já foi usado nesta rodada por {{ nomeMembro(t.arriscouNaRodada) }}.</small>
+              }
             </div>
           }
 
@@ -271,7 +289,7 @@ const FEED_MS = 4000;
                   <span class="castelo__nome">
                     <app-icon [name]="e.isHorde ? 'sword' : 'castle'" [size]="14" /> {{ e.nome }}
                     @if (souEu(e.id)) { <span class="castelo__tag">você</span> }
-                    @if (ordemDe(e.id); as o) { <span class="castelo__tag castelo__tag--fechou">fechou {{ o }}º</span> }
+                    @if (ordemDe(e.id)) { <span class="castelo__tag castelo__tag--fechou">jogou</span> }
                   </span>
                   <span class="castelo__bar"><span [style.width.%]="hpPct(e.hp)" [style.background]="e.cor"></span></span>
                   <span class="castelo__hp">{{ e.hp }}</span>
@@ -311,8 +329,8 @@ const FEED_MS = 4000;
           </p>
         } @else {
           <p class="aviso">
-            Se acertar, a rodada acaba e sua equipe escolhe a recompensa abaixo.
-            Se errar, sofrerá Dano Crítico no seu castelo.
+            Só uma pessoa da equipe pode arriscar por rodada. Se acertar, a recompensa abaixo entra
+            quando a rodada fechar e a palavra muda. Se errar, seu castelo sofre Dano Crítico.
           </p>
           <div class="efeitos">
             <button
@@ -400,9 +418,16 @@ const FEED_MS = 4000;
     @if (danoModal(); as ataques) {
       <app-modal [open]="true" title="Seu castelo foi atacado!" (close)="danoModal.set(null)">
         @for (r of ataques; track r.equipeId) {
-          <p class="aviso">
-            <b>{{ r.equipeNome }}</b> (fechou em {{ r.ordem }}º) atirou no seu castelo · <b>-{{ r.dano }} HP</b>{{ r.critico ? ' (CRÍTICO!)' : '' }}.
-          </p>
+          @if (r.acao === 'ATACAR' && souEu(r.alvoEquipeId)) {
+            <p class="aviso">
+              <b>{{ r.equipeNome }}</b> atirou no seu castelo · <b>-{{ r.dano }} HP</b>{{ r.critico ? ' (CRÍTICO!)' : '' }}.
+            </p>
+          }
+          @if (r.arriscar?.efeito === 'CATAPULTA' && souEu(r.arriscar?.alvoEquipeId)) {
+            <p class="aviso">
+              <b>{{ r.equipeNome }}</b> disparou a Catapulta no seu castelo · <b>-{{ r.arriscar?.dano }} HP</b>.
+            </p>
+          }
         }
         <button modal-actions class="btn-primary" type="button" (click)="danoModal.set(null)">Vamos revidar!</button>
       </app-modal>
@@ -702,6 +727,25 @@ export class StudentWorPage {
   protected acertadoresTxt(r: ResultadoRodadaWor): string {
     return r.acertadores.map((a) => `${a.nome} (${a.letra})`).join(', ');
   }
+  /** O efeito do arriscar no reveal (032): o que aconteceu de uma vez no fechamento. */
+  protected textoArriscar(r: ResultadoRodadaWor): string {
+    const a = r.arriscar;
+    if (!a?.acertou) return ' (dano crítico no próprio castelo)';
+    if (a.efeito === 'CATAPULTA') return `: Catapulta em ${a.alvoNome} (-${a.dano ?? 0})`;
+    if (a.efeito === 'USURPACAO') return a.alvoNome ? `: roubou o castelo da ${a.alvoNome}` : ': reergueu o castelo';
+    return ': recuperou HP';
+  }
+  protected nomeMembro(alunoId: string): string {
+    if (alunoId === this.alunoId) return 'você';
+    return this.team()?.membros.find((m) => m.alunoId === alunoId)?.nome ?? 'um colega';
+  }
+  /** Ociosidade (032): minhas faltas e o limite da partida. */
+  protected readonly minhasFaltas = computed(
+    () => this.root()?.ociosidade?.[this.alunoId] ?? 0,
+  );
+  protected readonly limiteOcioso = computed(
+    () => this.root()?.limiteOciosidade ?? LIMITE_OCIOSIDADE_PADRAO.WOR,
+  );
   protected letraUsada(l: string): boolean {
     const m = this.root();
     if (!m) return false;
@@ -780,7 +824,10 @@ export class StudentWorPage {
       if (this.resumoBanner()?.seq === r.seq) this.resumoBanner.set(null);
     }, 6000);
     const contraMim = r.resultados.filter(
-      (x) => x.acao === 'ATACAR' && x.alvoEquipeId === this.myTeamId,
+      (x) =>
+        (x.acao === 'ATACAR' && x.alvoEquipeId === this.myTeamId) ||
+        (x.arriscar?.efeito === 'CATAPULTA' &&
+          x.arriscar.alvoEquipeId === this.myTeamId),
     );
     if (contraMim.length) this.danoModal.set(contraMim);
   }
