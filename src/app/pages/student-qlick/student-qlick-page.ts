@@ -25,6 +25,8 @@ import { Spinner } from '../../ui/spinner/spinner';
  * Tela do aluno no Tichr Qlick (tempo real): inscrição no lobby, resposta da
  * pergunta com timer, revelação do acerto e pódio final.
  */
+import { AlertaOciosidade } from '../../ui/alerta-ociosidade/alerta-ociosidade';
+import { LIMITE_OCIOSIDADE_PADRAO } from '../../core/models';
 @Component({
   selector: 'app-student-qlick-page',
   standalone: true,
@@ -38,6 +40,7 @@ import { Spinner } from '../../ui/spinner/spinner';
     Icon,
     LogPontuacaoComponent,
     PartidaPausadaComponent,
+    AlertaOciosidade,
   ],
   template: `
     <h1 class="title">
@@ -54,6 +57,15 @@ import { Spinner } from '../../ui/spinner/spinner';
         <p class="muted">Nenhum Qlick disponível agora. Ele aparece no horário da sua aula.</p>
       </app-card>
     } @else if (partida(); as p) {
+      @if (p.status === 'QUESTAO_ATIVA' || p.status === 'RANKING_PARCIAL') {
+        <app-alerta-ociosidade
+          class="alerta-oc"
+          singular="pergunta"
+          plural="perguntas"
+          [faltas]="p.ociosidade?.[meuId] ?? 0"
+          [limite]="p.limiteOciosidade ?? limitePadrao"
+        />
+      }
       @switch (p.status) {
         @case ('LOBBY') {
           @if (inscrito()) {
@@ -230,6 +242,7 @@ import { Spinner } from '../../ui/spinner/spinner';
     }
   `,
   styles: `
+    .alerta-oc { display: block; margin-bottom: 0.75rem; }
     .title { margin: 0 0 1rem; font-size: 1.5rem; font-weight: 800; }
     .loading { display: flex; justify-content: center; padding: 3rem 0; color: var(--primary); }
     .muted { color: var(--text-muted); margin: 0 0 1rem; }
@@ -357,6 +370,8 @@ export class StudentQlickPage {
   protected readonly carregando = signal(true);
   protected readonly qlick = signal<QlickDoDia | null>(null);
   protected readonly partida = signal<Partida | null>(null);
+  /** Qlick: alerta a partir da 3ª pergunta sem resposta (032). */
+  protected readonly limitePadrao = LIMITE_OCIOSIDADE_PADRAO.QLICK;
   protected readonly inscrevendo = signal(false);
   protected readonly enviando = signal(false);
   /** Índice respondido na pergunta corrente (null = ainda não respondeu). */
