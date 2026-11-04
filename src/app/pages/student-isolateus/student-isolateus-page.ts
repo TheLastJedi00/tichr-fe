@@ -264,6 +264,7 @@ import { AlertaOciosidade } from '../../ui/alerta-ociosidade/alerta-ociosidade';
               plural="fases"
               [faltas]="oc.faltas"
               [limite]="oc.limite"
+              [podeDescontar]="p.valeRanking !== false"
             />
           }
           @switch (p.status) {

@@ -64,6 +64,7 @@ import { LIMITE_OCIOSIDADE_PADRAO } from '../../core/models';
           plural="perguntas"
           [faltas]="p.ociosidade?.[meuId] ?? 0"
           [limite]="p.limiteOciosidade ?? limitePadrao"
+          [podeDescontar]="p.valeRanking !== false"
         />
       }
       @switch (p.status) {

@@ -24,7 +24,7 @@ import { Icon } from '../icon/icon';
         <p>
           <strong>Ociosidade detectada:</strong>
           você ficou {{ faltas() }} {{ faltas() === 1 ? singular() : plural() }} sem jogar e está
-          atrapalhando a partida. O professor pode descontar seus pontos no fim.
+          atrapalhando a partida.@if (podeDescontar()) { O professor pode descontar seus pontos no fim.}
         </p>
         <button type="button" class="fechar" aria-label="Fechar o alerta" (click)="fechadoEm.set(faltas())">×</button>
       </div>
@@ -60,6 +60,8 @@ import { Icon } from '../icon/icon';
 export class AlertaOciosidade {
   readonly faltas = input(0);
   readonly limite = input(2);
+  /** Partida casual não mexe no ranking: o aviso de desconto some. */
+  readonly podeDescontar = input(true);
   /** Ex.: "rodada"/"rodadas" (Wor), "pergunta"/"perguntas" (Qlick). */
   readonly singular = input('rodada');
   readonly plural = input('rodadas');

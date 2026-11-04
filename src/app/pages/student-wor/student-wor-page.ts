@@ -169,7 +169,7 @@ const FEED_MS = 4000;
               <app-icon name="alert" [size]="14" />
               Rodada · {{ restante() }}s · {{ fechadas() }} de {{ placar().length }} equipes já jogaram
             </div>
-            <app-alerta-ociosidade [faltas]="minhasFaltas()" [limite]="limiteOcioso()" />
+            <app-alerta-ociosidade [faltas]="minhasFaltas()" [limite]="limiteOcioso()" [podeDescontar]="m.valeRanking !== false" />
           }
 
           <div class="palavra">
