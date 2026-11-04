@@ -136,7 +136,29 @@ estilo app), autenticada por **PIN** e com token próprio. O aluno entra pela jo
 | `/aluno/ranking` | **Ranking** | Pódio (🥇🥈🥉) da turma, com o **card do próprio aluno destacado**. A aba **some** quando a turma desativa o ranking. |
 | `/aluno/qlick` | **Tichr Qlick** | Entra no quiz "de hoje": **lobby animado** (loader temático), alternativas **color-coded A/B/C/D** com feedback de clique (press/scale) e estado de espera, **revelação animada** (correta brilha, erradas em cinza, confete no acerto / shake no erro) e **pódio final** com os pontos somados ao XP. |
 | `/aluno/isolateus` | **Tichr Isolateus** | O celular do habitante: entrada com um toque, o **Despertar** (só o **codinome de cidade** — o papel fica no **popup do personagem**, com o **olho** para esconder o nome), o **mapa da vila** (zoom-out somente-leitura) e a **visão do próprio setor** — com as saídas para caminhar, o botão de **reparo**, só os habitantes que estão ali, os **avisos de quem está saindo** (e para onde), a barra **"Mudar"** depois de andar e a **animação de saídas e chegadas** no amanhecer. Mais a jogada secreta da Ameaça, o **chat de rumores**, a **Quarentena**, o **Diário da Vila** e a **tela hackeada** de quem foi abduzido. |
+| `/aluno/denuncias` | **Denunciar** | O aluno escolhe um colega da turma, um **tópico** criado pelo professor (ex.: "Uso de celular em sala") e/ou escreve o que aconteceu, e pode anexar **uma foto** (comprimida no aparelho). Só o professor vê quem denunciou. Abaixo, **"Minhas denúncias"** com o status (aguardando, aceita, não aceita). Atalho no Início. |
 | `/aluno/manual` | **Manual de Guerra** | Regras completas do **Tichr Wor**, do **Tichr Qlick** e do **Tichr Isolateus** + a **Tabela de Recompensas** (quanto vale cada jogada), para a turma montar estratégia **antes** da partida. |
+
+### Denúncias entre alunos (Plano PhD, junto do portal)
+
+- **Configurações → Tópicos de denúncia** (`/configuracoes/denuncias`): o professor cria as opções
+  prontas, cada uma com a **pontuação sugerida**. Valem para todas as turmas; remover arquiva.
+- **Detalhe da turma → aba Denúncias**, com **badge vermelho** de pendentes: cada card mostra
+  quem denunciou quem, o tópico, o texto e **Ver foto** (link temporário). **Validar** abre um
+  modal com a pontuação sugerida (editável, até 10.000) e o resumo "Fulano perde X e Ciclano
+  ganha X"; se o denunciado tem menos pontos que isso, a tela avisa que a transferência fica
+  limitada ao que ele tem. **Invalidar** só arquiva. As resolvidas ficam no histórico da aba, e a
+  foto é apagada assim que a denúncia é resolvida.
+
+### Ociosidade nos jogos (Qlick, Wor e Isolateus)
+
+- **Lobby:** "Alerta de ociosidade" com − / + (1 a 10), ao lado de "Vale para o ranking". Padrão:
+  3 perguntas no Qlick, 2 rodadas no Wor e 2 fases no Isolateus.
+- **Celular:** ao atingir o limite, o aluno vê o banner vermelho **"Ociosidade detectada"** (fecha
+  com ×, volta a cada falta nova). Em partida casual, o banner não fala em desconto.
+- **Fim da partida:** no ranking final do telão, o ocioso fica **em vermelho** com "N rodadas sem
+  jogar" e o botão **Descontar**: "zerar os pontos desta partida" ou um valor. Depois, a linha
+  mostra quanto foi descontado. Partida casual não tem desconto.
 
 ### Criando jogos e começando a partida (comum aos três jogos)
 
@@ -200,14 +222,17 @@ cliente (ver [arquitetura](#arquitetura--stack)):
 Desde a v0.36.0 não há turno: em cada rodada, **todas as equipes** jogam a mesma palavra no
 mesmo cronômetro de 1 minuto, como no Qlick. Turma grande não espera mais o rodízio.
 
-- **Quem fecha primeiro ataca primeiro:** a equipe fecha a rodada quando todos os membros
-  jogaram, e o dano cai na hora. Se o castelo de uma equipe cair antes de ela fechar, o ataque
-  dela é perdido. O telão e os celulares mostram a ordem ("1º", "2º"…) e quantas equipes já
-  fecharam.
+- **Tudo acontece no fim da rodada (v0.39.0):** a equipe que terminou aparece como "jogou", e os
+  ataques, a Catapulta e o Recuperar HP entram todos juntos quando a rodada fecha. Um castelo
+  que cai nessa rodada ainda dá o golpe dele. A rodada fecha quando todos jogaram, quando só
+  falta quem já está marcado como ocioso, ou quando o tempo acaba.
+- **Arriscar uma vez por equipe:** quando alguém da equipe arrisca a palavra, o botão trava para
+  os colegas ("Arriscar já foi usado nesta rodada"). Acertar não encerra a palavra na hora: a
+  recompensa entra no fim da rodada e a palavra muda depois dela.
 - **Letras às cegas:** as letras e as dicas só aparecem quando a rodada acaba. Cada aluno vê as
   letras que a própria equipe já jogou, sem saber se acertaram; as rivais não veem nada.
-- **Fim da rodada:** um painel mostra o resultado de cada equipe, na ordem em que fecharam
-  (quem acertou, quem atacou quem, quem comprou dica, quem caiu).
+- **Fim da rodada:** um painel mostra o resultado de cada equipe (quem acertou, quem atacou quem,
+  quem comprou dica, quem arriscou e o que aconteceu, quem caiu).
 - **Bônus pessoal:** quem acerta a palavra ao arriscar ganha **+1000** e cada letra certa vale
   **+300**, só para quem acertou e sem o corte da equipe não campeã. O celular mostra o bônus no
   fim da batalha.
