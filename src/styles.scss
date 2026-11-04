@@ -208,3 +208,35 @@ div[modal-actions] {
   color: var(--warning);
   vertical-align: middle;
 }
+
+/* ===== Ociosidade no ranking final (spec 032) — Qlick, Wor e Isolateus ===== */
+.log-lista__row--ocioso {
+  border-color: var(--danger) !important;
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface)) !important;
+}
+.ocioso-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.btn-desc {
+  padding: 0.25rem 0.6rem !important;
+  font-size: 0.8rem !important;
+  border-color: var(--danger) !important;
+  color: var(--danger) !important;
+}
+.descontado {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--danger);
+  white-space: nowrap;
+}
