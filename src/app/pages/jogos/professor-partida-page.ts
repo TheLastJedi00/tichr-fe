@@ -8,7 +8,10 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Aluno, Partida, Turma } from '../../core/models';
+import { Aluno, LIMITE_OCIOSIDADE_PADRAO, Partida, Turma } from '../../core/models';
+import { OciosidadeApiService } from '../../core/ociosidade-api.service';
+import { LimiteOciosidadeComponent } from '../../ui/limite-ociosidade/limite-ociosidade';
+import { DescontoOciosidadeComponent } from '../../ui/desconto-ociosidade/desconto-ociosidade';
 import { RealtimeService } from '../../core/realtime.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Card } from '../../ui/card/card';
@@ -32,6 +35,8 @@ import { podePausar, relogioDaPartida } from '../../core/pausa';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    LimiteOciosidadeComponent,
+    DescontoOciosidadeComponent,
     Card,
     Spinner,
     Icon,
@@ -99,6 +104,14 @@ import { podePausar, relogioDaPartida } from '../../core/pausa';
                 (mudou)="mudarValeRanking($event)"
               />
             }
+            <app-limite-ociosidade
+              class="vale"
+              unidadeSingular="pergunta"
+              unidadePlural="perguntas"
+              [valor]="limiteOcioso()"
+              [desabilitado]="salvandoLimite()"
+              (mudou)="mudarLimite($event)"
+            />
             <app-opcao-lobby
               class="vale"
               rotulo="Embaralhar perguntas"
@@ -209,6 +222,7 @@ import { podePausar, relogioDaPartida } from '../../core/pausa';
               @for (r of (p.rankingFinal ?? []); track r.alunoId) {
                 <li
                   class="podio__row podio__row--{{ r.posicao }}"
+                  [class.log-lista__row--ocioso]="!!logDe(r.alunoId)?.ocioso"
                   [class.clicavel]="!!p.logPontuacao"
                   [attr.role]="p.logPontuacao ? 'button' : null"
                   [attr.tabindex]="p.logPontuacao ? 0 : null"
@@ -220,11 +234,37 @@ import { podePausar, relogioDaPartida } from '../../core/pausa';
                       <app-icon name="medal" [size]="22" class="medal--{{ r.posicao }}" />
                     } @else { {{ r.posicao }}º }
                   </span>
-                  <span class="rank__nome">{{ r.nome }}</span>
+                  <span class="rank__nome">
+                    {{ r.nome }}
+                    @if (logDe(r.alunoId)?.ocioso) {
+                      <span class="ocioso-tag">
+                        <app-icon name="alert" [size]="12" /> {{ logDe(r.alunoId)?.faltasOciosidade }} perguntas sem responder
+                      </span>
+                    }
+                  </span>
                   <span class="rank__pts">{{ r.pontos }}</span>
+                  @if (logDe(r.alunoId)?.ocioso && podeDescontar()) {
+                    @if (p.descontosOciosidade?.[r.alunoId] !== undefined) {
+                      <span class="descontado">−{{ p.descontosOciosidade?.[r.alunoId] }}</span>
+                    } @else {
+                      <button
+                        type="button"
+                        class="btn-outline btn-desc"
+                        (click)="$event.stopPropagation(); descontarDe.set(r.alunoId)"
+                        (keydown.enter)="$event.stopPropagation()"
+                      >Descontar</button>
+                    }
+                  }
                 </li>
               }
             </ol>
+            <app-desconto-ociosidade
+              [jogador]="jogadorDesconto()"
+              [unidade]="turma()?.nomePontuacao || 'XP'"
+              [ocupado]="descontando()"
+              (confirmar)="confirmarDesconto($event)"
+              (fechar)="descontarDe.set(null)"
+            />
             @if (p.logPontuacao) {
               <p class="muted dica">Toque em um aluno para ver de onde vieram os pontos.</p>
             }
@@ -444,6 +484,54 @@ export class ProfessorPartidaPage {
   );
   protected readonly salvandoValeRanking = signal(false);
   protected readonly erro = signal<string | null>(null);
+
+  // --- Ociosidade (032) ---
+  private readonly ociosidadeApi = inject(OciosidadeApiService);
+  private readonly limiteLocal = signal<number | null>(null);
+  protected readonly limiteOcioso = computed(
+    () =>
+      this.limiteLocal() ??
+      this.partida()?.limiteOciosidade ??
+      LIMITE_OCIOSIDADE_PADRAO.QLICK,
+  );
+  protected readonly salvandoLimite = signal(false);
+  protected readonly descontarDe = signal<string | null>(null);
+  protected readonly descontando = signal(false);
+  protected readonly jogadorDesconto = computed(() => {
+    const id = this.descontarDe();
+    return id ? this.logDe(id) : null;
+  });
+  protected readonly podeDescontar = computed(
+    () => !!this.partida()?.turmaId && this.partida()?.valeRanking !== false,
+  );
+  protected logDe(alunoId: string) {
+    return this.partida()?.logPontuacao?.find((l) => l.alunoId === alunoId) ?? null;
+  }
+
+  protected mudarLimite(limite: number): void {
+    this.limiteLocal.set(limite);
+    this.salvandoLimite.set(true);
+    this.ociosidadeApi.definirLimite('QLICK', this.partidaId, limite).subscribe({
+      next: () => this.salvandoLimite.set(false),
+      error: () => {
+        this.limiteLocal.set(null);
+        this.salvandoLimite.set(false);
+      },
+    });
+  }
+
+  protected confirmarDesconto(d: { modo: 'ZERAR_PARTIDA' | 'VALOR'; pontos?: number }): void {
+    const alunoId = this.descontarDe();
+    if (!alunoId) return;
+    this.descontando.set(true);
+    this.ociosidadeApi.descontar('QLICK', this.partidaId, { alunoId, ...d }).subscribe({
+      next: () => {
+        this.descontando.set(false);
+        this.descontarDe.set(null);
+      },
+      error: () => this.descontando.set(false),
+    });
+  }
 
   protected mudarValeRanking(vale: boolean): void {
     this.valeRankingLocal.set(vale);

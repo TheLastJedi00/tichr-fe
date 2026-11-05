@@ -18,6 +18,43 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.39.0',
+    data: '2026-11-04',
+    titulo: 'Denúncias, Wor por rodada e ociosidade',
+    itens: [
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Denúncias: pelo portal, o aluno denuncia um colega escolhendo um tópico que você criou (como "Uso de celular em sala") ou escrevendo o que aconteceu, e pode anexar uma foto. Só você vê quem denunciou.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Denúncias: a nova aba Denúncias da turma mostra as pendentes com um aviso vermelho. Ao validar, você escolhe quantos pontos passam do denunciado para quem denunciou. Crie os tópicos em Configurações → Tópicos de denúncia.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Tichr Wor: os ataques, a Catapulta e o Recuperar HP agora acontecem todos juntos no fim da rodada. Um castelo que cai ainda dá o golpe dele, e acertar a palavra não interrompe as outras equipes.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Tichr Wor: só uma pessoa por equipe pode arriscar a palavra em cada rodada. Assim, ninguém dispara a Catapulta várias vezes na mesma rodada.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Qlick, Wor e Isolateus: o aluno que fica rodadas sem jogar recebe o alerta "Ociosidade detectada" no celular. No fim, ele aparece em vermelho no ranking e você pode descontar os pontos dele. O limite de rodadas é escolhido no lobby.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Tichr Wor: quando só falta jogar quem já está ocioso, a rodada fecha sem esperar o cronômetro.',
+      },
+    ],
+  },
+  {
     versao: 'v0.38.0',
     data: '2026-10-28',
     titulo: 'Qlick contra a cola',

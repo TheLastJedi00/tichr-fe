@@ -13,7 +13,10 @@ import { IsolateusApiService } from '../../core/isolateus-api.service';
 import { rotuloBrilho, setoresBrilhando } from '../../core/isolateus-mapa';
 import { alienDoPlacar, ROTULO_PAPEL } from '../../core/isolateus-placar';
 import { RelogioDaFase } from '../../core/isolateus-relogio';
-import { Aluno, IsolateusMatch } from '../../core/models';
+import { Aluno, IsolateusMatch, LIMITE_OCIOSIDADE_PADRAO } from '../../core/models';
+import { OciosidadeApiService } from '../../core/ociosidade-api.service';
+import { LimiteOciosidadeComponent } from '../../ui/limite-ociosidade/limite-ociosidade';
+import { DescontoOciosidadeComponent } from '../../ui/desconto-ociosidade/desconto-ociosidade';
 import { RealtimeService } from '../../core/realtime.service';
 import { TurmaApiService } from '../../core/turma-api.service';
 import { Icon } from '../../ui/icon/icon';
@@ -54,6 +57,8 @@ const MIN_REAIS = 4;
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    LimiteOciosidadeComponent,
+    DescontoOciosidadeComponent,
     RouterLink,
     Icon,
     Spinner,
@@ -151,6 +156,13 @@ const MIN_REAIS = 4;
               (mudou)="mudarValeRanking($event)"
             />
           }
+          <app-limite-ociosidade
+            unidadeSingular="fase"
+            unidadePlural="fases"
+            [valor]="limiteOcioso()"
+            [desabilitado]="salvandoLimite()"
+            (mudou)="mudarLimite($event)"
+          />
 
           <button
             class="btn-iso full"
@@ -370,6 +382,7 @@ const MIN_REAIS = 4;
                 @for (r of p.rankingFinal; track r.alunoId) {
                   <li
                     [class.rk-alien]="r.papel === 'ALIEN'"
+                    [class.log-lista__row--ocioso]="!!logDe(r.alunoId)?.ocioso"
                     [class.clicavel]="!!p.logPontuacao"
                     [attr.role]="p.logPontuacao ? 'button' : null"
                     [attr.tabindex]="p.logPontuacao ? 0 : null"
@@ -388,10 +401,34 @@ const MIN_REAIS = 4;
                         }
                       </span>
                     </span>
+                    @if (logDe(r.alunoId)?.ocioso) {
+                      <span class="ocioso-tag">
+                        <app-icon name="alert" [size]="12" /> {{ logDe(r.alunoId)?.faltasOciosidade }} fases sem jogar
+                      </span>
+                    }
                     <span class="rk-pts">{{ r.pontos }} {{ unidade() }}</span>
+                    @if (logDe(r.alunoId)?.ocioso && podeDescontar()) {
+                      @if (p.descontosOciosidade?.[r.alunoId] !== undefined) {
+                        <span class="descontado">−{{ p.descontosOciosidade?.[r.alunoId] }}</span>
+                      } @else {
+                        <button
+                          type="button"
+                          class="btn-outline btn-desc"
+                          (click)="$event.stopPropagation(); descontarDe.set(r.alunoId)"
+                          (keydown.enter)="$event.stopPropagation()"
+                        >Descontar</button>
+                      }
+                    }
                   </li>
                 }
               </ol>
+              <app-desconto-ociosidade
+                [jogador]="jogadorDesconto()"
+                [unidade]="unidade()"
+                [ocupado]="descontando()"
+                (confirmar)="confirmarDesconto($event)"
+                (fechar)="descontarDe.set(null)"
+              />
               @if (p.logPontuacao) {
                 <p class="muted center">Toque em um habitante para ver de onde vieram os pontos.</p>
               }
@@ -900,6 +937,54 @@ export class IsolateusProjetorPage {
     () => this.valeRankingLocal() ?? this.partida()?.valeRanking !== false,
   );
   protected readonly salvandoValeRanking = signal(false);
+
+  // --- Ociosidade (032) ---
+  private readonly ociosidadeApi = inject(OciosidadeApiService);
+  private readonly limiteLocal = signal<number | null>(null);
+  protected readonly limiteOcioso = computed(
+    () =>
+      this.limiteLocal() ??
+      this.partida()?.limiteOciosidade ??
+      LIMITE_OCIOSIDADE_PADRAO.ISOLATEUS,
+  );
+  protected readonly salvandoLimite = signal(false);
+  protected readonly descontarDe = signal<string | null>(null);
+  protected readonly descontando = signal(false);
+  protected readonly jogadorDesconto = computed(() => {
+    const id = this.descontarDe();
+    return id ? this.logDe(id) : null;
+  });
+  protected readonly podeDescontar = computed(
+    () => !!this.partida()?.turmaId && this.partida()?.valeRanking !== false,
+  );
+  protected logDe(alunoId: string) {
+    return this.partida()?.logPontuacao?.find((l) => l.alunoId === alunoId) ?? null;
+  }
+
+  protected mudarLimite(limite: number): void {
+    this.limiteLocal.set(limite);
+    this.salvandoLimite.set(true);
+    this.ociosidadeApi.definirLimite('ISOLATEUS', this.matchId, limite).subscribe({
+      next: () => this.salvandoLimite.set(false),
+      error: () => {
+        this.limiteLocal.set(null);
+        this.salvandoLimite.set(false);
+      },
+    });
+  }
+
+  protected confirmarDesconto(d: { modo: 'ZERAR_PARTIDA' | 'VALOR'; pontos?: number }): void {
+    const alunoId = this.descontarDe();
+    if (!alunoId) return;
+    this.descontando.set(true);
+    this.ociosidadeApi.descontar('ISOLATEUS', this.matchId, { alunoId, ...d }).subscribe({
+      next: () => {
+        this.descontando.set(false);
+        this.descontarDe.set(null);
+      },
+      error: () => this.descontando.set(false),
+    });
+  }
 
   protected mudarValeRanking(vale: boolean): void {
     this.valeRankingLocal.set(vale);
