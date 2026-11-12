@@ -12,7 +12,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { IsolateusApiService } from '../../core/isolateus-api.service';
 import { rotuloBrilho, setoresBrilhando } from '../../core/isolateus-mapa';
 import { alienDoPlacar, ROTULO_PAPEL } from '../../core/isolateus-placar';
-import { RelogioDaFase } from '../../core/isolateus-relogio';
+import { RelogioDaFase, antecedenciaDaFase } from '../../core/isolateus-relogio';
 import { Aluno, IsolateusMatch, LIMITE_OCIOSIDADE_PADRAO } from '../../core/models';
 import { OciosidadeApiService } from '../../core/ociosidade-api.service';
 import { LimiteOciosidadeComponent } from '../../ui/limite-ociosidade/limite-ociosidade';
@@ -222,32 +222,53 @@ const MIN_REAIS = 4;
           </div>
 
           <p class="noite">
-            Noite {{ p.rodada + 1 }} · questão
-            {{ p.questaoIndex + 1 }} de {{ p.totalRodadas }} ·
+            Rodada {{ p.rodada + 1 }}/{{ p.totalRodadas }} ·
             {{ vivos(p).length }} habitante(s) na vila
+            @if (p.esperanca <= 0) { · <b class="colapso">COLAPSO</b> }
           </p>
 
           @switch (p.status) {
             @case ('DESLOCAMENTO') {
-              <div class="aguardando">
-                <app-icon name="moon" [size]="28" />
-                <strong>A vila se movimenta na escuridão…</strong>
-                <p class="muted">
-                  Cada habitante escolhe onde passar a noite.
-                  {{ p.movimentosRecebidos ?? 0 }} já decidiram.
-                </p>
-                @if (relogioAtivo()) { <div class="timer" [class.timer--fim]="restante() <= 5">{{ restante() }}s</div> }
-                <app-lobby-loader />
-              </div>
-            }
-
-            @case ('TURNO_AMEACA') {
-              <div class="aguardando">
-                <app-icon name="alien" [size]="28" />
-                <strong>A Ameaça escolhe seu alvo…</strong>
-                <p class="muted">Ninguém sabe quem está decidindo. Aguardem.</p>
-                <app-lobby-loader />
-              </div>
+              <!--
+                A noite espera o card de resultado da rodada anterior (034
+                #55): o telão mostra o resultado antes de a noite contar.
+              -->
+              @if (espera() > 0) {
+                @if (p.vereditoQuarentena; as v) {
+                  <div class="card-global" [class.card-global--ok]="v.eraAmeaca">{{ v.texto }}</div>
+                }
+                @if (p.resumoRodada; as r) {
+                  <div class="card-global" [class.card-global--ok]="r.defendida">{{ r.texto }}</div>
+                }
+                @if (p.resgateResultado; as rg) {
+                  <div class="card-global card-global--ok">
+                    @if (rg.semVotacao) { {{ rg.nome }} era o único fora da vila e voltou sem votação. }
+                    @else { {{ rg.nome }} foi resgatado e voltou à vila. }
+                  </div>
+                }
+                @if (p.questaoPublica && p.corretaIndex !== null && p.corretaIndex !== undefined) {
+                  <p class="reveal">
+                    Resposta correta:
+                    <b>{{ letra(p.corretaIndex) }}) {{ p.questaoPublica.alternativas[p.corretaIndex] }}</b>
+                  </p>
+                }
+                <div class="janela">
+                  <span class="janela__lbl">A noite começa em</span>
+                  <span class="timer">{{ espera() }}s</span>
+                </div>
+              } @else {
+                <div class="aguardando">
+                  <app-icon name="moon" [size]="28" />
+                  <strong>A vila se movimenta na escuridão…</strong>
+                  <p class="muted">
+                    Cada habitante escolhe onde passar a noite.
+                    {{ p.movimentosRecebidos ?? 0 }} já decidiram.
+                    A Quarentena é convocada de dentro da Comunicação.
+                  </p>
+                  @if (relogioAtivo()) { <div class="timer" [class.timer--fim]="restante() <= 5">{{ restante() }}s</div> }
+                  <app-lobby-loader />
+                </div>
+              }
             }
 
             @case ('QUESTAO_ATIVA') {
@@ -766,6 +787,16 @@ export class IsolateusProjetorPage {
     return 0;
   }
 
+  /** Segundos até a noite começar (ela espera o card de resultado, #55). */
+  protected readonly espera = computed(() => {
+    const p = this.partida();
+    if (!p || p.status !== 'DESLOCAMENTO' || !p.faseIniciadaEm) return 0;
+    const agora = p.pausadaEm
+      ? Date.parse(p.pausadaEm)
+      : this.cronometro.agora(this.relogio());
+    return Math.max(0, Math.ceil((Date.parse(p.faseIniciadaEm) - agora) / 1000));
+  });
+
   /** É noite? Governa a paleta escura do mapa no telão. */
   protected readonly ehNoite = computed(
     () => this.partida()?.status === 'DESLOCAMENTO',
@@ -858,7 +889,10 @@ export class IsolateusProjetorPage {
    */
   private checarTempo(): void {
     const p = this.partida();
-    this.cronometro.sincronizar(p?.faseIniciadaEm ?? null);
+    this.cronometro.sincronizar(
+      p?.faseIniciadaEm ?? null,
+      p ? antecedenciaDaFase(p.status, p.rodada) : 0,
+    );
     if (!p || !p.faseIniciadaEm || !this.limiteDaFase()) return;
     if (p.pausadaEm) return; // pausada: o telão não cobra o prazo
     if (!this.cronometro.devoCobrar(Date.now(), this.restante() <= 0)) return;
@@ -1015,8 +1049,10 @@ export class IsolateusProjetorPage {
         return 'Pular noite';
       case 'QUESTAO_ATIVA':
         return 'Encerrar questão';
+      // O Dia saiu (034 #43): sem "Adiantar noite". Uma partida antiga parada
+      // aqui avança sozinha pelo relógio.
       case 'RESULTADO_RODADA':
-        return this.ultimaNoite(p) ? 'Encerrar e ver o veredito' : 'Adiantar noite';
+        return null;
       case 'QUARENTENA_DEBATE':
         return 'Pular debate';
       case 'QUARENTENA_VOTO':

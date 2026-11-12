@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { authGuard } from './core/auth.guard';
 import { adminGuard } from './core/admin.guard';
 import { exigePlano } from './core/plano.guard';
+import { preferirModoSimples } from './core/isolateus-modo.guard';
 import { studentGuard } from './core/student-auth.guard';
 import { DashboardLayout } from './layout/dashboard-layout';
 import { StudentLayout } from './layout/student-layout';
@@ -117,8 +118,18 @@ export const routes: Routes = [
             (m) => m.StudentWorPage,
           ),
       },
+      // O jogo em pixel art (spec 034): Phaser carregado só nesta rota.
       {
         path: 'isolateus',
+        canActivate: [preferirModoSimples],
+        loadComponent: () =>
+          import('./pages/student-isolateus/student-isolateus-jogo-page').then(
+            (m) => m.StudentIsolateusJogoPage,
+          ),
+      },
+      // O modo simples: a tela anterior, em lista, para celular fraco.
+      {
+        path: 'isolateus/simples',
         loadComponent: () =>
           import('./pages/student-isolateus/student-isolateus-page').then(
             (m) => m.StudentIsolateusPage,
