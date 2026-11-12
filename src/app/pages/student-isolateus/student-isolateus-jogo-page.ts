@@ -495,7 +495,8 @@ const EVENTOS_DO_AMANHECER = new Set([
   `,
   styles: `
     :host { display: block; }
-    .tela { min-height: 100svh; background: #000; display: flex; align-items: center; justify-content: center; }
+    /* Tela cheia sobre o layout do aluno (cabeçalho e menu inferior). */
+    .tela { position: fixed; inset: 0; z-index: 60; background: #000; display: flex; align-items: center; justify-content: center; }
     .vazio { color: #e2e8f0; text-align: center; padding: 2rem; font-family: 'Pixelify Sans', system-ui, sans-serif; display: flex; flex-direction: column; gap: 1rem; align-items: center; }
     .vazio .px-btn { text-decoration: none; display: inline-block; padding: 0.6rem 1rem; }
     .palco { --b: max(2px, 0.42cqw); width: min(100vw, calc(100svh * 16 / 9)); aspect-ratio: 16 / 9; min-width: 280px; }

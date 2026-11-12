@@ -10,7 +10,7 @@ describe('isolateus-motivos (spec 034 #63–#69)', () => {
       'A noite começa em 4s. Leia o resultado da rodada.',
     );
     expect(textoDoMotivo('ENERGIA_INSUFICIENTE', { atual: 1, k: 2 })).toBe(
-      'Energia alien 1/3: faltam 2 acertos para um superpoder.',
+      'Energia alien 1/3: faltam 2 para um superpoder (acertos).',
     );
     expect(textoDoMotivo('POUCA_GENTE_NA_SAUDE', { n: 1 })).toContain('Agora há 1.');
   });

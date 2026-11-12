@@ -81,7 +81,7 @@ const TEXTOS: Record<ChaveMotivo, string> = {
   SETOR_EM_RUINAS: 'Este setor já está em ruínas: não há o que sabotar.',
   SEM_ALVO_AQUI: 'Ninguém neste setor para abduzir.',
   ENERGIA_INSUFICIENTE:
-    'Energia alien {atual}/3: faltam {k} acertos para um superpoder.',
+    'Energia alien {atual}/3: faltam {k} para um superpoder (acertos).',
   PODER_FORA_DA_NOITE: 'Superpoderes só são escolhidos à noite.',
   SO_ORIGINAL: 'Só a Ameaça original pode contagiar.',
   JOGADA_FEITA: 'Você já fez sua jogada esta noite.',

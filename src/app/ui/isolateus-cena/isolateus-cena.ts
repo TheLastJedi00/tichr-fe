@@ -71,7 +71,10 @@ export class IsolateusCena implements OnDestroy {
       if (this.cena || this.destruido) return;
       void this.carregar(el);
     });
-    effect(() => this.cena?.atualizar(this.entrada()));
+    effect(() => {
+      const entrada = this.entrada(); // lê antes: é isto que registra as dependências
+      this.cena?.atualizar(entrada);
+    });
   }
 
   private entrada(): EntradaDaCena {

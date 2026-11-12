@@ -36,6 +36,12 @@ function isTratadoInline(err: HttpErrorResponse): boolean {
     // pausada já tem o modal de pausa cobrindo a tela.
     (err.status === 422 && code === 'MENSAGEM_BLOQUEADA') ||
     (err.status === 409 && code === 'PARTIDA_PAUSADA') ||
+    // Isolateus pixel art (034): o canal de posição é só visual e as recusas da
+    // noite viram aviso na própria cena (catálogo de motivos).
+    (err.status === 503 && code === 'CANAL_INDISPONIVEL') ||
+    (err.status === 429 && (code === 'PASSO_RAPIDO' || code === 'MOVER_RAPIDO')) ||
+    (err.status === 400 && (code === 'NOITE_NAO_COMECOU' || code === 'FORA_DA_NOITE' || code === 'ALVO_FORA_DA_CENA' || code === 'ENERGIA_INSUFICIENTE' || code === 'SO_ORIGINAL')) ||
+    (err.status === 409 && code === 'QUARENTENA_JA_CONVOCADA') ||
     // Conta e segurança: a própria tela explica o que houve.
     // EMAIL_NAO_VERIFICADO redireciona para /verificar-email (authInterceptor) e
     // SESSAO_EXPIRADA é logout limpo — nenhum dos dois é erro a reportar.
