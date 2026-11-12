@@ -11,10 +11,17 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { formatarData } from '../../core/date-format';
+import {
+  formatarData,
+  formatarDataHoraSegundos,
+  formatarHora,
+  tempoRelativo,
+} from '../../core/date-format';
 import {
   DenunciaApiService,
   DenunciaProfessor,
+  EstadoJanelas,
+  JanelaDenuncia,
   TETO_PONTOS_DENUNCIA,
 } from '../../core/denuncia-api.service';
 import { Card } from '../../ui/card/card';
@@ -34,6 +41,35 @@ import { Spinner } from '../../ui/spinner/spinner';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FormsModule, Card, Icon, Modal, Spinner],
   template: `
+    @if (janela(); as j) {
+      <div class="barra">
+        <span class="barra__estado" [class.barra__estado--on]="j.abertas">
+          <app-icon [name]="j.abertas ? 'flag' : 'lock'" [size]="16" />
+          {{ j.abertas ? 'Abertas: os alunos podem denunciar' : 'Fechadas: os alunos não conseguem denunciar' }}
+        </span>
+        <button
+          type="button"
+          [class]="j.abertas ? 'btn-outline' : 'btn-primary'"
+          [disabled]="alternandoJanela()"
+          (click)="alternarJanela.emit()"
+        >
+          {{ j.abertas ? 'Fechar denúncias' : 'Abrir denúncias' }}
+        </button>
+      </div>
+      @if (j.janelas.length) {
+        <label class="filtro">
+          <span>Janela</span>
+          <select class="tichr-input" [ngModel]="filtroJanela()" (ngModelChange)="filtroJanela.set($event)">
+            <option value="">Todas</option>
+            @for (jn of j.janelas; track jn.id) {
+              <option [value]="jn.id">{{ rotuloJanela(jn) }}</option>
+            }
+            <option value="__sem">Antes das janelas</option>
+          </select>
+        </label>
+      }
+    }
+
     @if (carregando()) {
       <div class="loading"><app-spinner [size]="28" /></div>
     } @else {
@@ -46,8 +82,13 @@ import { Spinner } from '../../ui/spinner/spinner';
             <div class="den">
               <div class="den__top">
                 <span><strong>{{ d.autorNome }}</strong> denunciou <strong>{{ d.denunciadoNome }}</strong></span>
-                <span class="den__data">{{ data(d.criadaEm) }}</span>
+                <span class="den__data" [title]="rotuloJanelaDe(d)">
+                  {{ dataHora(d.criadaEm) }} · {{ relativo(d.criadaEm) }}
+                </span>
               </div>
+              @if (rotuloJanelaDe(d); as rj) {
+                <span class="den__janela">{{ rj }}</span>
+              }
               @if (d.topicoTitulo) {
                 <span class="den__topico">{{ d.topicoTitulo }}</span>
               }
@@ -157,6 +198,12 @@ import { Spinner } from '../../ui/spinner/spinner';
   `,
   styles: `
     .loading { display: flex; justify-content: center; padding: 2rem 0; color: var(--primary); }
+    .barra { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+    .barra__estado { display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 700; color: var(--text-muted); }
+    .barra__estado--on { color: var(--success); }
+    .filtro { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; font-weight: 700; font-size: 0.9rem; }
+    .filtro select { max-width: 22rem; }
+    .den__janela { font-size: 0.78rem; color: var(--text-muted); }
     .muted { color: var(--text-muted); margin: 0; }
     .lista { display: flex; flex-direction: column; gap: 0.6rem; }
     .den { display: flex; flex-direction: column; gap: 0.4rem; }
@@ -186,6 +233,10 @@ export class TurmaDenuncias implements OnInit {
   readonly turmaId = input.required<string>();
   readonly pontuacaoAtiva = input(true);
   readonly nomePontuacao = input('XP');
+  /** Janela de denúncia (033): estado e histórico, mantidos pela página. */
+  readonly janela = input<EstadoJanelas | null>(null);
+  readonly alternandoJanela = input(false);
+  readonly alternarJanela = output<void>();
   /** Quantas pendentes sobraram (o badge da aba acompanha). */
   readonly pendentesMudou = output<number>();
 
@@ -193,8 +244,17 @@ export class TurmaDenuncias implements OnInit {
   protected readonly carregando = signal(true);
   protected readonly ocupado = signal(false);
   private readonly todas = signal<DenunciaProfessor[]>([]);
-  protected readonly pendentes = computed(() => this.todas().filter((d) => d.status === 'PENDENTE'));
-  protected readonly resolvidas = computed(() => this.todas().filter((d) => d.status !== 'PENDENTE'));
+  /** '' = todas; '__sem' = denúncias anteriores às janelas (033). */
+  protected readonly filtroJanela = signal('');
+  private readonly filtradas = computed(() => {
+    const f = this.filtroJanela();
+    if (!f) return this.todas();
+    return this.todas().filter((d) => (f === '__sem' ? !d.janelaId : d.janelaId === f));
+  });
+  protected readonly pendentes = computed(() => this.filtradas().filter((d) => d.status === 'PENDENTE'));
+  protected readonly resolvidas = computed(() => this.filtradas().filter((d) => d.status !== 'PENDENTE'));
+  /** Atualiza o "há N min" sem recarregar. */
+  private readonly agora = signal(new Date());
   protected readonly verHistorico = signal(false);
   protected readonly validando = signal<DenunciaProfessor | null>(null);
   protected readonly pontos = signal(0);
@@ -208,10 +268,36 @@ export class TurmaDenuncias implements OnInit {
 
   ngOnInit(): void {
     this.carregar();
+    const t = setInterval(() => this.agora.set(new Date()), 30_000);
+    this.destroyRef.onDestroy(() => clearInterval(t));
   }
 
-  protected data(iso: string): string {
-    return formatarData(iso.slice(0, 10));
+  protected dataHora(iso: string): string {
+    return formatarDataHoraSegundos(iso);
+  }
+
+  protected relativo(iso: string): string {
+    return tempoRelativo(iso, this.agora());
+  }
+
+  protected rotuloJanela(j: JanelaDenuncia): string {
+    const fim = j.fechadaEm ? formatarHora(j.fechadaEm) : 'aberta';
+    return `${formatarData(this.diaLocal(j.abertaEm))} · ${formatarHora(j.abertaEm)}–${fim}`;
+  }
+
+  /** "Janela aberta às 14:02, fechada às 14:51" (033 #11). */
+  protected rotuloJanelaDe(d: DenunciaProfessor): string {
+    const j = this.janela()?.janelas.find((x) => x.id === d.janelaId);
+    if (!j) return '';
+    const fim = j.fechadaEm ? `, fechada às ${formatarHora(j.fechadaEm)}` : ', ainda aberta';
+    return `Janela aberta às ${formatarHora(j.abertaEm)}${fim}`;
+  }
+
+  /** 'YYYY-MM-DD' no fuso local (o formatarData trata a string como dia). */
+  private diaLocal(iso: string): string {
+    const d = new Date(iso);
+    const p = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
   }
 
   protected abrirValidar(d: DenunciaProfessor): void {
