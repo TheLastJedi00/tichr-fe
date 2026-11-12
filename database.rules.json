@@ -1,0 +1,12 @@
+{
+  "rules": {
+    "pos": {
+      "$partidaId": {
+        "$setorId": {
+          ".read": "auth != null && auth.token.partidaId === $partidaId && auth.token.setorId === $setorId",
+          ".write": false
+        }
+      }
+    }
+  }
+}
