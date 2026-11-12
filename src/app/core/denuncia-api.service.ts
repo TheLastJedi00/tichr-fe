@@ -45,6 +45,8 @@ export interface DenunciaAluno {
 }
 
 export interface OpcoesDenuncia {
+  /** Janela de denúncia aberta pelo professor (033). */
+  abertas: boolean;
   colegas: Array<{ id: string; nome: string }>;
   topicos: Array<{ id: string; titulo: string }>;
 }
@@ -114,18 +116,17 @@ export class DenunciaApiService {
     return this.http.get<DenunciaAluno[]>(`${this.base}/aluno/denuncias`);
   }
 
-  /** Multipart: a imagem (já comprimida) vai no campo `imagem`. */
+  /** Sem foto desde a 033: só colega, tópico e/ou texto. */
   denunciar(dados: {
     denunciadoAlunoId: string;
     topicoId?: string;
     texto?: string;
-    imagem?: Blob | null;
   }): Observable<{ id: string }> {
-    const form = new FormData();
-    form.append('denunciadoAlunoId', dados.denunciadoAlunoId);
-    if (dados.topicoId) form.append('topicoId', dados.topicoId);
-    if (dados.texto?.trim()) form.append('texto', dados.texto.trim());
-    if (dados.imagem) form.append('imagem', dados.imagem, 'denuncia.jpg');
-    return this.http.post<{ id: string }>(`${this.base}/aluno/denuncias`, form);
+    const corpo: { denunciadoAlunoId: string; topicoId?: string; texto?: string } = {
+      denunciadoAlunoId: dados.denunciadoAlunoId,
+    };
+    if (dados.topicoId) corpo.topicoId = dados.topicoId;
+    if (dados.texto?.trim()) corpo.texto = dados.texto.trim();
+    return this.http.post<{ id: string }>(`${this.base}/aluno/denuncias`, corpo);
   }
 }
