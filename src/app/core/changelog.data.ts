@@ -29,6 +29,8 @@ export const CHANGELOG: VersaoChangelog[] = [
       { categoria: 'Melhoria', texto: 'A Quarentena passou a ser convocada à noite, de dentro da Comunicação, e o Dia de 15 segundos deixou de existir: o resultado da rodada aparece antes de a noite começar.' },
       { categoria: 'Melhoria', texto: 'A partida dura todas as questões do jogo. A Esperança em zero vira colapso (não encerra), e prender a última Ameaça sorteia um novo infiltrado. O vencedor sai só depois da última questão.' },
       { categoria: 'Melhoria', texto: 'Se o celular for fraco, o botão Modo simples volta à tela em lista.' },
+      { categoria: 'Melhoria', texto: 'O telão do professor ganhou o mesmo visual em pixel art: mapa da vila, barra de Esperança, a rodada atual e o aviso de colapso.' },
+      { categoria: 'Melhoria', texto: 'O Manual de Guerra explica as regras novas do Isolateus: a rodada, a energia alien, o resgate e o fim da partida.' },
     ],
   },
   {
