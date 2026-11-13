@@ -21,6 +21,14 @@ const MAX_TENTATIVAS = 10;
 /** Espalha a rajada da turma: N celulares vencendo o mesmo prazo no mesmo segundo. */
 const ATRASO_MAX_MS = 1_500;
 
+/** Espelha `ISOLATEUS.JANELA_RESULTADO_MS` do backend (a noite espera o card). */
+export const JANELA_RESULTADO_MS = 6_000;
+
+/** A antecedência do `faseIniciadaEm` de uma fase: só a noite depois da 1ª espera o card. */
+export function antecedenciaDaFase(status: string, rodada: number): number {
+  return status === 'DESLOCAMENTO' && rodada > 0 ? JANELA_RESULTADO_MS : 0;
+}
+
 export class RelogioDaFase {
   /** Quanto o relógio local está adiantado em relação ao do servidor. */
   private desvioMs: number | null = null;
@@ -40,7 +48,7 @@ export class RelogioDaFase {
    * para trás. O mínimo despreza as amostras "velhas" e converge para a
    * diferença real entre os dois relógios.
    */
-  sincronizar(faseIniciadaEm: string | null): void {
+  sincronizar(faseIniciadaEm: string | null, antecedenciaMs = 0): void {
     if (faseIniciadaEm === this.fase) return;
     this.fase = faseIniciadaEm;
     this.tentativas = 0;
@@ -48,7 +56,9 @@ export class RelogioDaFase {
     this.ultimoEnvio = 0;
     if (!faseIniciadaEm) return;
 
-    const amostra = Date.now() - Date.parse(faseIniciadaEm);
+    // A noite que espera o card de resultado grava `faseIniciadaEm` NO FUTURO
+    // (034 #55): o instante real em que ela abriu é `antecedenciaMs` antes.
+    const amostra = Date.now() - (Date.parse(faseIniciadaEm) - antecedenciaMs);
     this.desvioMs =
       this.desvioMs === null ? amostra : Math.min(this.desvioMs, amostra);
   }

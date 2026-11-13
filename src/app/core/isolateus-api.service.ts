@@ -206,6 +206,23 @@ export class IsolateusApiService {
     );
   }
 
+  /** Toque no chão: o destino da caminhada, só visual (1 por segundo). */
+  passo(id: string, alvoX: number): Observable<{ ok: true }> {
+    return this.http.post<{ ok: true }>(
+      `${this.base}/aluno/isolateus/${id}/passo`,
+      { alvoX },
+    );
+  }
+
+  /** O custom token do canal de posição do meu setor atual. */
+  canal(
+    id: string,
+  ): Observable<{ token: string; partidaId: string; setorId: string }> {
+    return this.http.get<{ token: string; partidaId: string; setorId: string }>(
+      `${this.base}/aluno/isolateus/${id}/canal`,
+    );
+  }
+
   /** "Eu fico." Fecha a jogada da noite sem sair do lugar. */
   confirmarPosicao(id: string): Observable<IsolateusMatch> {
     return this.http.post<IsolateusMatch>(
