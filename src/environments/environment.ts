@@ -19,5 +19,8 @@ export const environment = {
     // Bucket do Storage (foto de perfil). Confirme o nome exato no console
     // ao habilitar o Storage — pode ser `tichr-293c8.appspot.com` (legado).
     storageBucket: 'tichr-293c8.firebasestorage.app',
+    // Realtime Database (spec 034): só a posição cosmética dos habitantes, lida
+    // com um custom token restrito ao setor. Escrita só pelo backend.
+    databaseURL: 'https://tichr-293c8-default-rtdb.firebaseio.com',
   },
 };

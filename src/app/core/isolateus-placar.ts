@@ -12,4 +12,5 @@ export function alienDoPlacar(ranking: PlacarIsolateus[]): PlacarIsolateus | nul
 export const ROTULO_PAPEL: Record<NonNullable<PlacarIsolateus['papel']>, string> = {
   ALIEN: 'Alienígena',
   CONTAGIADO: 'Contagiado',
+  INFILTRADO: 'Infiltrado',
 };
