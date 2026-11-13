@@ -25,13 +25,69 @@ export interface DenunciaProfessor {
   denunciadoAlunoId: string;
   denunciadoNome: string;
   xpDenunciado: number;
+  /** Janela de denúncia em que foi feita (033); ausente nas anteriores. */
+  janelaId?: string;
+  /** Grupo de que faz parte (033). */
+  grupoId?: string;
   topicoId?: string;
   topicoTitulo?: string;
   pontosSugeridos?: number;
   texto?: string;
+  /** Só denúncias anteriores à 033 podem ter foto. */
   temImagem: boolean;
   pontos?: number;
   pontosTransferidos?: number;
+}
+
+/** Janela de denúncia: intervalo em que a turma pôde denunciar (033). */
+export interface JanelaDenuncia {
+  id: string;
+  abertaEm: string;
+  fechadaEm?: string;
+}
+
+export interface EstadoJanelas {
+  abertas: boolean;
+  janelaAtualId: string | null;
+  /** Mais nova primeiro. */
+  janelas: JanelaDenuncia[];
+}
+
+export type StatusGrupo = 'PENDENTE' | 'VALIDADO' | 'INVALIDADO';
+
+/** Grupo de denúncias contra o mesmo aluno (033). */
+export interface GrupoDenuncia {
+  id: string;
+  status: StatusGrupo;
+  criadoEm: string;
+  resolvidoEm?: string;
+  denunciadoAlunoId: string;
+  denunciadoNome: string;
+  xpDenunciado: number;
+  topicoId?: string;
+  topicoTitulo?: string;
+  pontosSugeridos?: number;
+  /** Ordem cronológica: a sobra da divisão vai aos primeiros. */
+  denunciaIds: string[];
+  pontos?: number;
+  pontosTransferidos?: number;
+}
+
+/** Pendentes avulsas com o mesmo denunciado e tópico (033). */
+export interface SugestaoGrupo {
+  denunciadoAlunoId: string;
+  denunciadoNome: string;
+  topicoId: string;
+  topicoTitulo?: string;
+  denunciaIds: string[];
+}
+
+/** Divide `total` igualmente; a sobra vai, 1 por vez, aos primeiros (espelha o backend). */
+export function dividirIgual(total: number, n: number): number[] {
+  if (n <= 0) return [];
+  const base = Math.floor(total / n);
+  const sobra = total - base * n;
+  return Array.from({ length: n }, (_, i) => base + (i < sobra ? 1 : 0));
 }
 
 /** O que o aluno vê das próprias denúncias (sem pontos). */
@@ -45,6 +101,8 @@ export interface DenunciaAluno {
 }
 
 export interface OpcoesDenuncia {
+  /** Janela de denúncia aberta pelo professor (033). */
+  abertas: boolean;
   colegas: Array<{ id: string; nome: string }>;
   topicos: Array<{ id: string; titulo: string }>;
 }
@@ -104,6 +162,66 @@ export class DenunciaApiService {
     );
   }
 
+  // ===== Janela (033) =====
+
+  janelas(turmaId: string): Observable<EstadoJanelas> {
+    return this.http.get<EstadoJanelas>(`${this.base}/turmas/${turmaId}/denuncias/janelas`);
+  }
+
+  abrirJanela(turmaId: string): Observable<{ abertas: boolean }> {
+    return this.http.post<{ abertas: boolean }>(`${this.base}/turmas/${turmaId}/denuncias/abrir`, {});
+  }
+
+  fecharJanela(turmaId: string): Observable<{ abertas: boolean }> {
+    return this.http.post<{ abertas: boolean }>(`${this.base}/turmas/${turmaId}/denuncias/fechar`, {});
+  }
+
+  // ===== Grupos (033) =====
+
+  grupos(turmaId: string): Observable<{ grupos: GrupoDenuncia[]; sugestoes: SugestaoGrupo[] }> {
+    return this.http.get<{ grupos: GrupoDenuncia[]; sugestoes: SugestaoGrupo[] }>(
+      `${this.base}/turmas/${turmaId}/denuncias/grupos`,
+    );
+  }
+
+  criarGrupo(turmaId: string, denunciaIds: string[]): Observable<GrupoDenuncia> {
+    return this.http.post<GrupoDenuncia>(`${this.base}/turmas/${turmaId}/denuncias/grupos`, {
+      denunciaIds,
+    });
+  }
+
+  associar(turmaId: string, grupoId: string, denunciaId: string): Observable<{ motivoDiferente: boolean }> {
+    return this.http.post<{ motivoDiferente: boolean }>(
+      `${this.base}/turmas/${turmaId}/denuncias/grupos/${grupoId}/associar`,
+      { denunciaId },
+    );
+  }
+
+  desassociar(turmaId: string, grupoId: string, denunciaId: string): Observable<{ desfeito: boolean }> {
+    return this.http.post<{ desfeito: boolean }>(
+      `${this.base}/turmas/${turmaId}/denuncias/grupos/${grupoId}/desassociar`,
+      { denunciaId },
+    );
+  }
+
+  validarGrupo(
+    turmaId: string,
+    grupoId: string,
+    pontos: number,
+  ): Observable<{ pontosTransferidos: number; partes: Array<{ alunoId: string; pontos: number }> }> {
+    return this.http.post<{
+      pontosTransferidos: number;
+      partes: Array<{ alunoId: string; pontos: number }>;
+    }>(`${this.base}/turmas/${turmaId}/denuncias/grupos/${grupoId}/validar`, { pontos });
+  }
+
+  invalidarGrupo(turmaId: string, grupoId: string): Observable<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(
+      `${this.base}/turmas/${turmaId}/denuncias/grupos/${grupoId}/invalidar`,
+      {},
+    );
+  }
+
   // ===== Aluno =====
 
   opcoes(): Observable<OpcoesDenuncia> {
@@ -114,18 +232,17 @@ export class DenunciaApiService {
     return this.http.get<DenunciaAluno[]>(`${this.base}/aluno/denuncias`);
   }
 
-  /** Multipart: a imagem (já comprimida) vai no campo `imagem`. */
+  /** Sem foto desde a 033: só colega, tópico e/ou texto. */
   denunciar(dados: {
     denunciadoAlunoId: string;
     topicoId?: string;
     texto?: string;
-    imagem?: Blob | null;
   }): Observable<{ id: string }> {
-    const form = new FormData();
-    form.append('denunciadoAlunoId', dados.denunciadoAlunoId);
-    if (dados.topicoId) form.append('topicoId', dados.topicoId);
-    if (dados.texto?.trim()) form.append('texto', dados.texto.trim());
-    if (dados.imagem) form.append('imagem', dados.imagem, 'denuncia.jpg');
-    return this.http.post<{ id: string }>(`${this.base}/aluno/denuncias`, form);
+    const corpo: { denunciadoAlunoId: string; topicoId?: string; texto?: string } = {
+      denunciadoAlunoId: dados.denunciadoAlunoId,
+    };
+    if (dados.topicoId) corpo.topicoId = dados.topicoId;
+    if (dados.texto?.trim()) corpo.texto = dados.texto.trim();
+    return this.http.post<{ id: string }>(`${this.base}/aluno/denuncias`, corpo);
   }
 }

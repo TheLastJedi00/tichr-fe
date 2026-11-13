@@ -28,7 +28,8 @@ import { planoAtendeMinimo, podeGamificar } from '../../core/plano.util';
 import { ProfileService } from '../../core/profile.service';
 import { ROTULO_STATUS, statusVisual } from '../../core/status-sessao';
 import { TurmaApiService } from '../../core/turma-api.service';
-import { DenunciaApiService } from '../../core/denuncia-api.service';
+import { DenunciaApiService, EstadoJanelas } from '../../core/denuncia-api.service';
+import { formatarHora } from '../../core/date-format';
 import { TurmaDenuncias } from './turma-denuncias';
 import { AlunoCard } from '../../ui/aluno-card/aluno-card';
 import { Card } from '../../ui/card/card';
@@ -122,6 +123,28 @@ type Ordenacao = 'nome' | 'pontuacao';
             {{ p.concluidas }} de {{ p.total }} aulas concluídas
             @if (cfg().pontuacaoAtiva) { · base coletiva pelo andamento do curso }
           </span>
+        </div>
+      }
+
+      @if (podePontuar() && janelaDenuncia(); as j) {
+        <div class="janela" [class.janela--aberta]="j.abertas">
+          <span class="janela__txt">
+            <app-icon [name]="j.abertas ? 'flag' : 'lock'" [size]="16" />
+            @if (j.abertas) {
+              Denúncias abertas
+              @if (abertaDesde(); as h) { <span class="janela__desde">desde {{ h }}</span> }
+            } @else {
+              Denúncias fechadas
+            }
+          </span>
+          <button
+            type="button"
+            [class]="j.abertas ? 'btn-outline' : 'btn-primary'"
+            [disabled]="alternandoJanela()"
+            (click)="alternarJanela()"
+          >
+            {{ j.abertas ? 'Fechar denúncias' : 'Abrir denúncias' }}
+          </button>
         </div>
       }
 
@@ -426,6 +449,9 @@ type Ordenacao = 'nome' | 'pontuacao';
             [turmaId]="turmaId"
             [pontuacaoAtiva]="cfg().pontuacaoAtiva"
             [nomePontuacao]="cfg().nomePontuacao"
+            [janela]="janelaDenuncia()"
+            [alternandoJanela]="alternandoJanela()"
+            (alternarJanela)="alternarJanela()"
             (pendentesMudou)="pendentesDenuncia.set($event)"
           />
         }
@@ -718,6 +744,22 @@ type Ordenacao = 'nome' | 'pontuacao';
     }
     .title { margin: 0; font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; }
     .dot { width: 12px; height: 12px; border-radius: 999px; display: inline-block; }
+    .janela {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      padding: 0.6rem 0.85rem;
+      margin-bottom: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface);
+    }
+    .janela--aberta { border-color: var(--success); }
+    .janela__txt { display: inline-flex; align-items: center; gap: 0.45rem; font-weight: 700; }
+    .janela--aberta .janela__txt { color: var(--success); }
+    .janela__desde { font-weight: 600; color: var(--text-muted); }
     .tabs {
       display: flex;
       gap: 0.25rem;
@@ -1093,6 +1135,14 @@ export class TurmaDetalhePage {
   protected readonly aba = signal<Aba>('agenda');
   /** Denúncias pendentes desta turma (badge da aba, spec 032). */
   protected readonly pendentesDenuncia = signal(0);
+  /** Janela de denúncia da turma (033): o aluno só denuncia com ela aberta. */
+  protected readonly janelaDenuncia = signal<EstadoJanelas | null>(null);
+  protected readonly alternandoJanela = signal(false);
+  protected readonly abertaDesde = computed(() => {
+    const j = this.janelaDenuncia();
+    const atual = j?.janelas.find((x) => x.id === j.janelaAtualId);
+    return atual ? formatarHora(atual.abertaEm) : null;
+  });
   private readonly denunciaApi = inject(DenunciaApiService);
   protected readonly carregando = signal(true);
   protected readonly turma = signal<Turma | null>(null);
@@ -1256,6 +1306,7 @@ export class TurmaDetalhePage {
           next: (p) => this.pendentesDenuncia.set(p[this.turmaId] ?? 0),
           error: () => {},
         });
+        this.carregarJanela();
       }
     };
     if (this.profileService.profile()) {
@@ -1614,5 +1665,29 @@ export class TurmaDetalhePage {
     this.editando.set(this.infoEquipe());
     this.infoEquipe.set(null);
     this.formOpen.set(true);
+  }
+
+  /** Abre ou fecha a janela de denúncia (033). */
+  protected alternarJanela(): void {
+    const j = this.janelaDenuncia();
+    if (!j || this.alternandoJanela()) return;
+    this.alternandoJanela.set(true);
+    const req = j.abertas
+      ? this.denunciaApi.fecharJanela(this.turmaId)
+      : this.denunciaApi.abrirJanela(this.turmaId);
+    req.subscribe({
+      next: () => this.carregarJanela(() => this.alternandoJanela.set(false)),
+      error: () => this.alternandoJanela.set(false),
+    });
+  }
+
+  private carregarJanela(depois?: () => void): void {
+    this.denunciaApi.janelas(this.turmaId).subscribe({
+      next: (j) => {
+        this.janelaDenuncia.set(j);
+        depois?.();
+      },
+      error: () => depois?.(),
+    });
   }
 }

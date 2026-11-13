@@ -34,6 +34,33 @@ export const CHANGELOG: VersaoChangelog[] = [
     ],
   },
   {
+    versao: 'v0.40.0',
+    data: '2026-11-12',
+    titulo: 'Denúncias agrupadas e com horário de abertura',
+    itens: [
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Denúncias: você abre e fecha as denúncias da turma com um botão no detalhe da turma. Abra no começo da aula e feche no fim: com elas fechadas, o aluno não consegue denunciar.',
+      },
+      {
+        categoria: 'Nova feature',
+        texto:
+          'Denúncias: quando vários alunos denunciam a mesma pessoa pelo mesmo motivo, elas aparecem juntas como sugestão de grupo. Ao validar o grupo, você escolhe uma pontuação só, que sai do denunciado e é dividida entre quem denunciou.',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Denúncias: a aba agora organiza as pendentes por aluno denunciado e mostra a data e a hora exatas de cada denúncia, com o filtro por aula (janela em que foram feitas).',
+      },
+      {
+        categoria: 'Melhoria',
+        texto:
+          'Denúncias: o aluno não anexa mais foto. A denúncia fica só com o tópico e o texto.',
+      },
+    ],
+  },
+  {
     versao: 'v0.39.0',
     data: '2026-11-04',
     titulo: 'Denúncias, Wor por rodada e ociosidade',
