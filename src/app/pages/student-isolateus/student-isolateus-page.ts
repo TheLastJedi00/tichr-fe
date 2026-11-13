@@ -2168,6 +2168,9 @@ export class StudentIsolateusPage {
 
   // --- A Quarentena ---
 
+  /** Gancho da convocação aceita (a tela pixel art mostra um aviso na cena). */
+  protected aoConvocar(): void {}
+
   protected convocar(): void {
     if (!this.partidaId || this.enviando()) return;
     this.enviando.set(true);
@@ -2176,6 +2179,7 @@ export class StudentIsolateusPage {
       next: () => {
         this.enviando.set(false);
         this.convocacaoFeita.set(true);
+        this.aoConvocar();
       },
       error: (e: { error?: { code?: string; message?: string } }) => {
         this.enviando.set(false);

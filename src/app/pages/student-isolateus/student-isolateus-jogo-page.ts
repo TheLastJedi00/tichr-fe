@@ -241,6 +241,7 @@ const EVENTOS_DO_AMANHECER = new Set([
                     }
                     @case ('QUESTAO') {
                       @if (p.alerta; as a) { <p class="alerta">{{ a.texto }}</p> }
+                      @if (p.resgatePendente) { <p class="aviso">Resgate em jogo: a maioria dos aldeões precisa acertar.</p> }
                       <h2 class="px-titulo tit">QUESTÃO DO COMANDO CENTRAL</h2>
                       @if (p.questaoPublica; as q) {
                         <p>{{ q.enunciado }}</p>
@@ -960,6 +961,10 @@ export class StudentIsolateusJogoPage extends StudentIsolateusPage implements On
     } else {
       this.convocar();
     }
+  }
+
+  protected override aoConvocar(): void {
+    this.avisar('Quarentena convocada. Ela é confirmada no amanhecer, se o rádio continuar de pé.');
   }
 
   // ------------------------------------------------------- motivos (#63)

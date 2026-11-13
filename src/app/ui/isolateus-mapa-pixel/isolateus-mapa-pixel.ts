@@ -93,7 +93,11 @@ export class IsolateusMapaPixel {
   readonly grande = input(false);
 
   protected readonly largura = 4 * CW + 2;
-  protected readonly altura = computed(() => (this.grande() ? 46 : 38));
+  /** A altura cobre todas as linhas da malha (e o nome, no mapa expandido). */
+  protected readonly altura = computed(() => {
+    const linhas = Math.max(...MAPA.map((s) => s.linha));
+    return OY + (linhas - 1) * CH + BH + (this.grande() ? 7 : 3);
+  });
 
   protected readonly predios = computed<Predio[]>(() =>
     MAPA.map((s: SetorMapa) => {
