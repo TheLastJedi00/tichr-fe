@@ -6,10 +6,10 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import imageCompression from 'browser-image-compression';
 import { formatarData } from '../../core/date-format';
 import {
   DenunciaAluno,
@@ -29,8 +29,8 @@ const STATUS_ROTULO: Record<StatusDenuncia, string> = {
 
 /**
  * Denúncia entre alunos (spec 032), no portal do aluno: escolhe o colega, um
- * tópico do professor e/ou escreve o que aconteceu, e pode anexar uma foto.
- * Só o professor vê quem denunciou.
+ * tópico do professor e/ou escreve o que aconteceu. Só o professor vê quem
+ * denunciou. Spec 033: sem foto, e só com a janela aberta pelo professor.
  */
 @Component({
   selector: 'app-student-denuncia-page',
@@ -46,7 +46,15 @@ const STATUS_ROTULO: Record<StatusDenuncia, string> = {
       <div class="loading"><app-spinner [size]="32" /></div>
     } @else if (opcoes(); as op) {
       <app-card>
-        @if (enviada()) {
+        @if (!op.abertas) {
+          <div class="fechadas" role="status">
+            <app-icon name="lock" [size]="22" />
+            <div>
+              <strong>As denúncias estão fechadas.</strong>
+              <span>O professor abre durante a aula.</span>
+            </div>
+          </div>
+        } @else if (enviada()) {
           <div class="ok" role="status">
             <app-icon name="check" [size]="22" />
             <div>
@@ -105,28 +113,10 @@ const STATUS_ROTULO: Record<StatusDenuncia, string> = {
               <span class="contador">{{ texto().length }}/1000</span>
             </label>
 
-            <div class="campo">
-              <span class="campo__lbl">Foto (opcional)</span>
-              @if (previewUrl(); as url) {
-                <div class="foto">
-                  <img [src]="url" alt="Foto anexada à denúncia" />
-                  <button type="button" class="btn-outline" (click)="removerFoto()">Remover foto</button>
-                </div>
-              } @else {
-                <label class="anexar">
-                  <input type="file" accept="image/*" (change)="fotoEscolhida($event)" hidden />
-                  <app-icon name="plus" [size]="18" /> Anexar uma foto
-                </label>
-              }
-              @if (comprimindo()) {
-                <span class="contador">Preparando a foto…</span>
-              }
-            </div>
-
             <button
               type="submit"
               class="btn-primary"
-              [disabled]="!podeEnviar() || enviando() || comprimindo()"
+              [disabled]="!podeEnviar() || enviando()"
             >
               {{ enviando() ? 'Enviando…' : 'Enviar denúncia' }}
             </button>
@@ -179,20 +169,9 @@ const STATUS_ROTULO: Record<StatusDenuncia, string> = {
       cursor: pointer;
     }
     .topico--on { border-color: var(--primary); background: var(--primary); color: #fff; }
-    .anexar {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      align-self: flex-start;
-      padding: 0.55rem 0.9rem;
-      border: 2px dashed var(--border);
-      border-radius: 10px;
-      color: var(--primary);
-      font-weight: 700;
-      cursor: pointer;
-    }
-    .foto { display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-start; }
-    .foto img { max-width: 100%; max-height: 220px; border-radius: 10px; border: 1px solid var(--border); }
+    .fechadas { display: flex; gap: 0.75rem; align-items: flex-start; color: var(--text-muted); }
+    .fechadas div { display: flex; flex-direction: column; color: var(--text); }
+    .fechadas span { color: var(--text-muted); }
     .ok { display: flex; gap: 0.75rem; align-items: flex-start; color: var(--success); margin-bottom: 1rem; }
     .ok div { display: flex; flex-direction: column; color: var(--text); }
     .secao { margin: 1.5rem 0 0.75rem; font-size: 1.1rem; font-weight: 800; }
@@ -229,9 +208,6 @@ export class StudentDenunciaPage {
   protected readonly colegaId = signal('');
   protected readonly topicoId = signal<string | null>(null);
   protected readonly texto = signal('');
-  private readonly foto = signal<Blob | null>(null);
-  protected readonly previewUrl = signal<string | null>(null);
-  protected readonly comprimindo = signal(false);
   protected readonly enviando = signal(false);
   protected readonly enviada = signal(false);
 
@@ -251,7 +227,6 @@ export class StudentDenunciaPage {
         error: () => this.carregando.set(false),
       });
     this.carregarMinhas();
-    this.destroyRef.onDestroy(() => this.liberarPreview());
   }
 
   protected rotulo(s: StatusDenuncia): string {
@@ -262,33 +237,6 @@ export class StudentDenunciaPage {
     this.topicoId.update((atual) => (atual === id ? null : id));
   }
 
-  protected async fotoEscolhida(event: Event): Promise<void> {
-    const input = event.target as HTMLInputElement;
-    const arquivo = input.files?.[0];
-    input.value = '';
-    if (!arquivo || !arquivo.type.startsWith('image/')) return;
-    this.comprimindo.set(true);
-    try {
-      // Comprimida no aparelho: o backend aceita até ~400KB.
-      const comprimido = await imageCompression(arquivo, {
-        maxSizeMB: 0.3,
-        maxWidthOrHeight: 1280,
-        useWebWorker: true,
-        fileType: 'image/jpeg',
-      });
-      this.liberarPreview();
-      this.foto.set(comprimido);
-      this.previewUrl.set(URL.createObjectURL(comprimido));
-    } finally {
-      this.comprimindo.set(false);
-    }
-  }
-
-  protected removerFoto(): void {
-    this.liberarPreview();
-    this.foto.set(null);
-  }
-
   protected enviar(): void {
     if (!this.podeEnviar() || this.enviando()) return;
     this.enviando.set(true);
@@ -297,7 +245,6 @@ export class StudentDenunciaPage {
         denunciadoAlunoId: this.colegaId(),
         topicoId: this.topicoId() ?? undefined,
         texto: this.texto(),
-        imagem: this.foto(),
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -307,7 +254,14 @@ export class StudentDenunciaPage {
           this.carregarMinhas();
         },
         // O interceptor mostra o motivo (limite, duplicada…); só libera a tela.
-        error: () => this.enviando.set(false),
+        // Janela fechada com a tela aberta (033): troca o formulário pelo aviso.
+        error: (e: HttpErrorResponse) => {
+          this.enviando.set(false);
+          const codigo = (e.error as { code?: string } | null)?.code;
+          if (codigo === 'DENUNCIAS_FECHADAS') {
+            this.opcoes.update((op) => (op ? { ...op, abertas: false } : op));
+          }
+        },
       });
   }
 
@@ -315,8 +269,12 @@ export class StudentDenunciaPage {
     this.colegaId.set('');
     this.topicoId.set(null);
     this.texto.set('');
-    this.removerFoto();
     this.enviada.set(false);
+    // Reconsulta a janela: o professor pode ter fechado enquanto isso.
+    this.api
+      .opcoes()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ next: (op) => this.opcoes.set(op) });
   }
 
   private carregarMinhas(): void {
@@ -324,11 +282,5 @@ export class StudentDenunciaPage {
       .minhas()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({ next: (l) => this.minhas.set(l) });
-  }
-
-  private liberarPreview(): void {
-    const url = this.previewUrl();
-    if (url) URL.revokeObjectURL(url);
-    this.previewUrl.set(null);
   }
 }

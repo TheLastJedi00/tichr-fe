@@ -136,19 +136,35 @@ estilo app), autenticada por **PIN** e com token próprio. O aluno entra pela jo
 | `/aluno/ranking` | **Ranking** | Pódio (🥇🥈🥉) da turma, com o **card do próprio aluno destacado**. A aba **some** quando a turma desativa o ranking. |
 | `/aluno/qlick` | **Tichr Qlick** | Entra no quiz "de hoje": **lobby animado** (loader temático), alternativas **color-coded A/B/C/D** com feedback de clique (press/scale) e estado de espera, **revelação animada** (correta brilha, erradas em cinza, confete no acerto / shake no erro) e **pódio final** com os pontos somados ao XP. |
 | `/aluno/isolateus` | **Tichr Isolateus** | O celular do habitante: entrada com um toque, o **Despertar** (só o **codinome de cidade** — o papel fica no **popup do personagem**, com o **olho** para esconder o nome), o **mapa da vila** (zoom-out somente-leitura) e a **visão do próprio setor** — com as saídas para caminhar, o botão de **reparo**, só os habitantes que estão ali, os **avisos de quem está saindo** (e para onde), a barra **"Mudar"** depois de andar e a **animação de saídas e chegadas** no amanhecer. Mais a jogada secreta da Ameaça, o **chat de rumores**, a **Quarentena**, o **Diário da Vila** e a **tela hackeada** de quem foi abduzido. |
-| `/aluno/denuncias` | **Denunciar** | O aluno escolhe um colega da turma, um **tópico** criado pelo professor (ex.: "Uso de celular em sala") e/ou escreve o que aconteceu, e pode anexar **uma foto** (comprimida no aparelho). Só o professor vê quem denunciou. Abaixo, **"Minhas denúncias"** com o status (aguardando, aceita, não aceita). Atalho no Início. |
+| `/aluno/denuncias` | **Denunciar** | O aluno escolhe um colega da turma, um **tópico** criado pelo professor (ex.: "Uso de celular em sala") e/ou escreve o que aconteceu. Sem foto. Só funciona com as **denúncias abertas** pelo professor; fechadas, a tela mostra "As denúncias estão fechadas. O professor abre durante a aula." Só o professor vê quem denunciou. Abaixo, **"Minhas denúncias"** com o status (aguardando, aceita, não aceita). Atalho no Início. |
 | `/aluno/manual` | **Manual de Guerra** | Regras completas do **Tichr Wor**, do **Tichr Qlick** e do **Tichr Isolateus** + a **Tabela de Recompensas** (quanto vale cada jogada), para a turma montar estratégia **antes** da partida. |
 
 ### Denúncias entre alunos (Plano PhD, junto do portal)
 
 - **Configurações → Tópicos de denúncia** (`/configuracoes/denuncias`): o professor cria as opções
   prontas, cada uma com a **pontuação sugerida**. Valem para todas as turmas; remover arquiva.
-- **Detalhe da turma → aba Denúncias**, com **badge vermelho** de pendentes: cada card mostra
-  quem denunciou quem, o tópico, o texto e **Ver foto** (link temporário). **Validar** abre um
-  modal com a pontuação sugerida (editável, até 10.000) e o resumo "Fulano perde X e Ciclano
-  ganha X"; se o denunciado tem menos pontos que isso, a tela avisa que a transferência fica
-  limitada ao que ele tem. **Invalidar** só arquiva. As resolvidas ficam no histórico da aba, e a
-  foto é apagada assim que a denúncia é resolvida.
+- **Abrir e fechar denúncias:** uma faixa no detalhe da turma (e no topo da aba Denúncias) mostra
+  se a turma pode denunciar, com "aberta desde HH:mm", e o botão **Abrir/Fechar denúncias**. Toda
+  turma começa fechada. A ideia é abrir no começo da aula e fechar no fim; fechar não impede
+  resolver as pendentes.
+- **Detalhe da turma → aba Denúncias**, com **badge vermelho** de pendentes, **agrupada por aluno
+  denunciado**:
+  - **Sugestão de grupo:** denúncias pendentes contra o mesmo aluno pelo mesmo tópico aparecem
+    juntas com o botão **Agrupar**. Também dá para marcar avulsas e **Agrupar selecionadas**, ou
+    **Adicionar ao grupo**.
+  - **Grupo:** autores em ordem, com horário de cada um e o intervalo entre a primeira e a última;
+    denúncia de outro tópico ganha o aviso **"motivo diferente"**; **Desassociar** devolve a
+    denúncia para a lista (o grupo com uma só se desfaz). **Validar grupo** tira uma pontuação do
+    denunciado e divide igualmente entre quem denunciou, com a prévia "−1000 de Bruno → +334 Ana,
+    +333 Caio, +333 Duda" (a sobra vai para quem denunciou primeiro).
+  - **Avulsa:** **Validar** abre um modal com a pontuação sugerida (editável, até 10.000) e o
+    resumo da transferência; **Invalidar** só arquiva.
+  - Em todas: se o denunciado tem menos pontos que o escolhido, a tela avisa que a transferência
+    fica limitada ao que ele tem. Cada denúncia mostra **data e hora com segundos**, o tempo
+    relativo ("há 12 min") e a **janela** em que foi feita; o filtro **Janela** mostra só as de uma
+    aula. As resolvidas ficam no histórico da aba.
+  - Denúncias antigas com foto (anteriores a esta versão) mantêm o **Ver foto** até serem
+    resolvidas; depois a foto é apagada.
 
 ### Ociosidade nos jogos (Qlick, Wor e Isolateus)
 
