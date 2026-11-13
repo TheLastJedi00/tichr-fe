@@ -23,7 +23,9 @@ import { Icon } from '../../ui/icon/icon';
 import { IsolateusDiario } from '../../ui/isolateus-diario/isolateus-diario';
 import { IsolateusEvento } from '../../ui/isolateus-evento/isolateus-evento';
 import { IsolateusBrilho } from '../../ui/isolateus-brilho/isolateus-brilho';
-import { IsolateusMapa } from '../../ui/isolateus-mapa/isolateus-mapa';
+import { IsolateusMapaPixel } from '../../ui/isolateus-mapa-pixel/isolateus-mapa-pixel';
+import { IconePixel } from '../../ui/icone-pixel/icone-pixel';
+import { mensagemDoTurno } from '../../isolateus/isolateus-mensagens';
 import { LobbyLoader } from '../../ui/lobby-loader/lobby-loader';
 import { Modal } from '../../ui/modal/modal';
 import { Spinner } from '../../ui/spinner/spinner';
@@ -64,7 +66,8 @@ const MIN_REAIS = 4;
     Spinner,
     LobbyLoader,
     Modal,
-    IsolateusMapa,
+    IsolateusMapaPixel,
+    IconePixel,
     IsolateusBrilho,
     IsolateusDiario,
     IsolateusEvento,
@@ -73,434 +76,417 @@ const MIN_REAIS = 4;
     PartidaPausadaComponent,
   ],
   template: `
-    <a class="voltar" routerLink="/jogos/isolateus">‹ Minhas investigações</a>
+    <div class="px-stage telao">
+      <a class="voltar" routerLink="/jogos/isolateus">‹ MINHAS INVESTIGAÇÕES</a>
 
-    @if (partida(); as p) {
-      <h1 class="title">
-        {{ p.nome }}
-        @if (p.status !== 'LOBBY' && p.valeRanking === false) {
-          <span class="selo-casual" title="Os pontos desta partida não somam no ranking da turma">Casual</span>
-        }
-      </h1>
-
-      @if (p.status === 'LOBBY') {
-        <section class="lobby">
-          @if (pin(); as pinTurma) {
-            <div class="pinbig">
-              <span class="pinbig__lbl">PIN da turma</span>
-              <strong class="pinbig__val">{{ pinTurma }}</strong>
-              <span class="pinbig__hint">Os alunos entram pelo portal com este PIN</span>
-              <button class="btn-outline" type="button" (click)="assistencia.set(true)">
-                <app-icon name="users" [size]="16" /> Ver detalhes / lista de alunos
-              </button>
+      @if (partida(); as p) {
+        <header class="px-box topo">
+          <h1 class="px-titulo topo__nome">
+            {{ p.nome }}
+            @if (p.status !== 'LOBBY' && p.valeRanking === false) {
+              <span class="selo-casual" title="Os pontos desta partida não somam no ranking da turma">CASUAL</span>
+            }
+          </h1>
+          @if (p.status !== 'LOBBY') {
+            <div class="esperanca" title="Esperança da Vila">
+              <span class="px-titulo esperanca__rot">ESPERANÇA</span>
+              <div class="px-barra" [class]="classeEsperanca()">
+                @for (i of segmentos; track i) {
+                  <i [class.on]="i < segmentosAcesos()"></i>
+                }
+              </div>
+              <span class="px-titulo esperanca__num">{{ p.esperanca }}</span>
+              @if (p.esperanca <= 0) {
+                <span class="px-titulo colapso px-blink">COLAPSO</span>
+              }
             </div>
           }
+        </header>
 
-          <div class="espera">
-            <div class="lead lead--row">
-              <span>Habitantes se registrando…</span>
-              <app-lobby-loader class="loader-mini" />
-            </div>
-            @if (!p.inscritos.length) {
-              <p class="muted">Aguardando os primeiros habitantes.</p>
-            } @else {
-              <!--
-                O telão NÃO mostra nomes aqui de propósito: os codinomes só são
-                sorteados no Despertar. Se a turma visse a lista real enchendo,
-                saberia por eliminação quem é habitante virtual.
-              -->
-              <p class="muted">
-                Os <b>codinomes</b> são sorteados ao iniciar. Toque no × para tirar
-                alguém que entrou por engano.
-              </p>
-              <ul class="inscritos">
-                @for (i of p.inscritos; track i.alunoId; let idx = $index) {
-                  <li>
-                    <span class="chip">
-                      <span class="chip__nome chip__nome--anon">
-                        <app-icon name="user" [size]="12" />
-                        Habitante {{ idx + 1 }}
+        @if (p.status === 'LOBBY') {
+          <section class="lobby">
+            @if (pin(); as pinTurma) {
+              <div class="px-box pinbig">
+                <span class="px-titulo pinbig__lbl">PIN DA TURMA</span>
+                <strong class="px-titulo pinbig__val">{{ pinTurma }}</strong>
+                <span class="pinbig__hint">Os alunos entram pelo portal com este PIN</span>
+                <button class="px-btn" type="button" (click)="assistencia.set(true)">
+                  <app-icon name="users" [size]="16" /> Ver detalhes / lista de alunos
+                </button>
+              </div>
+            }
+
+            <div class="px-box espera">
+              <div class="lead lead--row">
+                <span class="px-titulo">HABITANTES SE REGISTRANDO…</span>
+                <app-lobby-loader class="loader-mini" />
+              </div>
+              @if (!p.inscritos.length) {
+                <p class="dim">Aguardando os primeiros habitantes.</p>
+              } @else {
+                <!--
+                  O telão NÃO mostra nomes aqui de propósito: os codinomes só são
+                  sorteados no Despertar. Se a turma visse a lista real enchendo,
+                  saberia por eliminação quem é habitante virtual.
+                -->
+                <p class="dim">
+                  Os <b>codinomes</b> são sorteados ao iniciar. Toque no × para tirar
+                  alguém que entrou por engano.
+                </p>
+                <ul class="inscritos">
+                  @for (i of p.inscritos; track i.alunoId; let idx = $index) {
+                    <li>
+                      <span class="chip">
+                        <span class="chip__nome">
+                          <app-icon name="user" [size]="12" />
+                          Habitante {{ idx + 1 }}
+                        </span>
+                        <button
+                          class="chip__x"
+                          type="button"
+                          aria-label="Remover habitante {{ idx + 1 }}"
+                          [disabled]="ocupado()"
+                          (click)="remover(i.alunoId, idx + 1)"
+                        >
+                          <app-icon name="close" [size]="12" />
+                        </button>
                       </span>
-                      <button
-                        class="chip__x"
-                        type="button"
-                        aria-label="Remover habitante {{ idx + 1 }}"
-                        [disabled]="ocupado()"
-                        (click)="remover(i.alunoId, idx + 1)"
-                      >
-                        <app-icon name="close" [size]="12" />
-                      </button>
-                    </span>
-                  </li>
-                }
-              </ul>
-            }
-          </div>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
 
-          <label class="opcao">
-            <input
-              type="checkbox"
-              [checked]="debateHabilitado()"
-              (change)="debateHabilitado.set($any($event.target).checked)"
-            />
-            <span>
-              <b>Debate antes da votação</b>
-              <small>Desmarque para a Quarentena ir direto à votação.</small>
-            </span>
-          </label>
-
-          @if (p.turmaId) {
-            <app-vale-ranking
-              [valor]="valeRanking()"
-              [desabilitado]="salvandoValeRanking()"
-              (mudou)="mudarValeRanking($event)"
-            />
-          }
-          <app-limite-ociosidade
-            unidadeSingular="fase"
-            unidadePlural="fases"
-            [valor]="limiteOcioso()"
-            [desabilitado]="salvandoLimite()"
-            (mudou)="mudarLimite($event)"
-          />
-
-          <button
-            class="btn-iso full"
-            type="button"
-            [disabled]="ocupado() || salvandoValeRanking() || p.inscritos.length < minReais"
-            (click)="iniciar()"
-          >
-            Iniciar investigação ({{ p.inscritos.length }} na vila)
-          </button>
-          <p class="muted center">
-            @if (p.inscritos.length < minReais) {
-              A investigação exige no mínimo {{ minReais }} investigadores reais.
-            } @else {
-              Ao iniciar, a vila é preenchida com habitantes virtuais e a Ameaça é sorteada em segredo.
-            }
-          </p>
-          @if (erro()) { <p class="erro">{{ erro() }}</p> }
-        </section>
-      } @else {
-        <!-- A vila em jogo -->
-        <app-isolateus-evento [acontecimentos]="p.acontecimentos ?? []" />
-        @if (avisoBrilho(); as nomes) {
-          <app-isolateus-brilho [setores]="nomes" (fechar)="avisoBrilho.set(null)" />
-        }
-
-        <section class="vila">
-          <div class="esperanca">
-            <span class="esperanca__lbl">Barra de Esperança</span>
-            <span class="esperanca__bar">
-              <span [style.width.%]="p.esperanca" [class.baixa]="p.esperanca <= 30"></span>
-            </span>
-            <span class="esperanca__val">{{ p.esperanca }}</span>
-          </div>
-
-          <!--
-            O telão é a visão onisciente da turma: ele mostra o mapa inteiro,
-            com quem está em cada setor. É o oposto do celular, que só enxerga o
-            próprio setor — e é isso que faz a turma discutir olhando para cima.
-          -->
-          <app-isolateus-mapa
-            class="mapa-telao"
-            [setores]="p.setores"
-            [reparoEm]="p.reparoSetorId ?? null"
-            [noite]="ehNoite()"
-            [brilhoEm]="brilhando(p)"
-            [contagemBrilho]="contagemBrilho(p)"
-          />
-
-          <div class="setores">
-            @for (s of setoresComGente(p); track s.id) {
-              <span class="setor" [class.setor--ruina]="!s.intacto">
-                <app-icon [name]="s.intacto ? 'shield' : 'skull'" [size]="14" />
-                {{ s.nome }}
-                <b class="setor__gente">{{ s.gente }}</b>
+            <label class="px-box opcao">
+              <input
+                type="checkbox"
+                [checked]="debateHabilitado()"
+                (change)="debateHabilitado.set($any($event.target).checked)"
+              />
+              <span>
+                <b>Debate antes da votação</b>
+                <small>Desmarque para a Quarentena ir direto à votação.</small>
               </span>
-            }
-          </div>
+            </label>
 
-          <p class="noite">
-            Rodada {{ p.rodada + 1 }}/{{ p.totalRodadas }} ·
-            {{ vivos(p).length }} habitante(s) na vila
-            @if (p.esperanca <= 0) { · <b class="colapso">COLAPSO</b> }
-          </p>
+            <!-- Os ajustes do lobby são componentes do app: ficam num cartão claro. -->
+            <div class="ajustes">
+              @if (p.turmaId) {
+                <app-vale-ranking
+                  [valor]="valeRanking()"
+                  [desabilitado]="salvandoValeRanking()"
+                  (mudou)="mudarValeRanking($event)"
+                />
+              }
+              <app-limite-ociosidade
+                unidadeSingular="fase"
+                unidadePlural="fases"
+                [valor]="limiteOcioso()"
+                [desabilitado]="salvandoLimite()"
+                (mudou)="mudarLimite($event)"
+              />
+            </div>
 
-          @switch (p.status) {
-            @case ('DESLOCAMENTO') {
-              <!--
-                A noite espera o card de resultado da rodada anterior (034
-                #55): o telão mostra o resultado antes de a noite contar.
-              -->
-              @if (espera() > 0) {
-                @if (p.vereditoQuarentena; as v) {
-                  <div class="card-global" [class.card-global--ok]="v.eraAmeaca">{{ v.texto }}</div>
+            <button
+              class="px-btn px-btn--alien full"
+              type="button"
+              [disabled]="ocupado() || salvandoValeRanking() || p.inscritos.length < minReais"
+              (click)="iniciar()"
+            >
+              INICIAR INVESTIGAÇÃO ({{ p.inscritos.length }} NA VILA)
+            </button>
+            <p class="dim center">
+              @if (p.inscritos.length < minReais) {
+                A investigação exige no mínimo {{ minReais }} investigadores reais.
+              } @else {
+                Ao iniciar, a vila é preenchida com habitantes virtuais e a Ameaça é sorteada em segredo.
+              }
+            </p>
+            @if (erro()) { <p class="erro">{{ erro() }}</p> }
+          </section>
+        } @else {
+          <!-- A vila em jogo -->
+          <app-isolateus-evento [acontecimentos]="p.acontecimentos ?? []" />
+          @if (avisoBrilho(); as nomes) {
+            <app-isolateus-brilho [setores]="nomes" (fechar)="avisoBrilho.set(null)" />
+          }
+
+          <section class="vila">
+            <!--
+              O telão é a visão da turma inteira: o mapa da vila (setores de pé
+              ou sabotados, o brilho) e quantos habitantes há em cada setor. Não
+              mostra posições na cena — elas só existem nos celulares do setor.
+            -->
+            <div class="col-mapa">
+              <div class="px-box mapa">
+                <app-isolateus-mapa-pixel
+                  [setores]="p.setores"
+                  [brilhando]="brilhando(p)"
+                  [grande]="true"
+                />
+                <p class="dim mapa__info">{{ contagemBrilho(p) }}</p>
+                @if (setorDoReparo(p); as r) {
+                  <p class="mapa__reparo">Reparo em andamento: {{ r }}</p>
                 }
-                @if (p.resumoRodada; as r) {
-                  <div class="card-global" [class.card-global--ok]="r.defendida">{{ r.texto }}</div>
+              </div>
+
+              <div class="setores">
+                @for (s of setoresComGente(p); track s.id) {
+                  <span class="setor" [class.setor--ruina]="!s.intacto">
+                    <app-icon [name]="s.intacto ? 'shield' : 'skull'" [size]="14" />
+                    {{ s.nome }}
+                    <b class="setor__gente">{{ s.gente }}</b>
+                  </span>
                 }
-                @if (p.resgateResultado; as rg) {
-                  <div class="card-global card-global--ok">
-                    @if (rg.semVotacao) { {{ rg.nome }} era o único fora da vila e voltou sem votação. }
-                    @else { {{ rg.nome }} foi resgatado e voltou à vila. }
+              </div>
+              <p class="dim">{{ vivos(p).length }} habitante(s) na vila</p>
+            </div>
+
+            <div class="px-box painel">
+              <div class="px-titulo painel__tt">
+                <span>{{ mensagem().titulo }}</span>
+                @if (relogioPainel(); as t) {
+                  <span class="painel__rel" [class.px-blink]="segundosPainel() <= 10">{{ t }}</span>
+                }
+              </div>
+
+              @switch (p.status) {
+                @case ('DESLOCAMENTO') {
+                  <!--
+                    A noite espera o card de resultado da rodada anterior (034
+                    #55): o telão mostra o resultado antes de a noite contar.
+                  -->
+                  @if (espera() > 0) {
+                    @if (p.vereditoQuarentena; as v) {
+                      <div class="card-global" [class.card-global--ok]="v.eraAmeaca">{{ v.texto }}</div>
+                    }
+                    @if (p.resumoRodada; as r) {
+                      <div class="card-global" [class.card-global--ok]="r.defendida">{{ r.texto }}</div>
+                    }
+                    @if (p.resgateResultado; as rg) {
+                      <div class="card-global card-global--ok">
+                        @if (rg.semVotacao) { {{ rg.nome }} era o único fora da vila e voltou sem votação. }
+                        @else { {{ rg.nome }} foi resgatado e voltou à vila. }
+                      </div>
+                    }
+                    @if (p.questaoPublica && p.corretaIndex !== null && p.corretaIndex !== undefined) {
+                      <p class="correta">
+                        Resposta correta:
+                        <b>{{ letra(p.corretaIndex) }}) {{ p.questaoPublica.alternativas[p.corretaIndex] }}</b>
+                      </p>
+                    }
+                    <p class="dim center">A noite começa em {{ espera() }}s.</p>
+                  } @else {
+                    <div class="aguardando">
+                      <app-icone-pixel nome="AGUARDAR" class="aguardando__ico" />
+                      <strong class="px-titulo">A VILA SE MOVIMENTA NA ESCURIDÃO…</strong>
+                      <p class="dim">
+                        Cada habitante escolhe onde passar a noite.
+                        {{ p.movimentosRecebidos ?? 0 }} já decidiram.
+                        A Quarentena é convocada pelo botão vermelho da Comunicação.
+                      </p>
+                    </div>
+                  }
+                }
+
+                @case ('QUESTAO_ATIVA') {
+                  @if (p.alerta; as a) {
+                    <div class="alerta"><app-icon name="alert" [size]="18" /> {{ a.texto }}</div>
+                  }
+                  @if (p.resgatePendente) {
+                    <p class="resgate__aviso">Resgate em jogo: a maioria dos aldeões precisa acertar.</p>
+                  }
+                  @if (p.questaoPublica; as q) {
+                    <h2 class="enunciado">{{ q.enunciado }}</h2>
+                    <ol class="alts">
+                      @for (alt of q.alternativas; track $index) {
+                        <li><span class="letra px-titulo">{{ letra($index) }}</span> {{ alt }}</li>
+                      }
+                    </ol>
+                  }
+                  <!--
+                    Só os Sinais de quem saiu da vila. O Chat de Rumores saiu: os
+                    autores eram sempre NPCs, e o telão mostrava à turma quem era
+                    virtual.
+                  -->
+                  @if (sinais(p).length) {
+                    <div class="feed">
+                      <span class="px-titulo feed__tit">SINAIS INTERCEPTADOS</span>
+                      @for (r of sinais(p); track r.id) {
+                        <p class="rumor rumor--sinal">{{ r.texto }}</p>
+                      }
+                    </div>
+                  }
+                }
+
+                @case ('RESULTADO_RODADA') {
+                  <!-- Só partidas antigas (034 #43): o Dia saiu e avança sozinho. -->
+                  @if (p.vereditoQuarentena; as v) {
+                    <div class="card-global" [class.card-global--ok]="v.eraAmeaca">{{ v.texto }}</div>
+                  }
+                  @if (p.resumoRodada; as r) {
+                    <div class="card-global" [class.card-global--ok]="r.defendida">{{ r.texto }}</div>
+                  }
+                  @if (p.questaoPublica && p.corretaIndex !== null && p.corretaIndex !== undefined) {
+                    <p class="correta">
+                      Resposta correta:
+                      <b>{{ letra(p.corretaIndex) }}) {{ p.questaoPublica.alternativas[p.corretaIndex] }}</b>
+                    </p>
+                  }
+                }
+
+                @case ('QUARENTENA_DEBATE') {
+                  <div class="quarentena">
+                    <span class="px-titulo quarentena__tag">QUARENTENA · DEBATE</span>
+                    @if (p.quarentenaConvocadaPor; as c) {
+                      <p>Convocada por <b>{{ c.nome }}</b></p>
+                    }
+                    <div class="feed">
+                      @for (m of p.debate; track m.id) {
+                        <p class="rumor"><strong>{{ m.autorNome }}</strong> {{ m.texto }}</p>
+                      }
+                    </div>
+                    @if (p.pulosRecebidos) {
+                      <p>{{ p.pulosRecebidos }} já pularam o debate.</p>
+                    }
                   </div>
                 }
-                @if (p.questaoPublica && p.corretaIndex !== null && p.corretaIndex !== undefined) {
-                  <p class="reveal">
-                    Resposta correta:
-                    <b>{{ letra(p.corretaIndex) }}) {{ p.questaoPublica.alternativas[p.corretaIndex] }}</b>
-                  </p>
+
+                @case ('QUARENTENA_VOTO') {
+                  <div class="quarentena">
+                    <span class="px-titulo quarentena__tag">QUARENTENA · VEREDITO</span>
+                    @if (p.quarentenaConvocadaPor; as c) {
+                      <p>Convocada por <b>{{ c.nome }}</b></p>
+                    }
+                    <p>Depositem seus votos. {{ p.votosRecebidos }} voto(s) recebido(s).</p>
+                  </div>
                 }
-                <div class="janela">
-                  <span class="janela__lbl">A noite começa em</span>
-                  <span class="timer">{{ espera() }}s</span>
-                </div>
-              } @else {
-                <div class="aguardando">
-                  <app-icon name="moon" [size]="28" />
-                  <strong>A vila se movimenta na escuridão…</strong>
-                  <p class="muted">
-                    Cada habitante escolhe onde passar a noite.
-                    {{ p.movimentosRecebidos ?? 0 }} já decidiram.
-                    A Quarentena é convocada de dentro da Comunicação.
-                  </p>
-                  @if (relogioAtivo()) { <div class="timer" [class.timer--fim]="restante() <= 5">{{ restante() }}s</div> }
-                  <app-lobby-loader />
-                </div>
-              }
-            }
 
-            @case ('QUESTAO_ATIVA') {
-              @if (p.alerta; as a) {
-                <div class="alerta"><app-icon name="alert" [size]="18" /> {{ a.texto }}</div>
-              }
-              @if (p.resgatePendente) {
-                <p class="lead resgate__aviso">Resgate em jogo: a maioria dos aldeões precisa acertar.</p>
-              }
-              @if (p.questaoPublica; as q) {
-                @if (relogioAtivo()) { <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div> }
-                <h2 class="enunciado">{{ q.enunciado }}</h2>
-                <ol class="alts">
-                  @for (alt of q.alternativas; track $index) {
-                    <li><span class="letra">{{ letra($index) }}</span> {{ alt }}</li>
-                  }
-                </ol>
-              }
-              <!--
-                Só os Sinais de quem saiu da vila. O Chat de Rumores saiu: os
-                autores eram sempre NPCs, e o telão mostrava à turma quem era
-                virtual.
-              -->
-              <div class="feed">
-                <span class="feed__tit">Sinais Interceptados</span>
-                @for (r of p.rumores; track r.id) {
-                  @if (r.tipo === 'SINAL') {
-                    <p class="rumor rumor--sinal">
-                      <strong>[ Sinal Interceptado ]</strong>
-                      {{ r.texto }}
-                    </p>
-                  }
+                @case ('RESGATE_VOTO') {
+                  <div class="quarentena quarentena--resgate">
+                    <span class="px-titulo quarentena__tag">RESGATE · QUEM VOLTA?</span>
+                    <p>A vila acertou a questão do resgate. Votem pelo celular em quem deve voltar.</p>
+                    <div class="setores">
+                      @for (h of resgataveis(p); track h.id) {
+                        <span class="setor">{{ h.nome }}</span>
+                      }
+                    </div>
+                    <p>{{ p.votosResgateRecebidos ?? 0 }} voto(s) recebido(s).</p>
+                  </div>
                 }
-              </div>
-            }
 
-            @case ('RESULTADO_RODADA') {
-              @if (p.vereditoQuarentena; as v) {
-                <div class="card-global" [class.card-global--ok]="v.eraAmeaca">{{ v.texto }}</div>
-              }
-              @if (p.resumoRodada; as r) {
-                <div class="card-global" [class.card-global--ok]="r.defendida">{{ r.texto }}</div>
-              }
-              @if (p.questaoPublica && p.corretaIndex !== null && p.corretaIndex !== undefined) {
-                <p class="reveal">
-                  Resposta correta:
-                  <b>{{ letra(p.corretaIndex) }}) {{ p.questaoPublica.alternativas[p.corretaIndex] }}</b>
-                </p>
-              }
-              <!--
-                A janela de decisão: a vila lê o que aconteceu e quem estiver na
-                Comunicação pode convocar a Quarentena. Sem ela, o avanço
-                automático tornaria a Quarentena inconvocável.
-
-                O telão NÃO convoca. A convocação do professor não respeitava
-                setor nem rádio de pé — aparecia até com a Comunicação em ruínas
-                — e esvaziava justamente o que faz dela o alvo mais valioso do
-                mapa. O controle de ritmo dele continua sendo "Adiantar noite".
-              -->
-              @if (relogioAtivo()) {
-                <div class="janela">
-                  <span class="janela__lbl">A noite cai em</span>
-                  <span class="timer" [class.timer--fim]="restante() <= 5">{{ restante() }}s</span>
-                </div>
-              }
-              <p class="reveal">
-                Quem estiver no Setor de Comunicação pode convocar a Quarentena
-                pelo celular.
-              </p>
-            }
-
-            @case ('QUARENTENA_DEBATE') {
-              <div class="quarentena">
-                <span class="quarentena__tag">Quarentena · Debate</span>
-                @if (p.quarentenaConvocadaPor; as c) {
-                  <p class="lead">Convocada por <b>{{ c.nome }}</b></p>
-                }
-                @if (relogioAtivo()) { <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div> }
-                <div class="feed">
-                  @for (m of p.debate; track m.id) {
-                    <p class="rumor"><strong>{{ m.autorNome }}</strong> {{ m.texto }}</p>
+                @case ('ENCERRADO') {
+                  @if (p.veredito; as v) {
+                    <div class="fim" [class.fim--vila]="v.lado === 'VILA'">
+                      <app-icon [name]="v.lado === 'VILA' ? 'trophy' : 'alien'" [size]="26" />
+                      <strong class="px-titulo">{{ v.lado === 'VILA' ? 'A VILA VENCEU' : 'A AMEAÇA VENCEU' }}</strong>
+                      <p>{{ v.motivo }}</p>
+                      @if (alien(); as a) {
+                        <p class="fim__alien">
+                          O Alienígena era
+                          @if (a.jogador) { <b>{{ a.jogador }}</b> ({{ a.nome }}) } @else { <b>{{ a.nome }}</b> }
+                        </p>
+                      }
+                    </div>
                   }
-                </div>
-                @if (p.pulosRecebidos) {
-                  <p class="lead">{{ p.pulosRecebidos }} já pularam o debate.</p>
-                }
-              </div>
-            }
-
-            @case ('QUARENTENA_VOTO') {
-              <div class="quarentena">
-                <span class="quarentena__tag">Quarentena · Veredito</span>
-                @if (p.quarentenaConvocadaPor; as c) {
-                  <p class="lead">Convocada por <b>{{ c.nome }}</b></p>
-                }
-                @if (relogioAtivo()) { <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div> }
-                <p class="lead">Depositem seus votos. {{ p.votosRecebidos }} voto(s) recebido(s).</p>
-                <app-lobby-loader />
-              </div>
-            }
-
-            @case ('RESGATE_VOTO') {
-              <div class="quarentena">
-                <span class="quarentena__tag resgate__tag">Resgate · Quem volta?</span>
-                @if (relogioAtivo()) { <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div> }
-                <p class="lead">A vila acertou a questão do resgate. Votem pelo celular em quem deve voltar.</p>
-                <div class="setores">
-                  @for (h of resgataveis(p); track h.id) {
-                    <span class="setor">{{ h.nome }}</span>
-                  }
-                </div>
-                <p class="lead">{{ p.votosResgateRecebidos ?? 0 }} voto(s) recebido(s).</p>
-                <app-lobby-loader />
-              </div>
-            }
-
-            @case ('ENCERRADO') {
-              @if (p.veredito; as v) {
-                <div class="fim" [class.fim--vila]="v.lado === 'VILA'">
-                  <app-icon [name]="v.lado === 'VILA' ? 'trophy' : 'alien'" [size]="26" />
-                  <strong>{{ v.lado === 'VILA' ? 'A VILA VENCEU' : 'A AMEAÇA VENCEU' }}</strong>
-                  <p>{{ v.motivo }}</p>
-                  @if (alien(); as a) {
-                    <p class="fim__alien">
-                      O Alienígena era
-                      @if (a.jogador) { <b>{{ a.jogador }}</b> ({{ a.nome }}) } @else { <b>{{ a.nome }}</b> }
-                    </p>
-                  }
-                </div>
-              }
-              <ol class="ranking">
-                @for (r of p.rankingFinal; track r.alunoId) {
-                  <li
-                    [class.rk-alien]="r.papel === 'ALIEN'"
-                    [class.log-lista__row--ocioso]="!!logDe(r.alunoId)?.ocioso"
-                    [class.clicavel]="!!p.logPontuacao"
-                    [attr.role]="p.logPontuacao ? 'button' : null"
-                    [attr.tabindex]="p.logPontuacao ? 0 : null"
-                    (click)="abrirLog(r.alunoId)"
-                    (keydown.enter)="abrirLog(r.alunoId)"
-                  >
-                    <span class="pos">{{ r.posicao }}º</span>
-                    <span class="rk-quem">
-                      @if (r.jogador) { <span class="rk-jogador">{{ r.jogador }}</span> }
-                      <span class="rk-nome">
-                        {{ r.nome }}
-                        @if (r.papel; as papel) {
-                          <span class="selo-papel" [class.selo-papel--contagiado]="papel === 'CONTAGIADO'">
-                            <app-icon name="alien" [size]="13" /> {{ rotuloPapel[papel] }}
+                  <ol class="ranking">
+                    @for (r of p.rankingFinal; track r.alunoId) {
+                      <li
+                        [class.rk-alien]="r.papel === 'ALIEN'"
+                        [class.log-lista__row--ocioso]="!!logDe(r.alunoId)?.ocioso"
+                        [class.clicavel]="!!p.logPontuacao"
+                        [attr.role]="p.logPontuacao ? 'button' : null"
+                        [attr.tabindex]="p.logPontuacao ? 0 : null"
+                        (click)="abrirLog(r.alunoId)"
+                        (keydown.enter)="abrirLog(r.alunoId)"
+                      >
+                        <span class="pos px-titulo">{{ r.posicao }}º</span>
+                        <span class="rk-quem">
+                          @if (r.jogador) { <span class="rk-jogador">{{ r.jogador }}</span> }
+                          <span class="rk-nome">
+                            {{ r.nome }}
+                            @if (r.papel; as papel) {
+                              <span class="selo-papel" [class.selo-papel--contagiado]="papel === 'CONTAGIADO'">
+                                <app-icon name="alien" [size]="13" /> {{ rotuloPapel[papel] }}
+                              </span>
+                            }
+                          </span>
+                        </span>
+                        @if (logDe(r.alunoId)?.ocioso) {
+                          <span class="ocioso-tag">
+                            <app-icon name="alert" [size]="12" /> {{ logDe(r.alunoId)?.faltasOciosidade }} fases sem jogar
                           </span>
                         }
-                      </span>
-                    </span>
-                    @if (logDe(r.alunoId)?.ocioso) {
-                      <span class="ocioso-tag">
-                        <app-icon name="alert" [size]="12" /> {{ logDe(r.alunoId)?.faltasOciosidade }} fases sem jogar
-                      </span>
+                        <span class="rk-pts">{{ r.pontos }} {{ unidade() }}</span>
+                        @if (logDe(r.alunoId)?.ocioso && podeDescontar()) {
+                          @if (p.descontosOciosidade?.[r.alunoId] !== undefined) {
+                            <span class="descontado">−{{ p.descontosOciosidade?.[r.alunoId] }}</span>
+                          } @else {
+                            <button
+                              type="button"
+                              class="px-btn btn-desc"
+                              (click)="$event.stopPropagation(); descontarDe.set(r.alunoId)"
+                              (keydown.enter)="$event.stopPropagation()"
+                            >Descontar</button>
+                          }
+                        }
+                      </li>
                     }
-                    <span class="rk-pts">{{ r.pontos }} {{ unidade() }}</span>
-                    @if (logDe(r.alunoId)?.ocioso && podeDescontar()) {
-                      @if (p.descontosOciosidade?.[r.alunoId] !== undefined) {
-                        <span class="descontado">−{{ p.descontosOciosidade?.[r.alunoId] }}</span>
-                      } @else {
-                        <button
-                          type="button"
-                          class="btn-outline btn-desc"
-                          (click)="$event.stopPropagation(); descontarDe.set(r.alunoId)"
-                          (keydown.enter)="$event.stopPropagation()"
-                        >Descontar</button>
-                      }
-                    }
-                  </li>
+                  </ol>
+                  <app-desconto-ociosidade
+                    [jogador]="jogadorDesconto()"
+                    [unidade]="unidade()"
+                    [ocupado]="descontando()"
+                    (confirmar)="confirmarDesconto($event)"
+                    (fechar)="descontarDe.set(null)"
+                  />
+                  @if (p.logPontuacao) {
+                    <p class="dim center">Toque em um habitante para ver de onde vieram os pontos.</p>
+                  }
+                  <app-log-pontuacao
+                    [jogador]="logJogador()"
+                    [posicao]="logPosicao()"
+                    [unidade]="unidade()"
+                    [temTurma]="!!p.turmaId"
+                    [casual]="p.valeRanking === false"
+                    (fechar)="logAberto.set(null)"
+                  />
                 }
-              </ol>
-              <app-desconto-ociosidade
-                [jogador]="jogadorDesconto()"
-                [unidade]="unidade()"
-                [ocupado]="descontando()"
-                (confirmar)="confirmarDesconto($event)"
-                (fechar)="descontarDe.set(null)"
-              />
-              @if (p.logPontuacao) {
-                <p class="muted center">Toque em um habitante para ver de onde vieram os pontos.</p>
               }
-              <app-log-pontuacao
-                [jogador]="logJogador()"
-                [posicao]="logPosicao()"
-                [unidade]="unidade()"
-                [temTurma]="!!p.turmaId"
-                [casual]="p.valeRanking === false"
-                (fechar)="logAberto.set(null)"
-              />
-            }
-          }
+              @if (erro()) { <p class="erro">{{ erro() }}</p> }
+            </div>
+          </section>
 
           <!--
             O controle de ritmo do professor: toda fase cronometrada pode ser
             pulada. O clique vale pela unanimidade e o jogo segue como se o
-            relógio tivesse zerado.
+            relógio tivesse zerado. A pausa para todo relógio; o Delírio
+            coletivo embaralha os codinomes (anti-trapaça, o Diário não diz quem
+            causou).
           -->
-          @if (rotuloPular(p); as rotulo) {
-            <div class="acoes">
-              <button class="btn-iso" type="button" [disabled]="ocupado()" (click)="pular(p)">
+          <div class="acoes">
+            @if (rotuloPular(p); as rotulo) {
+              <button class="px-btn px-btn--blue" type="button" [disabled]="ocupado()" (click)="pular(p)">
                 {{ rotulo }}
               </button>
-            </div>
-          }
-
-          <!--
-            Anti-trapaça: o professor nota alunos mostrando a tela ou combinando
-            por fora e embaralha os codinomes da vila na hora. O aviso no Diário
-            é o mesmo do poder da Ameaça — a turma não sabe quem causou.
-          -->
-          <!-- A pausa: todo relógio para e um modal cobre todas as telas. -->
-          @if (podePausar(p.status) && !p.pausadaEm) {
-            <button class="btn-pausar" type="button" [disabled]="ocupado()" (click)="pausar()">
-              <app-icon name="pause" [size]="14" /> Pausar
-            </button>
-          }
-
-          @if (p.status !== 'ENCERRADO') {
-            <button class="btn-delirio" type="button" [disabled]="ocupado()" (click)="confirmarDelirio.set(true)">
-              <app-icon name="dice" [size]="14" /> Delírio coletivo
-            </button>
-          }
+            }
+            @if (podePausar(p.status) && !p.pausadaEm) {
+              <button class="px-btn" type="button" [disabled]="ocupado()" (click)="pausar()">
+                <app-icon name="pause" [size]="14" /> Pausar
+              </button>
+            }
+            @if (p.status !== 'ENCERRADO') {
+              <button class="px-btn btn-delirio" type="button" [disabled]="ocupado()" (click)="confirmarDelirio.set(true)">
+                <app-icon name="dice" [size]="14" /> Delírio coletivo
+              </button>
+            }
+          </div>
 
           <!-- O Diário fica sempre à vista: é sobre ele que a turma argumenta. -->
           @if (p.acontecimentos?.length) {
-            <app-isolateus-diario
-              class="diario-telao"
-              [acontecimentos]="p.acontecimentos"
-            />
+            <div class="px-box diario">
+              <app-isolateus-diario [acontecimentos]="p.acontecimentos" />
+            </div>
           }
 
           <!--
@@ -513,9 +499,13 @@ const MIN_REAIS = 4;
               <app-icon name="close" [size]="14" /> Encerrar investigação agora
             </button>
           }
-        </section>
+        }
+      } @else {
+        <div class="loading"><app-spinner [size]="32" /></div>
       }
+    </div>
 
+    @if (partida(); as p) {
       <app-modal
         [open]="confirmarDelirio()"
         title="Causar um delírio coletivo?"
@@ -533,7 +523,7 @@ const MIN_REAIS = 4;
           <button class="btn-outline" type="button" (click)="confirmarDelirio.set(false)">
             Cancelar
           </button>
-          <button class="btn-iso" type="button" [disabled]="ocupado()" (click)="delirio()">
+          <button class="btn-primary" type="button" [disabled]="ocupado()" (click)="delirio()">
             Causar delírio
           </button>
         </div>
@@ -587,118 +577,143 @@ const MIN_REAIS = 4;
           (retomar)="retomar()"
         />
       }
-    } @else {
-      <div class="loading"><app-spinner [size]="32" /></div>
     }
   `,
   styles: `
     :host { display: block; }
-    .voltar { display: inline-block; margin-bottom: 0.75rem; color: var(--text-muted); text-decoration: none; font-weight: 600; }
+    /*
+     * O telão herda as cores e a fonte do palco pixel (034), mas rola como uma
+     * página: o tamanho vem da largura (inline-size), não de um 16:9 fixo.
+     */
+    .telao {
+      container-type: inline-size;
+      overflow: visible;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 16px;
+      min-height: 100%;
+      background: var(--px-ink);
+      font-size: 16px;
+      --u: 8px;
+      --b: 3px;
+    }
+    .voltar { align-self: flex-start; color: var(--px-txt-dim); text-decoration: none; font-family: 'Press Start 2P', monospace; font-size: 10px; }
+    .voltar:hover { color: var(--px-amber-lt); }
+    .loading { display: flex; justify-content: center; padding: 4rem 0; color: var(--px-alien); }
+    .dim { color: var(--px-txt-dim); margin: 0; }
+    .center { text-align: center; }
+    .full { width: 100%; }
+    .erro { color: var(--px-red); font-weight: 600; margin: 0; }
+    .px-titulo { letter-spacing: 0.02em; }
+
+    /* Topo: nome + Esperança + RODADA */
+    .topo { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; padding: 12px 16px; }
+    .topo__nome { margin: 0; font-size: clamp(12px, 1.6cqw, 20px); color: var(--px-amber-lt); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .selo-casual { font-size: 0.6em; padding: 4px 6px; color: var(--px-ink); background: var(--px-txt-dim); }
+    .esperanca { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .esperanca__rot, .esperanca__num { font-size: 11px; }
+    .esperanca__rot { color: var(--px-alien); }
+    .esperanca .px-barra i { width: 10px; height: 20px; }
+    .colapso { font-size: 12px; color: var(--px-red); padding: 4px 8px; box-shadow: 0 0 0 var(--b) var(--px-red); }
+
+    /* Lobby */
+    .lobby { display: flex; flex-direction: column; gap: 16px; max-width: 760px; width: 100%; margin: 0 auto; }
+    .pinbig { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px; text-align: center; }
+    .pinbig__lbl { font-size: 11px; color: var(--px-txt-dim); }
+    .pinbig__val { font-size: clamp(28px, 6cqw, 56px); color: var(--px-alien); letter-spacing: 0.1em; }
+    .pinbig__hint { color: var(--px-txt-dim); }
+    .pinbig .px-btn { display: inline-flex; align-items: center; gap: 6px; }
+    .espera { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+    .lead--row { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--px-alien); }
+    .loader-mini { transform: scale(0.5); margin: -14px -10px; }
+    .inscritos { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 0; padding: 0; }
+    .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; background: var(--px-box2); box-shadow: 0 0 0 2px var(--px-line-dim); }
+    .chip__nome { display: inline-flex; align-items: center; gap: 4px; opacity: 0.85; }
+    .chip__x { border: none; background: none; padding: 0; font: inherit; color: var(--px-txt-dim); cursor: pointer; display: inline-flex; }
+    .chip__x:hover:not(:disabled) { color: var(--px-red); }
+    .chip__x:disabled { cursor: not-allowed; opacity: 0.55; }
+    .opcao { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; cursor: pointer; }
+    .opcao input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--px-green); cursor: pointer; }
+    .opcao span { display: flex; flex-direction: column; gap: 2px; }
+    .opcao small { color: var(--px-txt-dim); }
+    /* Componentes do app (claros) dentro do palco escuro. */
+    .ajustes { display: flex; flex-direction: column; gap: 12px; padding: 12px; background: var(--surface); color: var(--text); font-family: Inter, system-ui, sans-serif; box-shadow: 0 0 0 var(--b) var(--px-line); }
+    .lobby > .px-btn { padding: 14px; font-size: 16px; }
+
+    /* Vila */
+    .vila { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
+    @container (min-width: 900px) { .vila { grid-template-columns: minmax(320px, 2fr) 3fr; } }
+    .col-mapa { display: flex; flex-direction: column; gap: 10px; }
+    .mapa { padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+    .mapa__info { font-size: 14px; }
+    .mapa__reparo { margin: 0; color: var(--px-amber-lt); font-size: 14px; }
+    .setores { display: flex; flex-wrap: wrap; gap: 8px; }
+    .setor { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; background: var(--px-box2); box-shadow: 0 0 0 2px var(--px-line-dim); font-size: 14px; }
+    .setor--ruina { color: var(--px-red); box-shadow: 0 0 0 2px var(--px-red-dk); text-decoration: line-through; }
+    .setor__gente { padding: 0 4px; box-shadow: 0 0 0 1px currentColor; font-size: 12px; }
+
+    .painel { display: flex; flex-direction: column; gap: 14px; padding: 16px; min-height: 280px; }
+    .painel__tt { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--px-amber-lt); }
+    .painel__rel { color: var(--px-txt); }
+    .aguardando { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 24px 8px; text-align: center; }
+    .aguardando strong { font-size: 12px; color: var(--px-alien); }
+    .aguardando__ico { width: 48px; height: 48px; }
+    .alerta { display: flex; align-items: center; gap: 8px; padding: 10px 12px; font-weight: 700; color: #fff; background: var(--px-red-dk); }
+    .resgate__aviso { margin: 0; color: #fb7185; font-weight: 700; }
+    .enunciado { margin: 0; font-size: clamp(18px, 2.2cqw, 28px); font-weight: 700; text-align: center; line-height: 1.3; }
+    .alts { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr; gap: 10px; }
+    @container (min-width: 640px) { .alts { grid-template-columns: 1fr 1fr; } }
+    .alts li { display: flex; align-items: center; gap: 10px; padding: 12px; background: var(--px-box2); box-shadow: 0 0 0 2px var(--px-line-dim); font-size: 18px; }
+    .letra { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; flex: none; font-size: 11px; color: var(--px-ink); background: var(--px-amber-lt); }
+    .feed { display: flex; flex-direction: column; gap: 6px; max-height: 240px; overflow-y: auto; padding: 10px; background: var(--px-ink); box-shadow: 0 0 0 2px var(--px-line-dim); }
+    .feed__tit { font-size: 9px; color: var(--px-txt-dim); }
+    .rumor { margin: 0; line-height: 1.45; }
+    .rumor strong { color: var(--px-txt-dim); margin-right: 6px; }
+    .rumor--sinal { color: var(--px-alien); }
+    .card-global { padding: 12px; font-weight: 700; text-align: center; color: #fff; background: var(--px-red-dk); font-size: 18px; }
+    .card-global--ok { background: #166534; }
+    .correta { text-align: center; margin: 0; color: var(--px-txt-dim); }
+    .correta b { color: var(--px-txt); }
+    .quarentena { display: flex; flex-direction: column; gap: 10px; padding: 12px; box-shadow: 0 0 0 var(--b) var(--px-red); }
+    .quarentena p { margin: 0; }
+    .quarentena__tag { align-self: center; font-size: 11px; color: var(--px-red); }
+    .quarentena--resgate { box-shadow: 0 0 0 var(--b) #fb7185; }
+    .quarentena--resgate .quarentena__tag { color: #fb7185; }
+    .fim { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px; text-align: center; color: var(--px-alien); background: #052e16; box-shadow: 0 0 0 var(--b) var(--px-alien); }
+    .fim--vila { color: #bfdbfe; background: #1e3a8a; box-shadow: 0 0 0 var(--b) #93c5fd; }
+    .fim strong { font-size: 16px; }
+    .fim p { margin: 0; color: var(--px-txt); }
+    .fim__alien { font-size: 17px; }
+    .ranking { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+    .ranking li { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 8px 12px; background: var(--px-box2); box-shadow: 0 0 0 2px var(--px-line-dim); }
+    .pos { font-size: 11px; color: var(--px-amber-lt); min-width: 3ch; }
+    .rk-quem { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .rk-jogador { font-size: 13px; color: var(--px-txt-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rk-nome { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-weight: 700; }
+    .ranking li.rk-alien { box-shadow: 0 0 0 var(--b) var(--px-alien); }
+    .selo-papel { display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--px-ink); background: var(--px-alien); }
+    .selo-papel--contagiado { color: var(--px-alien); background: #052e16; }
+    .rk-pts { font-weight: 700; color: var(--px-alien); }
+    .ocioso-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--px-amber); }
+    .descontado { color: var(--px-red); font-weight: 700; }
+    .btn-desc { font-size: 13px; padding: 4px 8px; }
+    .ranking li.clicavel { cursor: pointer; }
+    .ranking li.clicavel:hover, .ranking li.clicavel:focus-visible { box-shadow: 0 0 0 var(--b) var(--px-amber-lt); outline: none; }
+
+    .acoes { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
+    .acoes .px-btn { display: inline-flex; align-items: center; gap: 6px; }
+    .btn-delirio { color: #c4b5fd; }
+    .diario { padding: 12px; }
     /* Discreto de propósito: é saída de emergência, não controle de ritmo. */
-    .btn-encerrar { align-self: center; display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.5rem; padding: 0.5rem 0.9rem; border: 1px solid var(--border); border-radius: 999px; background: none; font: inherit; font-size: 0.85rem; font-weight: 700; color: var(--text-muted); cursor: pointer; }
-    .btn-encerrar:hover:not(:disabled) { border-color: var(--danger); color: var(--danger); }
+    .btn-encerrar { align-self: center; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 2px solid var(--px-line-dim); background: none; font: inherit; font-size: 14px; color: var(--px-txt-dim); cursor: pointer; }
+    .btn-encerrar:hover:not(:disabled) { border-color: var(--px-red); color: var(--px-red); }
     .btn-encerrar:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    /* Modais (fora do palco: estética do app). */
+    .muted { color: var(--text-muted); font-size: 0.9rem; margin: 0.25rem 0; }
     .btn-perigo { padding: 0.6rem 1.1rem; border: none; border-radius: 10px; font: inherit; font-weight: 800; color: #fff; background: var(--danger); cursor: pointer; }
     .btn-perigo:disabled { opacity: 0.55; cursor: not-allowed; }
-    .title { margin: 0 0 1rem; font-size: 1.5rem; font-weight: 800; }
-    .loading { display: flex; justify-content: center; padding: 4rem 0; color: #4d7c0f; }
-    .lobby, .vila { display: flex; flex-direction: column; gap: 1rem; }
-    .pinbig { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; padding: 1.25rem; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
-    .pinbig__lbl { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
-    .pinbig__val { font-size: 3.5rem; font-weight: 900; line-height: 1; color: #4d7c0f; letter-spacing: 0.08em; }
-    .pinbig__hint { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; }
-    .espera { padding: 1rem; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
-    .lead { font-weight: 700; margin: 0 0 0.5rem; }
-    .lead--row { display: flex; align-items: center; gap: 0.25rem; }
-    .loader-mini { transform: scale(0.5); margin: -14px -10px; }
-    .muted { color: var(--text-muted); font-size: 0.9rem; margin: 0.25rem 0; }
-    .opcao { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.75rem 0.9rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); cursor: pointer; }
-    .opcao input { margin-top: 0.2rem; width: 1.1rem; height: 1.1rem; accent-color: #4d7c0f; cursor: pointer; }
-    .opcao span { display: flex; flex-direction: column; gap: 0.15rem; }
-    .opcao small { color: var(--text-muted); font-size: 0.82rem; }
-    .center { text-align: center; }
-    .inscritos { list-style: none; display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.6rem 0 0; padding: 0; }
-    .chip { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.7rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-alt); font-weight: 600; font-size: 0.85rem; font-family: inherit; color: var(--text); }
-    .chip:hover { border-color: var(--danger); }
-    .chip__nome, .chip__x { border: none; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; display: inline-flex; align-items: center; }
-    .chip__nome:hover:not(:disabled) { text-decoration: underline; }
-    /* Sem nome no lobby: o codinome só existe depois do Despertar. */
-    .chip__nome--anon { gap: 0.3rem; opacity: 0.8; cursor: default; }
-    .chip__x:hover:not(:disabled) { color: var(--danger); }
-    .chip__nome:disabled, .chip__x:disabled { cursor: not-allowed; opacity: 0.55; }
-    .btn-iso { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.85rem 1.2rem; border: none; border-radius: 12px; cursor: pointer; font: inherit; font-weight: 800; color: #fff; background: linear-gradient(135deg, #84cc16, #4d7c0f); }
-    .btn-iso:disabled { opacity: 0.55; cursor: not-allowed; }
-    .full { width: 100%; }
-    .erro { color: var(--danger); font-weight: 600; }
-    /* Vila */
-    .esperanca { display: flex; align-items: center; gap: 0.6rem; }
-    .esperanca__lbl { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); }
-    .esperanca__bar { flex: 1; height: 12px; border-radius: 999px; background: var(--surface-alt); border: 1px solid var(--border); overflow: hidden; }
-    .esperanca__bar > span { display: block; height: 100%; background: #84cc16; transition: width 0.4s ease; }
-    .esperanca__bar > span.baixa { background: var(--danger); }
-    .esperanca__val { font-weight: 800; min-width: 2.5ch; text-align: right; }
-    .mapa-telao { display: block; max-width: 34rem; margin: 0 auto; }
-    .diario-telao { display: block; margin-top: 1rem; }
-    .setor__gente {
-      margin-left: 0.2rem;
-      padding: 0 0.25rem;
-      border: 1px solid currentColor;
-      font-size: 0.7em;
-    }
-    .janela { display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
-    .janela__lbl { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.7; }
-
-    .setores { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-    .setor { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.6rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); font-size: 0.8rem; font-weight: 600; }
-    .setor--ruina { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, var(--border)); text-decoration: line-through; opacity: 0.75; }
-    .noite { margin: 0; color: var(--text-muted); font-weight: 600; }
-    .aguardando { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 2rem 1rem; border: 1px dashed #84cc16; border-radius: 16px; color: #4d7c0f; }
-    .aguardando strong { font-size: 1.15rem; }
-    .alerta { display: flex; align-items: center; gap: 0.5rem; padding: 0.85rem 1rem; border-radius: 12px; font-weight: 800; color: #fff; background: var(--danger); }
-    .timer { align-self: center; font-size: 2rem; font-weight: 900; color: #4d7c0f; }
-    .timer--fim { color: var(--danger); }
-    .enunciado { margin: 0; font-size: 1.35rem; font-weight: 800; text-align: center; }
-    .alts { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr; gap: 0.5rem; }
-    @media (min-width: 640px) { .alts { grid-template-columns: 1fr 1fr; } }
-    .alts li { display: flex; align-items: center; gap: 0.6rem; padding: 0.85rem 1rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); font-weight: 600; }
-    .letra { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 8px; font-weight: 800; color: #fff; background: #4d7c0f; }
-    .feed { display: flex; flex-direction: column; gap: 0.4rem; max-height: 240px; overflow-y: auto; padding: 0.75rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-alt); }
-    .feed__tit { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
-    .rumor { margin: 0; font-size: 0.9rem; line-height: 1.45; }
-    .rumor strong { color: var(--text-muted); margin-right: 0.35rem; }
-    .rumor--sinal { color: #4d7c0f; font-weight: 600; }
-    .rumor--sinal strong { color: #4d7c0f; }
-    .card-global { padding: 1rem; border-radius: 14px; font-weight: 800; text-align: center; color: #fff; background: var(--danger); }
-    .card-global--ok { background: var(--success); }
-    .reveal { text-align: center; margin: 0; color: var(--text-muted); }
-    .acoes { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-    .acoes > * { flex: 1; }
-    .quarentena { display: flex; flex-direction: column; gap: 0.75rem; padding: 1rem; border: 2px solid var(--danger); border-radius: 16px; }
-    .quarentena__tag { align-self: center; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--danger); }
-    .fim { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1.5rem; border-radius: 16px; text-align: center; color: #fff; background: linear-gradient(135deg, #4d7c0f, #1a2e05); }
-    .fim--vila { background: linear-gradient(135deg, #2563eb, #1e40af); }
-    .fim strong { font-size: 1.3rem; letter-spacing: 0.04em; }
-    .fim p { margin: 0; opacity: 0.92; }
-    .ranking { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
-    .ranking li { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.85rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
-    .pos { font-weight: 900; color: var(--text-muted); min-width: 2.5ch; }
-    .rk-quem { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.1rem; }
-    .rk-jogador { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .rk-nome { display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem; font-weight: 700; }
-    .ranking li.rk-alien { border: 2px solid #84cc16; }
-    .selo-papel { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: #fff; background: #4d7c0f; }
-    .selo-papel--contagiado { color: #3f6212; background: #ecfccb; }
-    .fim__alien { font-size: 1.05rem; }
-    .rk-pts { font-weight: 800; color: #4d7c0f; }
-    .ranking li.clicavel { cursor: pointer; }
-    .ranking li.clicavel:hover, .ranking li.clicavel:focus-visible { border-color: #4d7c0f; outline: none; }
-    .btn-delirio { align-self: center; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.9rem; border: 2px solid #7c3aed; background: var(--surface); color: #7c3aed; font: inherit; font-weight: 800; font-size: 0.85rem; cursor: pointer; }
-    .btn-delirio:disabled { opacity: 0.55; cursor: not-allowed; }
-    .btn-pausar { align-self: center; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.9rem; border: 2px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-weight: 800; font-size: 0.85rem; cursor: pointer; }
-    .btn-pausar:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
-    .btn-pausar:disabled { opacity: 0.55; cursor: not-allowed; }
-    .resgate__tag { color: #e11d48; }
-    .resgate__aviso { color: #e11d48; }
     .agrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.5rem; }
     .acard { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.6rem; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); cursor: pointer; font: inherit; text-align: left; color: var(--text); }
     .acard__nome { font-weight: 700; font-size: 0.9rem; }
@@ -797,10 +812,45 @@ export class IsolateusProjetorPage {
     return Math.max(0, Math.ceil((Date.parse(p.faseIniciadaEm) - agora) / 1000));
   });
 
-  /** É noite? Governa a paleta escura do mapa no telão. */
-  protected readonly ehNoite = computed(
-    () => this.partida()?.status === 'DESLOCAMENTO',
+  /** A barra de Esperança em 10 segmentos (mesma do HUD do celular). */
+  protected readonly segmentos = Array.from({ length: 10 }, (_, i) => i);
+  protected readonly segmentosAcesos = computed(() =>
+    Math.round(Math.max(0, Math.min(100, this.partida()?.esperanca ?? 0)) / 10),
   );
+  protected readonly classeEsperanca = computed(() => {
+    const e = this.partida()?.esperanca ?? 0;
+    return e >= 60 ? 'px-barra--ok' : e >= 30 ? 'px-barra--meio' : 'px-barra--baixo';
+  });
+
+  /** O título do painel: a fase e o progresso ("RODADA 3/10"), como no celular. */
+  protected readonly mensagem = computed(() => {
+    const p = this.partida();
+    if (!p) return { titulo: '', texto: '' };
+    const fase = p.pausadaEm ? 'PAUSA' : this.espera() > 0 ? 'RESULTADO' : p.status;
+    return mensagemDoTurno(fase, p.rodada, p.totalRodadas);
+  });
+
+  /** Os segundos do relógio do painel: a espera do card ou o prazo da fase. */
+  protected readonly segundosPainel = computed(() =>
+    this.espera() > 0 ? this.espera() : this.restante(),
+  );
+  protected readonly relogioPainel = computed<string | null>(() => {
+    if (this.espera() <= 0 && !this.relogioAtivo()) return null;
+    const s = this.segundosPainel();
+    const t = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+    return this.espera() > 0 ? `NOITE EM ${t}` : t;
+  });
+
+  /** Os Sinais de quem saiu da vila (o feed só aparece se houver algum). */
+  protected sinais(p: IsolateusMatch) {
+    return p.rumores.filter((r) => r.tipo === 'SINAL');
+  }
+
+  /** O nome do setor em reparo (o mapa antigo marcava; o pixel não). */
+  protected setorDoReparo(p: IsolateusMatch): string | null {
+    if (!p.reparoSetorId) return null;
+    return p.setores.find((s) => s.id === p.reparoSetorId)?.nome ?? null;
+  }
 
   /**
    * Os setores com a contagem de quem está em cada um (visão onisciente).
