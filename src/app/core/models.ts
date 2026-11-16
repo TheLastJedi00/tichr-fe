@@ -944,7 +944,6 @@ export type StatusIsolateus =
   | 'LOBBY'
   /** A noite: todos se deslocam e a Ameaça joga, dentro da mesma janela. */
   | 'DESLOCAMENTO'
-  | 'TURNO_AMEACA'
   | 'QUESTAO_ATIVA'
   | 'RESULTADO_RODADA'
   | 'QUARENTENA_DEBATE'
@@ -993,7 +992,7 @@ export interface MensagemDebate {
 
 export interface AlertaRodada {
   /** `INVASAO`: só uma Ameaça presa tentando fugir abriu a questão. */
-  tipo: 'SABOTAGEM' | 'ABDUCAO' | 'INVASAO';
+  tipo: 'SABOTAGEM' | 'ABDUCAO' | 'INVASAO' | 'NEUTRA';
   texto: string;
 }
 
@@ -1060,7 +1059,7 @@ export interface PlacarIsolateus {
   /** Nome real do aluno (spec 030). Só no fim; ausente sem turma ou em partida antiga. */
   jogador?: string;
   /** Papel revelado no fim (spec 030). Ausente = aldeão ou partida antiga. */
-  papel?: 'ALIEN' | 'CONTAGIADO';
+  papel?: 'ALIEN' | 'CONTAGIADO' | 'INFILTRADO';
 }
 
 /** Um aviso de saída da noite: o habitante escolheu ir para `para`. */
@@ -1139,7 +1138,12 @@ export interface IsolateusMatch extends CamposOciosidade {
   /** Quantos já votaram no resgate (só a contagem). */
   votosResgateRecebidos?: number;
   /** Quem o último resgate trouxe de volta. */
-  resgateResultado?: { habitanteId: string; nome: string } | null;
+  resgateResultado?: {
+    habitanteId: string;
+    nome: string;
+    /** Voltou sem votação: era o único fora da vila. */
+    semVotacao?: boolean;
+  } | null;
   /**
    * Os avisos de saída da noite: quem escolheu sair e para onde. A origem é o
    * `setorId` público. Reais e NPCs aparecem iguais; a tela mostra só os do
@@ -1193,16 +1197,16 @@ export interface PainelIsolateus {
   // ===== Só para a Ameaça =====
   /** Codinomes das outras Ameaças livres. */
   aliados?: string[];
-  /** O poder ganho no acerto e o que ela pode escolher; `null` = sem poder. */
+  /** O que ela pode escolher com a barra cheia; `null` = barra incompleta. */
   poder?: Record<PoderAlienigena, boolean> | null;
+  /** A barra de energia alien: acertos acumulados até o superpoder. */
+  energia?: { atual: number; necessario: number };
   /** O habitante sob Controle Mental nesta rodada, se houver. */
   controle?: { habitanteId: string; nome: string } | null;
   /** Quem está AGORA no setor de onde ela age (o dela ou o do controlado). */
   fileira?: { setorId: string; habitantes: { id: string; nome: string }[] };
   /** Só para a Ameaça presa: a invasão forçada desta noite. */
   invasao?: { disponivel: boolean; declarada: boolean };
-  /** Só para a original: a recarga do Contágio (acertos desde o último). */
-  contagioAcertos?: { atual: number; necessario: number };
 }
 
 /** Os Poderes Alienígenas que a Ameaça ganha ao acertar a questão. */

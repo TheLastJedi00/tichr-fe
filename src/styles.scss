@@ -240,3 +240,125 @@ div[modal-actions] {
   color: var(--danger);
   white-space: nowrap;
 }
+
+/* ===== Isolateus pixel art (spec 034): fontes e kit de molduras ===== */
+/* Pixelify Sans (texto) e Press Start 2P (títulos e números do HUD), as duas
+   OFL, auto-hospedadas em public/fonts. */
+@font-face {
+  font-family: 'Pixelify Sans';
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/pixelify-sans-latin-ext-400-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Pixelify Sans';
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/pixelify-sans-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Pixelify Sans';
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/pixelify-sans-latin-ext-600-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Pixelify Sans';
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/pixelify-sans-latin-600-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Press Start 2P';
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/press-start-2p-latin-ext-400-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Press Start 2P';
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/press-start-2p-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* O palco do jogo: um contêiner 16:9 em que `--u` (1cqw) e `--b` (a espessura
+   da borda) escalam a interface inteira junto com o canvas. */
+.px-stage {
+  --b: max(2px, 0.42cqw);
+  --u: 1cqw;
+  --px-ink: #05070f;
+  --px-box: #111a2e;
+  --px-box2: #1e293b;
+  --px-line: #cbd5e1;
+  --px-line-dim: #475569;
+  --px-txt: #e2e8f0;
+  --px-txt-dim: #94a3b8;
+  --px-alien: #39ff88;
+  --px-green: #22c55e;
+  --px-amber: #f59e0b;
+  --px-amber-lt: #fcd34d;
+  --px-red: #ef4444;
+  --px-red-dk: #b91c1c;
+  position: relative;
+  container-type: size;
+  overflow: hidden;
+  background: #000;
+  color: var(--px-txt);
+  font-family: 'Pixelify Sans', system-ui, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Moldura pixel: bordas sólidas de 1 "pixel" (sem blur, sem gradiente). */
+.px-box {
+  background: var(--px-box);
+  color: var(--px-txt);
+  box-shadow:
+    calc(var(--b) * -1) 0 0 0 var(--px-line),
+    var(--b) 0 0 0 var(--px-line),
+    0 calc(var(--b) * -1) 0 0 var(--px-line),
+    0 var(--b) 0 0 var(--px-line),
+    inset calc(var(--b) * -1) calc(var(--b) * -1) 0 0 rgba(0, 0, 0, 0.45);
+}
+.px-btn {
+  font: inherit;
+  font-weight: 600;
+  border: 0;
+  cursor: pointer;
+  padding: calc(var(--u) * 0.7) calc(var(--u) * 1.4);
+  background: var(--px-box2);
+  color: var(--px-txt);
+  box-shadow:
+    calc(var(--b) * -1) 0 0 0 var(--px-line),
+    var(--b) 0 0 0 var(--px-line),
+    0 calc(var(--b) * -1) 0 0 var(--px-line),
+    0 var(--b) 0 0 var(--px-line),
+    inset calc(var(--b) * -1) calc(var(--b) * -1) 0 0 rgba(0, 0, 0, 0.5);
+}
+.px-btn:hover { background: #273449; }
+.px-btn:active { transform: translateY(var(--b)); }
+.px-btn:focus-visible { outline: var(--b) solid var(--px-amber-lt); outline-offset: calc(var(--b) * 2); }
+.px-btn--blue { background: #1d4ed8; }
+.px-btn--blue:hover { background: #2563eb; }
+.px-btn--red { background: var(--px-red-dk); }
+.px-btn--red:hover { background: #dc2626; }
+.px-btn--alien { background: #0f5132; color: var(--px-alien); }
+.px-btn--alien:hover { background: #146c43; }
+.px-btn[disabled], .px-btn--off { opacity: 0.45; cursor: not-allowed; }
+/* Ação indisponível: apagada, com o cadeado, mas ainda tocável (explica o motivo). */
+.px-btn--off { filter: grayscale(0.8); }
+.px-titulo { font-family: 'Press Start 2P', monospace; font-weight: 400; line-height: 1.5; }
+.px-blink { animation: px-blink 0.9s steps(2) infinite; }
+@keyframes px-blink { 50% { opacity: 0.25; } }
+/* A barra segmentada (Esperança, energia alien). */
+.px-barra { display: flex; gap: calc(var(--u) * 0.25); }
+.px-barra i { display: block; width: calc(var(--u) * 0.9); height: calc(var(--u) * 1.8); background: #1f2937; }
+.px-barra--ok i.on { background: var(--px-green); }
+.px-barra--meio i.on { background: var(--px-amber); }
+.px-barra--baixo i.on { background: var(--px-red); animation: px-blink 0.8s steps(2) infinite; }

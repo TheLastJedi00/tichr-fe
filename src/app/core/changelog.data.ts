@@ -18,6 +18,22 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.41.0',
+    data: '2026-11-12',
+    titulo: 'Isolateus em pixel art',
+    itens: [
+      { categoria: 'Nova feature', texto: 'Tichr Isolateus virou um jogo em pixel art, em tela cheia: cada setor é uma cena, com os habitantes andando e as portas que levam aos setores vizinhos. À noite as portas se abrem com luz; entre numa para sair do setor.' },
+      { categoria: 'Nova feature', texto: 'Toque no chão para andar e veja os colegas do mesmo setor caminhando ao vivo. A abdução e a sabotagem aparecem como uma luz verde sobre o setor, e o setor sabotado troca para a versão destruída.' },
+      { categoria: 'Nova feature', texto: 'Reparo, resgate e Quarentena são objetos no centro do setor. Quando não dá para usar, o objeto aparece apagado com um cadeado e, ao tocar, explica o motivo.' },
+      { categoria: 'Nova feature', texto: 'A Ameaça agora tem uma barra de energia alien: cada acerto enche a barra e, cheia, libera um superpoder (Controle Mental, Contágio ou Delírio).' },
+      { categoria: 'Melhoria', texto: 'A Quarentena passou a ser convocada à noite, de dentro da Comunicação, e o Dia de 15 segundos deixou de existir: o resultado da rodada aparece antes de a noite começar.' },
+      { categoria: 'Melhoria', texto: 'A partida dura todas as questões do jogo. A Esperança em zero vira colapso (não encerra), e prender a última Ameaça sorteia um novo infiltrado. O vencedor sai só depois da última questão.' },
+      { categoria: 'Melhoria', texto: 'Se o celular for fraco, o botão Modo simples volta à tela em lista.' },
+      { categoria: 'Melhoria', texto: 'O telão do professor ganhou o mesmo visual em pixel art: mapa da vila, barra de Esperança, a rodada atual e o aviso de colapso.' },
+      { categoria: 'Melhoria', texto: 'O Manual de Guerra explica as regras novas do Isolateus: a rodada, a energia alien, o resgate e o fim da partida.' },
+    ],
+  },
+  {
     versao: 'v0.40.0',
     data: '2026-11-12',
     titulo: 'Denúncias agrupadas e com horário de abertura',

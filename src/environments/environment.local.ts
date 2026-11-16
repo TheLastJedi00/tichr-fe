@@ -12,5 +12,8 @@ export const environment = {
     projectId: 'tichr-293c8',
     authDomain: 'tichr-293c8.firebaseapp.com',
     storageBucket: 'tichr-293c8.firebasestorage.app',
+    // Realtime Database (spec 034): só a posição cosmética dos habitantes, lida
+    // com um custom token restrito ao setor. Escrita só pelo backend.
+    databaseURL: 'https://tichr-293c8-default-rtdb.firebaseio.com',
   },
 };

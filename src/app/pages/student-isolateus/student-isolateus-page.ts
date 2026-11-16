@@ -20,7 +20,8 @@ import {
   vizinhosDe,
 } from '../../core/isolateus-mapa';
 import { alienDoPlacar, ROTULO_PAPEL } from '../../core/isolateus-placar';
-import { RelogioDaFase } from '../../core/isolateus-relogio';
+import { RelogioDaFase, antecedenciaDaFase } from '../../core/isolateus-relogio';
+import { motivoDaRecusa, textoDoMotivo } from '../../isolateus/isolateus-motivos';
 import {
   DeslocamentoNoite,
   IsolateusMatch,
@@ -90,11 +91,11 @@ const CARDS_DE_PODER: ReadonlyArray<{
     id: 'CONTAGIO',
     nome: 'Contágio',
     texto:
-      'Ao amanhecer, um aldeão real, sorteado, vira uma Ameaça como você: joga a própria jogada toda noite e conhece você. Cada contágio drena a Esperança da vila. Só você, a Ameaça original, pode contagiar, e só a cada 2 acertos seus.',
+      'Ao amanhecer, um aldeão real, sorteado, vira uma Ameaça como você: joga a própria jogada toda noite e conhece você. Cada contágio drena a Esperança da vila. Só você, a Ameaça original, pode contagiar.',
     duracao: 'até o fim da partida',
     vilaVe: 'a Esperança caindo, sem aviso',
     indisponivel:
-      'Só a Ameaça original contagia, a cada 2 acertos dela, e é preciso haver um aldeão real livre.',
+      'Só a Ameaça original contagia, e é preciso haver um aldeão real livre.',
   },
   {
     id: 'DELIRIO',
@@ -155,6 +156,7 @@ import { AlertaOciosidade } from '../../ui/alerta-ociosidade/alerta-ociosidade';
     @if (carregando()) {
       <div class="loading"><app-spinner [size]="30" /></div>
     } @else if (partida(); as p) {
+      <a class="modo-link" routerLink="/aluno/isolateus" (click)="voltarAoJogo()">Jogar em pixel art</a>
       @if (p.status === 'LOBBY') {
         <!-- O Prólogo e o Registro -->
         <section class="dossie">
@@ -300,11 +302,43 @@ import { AlertaOciosidade } from '../../ui/alerta-ociosidade/alerta-ociosidade';
               } @else {
                 <div class="noite">
                   <div class="noite__topo">
-                    <span class="noite__tit">Noite {{ p.rodada + 1 }} · {{ contagemBrilho(p) }}</span>
-                    <span class="timer timer--peq" [class.timer--fim]="restante() <= 5">
-                      {{ restante() }}s
-                    </span>
+                    <span class="noite__tit">Noite {{ p.rodada + 1 }}/{{ p.totalRodadas }} · {{ contagemBrilho(p) }}</span>
+                    @if (esperando()) {
+                      <span class="timer timer--peq">começa em {{ espera() }}s</span>
+                    } @else {
+                      <span class="timer timer--peq" [class.timer--fim]="restante() <= 5">
+                        {{ restante() }}s
+                      </span>
+                    }
                   </div>
+
+                  <!--
+                    A noite espera o card de resultado da rodada anterior (034
+                    #55): enquanto ele aparece, as ações da noite não valem.
+                  -->
+                  @if (esperando()) {
+                    @if (p.vereditoQuarentena; as v) {
+                      <div class="card-global" [class.card-global--ok]="v.eraAmeaca">{{ v.texto }}</div>
+                    }
+                    @if (p.resumoRodada; as r) {
+                      <div class="card-global" [class.card-global--ok]="r.defendida">{{ r.texto }}</div>
+                    }
+                    @if (p.resgateResultado; as rg) {
+                      <div class="card-global card-global--ok">
+                        @if (rg.semVotacao) {
+                          {{ rg.nome }} era o único fora da vila e voltou sem votação.
+                        } @else {
+                          {{ rg.nome }} foi resgatado e voltou à vila.
+                        }
+                      </div>
+                    }
+                    @if (p.questaoPublica && p.corretaIndex !== null && p.corretaIndex !== undefined) {
+                      <p class="muted center">
+                        Resposta correta:
+                        <b>{{ letra(p.corretaIndex) }}) {{ p.questaoPublica.alternativas[p.corretaIndex] }}</b>
+                      </p>
+                    }
+                  }
 
                   @if (verMapa()) {
                     <app-isolateus-mapa
@@ -382,10 +416,31 @@ import { AlertaOciosidade } from '../../ui/alerta-ociosidade/alerta-ociosidade';
                     </p>
                   } @else {
                     <div class="acoes-noite">
-                      <button class="btn-iso" type="button" [disabled]="enviando()" (click)="ficar()">
+                      <button class="btn-iso" type="button" [disabled]="enviando() || esperando()" (click)="ficar()">
                         Ficar onde estou
                       </button>
                     </div>
+                  }
+                  <!--
+                    A Quarentena é convocada À NOITE (034 #40), de dentro da
+                    Comunicação. O motivo de não poder aparece sempre que o
+                    jogador está no rádio; fora dele, a regra já está no mapa.
+                  -->
+                  @if (origemDaNoite() === 'comunicacao' && !esperando()) {
+                    @if (impedimentoQuarentena(p); as motivo) {
+                      <p class="muted center">{{ motivo }}</p>
+                    } @else {
+                      <button class="btn-quarentena" type="button" [disabled]="enviando()" (click)="convocar()">
+                        <app-icon name="alert" [size]="16" /> Convocar Quarentena
+                      </button>
+                      <p class="muted center">
+                        Cabe <b>uma Quarentena por rodada</b>. Ela sai no amanhecer,
+                        se o rádio ainda estiver de pé. Prender um inocente custa caro.
+                      </p>
+                    }
+                  }
+                  @if (convocacaoFeita()) {
+                    <p class="muted center">Quarentena convocada. Ela sai no amanhecer.</p>
                   }
                   <!-- A Ameaça vê o erro dentro do painel dela, enquanto ele existe. -->
                   @if (erro() && !personagemAberto()) {
@@ -730,9 +785,14 @@ import { AlertaOciosidade } from '../../ui/alerta-ociosidade/alerta-ociosidade';
           >
             @if (pn.papel === 'AMEACA') {
               <p class="sabe">
-                Seu voto na questão não defende a vila — mas, se você acertar,
-                ganha um <b>Poder Alienígena</b>.
+                Seu voto na questão não defende a vila — mas cada acerto enche a
+                sua <b>energia alien</b>. Cheia, você escolhe um superpoder.
               </p>
+              @if (energia(); as en) {
+                <p class="sabe" [class.sabe--cheia]="en.cheia">
+                  <app-icon name="alien" [size]="14" /> {{ en.texto }}
+                </p>
+              }
             }
             @if (aviso(); as msg) {
               <div class="aviso-papel" role="alert">
@@ -863,7 +923,7 @@ import { AlertaOciosidade } from '../../ui/alerta-ociosidade/alerta-ociosidade';
             @if (poderDisponivel(p); as opcoes) {
               <section class="poderes">
                 <h2 class="poderes__tit">
-                  <app-icon name="alien" [size]="18" /> Você acertou: escolha um Poder Alienígena
+                  <app-icon name="alien" [size]="18" /> Energia cheia: escolha um superpoder
                 </h2>
                 @if (escolhendoControle()) {
                   <p class="muted">Escolha o habitante que você vai controlar na próxima noite.</p>
@@ -891,8 +951,6 @@ import { AlertaOciosidade } from '../../ui/alerta-ociosidade/alerta-ociosidade';
                           <button class="btn-iso" type="button" [disabled]="enviando()" (click)="escolherPoder(card.id)">
                             Usar {{ card.nome }}
                           </button>
-                        } @else if (card.id === 'CONTAGIO' && recargaContagio(); as recarga) {
-                          <span class="poder__recarga">{{ recarga }}</span>
                         } @else {
                           <span class="muted">{{ card.indisponivel }}</span>
                         }
@@ -928,6 +986,7 @@ import { AlertaOciosidade } from '../../ui/alerta-ociosidade/alerta-ociosidade';
   `,
   styles: `
     .alerta-oc { display: block; margin: 0.5rem 0; }
+    .modo-link { display: inline-block; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 700; color: var(--primary); }
     :host { display: block; }
     .loading { display: flex; justify-content: center; padding: 3rem 0; color: #4d7c0f; }
     .lead { font-weight: 700; }
@@ -1140,7 +1199,7 @@ import { AlertaOciosidade } from '../../ui/alerta-ociosidade/alerta-ociosidade';
   `,
 })
 export class StudentIsolateusPage {
-  private readonly api = inject(IsolateusApiService);
+  protected readonly api = inject(IsolateusApiService);
   private readonly realtime = inject(RealtimeService);
   private readonly studentAuth = inject(StudentAuthService);
   private readonly destroyRef = inject(DestroyRef);
@@ -1241,11 +1300,23 @@ export class StudentIsolateusPage {
   protected readonly avisoSinal = signal('');
   protected readonly avisoDebate = signal('');
 
-  /** "Contágio: 1 de 2 acertos" enquanto a original recarrega; null fora disso. */
-  protected readonly recargaContagio = computed(() => {
-    const r = this.painel()?.contagioAcertos;
-    if (!r || r.atual >= r.necessario) return null;
-    return `Contágio: ${r.atual} de ${r.necessario} acertos`;
+  /**
+   * A barra de energia alien (034 #57): "Energia alien 1/3 · faltam 2 acertos".
+   * Só a Ameaça a vê; `null` para o aldeão.
+   */
+  protected readonly energia = computed(() => {
+    const e = this.painel()?.energia;
+    if (!e) return null;
+    const falta = e.necessario - e.atual;
+    return {
+      atual: e.atual,
+      necessario: e.necessario,
+      cheia: falta <= 0,
+      texto:
+        falta <= 0
+          ? 'Energia alien cheia: escolha um superpoder.'
+          : `Energia alien ${e.atual}/${e.necessario} · faltam ${falta} ${falta === 1 ? 'acerto' : 'acertos'}`,
+    };
   });
   protected readonly votei = signal(false);
   /** Votei em quem volta pelo resgate desta rodada (otimista). */
@@ -1265,13 +1336,34 @@ export class StudentIsolateusPage {
   private proximoPulso = 0;
   /** Pulei o debate desta Quarentena (otimista — o servidor é o juiz). */
   protected readonly jaPulei = signal(false);
-  private readonly relogio = signal(Date.now());
+  protected readonly relogio = signal(Date.now());
 
   /** A Quarentena volta a cada noite, mas só cabe uma por rodada. */
   protected readonly podeConvocar = computed(() => {
     const p = this.partida();
     return !!p && p.quarentenaRodada !== p.rodada;
   });
+
+  /**
+   * A noite espera o card de resultado (034 #55): antes do `faseIniciadaEm` as
+   * ações da noite recebem 400 `NOITE_NAO_COMECOU`. Devolve os segundos que
+   * faltam (0 = a noite já conta).
+   */
+  protected readonly espera = computed(() => {
+    const p = this.partida();
+    if (!p || p.status !== 'DESLOCAMENTO' || !p.faseIniciadaEm) return 0;
+    const agora = p.pausadaEm
+      ? Date.parse(p.pausadaEm)
+      : this.cronometro.agora(this.relogio());
+    return Math.max(0, Math.ceil((Date.parse(p.faseIniciadaEm) - agora) / 1000));
+  });
+  protected readonly esperando = computed(() => this.espera() > 0);
+
+  /**
+   * Convoquei a Quarentena nesta noite (034 #40): o cofre guarda a convocação
+   * até o amanhecer, e só eu sei. Volta a `false` na rodada nova.
+   */
+  protected readonly convocacaoFeita = signal(false);
 
   /**
    * O meu habitante, lido do snapshot — é assim que eu descubro que fui abduzido
@@ -1318,10 +1410,10 @@ export class StudentIsolateusPage {
     return 0;
   }
 
-  private partidaId: string | null = null;
+  protected partidaId: string | null = null;
   private jaEntrei = false;
   private ultimaRodada = -1;
-  private readonly cronometro = new RelogioDaFase();
+  protected readonly cronometro = new RelogioDaFase();
 
   constructor() {
     this.buscar();
@@ -1378,7 +1470,10 @@ export class StudentIsolateusPage {
    */
   private checarTempo(): void {
     const p = this.partida();
-    this.cronometro.sincronizar(p?.faseIniciadaEm ?? null);
+    this.cronometro.sincronizar(
+      p?.faseIniciadaEm ?? null,
+      p ? antecedenciaDaFase(p.status, p.rodada) : 0,
+    );
     if (!p || !this.partidaId || !p.faseIniciadaEm) return;
     if (!this.limiteDaFase()) return;
     if (p.pausadaEm) return; // pausada: ninguém cobra o prazo
@@ -1386,6 +1481,15 @@ export class StudentIsolateusPage {
     this.api
       .tempoAluno(this.partidaId)
       .subscribe({ next: () => {}, error: () => {} });
+  }
+
+  /** Troca de volta para o jogo em pixel art (a escolha fica no aparelho). */
+  protected voltarAoJogo(): void {
+    try {
+      localStorage.setItem('isolateus:modo', 'jogo');
+    } catch {
+      /* sem storage: vale só agora */
+    }
   }
 
   protected letra(i: number): string {
@@ -1616,12 +1720,22 @@ export class StudentIsolateusPage {
    * esconder o botão deixaria a vila sem entender por que o rádio calou.
    */
   protected impedimentoQuarentena(p: IsolateusMatch): string | null {
-    if (this.meuSetor(p) !== SETOR_COMUNICACAO) {
+    if (p.status !== 'DESLOCAMENTO') {
+      return textoDoMotivo('FORA_DA_NOITE_QUARENTENA');
+    }
+    // A convocação parte do setor ONDE A NOITE COMEÇOU (a posição pública).
+    if (this.origemDaNoite() !== SETOR_COMUNICACAO) {
       return 'O rádio da vila fica no Setor de Comunicação. É de lá que se convoca a Quarentena.';
     }
     const radio = p.setores.find((s) => s.id === SETOR_COMUNICACAO);
     if (!radio?.intacto) {
-      return 'O Setor de Comunicação está em ruínas. Reconstrua o rádio para convocar a Quarentena.';
+      return textoDoMotivo('COMUNICACAO_EM_RUINAS');
+    }
+    if (p.quarentenaRodada === p.rodada) {
+      return textoDoMotivo('QUARENTENA_USADA');
+    }
+    if (this.convocacaoFeita()) {
+      return textoDoMotivo('QUARENTENA_JA_CONVOCADA');
     }
     // Espelha o 403 CONVOCADOR_BLOQUEADO: quem prendeu um inocente fica uma
     // rodada sem convocar.
@@ -1631,7 +1745,7 @@ export class StudentIsolateusPage {
       bloqueio.habitanteId === this.painel()?.habitanteId &&
       bloqueio.ateRodada >= p.rodada
     ) {
-      return 'Sua última Quarentena prendeu um inocente. Você poderá convocar de novo na próxima rodada.';
+      return textoDoMotivo('CONVOCADOR_BLOQUEADO');
     }
     return null;
   }
@@ -1781,7 +1895,9 @@ export class StudentIsolateusPage {
         // Trocas de destino em rajada (026 §2.2): o destino anterior continua
         // valendo, e o botão já volta a responder. Nada a avisar.
         if (e.error?.code === 'MOVER_RAPIDO') return;
-        this.erro.set(e.error?.message ?? 'Não foi possível fazer isso agora.');
+        this.erro.set(
+          motivoDaRecusa(e, 'REPARO') ?? 'Não foi possível fazer isso agora.',
+        );
       },
     });
   }
@@ -1828,7 +1944,7 @@ export class StudentIsolateusPage {
   }
 
   /** Reage às transições de estado que exigem buscar o painel (o segredo). */
-  private reagir(p: IsolateusMatch): void {
+  protected reagir(p: IsolateusMatch): void {
     const anterior = this.partida();
     this.detectarAbducao(anterior, p);
     this.detectarBrilho(p);
@@ -1888,6 +2004,7 @@ export class StudentIsolateusPage {
       this.amanhecerParaAnimar.set(null);
       this.abduzindoId.set(null);
       this.jaPulei.set(false);
+      this.convocacaoFeita.set(false);
       // E as duas decisões da noite voltam a ficar em aberto.
       this.posicaoFeita.set(false);
       this.acaoFeita.set(false);
@@ -2051,16 +2168,27 @@ export class StudentIsolateusPage {
 
   // --- A Quarentena ---
 
+  /** Gancho da convocação aceita (a tela pixel art mostra um aviso na cena). */
+  protected aoConvocar(): void {}
+
   protected convocar(): void {
     if (!this.partidaId || this.enviando()) return;
     this.enviando.set(true);
     this.erro.set('');
     this.api.convocarQuarentena(this.partidaId).subscribe({
-      next: () => this.enviando.set(false),
-      error: (e: { error?: { message?: string } }) => {
+      next: () => {
         this.enviando.set(false);
+        this.convocacaoFeita.set(true);
+        this.aoConvocar();
+      },
+      error: (e: { error?: { code?: string; message?: string } }) => {
+        this.enviando.set(false);
+        if (e.error?.code === 'QUARENTENA_JA_CONVOCADA') {
+          this.convocacaoFeita.set(true);
+        }
         this.erro.set(
-          e.error?.message ?? 'Não foi possível convocar a Quarentena.',
+          motivoDaRecusa(e, 'QUARENTENA') ??
+            'Não foi possível convocar a Quarentena.',
         );
       },
     });
@@ -2127,7 +2255,8 @@ export class StudentIsolateusPage {
     p: IsolateusMatch,
   ): Record<PoderAlienigena, boolean> | null {
     if (!this.ehAmeaca() || this.foraDaVila()) return null;
-    if (p.status === 'LOBBY' || p.status === 'ENCERRADO') return null;
+    // Superpoder só se escolhe na noite (034 #60), com a barra cheia.
+    if (p.status !== 'DESLOCAMENTO' || this.esperando()) return null;
     return this.painel()?.poder ?? null;
   }
 
