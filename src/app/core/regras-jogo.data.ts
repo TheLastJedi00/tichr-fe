@@ -73,6 +73,7 @@ const WOR: RegrasJogo = {
       itens: [
         'Castelo a 0 de HP não elimina a equipe: ela vira uma Horda Bárbara.',
         'A Horda não chuta letras nem compra dicas — sua única jogada é a Invasão (adivinhar a palavra inteira).',
+        'Quem não sabe a palavra pode tocar em "Não arriscar nesta rodada": conta como jogada e não gera alerta de ociosidade.',
         'Invasão certeira ROUBA o castelo da equipe líder, que passa a ser a nova Horda.',
       ],
     },
