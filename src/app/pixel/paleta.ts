@@ -1,5 +1,5 @@
 /**
- * A paleta única do Isolateus pixel art (spec 034 #28): ~30 cores derivadas dos
+ * A paleta única do pixel art (spec 034 #28; comum a Isolateus e Wor desde a 035): ~30 cores derivadas dos
  * tokens Slate/Azul do app, mais o verde alien e o vermelho de alerta. Ela
  * alimenta as CSS variables do HUD, os sprites, as portas e os fundos — nada
  * no jogo usa uma cor que não esteja aqui.

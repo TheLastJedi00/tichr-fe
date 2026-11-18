@@ -1,4 +1,4 @@
-import { P } from '../../isolateus-paleta';
+import { P } from '../../../pixel/paleta';
 import { DesenhoDoSetor } from './fundo-comum';
 
 /** Setor de Saúde: o hospital, com a cruz vermelha. */

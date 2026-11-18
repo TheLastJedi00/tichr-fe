@@ -1,4 +1,4 @@
-import { P } from '../../isolateus-paleta';
+import { P } from '../../../pixel/paleta';
 import { DesenhoDoSetor, W } from './fundo-comum';
 
 /** Setor de Energia: a usina com chaminés, a subestação e a torre de alta tensão. */
