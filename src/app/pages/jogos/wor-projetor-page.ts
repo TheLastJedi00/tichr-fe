@@ -177,6 +177,7 @@ import { lerModoSimplesWor, gravarModoSimplesWor } from '../../wor/modo-wor';
                 [resumo]="m.resumoRodada"
                 [rodadaIniciadaEm]="m.rodadaIniciadaEm"
                 (animando)="animandoMapa.set($event)"
+                (placarAnimado)="placarAnimado.set($event)"
               />
               <div class="arena__palavra px-box">
                 @for (ch of m.mascara; track $index) {
@@ -194,12 +195,14 @@ import { lerModoSimplesWor, gravarModoSimplesWor } from '../../wor/modo-wor';
                   }
                 </div>
               }
-              <div class="arena__placar px-box">
+              <div class="arena__placar px-box" [class.arena__placar--duas]="teams().length > 5">
                 @for (t of teams(); track t.id) {
-                  <div class="aplac" [class.aplac--horda]="t.isHorde">
-                    <i [style.background]="t.isHorde ? '#111' : t.cor"></i>
-                    <span>{{ t.nome }}{{ t.isHorde ? ' · Horda' : '' }}@if (ordemDe(t.id)) { <b class="aplac__ok">✓</b> }</span>
-                    <b class="px-titulo">{{ t.hp }}</b>
+                  @let pa = placarAnimado()?.[t.id];
+                  @let horda = pa ? pa.horda : t.isHorde;
+                  <div class="aplac" [class.aplac--horda]="horda">
+                    <i [style.background]="horda ? '#111' : t.cor"></i>
+                    <span>{{ t.nome }}{{ horda ? ' · Horda' : '' }}@if (ordemDe(t.id)) { <b class="aplac__ok">✓</b> }</span>
+                    <b class="px-titulo">{{ pa ? pa.hp : t.hp }}</b>
                   </div>
                 }
               </div>
@@ -408,6 +411,7 @@ import { lerModoSimplesWor, gravarModoSimplesWor } from '../../wor/modo-wor';
     .arena__seg--fim { color: var(--px-red); }
     .arena__prox { font-size: 1.1cqw; color: var(--px-alien); line-height: 1.6; }
     .arena__placar { position: absolute; top: 1.6cqw; right: 1.6cqw; padding: 0.8cqw 1cqw; display: grid; gap: 0.35cqw; min-width: 19cqw; }
+    .arena__placar--duas { grid-template-columns: 1fr 1fr; column-gap: 1.4cqw; min-width: 30cqw; }
     .aplac { display: grid; grid-template-columns: 1.2cqw 1fr auto; gap: 0.6cqw; align-items: center; font-size: 1.15cqw; }
     .aplac i { width: 1.2cqw; height: 1.2cqw; display: block; border: 0.2cqw solid var(--px-ink); }
     .aplac b.px-titulo { font-size: 0.9cqw; }
@@ -589,6 +593,8 @@ export class WorProjetorPage {
 
 /** 035: o mapa está tocando a animação do fechamento (o card vira legenda nele). */
   protected readonly animandoMapa = signal(false);
+  /** 035: durante a animação, o HUD acompanha o mapa (não adianta o resultado). */
+  protected readonly placarAnimado = signal<Record<string, { hp: number; horda: boolean }> | null>(null);
 
   /** 035: o mapa pixel art ou a tela antiga (telão fraco). Lembrado por aparelho. */
   protected readonly modoSimples = signal(lerModoSimplesWor());

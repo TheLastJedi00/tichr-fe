@@ -474,7 +474,8 @@ const FEED_MS = 4000;
       </app-modal>
     }
 
-    @if (modalHorda()) {
+    <!-- 035: no mapa pixel, o aviso de Horda espera a animação da queda/Usurpação. -->
+    @if (modalHorda() && (modoSimples() || !animandoMapa())) {
       <app-modal [open]="true" title="Seu Castelo Caiu… Mas a Guerra Não Acabou!" (close)="modalHorda.set(false)">
         <p class="aviso">Sua equipe agora é uma <b>Horda Bárbara</b>.</p>
         <p class="aviso">Vocês não podem mais chutar letras nem comprar dicas. A cada rodada, a única jogada é a <b>Invasão</b>: adivinhar a palavra inteira.</p>

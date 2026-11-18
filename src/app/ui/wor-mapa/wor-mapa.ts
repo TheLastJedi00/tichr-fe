@@ -96,6 +96,8 @@ export class WorMapaComponent implements OnDestroy {
 
   readonly tocarCastelo = output<string>();
   readonly animando = output<boolean>();
+  /** O placar como a animação está mostrando; null fora dela (035). */
+  readonly placarAnimado = output<Record<string, { hp: number; horda: boolean }> | null>();
 
   private readonly palco = viewChild.required<ElementRef<HTMLElement>>('palco');
   protected cena?: CenaWor;
@@ -176,6 +178,7 @@ export class WorMapaComponent implements OnDestroy {
       minhaEquipe: this.minhaEquipe(),
       alvo: this.alvo(),
       pausada: this.pausada(),
+      fimDaJanela: this.rodadaIniciadaEm() ? Date.parse(this.rodadaIniciadaEm()!) : null,
     };
   }
 
@@ -195,6 +198,7 @@ export class WorMapaComponent implements OnDestroy {
     const cena = new CenaWor(Fase, {
       tocarCastelo: (id) => this.tocarCastelo.emit(id),
       evento: (e) => this.mostrar(e),
+      placar: (p) => this.placarAnimado.emit(p),
     });
     this.cena = cena;
     // A primeira leitura é a base: abrir a tela no meio da janela não anima (#32).

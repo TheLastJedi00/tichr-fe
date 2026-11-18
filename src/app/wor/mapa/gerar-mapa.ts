@@ -17,7 +17,7 @@ const N4: ReadonlyArray<readonly [number, number]> = [
 ];
 
 /** Faixa onde ficam os castelos: longe das bordas e dos painéis do HUD. */
-const AREA = { x0: 30, x1: W - 30, y0: 50, y1: H - 42 };
+const AREA = { x0: 30, x1: W - 30, y0: 58, y1: H - 40 };
 
 export interface Ponto {
   x: number;

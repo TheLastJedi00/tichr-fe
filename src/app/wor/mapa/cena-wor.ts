@@ -42,12 +42,23 @@ export interface EntradaDoMapa {
   /** Celular: o castelo escolhido como alvo. */
   alvo?: string | null;
   pausada: boolean;
+  /**
+   * Fim da janela da animação (ms, relógio local): a rodada seguinte começa.
+   * Passou dele sem a animação terminar (aba escondida, aparelho lento), a
+   * tela pula para o estado final.
+   */
+  fimDaJanela?: number | null;
 }
 
 export interface SaidasDoMapa {
   tocarCastelo(equipeId: string): void;
   /** Cada evento animado, no instante do impacto (a legenda e o card do telão). */
   evento?(e: EventoWor): void;
+  /**
+   * O placar como a animação está mostrando (HP e Horda depois de cada evento);
+   * `null` quando acaba. O HUD não adianta o resultado.
+   */
+  placar?(estado: Record<string, { hp: number; horda: boolean }> | null): void;
 }
 
 /** Como tocar a fila do fechamento (035 #27–#34). */
@@ -84,6 +95,8 @@ export class CenaWor {
   protected animando = false;
   protected relogio = 0;
   private esperas: Array<{ ate: number; fim: () => void }> = [];
+  /** HP/Horda de cada equipe ao fim do evento em curso (o placar do HUD). */
+  private alvos = new Map<string, { hp: number; horda: boolean }>();
   private pronta: Promise<void>;
   private resolverPronta!: () => void;
 
@@ -168,16 +181,23 @@ export class CenaWor {
   /** Toca a fila do fechamento; ao fim, a tela encaixa no estado final. */
   async animar(fila: EventoWor[], op: OpcoesAnimacao): Promise<void> {
     this.animando = true;
+    this.alvos = new Map([...this.vistas.values()].map((v) => [v.id, { hp: v.hp, horda: v.horda }]));
+    this.emitirPlacar();
     try {
       await this.esperar(op.abertura);
       for (const e of fila) {
-        if (!this.animando) return;
+        if (!this.animando || this.atrasada()) return;
         await this.tocar(e, op);
       }
     } finally {
       this.animando = false;
       this.encaixarEstado();
+      this.saidas.placar?.(null);
     }
+  }
+
+  private emitirPlacar(): void {
+    this.saidas.placar?.(Object.fromEntries(this.alvos));
   }
 
   /** Pula a animação (quem abre a tela no meio da janela vê o estado final). */
@@ -193,6 +213,12 @@ export class CenaWor {
   private esperar(ms: number): Promise<void> {
     if (ms <= 0) return Promise.resolve();
     return new Promise((fim) => this.esperas.push({ ate: this.relogio + ms, fim }));
+  }
+
+  /** A janela já acabou (fora da pausa): não adianta mais animar. */
+  private atrasada(): boolean {
+    const fim = this.entrada.fimDaJanela;
+    return !this.entrada.pausada && !!fim && Date.now() > fim + 1500;
   }
 
   private vista(id: string): EquipeNoMapa | undefined {
@@ -228,6 +254,7 @@ export class CenaWor {
         }
         this.mudarHp(e.alvo, -e.dano, op.reduzido);
         this.saidas.evento?.(e);
+        this.emitirPlacar();
         await this.esperar(slot - marcha);
         return;
       }
@@ -258,6 +285,7 @@ export class CenaWor {
         }
         this.mudarHp(e.alvo, -e.dano, op.reduzido);
         this.saidas.evento?.(e);
+        this.emitirPlacar();
         await this.esperar(slot - voo);
         return;
       }
@@ -278,6 +306,7 @@ export class CenaWor {
         if (c0) this.flutuar(c0.x, c0.y - 18, '+' + NUMEROS_WOR.CURA_MASSIVA, P.alien);
         this.mudarHp(e.equipe, NUMEROS_WOR.CURA_MASSIVA, op.reduzido);
         this.saidas.evento?.(e);
+        this.emitirPlacar();
         await this.esperar(slot);
         return;
       }
@@ -296,6 +325,7 @@ export class CenaWor {
         if (c0) this.flutuar(c0.x, c0.y - 18, '-' + e.dano, P.red5);
         this.mudarHp(e.equipe, -e.dano, op.reduzido);
         this.saidas.evento?.(e);
+        this.emitirPlacar();
         await this.esperar(slot * 0.5);
         if (v) v.tremer = false;
         await this.esperar(slot * 0.5);
@@ -314,7 +344,9 @@ export class CenaWor {
           }
         }
         if (v) Object.assign(v, { horda: true, hp: 0, afundar: 0 });
+        this.alvos.set(e.equipe, { hp: 0, horda: true });
         this.saidas.evento?.(e);
+        this.emitirPlacar();
         await this.esperar(slot * (op.reduzido ? 1 : 0.6));
         return;
       }
@@ -353,8 +385,11 @@ export class CenaWor {
         if (h && l) {
           Object.assign(h, { horda: false, hp: l.hp });
           Object.assign(l, { horda: true, hp: 0 });
+          this.alvos.set(h.id, { hp: h.hp, horda: false });
+          this.alvos.set(l.id, { hp: 0, horda: true });
         }
         this.saidas.evento?.(e);
+        this.emitirPlacar();
         await this.esperar(slot * (op.reduzido ? 1 : 0.3));
         return;
       }
@@ -367,6 +402,7 @@ export class CenaWor {
     if (!v) return;
     const de = v.hp;
     const para = Math.max(0, Math.min(NUMEROS_WOR.HP_MAX, de + delta));
+    this.alvos.set(id, { hp: para, horda: v.horda });
     if (reduzido) {
       v.hp = para;
       return;
@@ -466,6 +502,8 @@ export class CenaWor {
     if (!this.entrada.pausada) this.relogio += dt;
     const t = this.relogio;
     if (this.esperas.length) {
+      // Aba que volta depois da janela: solta tudo (a fila vê `atrasada` e encerra).
+      if (this.atrasada()) for (const w of this.esperas) w.ate = 0;
       const prontas = this.esperas.filter((w) => w.ate <= t);
       this.esperas = this.esperas.filter((w) => w.ate > t);
       for (const w of prontas) w.fim();
