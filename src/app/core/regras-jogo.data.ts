@@ -157,7 +157,7 @@ const ISOLATEUS: RegrasJogo = {
       titulo: 'A rodada',
       itens: [
         'Cada rodada tem uma noite e uma questão, e a partida tem tantas rodadas quanto questões no banco. O topo da tela mostra o progresso ("RODADA 3/10").',
-        'Noite (60s): as portas do seu setor se abrem. Toque no chão para andar, entre na luz de uma porta para ir ao setor vizinho ou toque em "Ficar neste setor". Sair da luz desfaz a escolha.',
+        'Noite (15s): as portas do seu setor se abrem. Toque no chão para andar, entre na luz de uma porta para ir ao setor vizinho ou toque em "Ficar neste setor". Sair da luz desfaz a escolha.',
         'Andar pela cena não conta como jogada: na noite, vale entrar numa porta ou ficar no setor.',
         'Na mesma noite, quem estiver no seu setor (Aldeão ou Ameaça) pode organizar o reparo de um setor em ruínas, o resgate (Saúde) ou convocar a Quarentena (Comunicação), tocando no objeto do centro.',
         'Amanhecer: as portas se fecham e a vila vê o que mudou — quem partiu, quem chegou, a sabotagem e a abdução.',
