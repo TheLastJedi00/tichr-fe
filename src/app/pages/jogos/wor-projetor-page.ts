@@ -8,6 +8,7 @@ import { NarradorCards } from '../../core/action-card';
 import { Aluno, LIMITE_OCIOSIDADE_PADRAO, ResultadoRodadaWor, WorTeam } from '../../core/models';
 import { OciosidadeApiService } from '../../core/ociosidade-api.service';
 import { LimiteOciosidadeComponent } from '../../ui/limite-ociosidade/limite-ociosidade';
+import { CronometroEntradaComponent } from '../../ui/cronometro-entrada/cronometro-entrada';
 import { DescontoOciosidadeComponent } from '../../ui/desconto-ociosidade/desconto-ociosidade';
 import { ActionCard } from '../../ui/action-card/action-card';
 import { Icon } from '../../ui/icon/icon';
@@ -31,6 +32,7 @@ import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausad
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     LimiteOciosidadeComponent,
+    CronometroEntradaComponent,
     DescontoOciosidadeComponent,
     RouterLink,
     Icon,
@@ -115,6 +117,14 @@ import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausad
             [valor]="limiteOcioso()"
             [desabilitado]="salvandoLimite()"
             (mudou)="mudarLimite($event)"
+          />
+          <app-cronometro-entrada
+            [encerraEm]="m.entradaEncerraEm"
+            [falhou]="m.entradaFalhou"
+            [desabilitado]="ocupado()"
+            (ligar)="mudarCronometro($event)"
+            (cancelar)="mudarCronometro(null)"
+            (zerou)="iniciarAutomatico()"
           />
 
           @if (!teams().length) {
@@ -561,6 +571,14 @@ export class WorProjetorPage {
   }
   protected iniciar(): void {
     this.acao(this.api.iniciar(this.matchId));
+  }
+  /** Cronômetro de entrada (035): liga ou cancela. */
+  protected mudarCronometro(segundos: number | null): void {
+    this.acao(this.api.cronometro(this.matchId, segundos));
+  }
+  /** No zero: o servidor revalida o prazo, distribui as equipes e inicia. */
+  protected iniciarAutomatico(): void {
+    this.api.iniciarAutomatico(this.matchId).subscribe({ error: () => {} });
   }
 
   // --- Multiplicador de pontos (lobby, 1x a 10x) ---
