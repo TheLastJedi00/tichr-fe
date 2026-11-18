@@ -38,6 +38,7 @@ import { LogPontuacaoComponent } from '../../ui/log-pontuacao/log-pontuacao';
 import { rankingDoLog } from '../../core/log-pontuacao';
 import { relogioDaPartida } from '../../core/pausa';
 import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausada';
+import { AvisoEntradaComponent } from '../../ui/aviso-entrada/aviso-entrada';
 
 const LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const LIMITE_RODADA_S = 60;
@@ -58,6 +59,7 @@ const FEED_MS = 4000;
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    AvisoEntradaComponent,
     Icon,
     Modal,
     LobbyLoader,
@@ -123,6 +125,12 @@ const FEED_MS = 4000;
           <p>Nenhuma batalha do Tichr Wor agora. Aguarde o professor iniciar.</p>
         </div>
       } @else if (root(); as m) {
+        <app-aviso-entrada
+          class="aviso-entrada"
+          [encerraEm]="m.status === 'LOBBY' ? m.entradaEncerraEm : null"
+          [fechado]="m.status !== 'LOBBY' && m.status !== 'ENCERRADO' && !inscrito()"
+          (zerou)="buscar()"
+        />
         @if (m.status === 'LOBBY') {
           <div class="lobby">
             <app-icon name="castle" [size]="48" />
@@ -142,6 +150,8 @@ const FEED_MS = 4000;
               <p class="aguarde">Você está dentro! Aguardando o professor formar as equipes…</p>
             }
           </div>
+        } @else if (m.status !== 'ENCERRADO' && !inscrito()) {
+          <!-- 035: a batalha começou sem o aluno; o aviso acima explica. -->
         } @else if (!team()) {
           <p class="aguarde">Entrando na sua equipe…</p>
         } @else if (team(); as t) {
@@ -449,6 +459,7 @@ const FEED_MS = 4000;
     }
   `,
   styles: `
+    .aviso-entrada { margin: 0 0 1rem; }
     :host { display: block; }
     .loading { display: flex; justify-content: center; padding: 3rem 0; color: #b45309; }
     .wrap { display: flex; flex-direction: column; gap: 1.25rem; padding: 0.25rem; transition: background-color 0.2s ease; }
@@ -768,7 +779,8 @@ export class StudentWorPage {
     });
   }
 
-  private buscar(): void {
+  /** Também no zero do cronômetro: a leitura do aluno dispara o início (035). */
+  protected buscar(): void {
     this.api.partidaAtual().subscribe({
       next: (v) => {
         this.carregando.set(false);
