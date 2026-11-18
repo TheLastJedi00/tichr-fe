@@ -469,7 +469,7 @@ export interface PlacarItem {
 }
 
 /** Estado em tempo real de uma partida (lido do Firestore via onSnapshot). */
-export interface Partida extends CamposOciosidade {
+export interface Partida extends CamposOciosidade, CamposEntrada {
   id: string;
   qlickId: string;
   professorId: string;
@@ -555,6 +555,21 @@ export interface LogPontuacaoJogador {
  * aluno) só vem no Qlick e no Wor; no Isolateus as faltas ficam no cofre e o
  * aluno recebe só as dele pelo painel.
  */
+/** O prazo do cronômetro venceu sem gente suficiente (035 #8). */
+export interface EntradaFalhou {
+  motivo: 'POUCOS_INSCRITOS';
+  inscritos: number;
+  minimo: number;
+  em: string;
+}
+
+/** Cronômetro de entrada do lobby (035), comum aos três jogos. */
+export interface CamposEntrada {
+  /** ISO do fim da entrada; null/ausente = sem cronômetro. */
+  entradaEncerraEm?: string | null;
+  entradaFalhou?: EntradaFalhou | null;
+}
+
 export interface CamposOciosidade {
   limiteOciosidade?: number;
   ociosidade?: Record<string, number>;
@@ -568,6 +583,9 @@ export interface QlickDoDia {
   partidaId: string;
   titulo: string;
   status: StatusPartida;
+  /** 035: prazo do cronômetro de entrada e se o aluno está na partida. */
+  entradaEncerraEm?: string | null;
+  participa?: boolean;
 }
 
 export interface ProgressoTurma {
@@ -771,7 +789,7 @@ export interface WorTeam {
   arriscouNaRodada?: string | null;
 }
 
-export interface WorMatch extends CamposOciosidade {
+export interface WorMatch extends CamposOciosidade, CamposEntrada {
   id: string;
   jogoId: string;
   professorId: string;
@@ -905,6 +923,8 @@ export interface WorChat {
 export interface WorMatchView {
   match: WorMatch;
   teams: WorTeam[];
+  /** 035: só na leitura do aluno — se ele está nesta partida. */
+  participa?: boolean;
 }
 
 // --- Tichr Isolateus ---
@@ -1076,7 +1096,9 @@ export interface MovimentoAmanhecer {
 }
 
 /** A camada pública da partida (`isolateus_partidas/{id}`), lida por snapshot. */
-export interface IsolateusMatch extends CamposOciosidade {
+export interface IsolateusMatch extends CamposOciosidade, CamposEntrada {
+  /** 035: só na leitura do aluno — se ele está nesta partida. */
+  participa?: boolean;
   id: string;
   jogoId: string;
   professorId: string;
