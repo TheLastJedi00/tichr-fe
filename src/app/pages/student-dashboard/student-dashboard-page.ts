@@ -21,6 +21,7 @@ import { TurmaApiService } from '../../core/turma-api.service';
 import { IsolateusApiService } from '../../core/isolateus-api.service';
 import { WorApiService } from '../../core/wor-api.service';
 import { Card } from '../../ui/card/card';
+import { CardJogoComponent } from '../../ui/card-jogo/card-jogo';
 import { Icon } from '../../ui/icon/icon';
 import { Spinner } from '../../ui/spinner/spinner';
 import { XpBar } from '../../ui/xp-bar/xp-bar';
@@ -30,7 +31,7 @@ import { XpBar } from '../../ui/xp-bar/xp-bar';
   selector: 'app-student-dashboard-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Card, Icon, Spinner, XpBar],
+  imports: [RouterLink, Card, CardJogoComponent, Icon, Spinner, XpBar],
   template: `
     @if (carregando()) {
       <div class="loading"><app-spinner [size]="32" /></div>
@@ -39,36 +40,42 @@ import { XpBar } from '../../ui/xp-bar/xp-bar';
 
       <div class="stack">
       @if (qlickDoDia(); as q) {
-        <a class="qlick" routerLink="/aluno/qlick">
-          <span class="qlick__pulse"></span>
-          <span>
-            <strong>Tichr Qlick de hoje</strong>
-            <span class="qlick__sub">{{ q.titulo }} · toque para entrar</span>
-          </span>
-          <span class="qlick__seta">→</span>
-        </a>
+        <app-card-jogo
+          jogo="qlick"
+          titulo="Tichr Qlick de hoje"
+          link="/aluno/qlick"
+          [nome]="q.titulo"
+          [status]="q.status"
+          [entradaEncerraEm]="q.entradaEncerraEm"
+          [participa]="q.participa"
+          (zerou)="buscarQlick()"
+        />
       }
 
       @if (worDoDia(); as w) {
-        <a class="qlick qlick--wor" routerLink="/aluno/wor">
-          <span class="qlick__pulse"></span>
-          <span>
-            <strong>Tichr Wor de hoje</strong>
-            <span class="qlick__sub">{{ w.match.nome }} · toque para entrar</span>
-          </span>
-          <span class="qlick__seta">→</span>
-        </a>
+        <app-card-jogo
+          jogo="wor"
+          titulo="Tichr Wor de hoje"
+          link="/aluno/wor"
+          [nome]="w.match.nome"
+          [status]="w.match.status"
+          [entradaEncerraEm]="w.match.entradaEncerraEm"
+          [participa]="w.participa"
+          (zerou)="buscarWor()"
+        />
       }
 
       @if (isolateusDoDia(); as i) {
-        <a class="qlick qlick--iso" routerLink="/aluno/isolateus">
-          <span class="qlick__pulse"></span>
-          <span>
-            <strong>Tichr Isolateus de hoje</strong>
-            <span class="qlick__sub">{{ i.nome }} · toque para entrar</span>
-          </span>
-          <span class="qlick__seta">→</span>
-        </a>
+        <app-card-jogo
+          jogo="iso"
+          titulo="Tichr Isolateus de hoje"
+          link="/aluno/isolateus"
+          [nome]="i.nome"
+          [status]="i.status"
+          [entradaEncerraEm]="i.entradaEncerraEm"
+          [participa]="i.participa"
+          (zerou)="buscarIsolateus()"
+        />
       }
 
       @if (proxima(); as p) {
@@ -149,15 +156,6 @@ import { XpBar } from '../../ui/xp-bar/xp-bar';
     .prox__topico { margin: 0.4rem 0 0; font-size: 1.05rem; }
     .prox__topico strong { color: var(--primary); }
     .prox__vazio { margin: 0.4rem 0 0; color: var(--text-muted); }
-    .qlick { display: flex; align-items: center; gap: 0.75rem; padding: 0.9rem 1rem; border-radius: 14px; color: #fff; background: linear-gradient(135deg, #7c3aed, #2563eb); box-shadow: 0 10px 30px color-mix(in srgb, #7c3aed 30%, transparent); }
-    .qlick strong { display: block; }
-    .qlick__sub { font-size: 0.82rem; opacity: 0.9; }
-    .qlick__seta { margin-left: auto; font-weight: 800; font-size: 1.2rem; }
-    .qlick--wor { background: linear-gradient(135deg, #b45309, #7c2d12); box-shadow: 0 10px 30px color-mix(in srgb, #b45309 30%, transparent); }
-    .qlick--iso { background: linear-gradient(135deg, #84cc16, #4d7c0f); box-shadow: 0 10px 30px color-mix(in srgb, #84cc16 32%, transparent); }
-    .qlick__pulse { flex: 0 0 auto; width: 12px; height: 12px; border-radius: 999px; background: #fff; animation: qpulse 1.2s ease-in-out infinite; }
-    @keyframes qpulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.6); } 50% { box-shadow: 0 0 0 6px rgba(255,255,255,0); } }
-    @media (prefers-reduced-motion: reduce) { .qlick__pulse { animation: none; } }
   `,
 })
 export class StudentDashboardPage {
@@ -217,34 +215,37 @@ export class StudentDashboardPage {
         this.topicos.set(new Map(r.topicos.map((t) => [t.numeroAula, t.topico]))),
       error: () => {},
     });
-    // Sonda os jogos do dia (Qlick e Wor): o card surge assim que o professor
-    // roda a partida, sem o aluno recarregar. Para quando a partida já apareceu.
+    // Sonda os jogos do dia: o card surge assim que o professor roda a partida,
+    // sem o aluno recarregar. Continua enquanto a partida está no lobby (035):
+    // é assim que o card descobre que a entrada fechou e se o aluno ficou dentro.
     this.buscarQlick();
     this.buscarWor();
     this.buscarIsolateus();
     const sonda = setInterval(() => {
-      if (!this.qlickDoDia()) this.buscarQlick();
-      if (!this.worDoDia()) this.buscarWor();
-      if (!this.isolateusDoDia()) this.buscarIsolateus();
+      if (!this.qlickDoDia() || this.qlickDoDia()!.status === 'LOBBY') this.buscarQlick();
+      if (!this.worDoDia() || this.worDoDia()!.match.status === 'LOBBY') this.buscarWor();
+      if (!this.isolateusDoDia() || this.isolateusDoDia()!.status === 'LOBBY') {
+        this.buscarIsolateus();
+      }
     }, 5000);
     this.destroyRef.onDestroy(() => clearInterval(sonda));
   }
 
-  private buscarQlick(): void {
+  protected buscarQlick(): void {
     this.api.getQlickDoDia().subscribe({
       next: (q) => this.qlickDoDia.set(q),
       error: () => {},
     });
   }
 
-  private buscarIsolateus(): void {
+  protected buscarIsolateus(): void {
     this.isolateusApi.partidaAtual().subscribe({
       next: (i) => this.isolateusDoDia.set(i),
       error: () => {},
     });
   }
 
-  private buscarWor(): void {
+  protected buscarWor(): void {
     this.worApi.partidaAtual().subscribe({
       next: (w) => this.worDoDia.set(w),
       error: () => {},

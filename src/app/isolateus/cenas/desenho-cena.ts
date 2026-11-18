@@ -5,7 +5,7 @@
  * são faixas de cor em degraus com dithering). Funções puras sobre um contexto
  * 2D: quem chama (a cena Phaser) decide quando e onde desenhar.
  */
-import { desenharTexto, larguraTexto } from '../isolateus-fonte-bitmap';
+import { desenharTexto, larguraTexto } from '../../pixel/fonte-bitmap';
 import { desenharIcone } from '../isolateus-icones';
 import {
   CORES_CABELO,
@@ -13,7 +13,7 @@ import {
   CORES_CAMISA,
   CORES_PELE,
   P,
-} from '../isolateus-paleta';
+} from '../../pixel/paleta';
 import { CENA, ObjetoCentral, PortaCena, ROTULO_OBJETO } from './cenas.data';
 
 const { LARGURA: W, ALTURA: H, CHAO, CENTRO } = CENA;

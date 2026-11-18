@@ -78,6 +78,27 @@ export class IsolateusApiService {
       { valeRanking },
     );
   }
+  /**
+   * Lobby: liga (segundos) ou cancela (null) o cronômetro de entrada (035). O
+   * debate escolhido vai junto: o início pode sair da leitura de um aluno.
+   */
+  cronometro(
+    id: string,
+    segundos: number | null,
+    debateHabilitado: boolean,
+  ): Observable<IsolateusMatch> {
+    return this.http.post<IsolateusMatch>(
+      `${this.base}/isolateus/matches/${id}/cronometro`,
+      { segundos, debateHabilitado },
+    );
+  }
+  /** No zero do cronômetro: o servidor revalida o prazo e desperta a vila. */
+  iniciarAutomatico(id: string): Observable<IsolateusMatch> {
+    return this.http.post<IsolateusMatch>(
+      `${this.base}/isolateus/matches/${id}/iniciar-automatico`,
+      {},
+    );
+  }
   /** Remove um habitante do lobby (entrou na partida errada). Só no LOBBY. */
   removerInscrito(id: string, alunoId: string): Observable<IsolateusMatch> {
     return this.http.post<IsolateusMatch>(

@@ -21,6 +21,7 @@ import { Modal } from '../../ui/modal/modal';
 import { Spinner } from '../../ui/spinner/spinner';
 import { ValeRankingComponent } from '../../ui/vale-ranking/vale-ranking';
 import { OpcaoLobbyComponent } from '../../ui/opcao-lobby/opcao-lobby';
+import { CronometroEntradaComponent } from '../../ui/cronometro-entrada/cronometro-entrada';
 import { LogPontuacaoComponent } from '../../ui/log-pontuacao/log-pontuacao';
 import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausada';
 import { podePausar, relogioDaPartida } from '../../core/pausa';
@@ -44,6 +45,7 @@ import { podePausar, relogioDaPartida } from '../../core/pausa';
     LobbyLoader,
     ValeRankingComponent,
     OpcaoLobbyComponent,
+    CronometroEntradaComponent,
     LogPontuacaoComponent,
     PartidaPausadaComponent,
   ],
@@ -127,6 +129,15 @@ import { podePausar, relogioDaPartida } from '../../core/pausa';
               [valor]="embaralharAlternativas()"
               [desabilitado]="salvandoEmbaralhamento()"
               (mudou)="mudarEmbaralhamento('embaralharAlternativas', $event)"
+            />
+            <app-cronometro-entrada
+              class="vale"
+              [encerraEm]="p.entradaEncerraEm"
+              [falhou]="p.entradaFalhou"
+              [desabilitado]="salvandoCronometro()"
+              (ligar)="mudarCronometro($event)"
+              (cancelar)="mudarCronometro(null)"
+              (zerou)="iniciarAutomatico()"
             />
             @if (erro()) { <p class="erro">{{ erro() }}</p> }
             <button
@@ -582,6 +593,26 @@ export class ProfessorPartidaPage {
         this.erro.set('Não foi possível mudar o embaralhamento.');
       },
     });
+  }
+
+  // --- Cronômetro de entrada (035) ---
+  protected readonly salvandoCronometro = signal(false);
+
+  protected mudarCronometro(segundos: number | null): void {
+    this.salvandoCronometro.set(true);
+    this.erro.set(null);
+    this.api.cronometroQlick(this.partidaId, segundos).subscribe({
+      next: () => this.salvandoCronometro.set(false),
+      error: () => {
+        this.salvandoCronometro.set(false);
+        this.erro.set('Não foi possível mudar o cronômetro de entrada.');
+      },
+    });
+  }
+
+  /** No zero: o servidor revalida o prazo e começa (ou avisa gente de menos). */
+  protected iniciarAutomatico(): void {
+    this.api.iniciarAutomaticoQlick(this.partidaId).subscribe({ error: () => {} });
   }
 
   protected readonly podePausar = podePausar;
