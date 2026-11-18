@@ -1,5 +1,5 @@
 /**
- * A paleta única do Isolateus pixel art (spec 034 #28): ~30 cores derivadas dos
+ * A paleta única do pixel art (spec 034 #28; comum a Isolateus e Wor desde a 035): ~30 cores derivadas dos
  * tokens Slate/Azul do app, mais o verde alien e o vermelho de alerta. Ela
  * alimenta as CSS variables do HUD, os sprites, as portas e os fundos — nada
  * no jogo usa uma cor que não esteja aqui.
@@ -39,6 +39,38 @@ export const P = {
 } as const;
 
 export type CorPaleta = keyof typeof P;
+
+/**
+ * O terreno do mapa de reinos do Wor (spec 035 #20): grama, floresta, água,
+ * pedra e a Horda. Mesmo princípio da paleta acima: o mapa não usa cor fora daqui
+ * (as cores das equipes vêm do servidor, `CORES_TEAM`).
+ */
+export const PW = {
+  grama0: '#355f25',
+  grama1: '#44752e',
+  grama2: '#548a37',
+  arvore: '#1f4d1f',
+  arvoreLt: '#2f6b2a',
+  tronco: P.brown,
+  agua: '#1e40af',
+  aguaLt: '#2563eb',
+  areia: '#c9b27a',
+  pedra: P.s5,
+  pedraDk: P.s6,
+  neve: '#e2e8f0',
+  fronteira: '#1b1410',
+  cinza: '#2a2233',
+  horda: '#6b21a8',
+  hordaLt: '#a78bfa',
+  hordaPedraL: '#5b4a6b',
+  hordaPedraM: '#45384f',
+  hordaPedraD: '#2e2538',
+  hordaMorta: '#3b3346',
+  hordaMortaLt: '#4a3f57',
+  pele: '#f1c27d',
+  mastro: '#3f2a1d',
+  bandeiraHorda: '#111111',
+} as const;
 
 /** As cores do boneco: sorteadas por habitante, sempre dentro da paleta. */
 export const CORES_CABELO = ['#2b1d14', '#5b3a29', '#c08a4a', '#111827', '#9ca3af', '#7c2d12'];

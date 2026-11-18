@@ -26,12 +26,14 @@ import { Spinner } from '../../ui/spinner/spinner';
  * pergunta com timer, revelação do acerto e pódio final.
  */
 import { AlertaOciosidade } from '../../ui/alerta-ociosidade/alerta-ociosidade';
+import { AvisoEntradaComponent } from '../../ui/aviso-entrada/aviso-entrada';
 import { LIMITE_OCIOSIDADE_PADRAO } from '../../core/models';
 @Component({
   selector: 'app-student-qlick-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    AvisoEntradaComponent,
     Card,
     Spinner,
     RouterLink,
@@ -67,6 +69,12 @@ import { LIMITE_OCIOSIDADE_PADRAO } from '../../core/models';
           [podeDescontar]="p.valeRanking !== false"
         />
       }
+      <app-aviso-entrada
+        class="aviso-entrada"
+        [encerraEm]="p.status === 'LOBBY' ? p.entradaEncerraEm : null"
+        [fechado]="p.status !== 'LOBBY' && p.status !== 'ENCERRADO' && !inscrito()"
+        (zerou)="buscar()"
+      />
       @switch (p.status) {
         @case ('LOBBY') {
           @if (inscrito()) {
@@ -109,7 +117,7 @@ import { LIMITE_OCIOSIDADE_PADRAO } from '../../core/models';
                 }
               </div>
             } @else if (!inscrito()) {
-              <p class="muted center">Você não entrou nesta partida. Aguarde a próxima!</p>
+              <p class="muted center">Acompanhe a pergunta pelo telão.</p>
             } @else {
               <div class="loading"><app-spinner [size]="28" /></div>
             }
@@ -243,6 +251,7 @@ import { LIMITE_OCIOSIDADE_PADRAO } from '../../core/models';
     }
   `,
   styles: `
+    .aviso-entrada { margin-bottom: 1rem; }
     .alerta-oc { display: block; margin-bottom: 0.75rem; }
     .title { margin: 0 0 1rem; font-size: 1.5rem; font-weight: 800; }
     .loading { display: flex; justify-content: center; padding: 3rem 0; color: var(--primary); }
@@ -439,7 +448,8 @@ export class StudentQlickPage {
   }
 
   /** Busca a partida do dia; ao encontrar, passa a escutar em tempo real. */
-  private buscar(): void {
+  /** Também no zero do cronômetro: a leitura do aluno dispara o início (035). */
+  protected buscar(): void {
     this.api.getQlickDoDia().subscribe({
       next: (q) => {
         this.carregando.set(false);

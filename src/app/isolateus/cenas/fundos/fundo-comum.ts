@@ -3,8 +3,8 @@
  * a cidade ao longe, o chão e a versão destruída. Cada setor desenha só o
  * prédio dele (um arquivo por setor) sobre esta base. Portado da prévia.
  */
-import { desenharTexto, larguraTexto } from '../../isolateus-fonte-bitmap';
-import { P } from '../../isolateus-paleta';
+import { desenharTexto, larguraTexto } from '../../../pixel/fonte-bitmap';
+import { P } from '../../../pixel/paleta';
 
 export const W = 320;
 export const H = 180;

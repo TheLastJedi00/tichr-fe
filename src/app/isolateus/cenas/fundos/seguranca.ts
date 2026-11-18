@@ -1,4 +1,4 @@
-import { P } from '../../isolateus-paleta';
+import { P } from '../../../pixel/paleta';
 import { DesenhoDoSetor } from './fundo-comum';
 
 /** Setor de Segurança: a delegacia, com a sirene no topo. */

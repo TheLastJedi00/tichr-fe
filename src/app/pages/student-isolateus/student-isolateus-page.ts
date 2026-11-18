@@ -132,12 +132,14 @@ function mensagemBloqueada(e: {
  * DevTools de descobrir o infiltrado.
  */
 import { AlertaOciosidade } from '../../ui/alerta-ociosidade/alerta-ociosidade';
+import { AvisoEntradaComponent } from '../../ui/aviso-entrada/aviso-entrada';
 @Component({
   selector: 'app-student-isolateus-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     AlertaOciosidade,
+    AvisoEntradaComponent,
     RouterLink,
     Icon,
     Spinner,
@@ -157,6 +159,12 @@ import { AlertaOciosidade } from '../../ui/alerta-ociosidade/alerta-ociosidade';
       <div class="loading"><app-spinner [size]="30" /></div>
     } @else if (partida(); as p) {
       <a class="modo-link" routerLink="/aluno/isolateus" (click)="voltarAoJogo()">Jogar em pixel art</a>
+      <app-aviso-entrada
+        class="aviso-entrada"
+        [encerraEm]="p.status === 'LOBBY' ? p.entradaEncerraEm : null"
+        [fechado]="foraDaPartida(p)"
+        (zerou)="buscar()"
+      />
       @if (p.status === 'LOBBY') {
         <!-- O Prólogo e o Registro -->
         <section class="dossie">
@@ -985,6 +993,7 @@ import { AlertaOciosidade } from '../../ui/alerta-ociosidade/alerta-ociosidade';
     }
   `,
   styles: `
+    .aviso-entrada { margin: 0 0 1rem; }
     .alerta-oc { display: block; margin: 0.5rem 0; }
     .modo-link { display: inline-block; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 700; color: var(--primary); }
     :host { display: block; }
@@ -1912,10 +1921,12 @@ export class StudentIsolateusPage {
     return p.rumores.filter((r) => r.tipo === 'SINAL');
   }
 
-  private buscar(): void {
+  /** Também no zero do cronômetro: a leitura do aluno dispara o início (035). */
+  protected buscar(): void {
     this.api.partidaAtual().subscribe({
       next: (p) => {
         this.carregando.set(false);
+        if (p?.participa !== undefined) this.participa.set(p.participa);
         if (p && p.id !== this.partidaId) {
           this.partidaId = p.id;
           this.ocultarNome.set(this.lerOcultarNome(p.id));
@@ -1957,6 +1968,9 @@ export class StudentIsolateusPage {
 
     // O Despertar: a partida saiu do lobby → busca o papel e roda a animação.
     const saiuDoLobby = anterior?.status === 'LOBBY' && p.status !== 'LOBBY';
+    // 035: depois do Despertar os inscritos somem do doc; quem está na vila
+    // vem do servidor (participa).
+    if (saiuDoLobby) this.buscar();
     if (saiuDoLobby || (p.status !== 'LOBBY' && !this.painel())) {
       this.carregarPainel(saiuDoLobby);
       return;
@@ -2109,6 +2123,12 @@ export class StudentIsolateusPage {
     setTimeout(() => {
       if (this.avisoBrilho() === nomes) this.avisoBrilho.set(null);
     }, AVISO_BRILHO_MS);
+  }
+
+  /** 035: a partida começou sem o aluno (só o servidor sabe, pelo cofre). */
+  protected readonly participa = signal<boolean | null>(null);
+  protected foraDaPartida(p: IsolateusMatch): boolean {
+    return p.status !== 'LOBBY' && p.status !== 'ENCERRADO' && this.participa() === false;
   }
 
   protected inscrito(p: IsolateusMatch): boolean {
