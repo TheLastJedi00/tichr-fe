@@ -161,6 +161,14 @@ export class WorApiService {
     );
   }
 
+  /** Horda: abre mão da Invasão nesta rodada (conta como jogada, sem ociosidade). */
+  naoArriscar(matchId: string): Observable<WorMatchView> {
+    return this.http.post<WorMatchView>(
+      `${this.base}/aluno/wor/${matchId}/nao-arriscar`,
+      {},
+    );
+  }
+
   /** O que a equipe do aluno já jogou na rodada em curso (letras pendentes, sem acerto). */
   rodadaDaEquipe(matchId: string): Observable<RodadaDaEquipeWor> {
     return this.http.get<RodadaDaEquipeWor>(
