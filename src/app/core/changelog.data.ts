@@ -18,6 +18,18 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.42.0',
+    data: '2026-11-18',
+    titulo: 'Cronômetro de entrada e Wor em pixel art',
+    itens: [
+      { categoria: 'Nova feature', texto: 'Cronômetro de entrada no lobby do Qlick, do Wor e do Isolateus: escolha 30 segundos a 5 minutos e, quando zerar, a partida começa sozinha com quem entrou.' },
+      { categoria: 'Nova feature', texto: 'No painel do aluno, o card do jogo mostra quanto falta para a entrada fechar. Quem não entrou a tempo vê o card apagado com "Tempo encerrado para entrar".' },
+      { categoria: 'Nova feature', texto: 'Tichr Wor em pixel art: um mapa de reinos com o castelo de cada equipe no centro, no telão e no celular.' },
+      { categoria: 'Nova feature', texto: 'No fim de cada rodada do Wor, o mapa mostra os ataques, a Catapulta, a cura, os castelos caindo e a Horda tomando castelos. A próxima rodada começa depois da animação.' },
+      { categoria: 'Melhoria', texto: 'No celular do Wor, toque num castelo do mapa para escolher quem atacar. O botão Modo simples volta à tela anterior.' },
+    ],
+  },
+  {
     versao: 'v0.41.0',
     data: '2026-11-12',
     titulo: 'Isolateus em pixel art',
