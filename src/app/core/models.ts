@@ -804,6 +804,8 @@ export interface WorMatch extends CamposOciosidade, CamposEntrada {
   cartasVisiveis: string[];
   totalCartas: number;
   ordemEquipes: string[];
+  /** 035: índice do reino do mapa de cada equipe (troca na Usurpação). Ausente = ordemEquipes. */
+  reinos?: Record<string, number>;
   /** Quem já agiu na rodada em curso (alunoId). A letra fica no servidor. */
   jaAgiram?: string[];
   /** Equipes que já fecharam a rodada em curso, na ordem de chegada. */
@@ -902,6 +904,8 @@ export interface ResumoRodada {
   seq: number;
   resultados: ResultadoRodadaWor[];
   porTempo?: boolean;
+  /** 035: equipes cujo castelo caiu neste fechamento. */
+  quedas?: string[];
 }
 
 /** Mensagem do chat privado da equipe (`wor_chats/{canalId}`). */
