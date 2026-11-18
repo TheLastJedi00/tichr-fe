@@ -78,7 +78,9 @@ const FEED_MS = 4000;
   ],
   template: `
     @if (narrador.card(); as c) {
-      <app-action-card [card]="c" />
+      @if (modoSimples() || !animandoMapa()) {
+        <app-action-card [card]="c" />
+      }
     }
 
     <div class="wrap" [class.dano]="piscar()" [class.retro]="!modoSimples()">
@@ -169,6 +171,9 @@ const FEED_MS = 4000;
               [minhaEquipe]="t.id"
               [alvo]="alvoPreferido()"
               [pausada]="!!m.pausadaEm"
+              [resumo]="m.resumoRodada"
+              [rodadaIniciadaEm]="m.rodadaIniciadaEm"
+              (animando)="animandoMapa.set($event)"
               (tocarCastelo)="tocarCastelo($event)"
             />
           }
@@ -736,6 +741,9 @@ export class StudentWorPage {
     const falta = Date.parse(m.rodadaIniciadaEm) - relogioDaPartida(this.relogio(), m);
     return falta > 0 ? Math.ceil(falta / 1000) : 0;
   });
+
+/** 035: o mapa está tocando a animação do fechamento (o card vira legenda nele). */
+  protected readonly animandoMapa = signal(false);
 
   /** 035: o mapa pixel art ou a tela antiga (celular fraco). Lembrado por aparelho. */
   protected readonly modoSimples = signal(lerModoSimplesWor());

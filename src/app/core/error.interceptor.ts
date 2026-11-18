@@ -42,6 +42,9 @@ function isTratadoInline(err: HttpErrorResponse): boolean {
     (err.status === 429 && (code === 'PASSO_RAPIDO' || code === 'MOVER_RAPIDO')) ||
     (err.status === 400 && (code === 'NOITE_NAO_COMECOU' || code === 'FORA_DA_NOITE' || code === 'ALVO_FORA_DA_CENA' || code === 'ENERGIA_INSUFICIENTE' || code === 'SO_ORIGINAL')) ||
     (err.status === 409 && code === 'QUARENTENA_JA_CONVOCADA') ||
+    // Wor (035): a jogada chegou durante a animação do fechamento; a tela já
+    // mostra "A próxima rodada começa em Ns" com os botões travados.
+    (err.status === 400 && code === 'RODADA_NAO_COMECOU') ||
     // Conta e segurança: a própria tela explica o que houve.
     // EMAIL_NAO_VERIFICADO redireciona para /verificar-email (authInterceptor) e
     // SESSAO_EXPIRADA é logout limpo — nenhum dos dois é erro a reportar.

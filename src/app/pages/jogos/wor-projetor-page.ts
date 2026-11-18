@@ -49,7 +49,9 @@ import { lerModoSimplesWor, gravarModoSimplesWor } from '../../wor/modo-wor';
   ],
   template: `
     @if (narrador.card(); as c) {
-      <app-action-card [card]="c" />
+      @if (modoSimples() || !animandoMapa()) {
+        <app-action-card [card]="c" />
+      }
     }
 
     <a class="voltar" routerLink="/jogos/wor">‹ Minhas batalhas</a>
@@ -172,6 +174,9 @@ import { lerModoSimplesWor, gravarModoSimplesWor } from '../../wor/modo-wor';
                 [ordemEquipes]="m.ordemEquipes"
                 [reinos]="m.reinos"
                 [pausada]="!!m.pausadaEm"
+                [resumo]="m.resumoRodada"
+                [rodadaIniciadaEm]="m.rodadaIniciadaEm"
+                (animando)="animandoMapa.set($event)"
               />
               <div class="arena__palavra px-box">
                 @for (ch of m.mascara; track $index) {
@@ -581,6 +586,9 @@ export class WorProjetorPage {
     const falta = Date.parse(m.rodadaIniciadaEm) - relogioDaPartida(this.relogio(), m);
     return falta > 0 ? Math.ceil(falta / 1000) : 0;
   });
+
+/** 035: o mapa está tocando a animação do fechamento (o card vira legenda nele). */
+  protected readonly animandoMapa = signal(false);
 
   /** 035: o mapa pixel art ou a tela antiga (telão fraco). Lembrado por aparelho. */
   protected readonly modoSimples = signal(lerModoSimplesWor());
