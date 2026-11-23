@@ -86,12 +86,21 @@ interface Andarilho {
   ft: number;
   /** Para detectar um passo novo no canal (o `t` do servidor). */
   visto: number;
+  /**
+   * Acabou de chegar ao setor e o canal ainda não disse onde (036): o
+   * Firestore costuma chegar antes do RTDB. Fica invisível até o primeiro
+   * passo (ou `ESPERA_CHEGADA`), para não piscar num ponto qualquer e pular
+   * para a porta.
+   */
+  chegandoDesde?: number;
 }
 
 const VELOCIDADE = CENA.VELOCIDADE;
 /** Folga do toque no boneco dos outros: o alvo é pequeno no celular (036 #13a). */
 const FOLGA_TOQUE = 3;
 const BORDA = 8;
+/** Quanto um recém-chegado espera o canal antes de aparecer assim mesmo (s). */
+const ESPERA_CHEGADA = 1.5;
 
 /** O teclado da cena (036 #22–#24). */
 const ESQUERDA = new Set(['a', 'arrowleft']);
@@ -399,7 +408,12 @@ export class CenaPhaser {
     for (const h of e.habitantes) {
       const novo = !this.andarilhos.has(h.id);
       const a = this.andarilho(h.id);
-      if (!h.eu) this.seguirCanal(a, e.posicoes[h.id], novo && !this.primeiroQuadro);
+      if (novo && !h.eu && !this.primeiroQuadro) a.chegandoDesde = this.tempo;
+      if (!h.eu) this.seguirCanal(a, e.posicoes[h.id]);
+      if (a.chegandoDesde !== undefined) {
+        if (this.tempo - a.chegandoDesde < ESPERA_CHEGADA) continue;
+        a.chegandoDesde = undefined;
+      }
       const dx = a.alvo - a.x;
       const andando = Math.abs(dx) > 0.5;
       if (!parada && andando) a.x += Math.sign(dx) * Math.min(Math.abs(dx), VELOCIDADE * dt);
@@ -463,14 +477,17 @@ export class CenaPhaser {
    * O passo novo do canal vira uma caminhada. Quem acabou de chegar ao setor
    * aparece no batente da porta (o backend grava o x de chegada nela).
    */
-  private seguirCanal(a: Andarilho, passo: Passo | undefined, recemChegado: boolean): void {
+  private seguirCanal(a: Andarilho, passo: Passo | undefined): void {
     if (!passo || passo.t === a.visto) return;
     a.visto = passo.t;
     a.alvo = Math.max(0, Math.min(CENA.LARGURA, passo.alvoX));
-    const naPorta = this.entrada.portas.find((p) => Math.abs(p.x - passo.x) <= 1);
-    if (recemChegado && naPorta) {
+    if (a.chegandoDesde !== undefined) {
+      // O canal disse onde o recém-chegado está: aparece ali (na porta, com o
+      // clarão, se entrou por ela).
+      a.chegandoDesde = undefined;
       a.x = passo.x;
-      this.piscar(naPorta.x);
+      const naPorta = this.entrada.portas.find((p) => Math.abs(p.x - passo.x) <= 1);
+      if (naPorta) this.piscar(naPorta.x);
       return;
     }
     // O x de saída vem do servidor; só corrige se estiver longe (evita saltos).

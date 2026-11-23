@@ -1799,15 +1799,26 @@ export class StudentIsolateusPage {
   /** A travessia em si (o `mover` do servidor), com o boneco já na porta. */
   protected atravessarPorta(setorId: string): void {
     this.indoPara.set(null);
+    // A origem é lida ANTES: o snapshot com o setor novo pode chegar antes da
+    // resposta, e a porta de chegada depende de onde se veio.
+    const origem = this.meuSetor();
     this.acaoDaNoite(
       (id) => this.api.mover(id, setorId),
       'posicao',
-      (r) => this.aoAtravessar(setorId, r as IsolateusMatch & { tokenCanal?: string | null }),
+      (r) =>
+        this.aoAtravessar(origem, setorId, r as IsolateusMatch & { tokenCanal?: string | null }),
+      (e) => this.aoFalharTravessia(e),
     );
+  }
+
+  /** A travessia foi recusada (porta, trava, noite): o motivo vai para a tela. */
+  protected aoFalharTravessia(e: { error?: { message?: string; code?: string } }): void {
+    this.erro.set(motivoDaRecusa(e) ?? 'Não foi possível atravessar agora.');
   }
 
   /** Gancho para o jogo em pixel art animar a troca de cena (036 #20). */
   protected aoAtravessar(
+    _origem: string,
     _setorId: string,
     _r: IsolateusMatch & { tokenCanal?: string | null },
   ): void {}

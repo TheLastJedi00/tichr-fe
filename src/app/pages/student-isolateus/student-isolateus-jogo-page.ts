@@ -638,6 +638,7 @@ export class StudentIsolateusJogoPage extends StudentIsolateusPage implements On
   protected readonly vitimaMarcada = signal<{ id: string; nome: string } | null>(null);
   /** Uma travessia em andamento (a cortina da troca de cena). */
   private atravessando = false;
+  private cortinaFechando: Promise<void> = Promise.resolve();
 
   // ---------------------------------------------------------------- estado
 
@@ -757,11 +758,16 @@ export class StudentIsolateusJogoPage extends StudentIsolateusPage implements On
   });
   protected readonly resultadoLido = signal(false);
 
-  /** Quantas falas do chat eu já vi (com ele aberto, todas). */
-  private readonly chatVisto = signal(0);
+  /** O id da última fala do chat que eu já vi (com ele aberto, todas). */
+  private readonly chatVistoAte = signal<string | null>(null);
+  /** Falas dos outros depois da última que eu vi (as minhas não contam). */
   protected readonly naoLidas = computed(() => {
-    const total = this.partida()?.chat?.length ?? 0;
-    return this.sobreposicaoAtual() === 'CHAT' ? 0 : Math.max(0, total - this.chatVisto());
+    const chat = this.partida()?.chat ?? [];
+    if (this.sobreposicaoAtual() === 'CHAT') return 0;
+    const visto = this.chatVistoAte();
+    const i = visto ? chat.findIndex((m) => m.id === visto) : -1;
+    const eu = this.meuHabitante()?.nome;
+    return chat.slice(i + 1).filter((m) => m.autorNome !== eu).length;
   });
   protected readonly podeFechar = computed(() => {
     const so = this.sobreposicaoAtual();
@@ -805,11 +811,11 @@ export class StudentIsolateusJogoPage extends StudentIsolateusPage implements On
         });
       }
     });
-    // Com o chat aberto, tudo o que chega já foi lido. As últimas 80 ficam no
-    // doc: quando a lista roda, o que importa é o total visto, não o índice.
+    // Com o chat aberto, tudo o que chega já foi lido (marca pela última fala:
+    // o doc guarda só as últimas 80, então o índice muda quando a lista roda).
     effect(() => {
-      const total = this.partida()?.chat?.length ?? 0;
-      if (this.sobreposicaoAtual() === 'CHAT') untracked(() => this.chatVisto.set(total));
+      const ultima = this.partida()?.chat?.at(-1)?.id ?? null;
+      if (this.sobreposicaoAtual() === 'CHAT') untracked(() => this.chatVistoAte.set(ultima));
     });
     // Ao voltar de `simples`, lembra a escolha.
     this.guardarModo('jogo');
@@ -929,13 +935,33 @@ export class StudentIsolateusJogoPage extends StudentIsolateusPage implements On
    */
   protected aoAtravessarPorta(para: string): void {
     const p = this.partida();
-    if (!p || this.atravessando || this.enviando()) return;
+    if (!p || this.atravessando || this.enviando() || this.amanhecendo()) return;
     const motivo = this.motivoDasPortas(p);
     if (motivo) {
       this.avisar(motivo, 'warn');
       return;
     }
+    // A cortina fecha já no toque: o snapshot com o setor novo pode chegar
+    // antes da resposta, e a troca de cena não pode aparecer pela metade.
+    this.atravessando = true;
+    this.cortinaFechando = this.mudarCortina(1);
     this.atravessarPorta(para);
+    // Rede de segurança (rajada recusada em silêncio, rede caída): reabre.
+    setTimeout(() => {
+      if (this.atravessando) void this.abrirCortina();
+    }, 5000);
+  }
+
+  protected override aoFalharTravessia(e: { error?: { message?: string; code?: string } }): void {
+    this.avisar(motivoDaRecusa(e) ?? 'Não foi possível atravessar agora.', 'warn');
+    void this.abrirCortina();
+  }
+
+  private async abrirCortina(): Promise<void> {
+    await this.cortinaFechando;
+    await this.mudarCortina(0);
+    this.cortina.set(0);
+    this.atravessando = false;
   }
 
   /**
@@ -943,28 +969,22 @@ export class StudentIsolateusJogoPage extends StudentIsolateusPage implements On
    * e entrada pela porta de chegada. O token do canal novo veio na resposta.
    */
   protected override aoAtravessar(
+    origem: string,
     setorId: string,
     r: IsolateusMatch & { tokenCanal?: string | null },
   ): void {
-    const origem = this.setorPublico();
     if (this.partidaId) void this.canal.conectar(this.partidaId, setorId, r.tokenCanal);
     void this.trocarDeCena(origem, setorId);
   }
 
   private async trocarDeCena(origem: string, destino: string): Promise<void> {
-    this.atravessando = true;
-    try {
-      await this.mudarCortina(1);
-      // O snapshot traz o meu setor novo (às vezes antes da resposta).
-      for (let i = 0; i < 20 && this.setorPublico() !== destino; i++) await dormir(75);
-      const { x, alvoX } = chegadaPelaPorta(origem, destino);
-      this.cena()?.posicionarMeuBoneco(x, alvoX);
-      await dormir(60);
-      await this.mudarCortina(0);
-    } finally {
-      this.cortina.set(0);
-      this.atravessando = false;
-    }
+    await this.cortinaFechando;
+    // O snapshot traz o meu setor novo (às vezes antes da resposta).
+    for (let i = 0; i < 20 && this.setorPublico() !== destino; i++) await dormir(75);
+    await dormir(60); // a cena recebe o setor novo antes de eu posicionar
+    const { x, alvoX } = chegadaPelaPorta(origem, destino);
+    this.cena()?.posicionarMeuBoneco(x, alvoX);
+    await this.abrirCortina();
   }
 
   protected aoFicar(): void {

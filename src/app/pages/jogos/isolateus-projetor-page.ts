@@ -295,8 +295,7 @@ const MIN_REAIS = 4;
                       <app-icone-pixel nome="AGUARDAR" class="aguardando__ico" />
                       <strong class="px-titulo">A VILA SE MOVIMENTA NA ESCURIDÃO…</strong>
                       <p class="dim">
-                        Cada habitante escolhe onde passar a noite.
-                        {{ p.movimentosRecebidos ?? 0 }} já decidiram.
+                        A vila anda e atravessa portas: vale onde cada um estiver quando o tempo acabar.
                         A Quarentena é convocada pelo botão vermelho da Comunicação.
                       </p>
                     </div>
