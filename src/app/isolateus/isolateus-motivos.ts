@@ -13,6 +13,10 @@ export type ChaveMotivo =
   | 'NOITE_NAO_COMECOU'
   | 'POSICAO_TRAVADA_REPARO'
   | 'POSICAO_TRAVADA_RESGATE'
+  | 'POSICAO_TRAVADA_ACAO'
+  | 'LONGE_DA_PORTA'
+  | 'SEM_ESTRADA'
+  | 'ALVO_SAIU'
   | 'FORA_DA_VILA'
   | 'MOVER_RAPIDO'
   | 'PASSO_RAPIDO'
@@ -50,12 +54,16 @@ const TEXTOS: Record<ChaveMotivo, string> = {
   NOITE_NAO_COMECOU: 'A noite começa em {n}s. Leia o resultado da rodada.',
   POSICAO_TRAVADA_REPARO: 'Você organizou o reparo: fica neste setor esta noite.',
   POSICAO_TRAVADA_RESGATE: 'Você organizou o resgate: fica neste setor esta noite.',
+  POSICAO_TRAVADA_ACAO: 'Você agiu neste setor: fica aqui até o amanhecer.',
+  LONGE_DA_PORTA: 'Chegue até a porta para atravessar.',
+  SEM_ESTRADA: 'Não há porta daqui para lá.',
+  ALVO_SAIU: 'Ele saiu do setor.',
   FORA_DA_VILA:
     'Você está fora da vila. Acompanhe a partida e responda às questões.',
   MOVER_RAPIDO: 'Calma! Espere um instante antes de trocar de porta.',
   PASSO_RAPIDO: 'Calma! Um passo por segundo.',
   PARTIDA_PAUSADA: 'Partida pausada pelo professor.',
-  JA_CONFIRMOU: 'Você já confirmou. Entre numa porta para mudar de ideia.',
+  JA_CONFIRMOU: 'Você já confirmou. Ande até uma porta para mudar de setor.',
   FORA_DA_NOITE_REPARO: 'O reparo só pode ser organizado à noite.',
   REPARO_EM_ANDAMENTO: 'Já há um reparo em andamento esta noite.',
   REPARO_JA_ORGANIZADO: 'Você já organizou o reparo. Ele sai no amanhecer.',
@@ -96,6 +104,10 @@ export type AcaoDoMotivo = 'REPARO' | 'RESGATE' | 'QUARENTENA' | 'PODER' | 'PORT
 
 const CODIGOS: Record<string, ChaveMotivo> = {
   NOITE_NAO_COMECOU: 'NOITE_NAO_COMECOU',
+  LONGE_DA_PORTA: 'LONGE_DA_PORTA',
+  SEM_ESTRADA: 'SEM_ESTRADA',
+  ALVO_SAIU: 'ALVO_SAIU',
+  FORA_DE_ALCANCE: 'ALVO_SAIU',
   FORA_DA_VILA: 'FORA_DA_VILA',
   FORA_DA_VILA_VOTO: 'FORA_DA_VILA_VOTO',
   MOVER_RAPIDO: 'MOVER_RAPIDO',
@@ -149,10 +161,15 @@ export function chaveDoCodigo(
  * variáveis) ou, em último caso, a `message` que o servidor mandou.
  */
 export function motivoDaRecusa(
-  erro: { error?: { code?: string; message?: string } } | undefined,
+  erro: { error?: { code?: string; message?: string; motivo?: string } } | undefined,
   acao: AcaoDoMotivo = 'PORTA',
   variaveis: VariaveisMotivo = {},
 ): string | null {
+  // A trava da noite (036 #12) diz o porquê: reparo, resgate ou a jogada.
+  const trava = erro?.error?.code === 'POSICAO_TRAVADA' ? erro.error.motivo : undefined;
+  if (trava === 'REPARO' || trava === 'RESGATE' || trava === 'ACAO') {
+    return textoDoMotivo(`POSICAO_TRAVADA_${trava}`);
+  }
   const chave = chaveDoCodigo(erro?.error?.code, acao);
   if (chave) return textoDoMotivo(chave, variaveis);
   return erro?.error?.message ?? null;

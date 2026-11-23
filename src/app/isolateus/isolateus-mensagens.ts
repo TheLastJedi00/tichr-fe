@@ -15,11 +15,11 @@ export type FaseDaMensagem = StatusIsolateus | 'AMANHECER' | 'PAUSA' | 'RESULTAD
 
 const TEXTOS: Record<string, string> = {
   DESLOCAMENTO:
-    'As portas se abriram. Entre numa porta ou toque em Ficar neste setor.',
+    'As portas se abriram. Ande até uma porta para trocar de setor: vale onde você estiver quando o tempo acabar.',
   AMANHECER: 'Veja o que mudou na vila.',
   QUESTAO_ATIVA: 'Responda à questão do Comando Central.',
-  QUARENTENA_DEBATE: 'Quarentena convocada: debata antes de votar.',
-  QUARENTENA_VOTO: 'Quarentena convocada: vote em quem isolar.',
+  QUARENTENA_DEBATE: 'Quarentena convocada: a votação vai abrir.',
+  QUARENTENA_VOTO: 'Quarentena convocada: vote em quem isolar. Use o chat para acusar ou se defender.',
   RESGATE_VOTO: 'Resgate em andamento: vote em quem trazer de volta.',
   RESULTADO: 'Leia o resultado da rodada. A noite já vai começar.',
   PAUSA: 'Partida pausada pelo professor.',

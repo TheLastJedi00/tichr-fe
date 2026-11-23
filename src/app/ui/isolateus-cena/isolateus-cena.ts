@@ -47,6 +47,14 @@ export class IsolateusCena implements OnDestroy {
   readonly posicoes = input<Record<string, Passo>>({});
   readonly portas = input.required<PortaCena[]>();
   readonly portasAbertas = input(false);
+  /** Posso atravessar agora: o botão flutuante aparece na zona da porta (036). */
+  readonly podeAtravessar = input(false);
+  /**
+   * Toque no boneco de outro habitante: a página responde na hora se consumiu
+   * (a Ameaça marcou a vítima, 036 #13a). Função, e não `output`, porque o toque
+   * que não foi consumido vira andar.
+   */
+  readonly aoTocarHabitante = input<(id: string) => boolean>(() => false);
   readonly objeto = input<ObjetoCentral | null>(null);
   readonly objetoBloqueado = input(false);
   readonly ocultarMeuNome = input(false);
@@ -58,7 +66,9 @@ export class IsolateusCena implements OnDestroy {
   readonly tocarMeuBoneco = output<void>();
   readonly tocarObjeto = output<void>();
   readonly tocarPorta = output<{ para: string; aberta: boolean }>();
-  readonly luzDaPorta = output<string | null>();
+  readonly zonaDaPorta = output<string | null>();
+  readonly atravessar = output<string>();
+  readonly ficar = output<void>();
 
   private readonly palco = viewChild.required<ElementRef<HTMLElement>>('palco');
   private cena?: CenaPhaser;
@@ -85,6 +95,7 @@ export class IsolateusCena implements OnDestroy {
       posicoes: this.posicoes(),
       portas: this.portas(),
       portasAbertas: this.portasAbertas(),
+      podeAtravessar: this.podeAtravessar(),
       objeto: this.objeto(),
       objetoBloqueado: this.objetoBloqueado(),
       ocultarMeuNome: this.ocultarMeuNome(),
@@ -100,9 +111,12 @@ export class IsolateusCena implements OnDestroy {
     const cena = new CenaPhaser(Fase, {
       tocarChao: (x) => this.tocarChao.emit(x),
       tocarMeuBoneco: () => this.tocarMeuBoneco.emit(),
+      tocarHabitante: (id) => this.aoTocarHabitante()(id),
       tocarObjeto: () => this.tocarObjeto.emit(),
       tocarPorta: (para, aberta) => this.tocarPorta.emit({ para, aberta }),
-      luzDaPorta: (para) => this.luzDaPorta.emit(para),
+      zonaDaPorta: (para) => this.zonaDaPorta.emit(para),
+      atravessar: (para) => this.atravessar.emit(para),
+      ficar: () => this.ficar.emit(),
     });
     this.cena = cena;
     cena.iniciar(el, this.entrada());
@@ -120,9 +134,6 @@ export class IsolateusCena implements OnDestroy {
   }
   posicionarMeuBoneco(x: number, alvo: number): void {
     this.cena?.posicionarMeuBoneco(x, alvo);
-  }
-  afastarMeuBoneco(): void {
-    this.cena?.afastarMeuBoneco();
   }
   luzVerde(tipo: 'ABDUCAO' | 'SABOTAGEM', aoPico?: () => void): Promise<void> {
     return this.cena ? this.cena.luzVerde(tipo, aoPico) : Promise.resolve();

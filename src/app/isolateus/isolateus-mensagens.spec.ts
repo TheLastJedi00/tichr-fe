@@ -15,7 +15,7 @@ describe('mensagem do turno (spec 034 #17, #56)', () => {
 
   it('diz o que fazer na noite', () => {
     expect(mensagemDoTurno('DESLOCAMENTO', 0, 5).texto).toBe(
-      'As portas se abriram. Entre numa porta ou toque em Ficar neste setor.',
+      'As portas se abriram. Ande até uma porta para trocar de setor: vale onde você estiver quando o tempo acabar.',
     );
   });
 

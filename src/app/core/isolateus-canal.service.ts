@@ -44,15 +44,16 @@ export class IsolateusCanalService implements OnDestroy {
 
   /**
    * Liga o canal do setor atual do habitante. Chamar de novo para o mesmo setor
-   * não faz nada; para outro setor, troca a assinatura com um token novo.
+   * não faz nada; para outro setor, troca a assinatura com um token novo. A
+   * travessia (036) já devolve o token do setor novo: com ele, não há pedido.
    */
-  async conectar(partidaId: string, setorId: string): Promise<void> {
+  async conectar(partidaId: string, setorId: string, tokenPronto?: string | null): Promise<void> {
     if (this.setorAtual === setorId && this.conectado()) return;
     this.desligar();
     this.setorAtual = setorId;
     try {
       this.iniciar();
-      const { token } = await firstValueFrom(this.api.canal(partidaId));
+      const token = tokenPronto ?? (await firstValueFrom(this.api.canal(partidaId))).token;
       await signInWithCustomToken(this.auth!, token);
       // O setor pode ter mudado durante o pedido do token.
       if (this.setorAtual !== setorId) return;

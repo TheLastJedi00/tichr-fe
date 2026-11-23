@@ -141,7 +141,7 @@ const ISOLATEUS: RegrasJogo = {
   id: 'ISOLATEUS',
   nome: 'Tichr Isolateus',
   resumo:
-    'Dedução social numa vila isolada. Um infiltrado se esconde entre os habitantes: a turma responde questões para defender a vila e debate para descobrir quem é a Ameaça.',
+    'Dedução social numa vila isolada. Um infiltrado se esconde entre os habitantes: a turma responde questões para defender a vila e conversa no chat da vila para descobrir quem é a Ameaça.',
   como: [
     {
       titulo: 'A vila e os papéis',
@@ -158,10 +158,11 @@ const ISOLATEUS: RegrasJogo = {
       titulo: 'A rodada',
       itens: [
         'Cada rodada tem uma noite e uma questão, e a partida tem tantas rodadas quanto questões no banco. O topo da tela mostra o progresso ("RODADA 3/10").',
-        'Noite (15s): as portas do seu setor se abrem. Toque no chão para andar, entre na luz de uma porta para ir ao setor vizinho ou toque em "Ficar neste setor". Sair da luz desfaz a escolha.',
-        'Andar pela cena não conta como jogada: na noite, vale entrar numa porta ou ficar no setor.',
-        'Na mesma noite, quem estiver no seu setor (Aldeão ou Ameaça) pode organizar o reparo de um setor em ruínas, o resgate (Saúde) ou convocar a Quarentena (Comunicação), tocando no objeto do centro.',
-        'Amanhecer: as portas se fecham e a vila vê o que mudou — quem partiu, quem chegou, a sabotagem e a abdução.',
+        'Noite: o tempo de movimentação, escolhido pelo professor (de 10 a 60 segundos; 20 por padrão). As portas se abrem e você anda pela vila: toque no chão (ou use WASD/setas no computador) para andar até uma porta.',
+        'Na porta, aparece o botão "ENTRAR EM {SETOR}" acima dela: toque nele (ou aperte W) para passar ao setor vizinho na hora. Dá para atravessar quantas vezes quiser; vale o setor onde você estiver quando o tempo acabar.',
+        'Andar pela cena não conta como jogada: na noite, vale atravessar uma porta, tocar em "Ficar neste setor" (ou S) ou fazer uma ação.',
+        'Na mesma noite, quem estiver no setor (Aldeão ou Ameaça) pode organizar o reparo de um setor em ruínas, o resgate (Saúde) ou convocar a Quarentena (Comunicação), tocando no objeto do centro. Quem organiza reparo ou resgate fica naquele setor até o amanhecer.',
+        'Amanhecer: as portas se fecham e a vila vê o que a noite deixou — a sabotagem e a abdução.',
         'Questão: toda rodada tem uma, e todos respondem, inclusive quem saiu da vila. Se houve ataque, reparo, resgate ou invasão, é ela que decide; se não houve nada em disputa, vale só os pontos.',
         'Depois da questão vêm, se houver, o voto do resgate e a Quarentena. Em seguida, o card de resultado aparece por alguns segundos e a próxima noite começa.',
         'Ação indisponível nunca some: o objeto, a porta ou o botão fica apagado com um cadeado, e tocar nele explica o motivo.',
@@ -171,13 +172,14 @@ const ISOLATEUS: RegrasJogo = {
       titulo: 'O Ciclo de Invasão',
       itens: [
         'A cada noite a Ameaça escolhe em segredo: sabotar o setor em que está, abduzir um morador do setor ou passar a noite.',
+        'Para abduzir, a Ameaça toca direto no boneco da vítima, no mesmo setor: a escolha fica marcada na hora, e fugir pela porta depois não salva ninguém. Também dá para abduzir às cegas, apostando num setor, pelo menu do próprio boneco.',
+        'Depois de sabotar, abduzir ou escolher um superpoder, a Ameaça fica naquele setor até o amanhecer.',
         'A sabotagem derruba o setor no amanhecer (luz verde e tremida na cena). A abdução tira o morador da vila (luz verde) e vira a disputa da questão.',
         'Na abdução, se a maioria acertar, a defesa resiste e o morador fica. Se a maioria errar, ele sai da vila e a Barra de Esperança cai.',
         'Reparo: num setor em ruínas, organizar o reparo à noite e a vila acertar a questão reconstrói o setor e devolve Esperança.',
         'Como os Habitantes Virtuais votam ao acaso, empates são desempatados pelo consenso dos jogadores reais — o Instinto Humano.',
         'O voto da Ameaça não conta na defesa: ela responde e pontua como todos, mas não decide o resultado.',
-        'Durante a noite, quem está no seu setor vê quando você entra na luz de uma porta e para onde, e você vê o mesmo deles. Dá para mudar de ideia, e a troca também aparece.',
-        'Quem vem de outro setor só aparece no amanhecer: aí você vê quem partiu e quem acabou de chegar, e de onde veio.',
+        'Tudo acontece ao vivo: quem está no seu setor vê você sair pela porta, e quem está no setor vizinho vê você chegar. Os Habitantes Virtuais também andam e atravessam portas.',
         'A cada 3 noites, um brilho misterioso irradia alguns setores da vila, sem explicação. O mapa mostra quantas noites faltam.',
         'Colapso: a Esperança para em 0 e a tela pisca "COLAPSO", mas a partida não acaba. Reparo e resgate tiram a vila de lá.',
       ],
@@ -204,10 +206,12 @@ const ISOLATEUS: RegrasJogo = {
       ],
     },
     {
-      titulo: 'Sinais de Rádio',
+      titulo: 'Chat da vila e Sinais de Rádio',
       itens: [
+        'O chat da vila fica aberto a partida inteira, em todas as fases: acuse, defenda-se, diga onde esteve. Ele aparece com o seu codinome, nunca com o seu nome.',
+        'Quem está na vila (a Ameaça também) escreve; quem foi abduzido ou preso só lê. O telão mostra o chat para a turma.',
         'Quem já foi abduzido ou preso continua respondendo e pode mandar um Sinal de Rádio anônimo durante a questão, tentando salvar a vila.',
-        'Palavrão no debate ou no Sinal de Rádio não é publicado e custa 1000 XP no ranking a quem escreveu. Ninguém mais fica sabendo.',
+        'Palavrão no chat ou no Sinal de Rádio não é publicado e custa 1000 XP no ranking a quem escreveu. Ninguém mais fica sabendo.',
       ],
     },
     {
@@ -224,12 +228,10 @@ const ISOLATEUS: RegrasJogo = {
       itens: [
         'A Quarentena é convocada à noite, de dentro do Setor de Comunicação, pelo botão vermelho do centro — uma por rodada.',
         'A convocação é confirmada no amanhecer: se a Comunicação for sabotada nessa noite, o rádio cai e a convocação não sai.',
-        'Depois da questão, abre um debate cronometrado e, em seguida, a votação no suspeito.',
+        'Depois da questão, abre a votação no suspeito. A conversa fica no chat da vila, antes e durante a votação.',
         'Quem convoca aparece para toda a vila e no Diário. Se a Quarentena prender um inocente, quem convocou fica a rodada seguinte sem poder convocar.',
         'Só os votos dos jogadores reais contam. A Quarentena sempre prende alguém; empate vira sorteio entre os empatados.',
-        'O professor pode desligar o debate antes de iniciar a partida: aí a Quarentena vai direto para a votação.',
-        'Quem já se decidiu pode pular o debate: se todos pularem, a votação começa na hora.',
-        'O professor controla o ritmo pelo telão: ele pode pular o tempo restante de qualquer etapa — noite, questão, debate ou votação — e o jogo segue como se o relógio tivesse zerado.',
+        'O professor controla o ritmo pelo telão: ele pode pular o tempo restante de qualquer etapa — noite, questão ou votação — e o jogo segue como se o relógio tivesse zerado.',
         'Trancou a Ameaça: a vila comemora. Se era a última Ameaça livre, um novo infiltrado é sorteado em segredo entre os aldeões e a invasão continua.',
         'Trancou um inocente: a Esperança sofre dano severo e a identidade do preso continua em segredo.',
         'Se notar alunos combinando por fora, o professor pode causar um delírio coletivo a qualquer momento: todos trocam de nome, com o mesmo aviso anônimo do poder da Ameaça.',
@@ -275,7 +277,7 @@ const ISOLATEUS: RegrasJogo = {
     },
     { acao: 'Resposta errada', valor: '0' },
     {
-      acao: 'Palavrão no debate ou no Sinal de Rádio',
+      acao: 'Palavrão no chat ou no Sinal de Rádio',
       valor: '−1000',
       detalhe: 'só para quem escreveu; a mensagem não é publicada',
     },

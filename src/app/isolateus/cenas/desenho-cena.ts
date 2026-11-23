@@ -60,8 +60,8 @@ export interface HabitanteDesenho {
   x: number;
   /** Quadro das perninhas (0 ou 1). */
   quadro: 0 | 1;
-  /** Em fila na luz da porta: o contorno pisca (aviso de saída). */
-  saindo: boolean;
+  /** A vítima marcada pela Ameaça (036 #13a): contorno verde piscando. */
+  marcado: boolean;
   eu: boolean;
   /** Esconde o nome (o olho do próprio chip). */
   ocultarNome: boolean;
@@ -71,6 +71,14 @@ export interface FlashDesenho {
   x: number;
   t: number;
   dur: number;
+}
+
+/** O botão flutuante acima da porta (036 #19): "ENTRAR EM {SETOR}". */
+export interface BotaoPortaDesenho {
+  x: number;
+  texto: string;
+  /** A porta do fundo (Comunicação → Saúde) é mais baixa. */
+  fundo: boolean;
 }
 
 export interface FloodDesenho {
@@ -95,6 +103,8 @@ export interface QuadroDaCena {
   cortina: number;
   /** Rótulo de cada porta (nome curto do destino). */
   rotuloDaPorta: (para: string) => string;
+  /** O botão flutuante, quando o meu boneco está na zona de uma porta. */
+  botaoPorta: BotaoPortaDesenho | null;
   /** Segundos desde o início (anima sirene, luz, balanço). */
   tempo: number;
   /** O sorteio das faíscas do setor em ruínas (determinístico por quadro). */
@@ -239,6 +249,43 @@ export function desenharPorta(
   desenharTexto(c, texto, lx, y0 - 11, abertura >= 1 ? P.amber3 : P.s4);
 }
 
+/**
+ * A caixa do botão flutuante (também o alvo do toque): acima do rótulo da
+ * porta, dentro da cena.
+ */
+export function caixaDoBotaoPorta(b: BotaoPortaDesenho): {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+} {
+  const alturaPorta = b.fundo ? 22 : 24;
+  const lw = larguraTexto(b.texto);
+  const w = lw + 10;
+  const h = 13;
+  const x0 = limitar(Math.round(b.x - w / 2), 1, W - w - 1);
+  const y1 = CHAO - alturaPorta - 16;
+  return { x0, y0: y1 - h, x1: x0 + w, y1 };
+}
+
+/** O botão flutuante: moldura dura em âmbar, texto em bitmap e uma seta. */
+export function desenharBotaoPorta(c: Ctx, b: BotaoPortaDesenho, tempo: number): void {
+  const pulo = Math.floor(tempo * 3) % 2;
+  const k = caixaDoBotaoPorta(b);
+  const y0 = k.y0 - pulo;
+  const w = k.x1 - k.x0;
+  const h = k.y1 - k.y0;
+  px(c, k.x0 + 1, y0 + 1, w, h, P.ink); // sombra dura
+  px(c, k.x0, y0, w, h, P.amber3);
+  px(c, k.x0 + 1, y0 + 1, w - 2, h - 2, P.ink);
+  desenharTexto(c, b.texto, k.x0 + 5, y0 + 4, P.amber3);
+  // a seta para a porta
+  const sx = limitar(Math.round(b.x), k.x0 + 3, k.x1 - 3);
+  px(c, sx - 2, y0 + h, 5, 1, P.amber3);
+  px(c, sx - 1, y0 + h + 1, 3, 1, P.amber3);
+  px(c, sx, y0 + h + 2, 1, 1, P.amber3);
+}
+
 // ----------------------------------------------------- objeto do centro
 
 /** O objeto do centro: kit de reparo, maca do resgate ou botão da Quarentena. */
@@ -353,9 +400,10 @@ export function desenharQuadro(c: Ctx, q: QuadroDaCena): void {
   );
   const piscar = Math.floor(q.tempo * 5) % 2 === 1;
   for (const h of lista) {
-    desenharBoneco(c, h.cores, h.x, h.quadro, h.saindo && piscar ? P.amber3 : null);
+    desenharBoneco(c, h.cores, h.x, h.quadro, h.marcado && piscar ? P.alien : null);
   }
   desenharNomes(c, lista, q.tempo);
+  if (q.botaoPorta) desenharBotaoPorta(c, q.botaoPorta, q.tempo);
 
   for (const f of q.flashes) {
     const a = f.t / f.dur;

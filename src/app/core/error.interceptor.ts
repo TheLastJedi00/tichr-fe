@@ -42,6 +42,18 @@ function isTratadoInline(err: HttpErrorResponse): boolean {
     (err.status === 429 && (code === 'PASSO_RAPIDO' || code === 'MOVER_RAPIDO')) ||
     (err.status === 400 && (code === 'NOITE_NAO_COMECOU' || code === 'FORA_DA_NOITE' || code === 'ALVO_FORA_DA_CENA' || code === 'ENERGIA_INSUFICIENTE' || code === 'SO_ORIGINAL')) ||
     (err.status === 409 && code === 'QUARENTENA_JA_CONVOCADA') ||
+    // Isolateus 036: a travessia, a trava da noite e a abdução por toque viram
+    // aviso na cena; o chat mostra a recusa no próprio campo.
+    (err.status === 400 &&
+      (code === 'LONGE_DA_PORTA' ||
+        code === 'SEM_ESTRADA' ||
+        code === 'POSICAO_TRAVADA' ||
+        code === 'ALVO_SAIU' ||
+        code === 'JOGADA_FEITA' ||
+        code === 'MENSAGEM_VAZIA' ||
+        code === 'CHAT_FECHADO')) ||
+    (err.status === 403 && code === 'FORA_DA_VILA') ||
+    (err.status === 429 && code === 'CHAT_RAPIDO') ||
     // Wor (035): a jogada chegou durante a animação do fechamento; a tela já
     // mostra "A próxima rodada começa em Ns" com os botões travados.
     (err.status === 400 && code === 'RODADA_NAO_COMECOU') ||
