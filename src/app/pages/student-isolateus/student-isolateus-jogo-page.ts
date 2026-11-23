@@ -186,6 +186,12 @@ const EVENTOS_DO_AMANHECER = new Set([
                 <a class="px-btn" routerLink="/aluno/isolateus/simples" (click)="guardarModo('simples')">MODO SIMPLES</a>
               </div>
 
+              @if (dicaTeclado()) {
+                <div class="px-box dica-teclado" aria-hidden="true">
+                  <b>WASD</b> ou setas para andar · <b>W</b> atravessa a porta · <b>S</b> fica
+                </div>
+              }
+
               @if (painel()?.ociosidade; as oc) {
                 @if (oc.faltas > 0) {
                   <div class="px-box aviso-oc" [class.px-blink]="oc.ocioso">
@@ -544,6 +550,8 @@ const EVENTOS_DO_AMANHECER = new Set([
     .mini__exp { position: absolute; right: calc(var(--u) * 0.6); bottom: calc(var(--u) * 0.4); font-family: 'Press Start 2P', monospace; font-size: calc(var(--u) * 0.9); color: var(--px-txt-dim); }
     .hud-ferr { position: absolute; right: calc(var(--u) * 1.6); bottom: calc(var(--u) * 1.4); display: flex; gap: calc(var(--u) * 0.8); }
     .hud-ferr .px-btn { font-size: calc(var(--u) * 1.1); padding: calc(var(--u) * 0.5) calc(var(--u) * 0.9); text-decoration: none; }
+    .dica-teclado { position: absolute; left: 50%; bottom: calc(var(--u) * 1.4); transform: translateX(-50%); padding: calc(var(--u) * 0.5) calc(var(--u) * 1); font-size: calc(var(--u) * 1.2); color: var(--px-txt-dim); pointer-events: none !important; white-space: nowrap; }
+    .dica-teclado b { color: var(--px-amber-lt); font-weight: 600; }
     .aviso-oc { position: absolute; left: calc(var(--u) * 1.6); bottom: calc(var(--u) * 1.4); padding: calc(var(--u) * 0.6) calc(var(--u) * 1); color: var(--px-amber-lt); font-size: calc(var(--u) * 1.3); max-width: 40cqw; }
 
     .toast { position: absolute; left: 50%; bottom: calc(var(--u) * 6); transform: translateX(-50%); padding: calc(var(--u) * 0.9) calc(var(--u) * 1.4); font-size: calc(var(--u) * 1.6); max-width: 66cqw; text-align: center; pointer-events: none !important; }
@@ -642,6 +650,13 @@ export class StudentIsolateusJogoPage extends StudentIsolateusPage implements On
   });
   protected readonly portasAbertas = computed(
     () => this.naNoite() && !this.esperando() && !this.partida()?.pausadaEm,
+  );
+  /** Há teclado e mouse (não é só toque): a dica de WASD faz sentido (036 #24). */
+  private readonly temTeclado =
+    typeof matchMedia === 'function' && matchMedia('(pointer: fine)').matches;
+  /** A dica discreta "WASD para andar": só com teclado, na primeira noite. */
+  protected readonly dicaTeclado = computed(
+    () => this.temTeclado && this.naNoite() && (this.partida()?.rodada ?? 1) === 0,
   );
   /** O botão flutuante da porta só aparece para quem pode atravessar (036 #19). */
   protected readonly podeAtravessar = computed(

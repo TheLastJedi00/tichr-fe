@@ -244,6 +244,11 @@ export class CenaPhaser {
    */
   private tecla(ev: KeyboardEvent, apertou: boolean): void {
     if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    // Esc tira o foco do chat (ou da resposta) e devolve o teclado ao boneco.
+    if (apertou && ev.key === 'Escape' && digitando(document.activeElement)) {
+      (document.activeElement as HTMLElement).blur();
+      return;
+    }
     if (digitando(ev.target) || digitando(document.activeElement)) return;
     if (!this.entrada || !this.meuId) return;
     const k = ev.key.toLowerCase();
