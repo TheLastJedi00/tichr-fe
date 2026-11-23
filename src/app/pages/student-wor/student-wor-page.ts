@@ -305,6 +305,13 @@ const FEED_MS = 4000;
               @if (t.arriscouNaRodada) {
                 <small class="hint">Arriscar já foi usado nesta rodada por {{ nomeMembro(t.arriscouNaRodada) }}.</small>
               }
+              @if (t.isHorde && !t.arriscouNaRodada) {
+                <!-- Sem palpite, a Horda passa a vez: conta como jogada e não trava a rodada. -->
+                <button class="btn-outline" type="button" [disabled]="travado()" (click)="naoArriscar()">
+                  Não arriscar nesta rodada
+                </button>
+                <small class="hint">Não sabe a palavra? Passe a vez sem perder nada.</small>
+              }
             </div>
           }
 
@@ -480,6 +487,7 @@ const FEED_MS = 4000;
         <p class="aviso">Sua equipe agora é uma <b>Horda Bárbara</b>.</p>
         <p class="aviso">Vocês não podem mais chutar letras nem comprar dicas. A cada rodada, a única jogada é a <b>Invasão</b>: adivinhar a palavra inteira.</p>
         <p class="aviso">Se acertarem, roubam o castelo da equipe em 1º lugar e assumem a liderança!</p>
+        <p class="aviso">Não sabe a palavra? Toque em <b>Não arriscar nesta rodada</b> para passar a vez sem travar a partida.</p>
         <button modal-actions class="btn-primary" type="button" (click)="modalHorda.set(false)">Entendido, vamos à forra!</button>
       </app-modal>
     }
@@ -1073,6 +1081,13 @@ export class StudentWorPage {
     if (!l) return;
     this.letraEscolhida.set(null);
     this.acao(this.api.chutarLetra(this.matchId()!, l, 'DICA'));
+  }
+
+  /** Horda: abre mão da Invasão nesta rodada (conta como jogada, sem ociosidade). */
+  protected naoArriscar(): void {
+    const id = this.matchId();
+    if (!id || this.travado()) return;
+    this.acao(this.api.naoArriscar(id));
   }
 
   protected arriscar(): void {

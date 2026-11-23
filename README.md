@@ -135,8 +135,8 @@ estilo app), autenticada por **PIN** e com token próprio. O aluno entra pela jo
 | `/aluno/agenda` | **Agenda** | Dias letivos com status dinâmico (Concluída / Em andamento / Agendada) e o **tópico** de cada aula ("o que já vimos") — sincronizados do Plano de Aula quando o professor é PhD. |
 | `/aluno/ranking` | **Ranking** | Pódio (🥇🥈🥉) da turma, com o **card do próprio aluno destacado**. A aba **some** quando a turma desativa o ranking. |
 | `/aluno/qlick` | **Tichr Qlick** | Entra no quiz "de hoje": **lobby animado** (loader temático), alternativas **color-coded A/B/C/D** com feedback de clique (press/scale) e estado de espera, **revelação animada** (correta brilha, erradas em cinza, confete no acerto / shake no erro) e **pódio final** com os pontos somados ao XP. |
-| `/aluno/isolateus` (e `/aluno/isolateus/simples`) | **Tichr Isolateus em pixel art (spec 034)** | Jogo 2D em tela cheia (Phaser 3, carregado só nesta rota): uma **cena por setor** com fundo intacto/destruído **desenhado em código** (interface `FonteFundo`, dá para trocar por PNG), habitantes com perninhas sempre mexendo, **portas** que abrem com luz à noite, objetos do centro (reparo, resgate, botão da Quarentena) apagados com **cadeado e motivo** quando indisponíveis, **luz verde** de abdução/sabotagem, HUD retrô (Esperança, mensagem do turno "RODADA n/N", minimapa SVG) e todos os menus como sobreposições. Posição ao vivo pelo **Realtime Database** (canal com token por setor). O **modo simples** é a tela em lista anterior. A tela antiga, abaixo, segue valendo no modo simples. |
-| `/aluno/isolateus/simples` | Modo simples do Isolateus | O celular do habitante: entrada com um toque, o **Despertar** (só o **codinome de cidade** — o papel fica no **popup do personagem**, com o **olho** para esconder o nome), o **mapa da vila** (zoom-out somente-leitura) e a **visão do próprio setor** — com as saídas para caminhar, o botão de **reparo**, só os habitantes que estão ali, os **avisos de quem está saindo** (e para onde), a barra **"Mudar"** depois de andar e a **animação de saídas e chegadas** no amanhecer. Mais a jogada secreta da Ameaça, o **chat de rumores**, a **Quarentena**, o **Diário da Vila** e a **tela hackeada** de quem foi abduzido. |
+| `/aluno/isolateus` (e `/aluno/isolateus/simples`) | **Tichr Isolateus em pixel art (spec 034)** | Jogo 2D em tela cheia (Phaser 3, carregado só nesta rota): uma **cena por setor** com fundo intacto/destruído **desenhado em código** (interface `FonteFundo`, dá para trocar por PNG), habitantes com perninhas sempre mexendo, **portas** que abrem com luz à noite (spec 036: na zona da porta aparece o botão flutuante **"ENTRAR EM {SETOR}"**, e tocar nele — ou **W** — troca de setor na hora, quantas vezes quiser; **WASD/setas** andam no computador), **abdução com um toque** no boneco da vítima (Ameaça), **chat da vila** como sobreposição (botão CHAT com contador), objetos do centro (reparo, resgate, botão da Quarentena) apagados com **cadeado e motivo** quando indisponíveis, **luz verde** de abdução/sabotagem, HUD retrô (Esperança, mensagem do turno "RODADA n/N", minimapa SVG) e todos os menus como sobreposições. Posição ao vivo pelo **Realtime Database** (canal com token por setor). O **modo simples** é a tela em lista anterior. A tela antiga, abaixo, segue valendo no modo simples. |
+| `/aluno/isolateus/simples` | Modo simples do Isolateus | O celular do habitante: entrada com um toque, o **Despertar** (só o **codinome de cidade** — o papel fica no **popup do personagem**, com o **olho** para esconder o nome), o **mapa da vila** (zoom-out somente-leitura) e a **visão do próprio setor** — com as saídas para caminhar (036: o boneco anda até a porta e atravessa ao chegar), o botão de **reparo** e só os habitantes que estão ali. Mais a jogada secreta da Ameaça, o **chat da vila** (036), a **Quarentena**, o **Diário da Vila** e a **tela hackeada** de quem foi abduzido. |
 | `/aluno/denuncias` | **Denunciar** | O aluno escolhe um colega da turma, um **tópico** criado pelo professor (ex.: "Uso de celular em sala") e/ou escreve o que aconteceu. Sem foto. Só funciona com as **denúncias abertas** pelo professor; fechadas, a tela mostra "As denúncias estão fechadas. O professor abre durante a aula." Só o professor vê quem denunciou. Abaixo, **"Minhas denúncias"** com o status (aguardando, aceita, não aceita). Atalho no Início. |
 | `/aluno/manual` | **Manual de Guerra** | Regras completas do **Tichr Wor**, do **Tichr Qlick** e do **Tichr Isolateus** + a **Tabela de Recompensas** (quanto vale cada jogada), para a turma montar estratégia **antes** da partida. |
 
@@ -212,8 +212,8 @@ estilo app), autenticada por **PIN** e com token próprio. O aluno entra pela jo
   (`ui/`, dumb) oferece **30s, 1, 2, 3 ou 5 min** (padrão 2 min). Ligado, a contagem aparece no
   telão, no lobby do aluno (`<app-aviso-entrada>`) e no card do painel. No zero, o telão pede
   `iniciar-automatico` e a partida começa sozinha com quem entrou (no Wor, as equipes são
-  distribuídas na hora; no Isolateus, vale o debate escolhido, que fica travado enquanto o
-  cronômetro corre). Se a aba do professor estiver fechada, a leitura do aluno também inicia. Com
+  distribuídas na hora; no Isolateus, vale o **tempo de movimentação** escolhido, que fica travado
+  enquanto o cronômetro corre). Se a aba do professor estiver fechada, a leitura do aluno também inicia. Com
   gente de menos no zero, o cronômetro desliga e o lobby mostra o aviso. O início manual continua
   e o professor pode cancelar a contagem. Utilitários em `core/entrada.ts`.
 
@@ -348,15 +348,18 @@ O jogo é o embrulho; o conteúdo cobrado é o seu.
   **tela hackeada**, de onde manda Sinais anônimos para tentar salvar a vila. (O antigo chat de
   rumores saiu: as falas automáticas saíam sempre em nome de habitantes virtuais e entregavam quem
   era real.)
-- **A vila se mexe na sua frente:** durante a noite, quem divide o setor com você vê quando
-  você escolhe sair, e para onde ("→ Energia"); você vê o mesmo deles, com a estrada pulsando e
-  o número de quem vai por ela. Dá para mudar de ideia (sempre entre os vizinhos de onde a noite
-  começou), e a troca também aparece — blefar vira tática. Os habitantes virtuais anunciam a
-  saída do mesmo jeito, ao longo da noite, e às vezes mudam de ideia também: o movimento não
-  denuncia quem é real. No amanhecer, quem saiu desliza pela estrada do destino, quem chegou
-  entra pela da origem, e um aviso conta quem partiu e quem acabou de chegar. Quem vem de outro
-  setor só aparece no amanhecer, e numa noite de **Delírio Coletivo** ninguém é mostrado
-  andando (casaria o nome antigo com o novo). O telão não mostra a movimentação.
+- **A noite é o tempo de movimentação (spec 036):** o professor escolhe no lobby quanto a noite
+  dura (`<app-tempo-movimentacao>`, chips de **10 a 60s**, padrão 20s). Durante ela, todos andam
+  pela vila: o boneco vai até a porta (toque no chão ou **WASD/setas**), aparece o botão
+  **"ENTRAR EM {SETOR}"** acima dela e tocar nele (ou **W**) troca de setor na hora, com a cortina e
+  a entrada pela porta de chegada. Dá para atravessar quantas vezes quiser; vale onde você estiver
+  quando o tempo acabar. Quem está no setor vê você sair pela porta, e quem está no vizinho vê você
+  chegar. Os habitantes virtuais também atravessam. Quem organiza reparo ou resgate, e a Ameaça
+  depois de agir, fica no setor até o amanhecer (o motivo aparece na porta). A dica *"WASD ou
+  setas para andar"* aparece na primeira noite em telas com teclado; `Esc` tira o foco do chat.
+- **Abdução com um toque:** à noite, a Ameaça toca no boneco de quem está no mesmo setor e a
+  abdução fica marcada na hora (contorno verde e *"Abdução marcada"* só no celular dela); fugir
+  depois não salva a vítima. Para os outros, tocar num boneco é só andar até ali.
 - **O voto da Ameaça não defende a vila, e o acerto dela vale um poder:** o infiltrado responde
   como todos, mas o voto dele não conta na defesa. Se acertar, ganha um **Poder Alienígena**,
   escolhido em cards que explicam o que cada um faz:
@@ -371,17 +374,20 @@ O jogo é o embrulho; o conteúdo cobrado é o seu.
   Ameaça presa acertar e a maioria dos aldeões na vila errar, ela foge e volta livre a um setor
   sorteado, com um card que diz quem fugiu; senão, *"A Quarentena resistiu"*. Uma tentativa por
   noite.
-- **Linguagem imprópria no Isolateus:** palavrão no debate da Quarentena ou no Sinal de Rádio não
+- **Chat da vila (spec 036):** um canal só, a partida inteira, em todas as fases
+  (`<app-isolateus-chat>`, `ui/`, dumb): sobreposição no jogo em pixel art (botão CHAT com
+  contador de não lidas), painel no modo simples e coluna só de leitura no telão. Assina com o
+  codinome; abduzidos e presos só leem.
+- **Linguagem imprópria no Isolateus:** palavrão no chat da vila ou no Sinal de Rádio não
   é publicado: o campo avisa *"Mensagem bloqueada por linguagem imprópria. Você perdeu 1000 XP."*
   e mantém o texto para o aluno editar. Ninguém mais fica sabendo (o Sinal é anônimo).
 - **A Ameaça não repete:** numa mesma turma, quem já foi o infiltrado só volta a ser depois que
   todos os presentes tiverem sido.
-- **A Quarentena:** um debate cronometrado seguido de votação no suspeito, convocado de
+- **A Quarentena:** votação no suspeito (desde a 036, sem debate: a conversa fica no chat da vila), convocada de
   dentro do **Setor de Comunicação** — e **só de lá**, nem o telão do professor abre exceção:
   derrubar o rádio cala a vila até ela reconstruí-lo. Quem está fora vê escrito o motivo, em vez
   de um botão que não funciona.
-  Cabe uma por noite (a vila não emenda acusações até prender todo mundo). Quem já se decidiu **pula o debate**; se todos pularem, a votação começa na hora.
-  O professor escolhe no lobby se haverá **debate** — sem ele, a Quarentena vai direto à votação.
+  Cabe uma por noite (a vila não emenda acusações até prender todo mundo).
   Prendeu a ameaça, a vila vence; prendeu um inocente, a Esperança despenca — e a identidade
   do preso **continua em segredo**.
 - **Discrição (o popup do personagem):** o papel não aparece na tela de ninguém. Quem quiser
@@ -415,7 +421,7 @@ O jogo é o embrulho; o conteúdo cobrado é o seu.
   Quarentena, cronometrada **no telão e nos celulares**. E o avanço não depende de uma tela só:
   qualquer aparelho da partida cobra o prazo vencido, então a investigação não para se a aba do
   professor dormir ou a rede dele oscilar. E o professor **pula o tempo restante de qualquer
-  etapa** pelo telão — noite, questão, debate ou votação —, com o jogo seguindo como se o relógio
+  etapa** pelo telão — noite, questão ou votação —, com o jogo seguindo como se o relógio
   tivesse zerado. Depois de prender um inocente, a noite também cai sozinha (antes o cronômetro
   travava em 15s).
 - **Encerrar quando o sinal bate:** o professor termina a investigação **a qualquer momento**,

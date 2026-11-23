@@ -17,6 +17,9 @@ import { Aluno, IsolateusMatch, LIMITE_OCIOSIDADE_PADRAO } from '../../core/mode
 import { OciosidadeApiService } from '../../core/ociosidade-api.service';
 import { LimiteOciosidadeComponent } from '../../ui/limite-ociosidade/limite-ociosidade';
 import { CronometroEntradaComponent } from '../../ui/cronometro-entrada/cronometro-entrada';
+import { TempoMovimentacaoComponent } from '../../ui/tempo-movimentacao/tempo-movimentacao';
+import { IsolateusChat } from '../../ui/isolateus-chat/isolateus-chat';
+import { NOITE_PADRAO_S, segundosDaNoite } from '../../core/isolateus-noite';
 import { DescontoOciosidadeComponent } from '../../ui/desconto-ociosidade/desconto-ociosidade';
 import { RealtimeService } from '../../core/realtime.service';
 import { TurmaApiService } from '../../core/turma-api.service';
@@ -38,7 +41,6 @@ import { podePausar } from '../../core/pausa';
 /** Janelas cronometradas — espelham as constantes `ISOLATEUS` do backend. */
 const LIMITE_DEBATE_S = 90;
 const LIMITE_VOTO_S = 60;
-const LIMITE_DESLOCAMENTO_S = 60;
 const JANELA_DECISAO_S = 15;
 const RESGATE_VOTO_S = 60;
 /** O pulso da noite: libera os avisos de saída dos NPCs (026 §2.3). */
@@ -62,6 +64,8 @@ const MIN_REAIS = 4;
   imports: [
     LimiteOciosidadeComponent,
     CronometroEntradaComponent,
+    TempoMovimentacaoComponent,
+    IsolateusChat,
     DescontoOciosidadeComponent,
     RouterLink,
     Icon,
@@ -159,19 +163,6 @@ const MIN_REAIS = 4;
               }
             </div>
 
-            <label class="px-box opcao">
-              <input
-                type="checkbox"
-                [checked]="p.entradaEncerraEm ? p.debateHabilitado !== false : debateHabilitado()"
-                [disabled]="!!p.entradaEncerraEm"
-                (change)="debateHabilitado.set($any($event.target).checked)"
-              />
-              <span>
-                <b>Debate antes da votação</b>
-                <small>Desmarque para a Quarentena ir direto à votação.</small>
-              </span>
-            </label>
-
             <!-- Os ajustes do lobby são componentes do app: ficam num cartão claro. -->
             <div class="ajustes">
               @if (p.turmaId) {
@@ -188,7 +179,12 @@ const MIN_REAIS = 4;
                 [desabilitado]="salvandoLimite()"
                 (mudou)="mudarLimite($event)"
               />
-              <!-- O debate vai junto com o cronômetro: o início pode vir de um aluno. -->
+              <!-- O tempo da noite vai junto com o cronômetro: o início pode vir de um aluno. -->
+              <app-tempo-movimentacao
+                [valor]="p.entradaEncerraEm ? segundosDaNoite(p) : segundosNoite()"
+                [desabilitado]="!!p.entradaEncerraEm || ocupado()"
+                (mudou)="segundosNoite.set($event)"
+              />
               <app-cronometro-entrada
                 [encerraEm]="p.entradaEncerraEm"
                 [falhou]="p.entradaFalhou"
@@ -252,6 +248,12 @@ const MIN_REAIS = 4;
                 }
               </div>
               <p class="dim">{{ vivos(p).length }} habitante(s) na vila</p>
+
+              <!-- O chat da vila (036): a turma lê no telão o que se diz nos celulares. -->
+              <div class="px-box chat-telao">
+                <span class="px-titulo chat-telao__tit">CHAT DA VILA</span>
+                <app-isolateus-chat [pixel]="true" [telao]="true" [mensagens]="p.chat ?? []" />
+              </div>
             </div>
 
             <div class="px-box painel">
@@ -293,8 +295,7 @@ const MIN_REAIS = 4;
                       <app-icone-pixel nome="AGUARDAR" class="aguardando__ico" />
                       <strong class="px-titulo">A VILA SE MOVIMENTA NA ESCURIDÃO…</strong>
                       <p class="dim">
-                        Cada habitante escolhe onde passar a noite.
-                        {{ p.movimentosRecebidos ?? 0 }} já decidiram.
+                        A vila anda e atravessa portas: vale onde cada um estiver quando o tempo acabar.
                         A Quarentena é convocada pelo botão vermelho da Comunicação.
                       </p>
                     </div>
@@ -347,20 +348,11 @@ const MIN_REAIS = 4;
                   }
                 }
 
+                <!-- 036: sem debate. Partida antiga parada aqui segue para o voto. -->
                 @case ('QUARENTENA_DEBATE') {
                   <div class="quarentena">
-                    <span class="px-titulo quarentena__tag">QUARENTENA · DEBATE</span>
-                    @if (p.quarentenaConvocadaPor; as c) {
-                      <p>Convocada por <b>{{ c.nome }}</b></p>
-                    }
-                    <div class="feed">
-                      @for (m of p.debate; track m.id) {
-                        <p class="rumor"><strong>{{ m.autorNome }}</strong> {{ m.texto }}</p>
-                      }
-                    </div>
-                    @if (p.pulosRecebidos) {
-                      <p>{{ p.pulosRecebidos }} já pularam o debate.</p>
-                    }
+                    <span class="px-titulo quarentena__tag">QUARENTENA</span>
+                    <p>A votação vai abrir. A conversa fica no chat da vila.</p>
                   </div>
                 }
 
@@ -597,6 +589,9 @@ const MIN_REAIS = 4;
      * O telão herda as cores e a fonte do palco pixel (034), mas rola como uma
      * página: o tamanho vem da largura (inline-size), não de um 16:9 fixo.
      */
+    .chat-telao { margin-top: 12px; padding: 10px 12px; --u: 9px; --b: 2px; }
+    .chat-telao__tit { display: block; margin-bottom: 8px; font-size: 11px; color: var(--px-amber-lt); }
+    .chat-telao app-isolateus-chat { max-height: 34vh; overflow: auto; }
     .telao {
       container-type: inline-size;
       overflow: visible;
@@ -645,10 +640,6 @@ const MIN_REAIS = 4;
     .chip__x { border: none; background: none; padding: 0; font: inherit; color: var(--px-txt-dim); cursor: pointer; display: inline-flex; }
     .chip__x:hover:not(:disabled) { color: var(--px-red); }
     .chip__x:disabled { cursor: not-allowed; opacity: 0.55; }
-    .opcao { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; cursor: pointer; }
-    .opcao input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--px-green); cursor: pointer; }
-    .opcao span { display: flex; flex-direction: column; gap: 2px; }
-    .opcao small { color: var(--px-txt-dim); }
     /* Componentes do app (claros) dentro do palco escuro. */
     .ajustes { display: flex; flex-direction: column; gap: 12px; padding: 12px; background: var(--surface); color: var(--text); font-family: Inter, system-ui, sans-serif; box-shadow: 0 0 0 var(--b) var(--px-line); }
     .lobby > .px-btn { padding: 14px; font-size: 16px; }
@@ -758,7 +749,9 @@ export class IsolateusProjetorPage {
    * Opção do lobby: local ao telão até o clique em "Iniciar" (vai no próprio
    * Despertar — nada a sincronizar enquanto a sala enche).
    */
-  protected readonly debateHabilitado = signal(true);
+  /** O tempo de movimentação escolhido no lobby (036 #2). */
+  protected readonly segundosNoite = signal(NOITE_PADRAO_S);
+  protected readonly segundosDaNoite = segundosDaNoite;
   protected readonly erro = signal<string | null>(null);
   protected readonly assistencia = signal(false);
   /** Confirmação do encerramento antecipado — a ação não tem volta. */
@@ -805,7 +798,7 @@ export class IsolateusProjetorPage {
   private limiteDaFase(): number {
     const p = this.partida();
     if (!p) return 0;
-    if (p.status === 'DESLOCAMENTO') return LIMITE_DESLOCAMENTO_S;
+    if (p.status === 'DESLOCAMENTO') return segundosDaNoite(p);
     if (p.status === 'RESULTADO_RODADA') return JANELA_DECISAO_S;
     if (p.status === 'QUESTAO_ATIVA') return p.duracaoSegundos;
     if (p.status === 'QUARENTENA_DEBATE') return LIMITE_DEBATE_S;
@@ -1097,10 +1090,10 @@ export class IsolateusProjetorPage {
     });
   }
 
-  /** Cronômetro de entrada (035): liga ou cancela, levando o debate escolhido. */
+  /** Cronômetro de entrada (035): liga ou cancela, levando o tempo da noite. */
   protected mudarCronometro(segundos: number | null): void {
     this.acao(
-      this.api.cronometro(this.matchId, segundos, this.debateHabilitado()),
+      this.api.cronometro(this.matchId, segundos, this.segundosNoite()),
     );
   }
   /** No zero: o servidor revalida o prazo e desperta a vila. */
@@ -1111,7 +1104,7 @@ export class IsolateusProjetorPage {
   protected iniciar(): void {
     this.acao(
       this.api.iniciar(this.matchId, {
-        debateHabilitado: this.debateHabilitado(),
+        segundosNoite: this.segundosNoite(),
       }),
     );
   }
@@ -1127,7 +1120,7 @@ export class IsolateusProjetorPage {
       case 'RESULTADO_RODADA':
         return null;
       case 'QUARENTENA_DEBATE':
-        return 'Pular debate';
+        return 'Abrir votação';
       case 'QUARENTENA_VOTO':
         return 'Encerrar votação';
       case 'RESGATE_VOTO':

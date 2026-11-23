@@ -1,20 +1,22 @@
 /**
  * A cena do Isolateus no Phaser 3 (spec 034 #34): resolução lógica fixa 320×180,
  * modo pixel art, escala em múltiplos inteiros, câmera para a tremida, input
- * unificado (mouse e toque). O Phaser hospeda o loop, a escala, o input e a
- * textura; o desenho de cada quadro vem de `desenho-cena.ts`. O HUD e as
- * sobreposições são Angular por cima deste canvas.
+ * unificado (mouse e toque) e teclado (036: WASD e setas). O Phaser hospeda o
+ * loop, a escala, o input e a textura; o desenho de cada quadro vem de
+ * `desenho-cena.ts`. O HUD e as sobreposições são Angular por cima deste canvas.
  *
  * Esta classe é carregada **só na rota do jogo** (`import('phaser')` dinâmico).
  */
 import type Phaser from 'phaser';
 import { FonteFundo, FundoEmCodigo } from './fonte-fundo';
 import {
+  BotaoPortaDesenho,
   CAIXA_BONECO,
   FlashDesenho,
   FloodDesenho,
   HabitanteDesenho,
   QuadroDaCena,
+  caixaDoBotaoPorta,
   coresDoHabitante,
   desenharQuadro,
   xInicialDoHabitante,
@@ -31,8 +33,8 @@ export interface HabitanteDaCena {
   id: string;
   nome: string;
   eu: boolean;
-  /** Parado na luz de uma porta: aviso de saída. */
-  saindo: boolean;
+  /** A vítima que a Ameaça marcou com um toque (só no celular dela, 036 #13a). */
+  marcado?: boolean;
 }
 
 /** Tudo que a cena precisa saber, atualizado pelo componente. */
@@ -44,6 +46,11 @@ export interface EntradaDaCena {
   posicoes: Record<string, Passo>;
   portas: PortaCena[];
   portasAbertas: boolean;
+  /**
+   * Eu posso atravessar agora (noite, solto, sem trava): o botão flutuante
+   * aparece quando o meu boneco chega à porta (036 #19).
+   */
+  podeAtravessar: boolean;
   objeto: ObjetoCentral | null;
   objetoBloqueado: boolean;
   ocultarMeuNome: boolean;
@@ -57,10 +64,19 @@ export interface EntradaDaCena {
 export interface SaidasDaCena {
   tocarChao(x: number): void;
   tocarMeuBoneco(): void;
+  /**
+   * Toque no boneco de outro habitante (036 #13a). Devolve `true` se a página
+   * consumiu o toque (a Ameaça marcou a vítima); senão, o toque vira andar.
+   */
+  tocarHabitante(id: string): boolean;
   tocarObjeto(): void;
   tocarPorta(para: string, aberta: boolean): void;
-  /** O meu boneco entrou (ou saiu) da luz de uma porta. */
-  luzDaPorta(para: string | null): void;
+  /** O meu boneco entrou (ou saiu) da zona de uma porta. */
+  zonaDaPorta(para: string | null): void;
+  /** Toque no botão flutuante (ou W): atravessar a porta (036 #20). */
+  atravessar(para: string): void;
+  /** S / seta para baixo: "Ficar neste setor" (036 #23). */
+  ficar(): void;
 }
 
 interface Andarilho {
@@ -70,10 +86,35 @@ interface Andarilho {
   ft: number;
   /** Para detectar um passo novo no canal (o `t` do servidor). */
   visto: number;
+  /**
+   * Acabou de chegar ao setor e o canal ainda não disse onde (036): o
+   * Firestore costuma chegar antes do RTDB. Fica invisível até o primeiro
+   * passo (ou `ESPERA_CHEGADA`), para não piscar num ponto qualquer e pular
+   * para a porta.
+   */
+  chegandoDesde?: number;
 }
 
 const VELOCIDADE = CENA.VELOCIDADE;
-const MEIA_PORTA = 6;
+/** Folga do toque no boneco dos outros: o alvo é pequeno no celular (036 #13a). */
+const FOLGA_TOQUE = 3;
+const BORDA = 8;
+/** Quanto um recém-chegado espera o canal antes de aparecer assim mesmo (s). */
+const ESPERA_CHEGADA = 1.5;
+
+/** O teclado da cena (036 #22–#24). */
+const ESQUERDA = new Set(['a', 'arrowleft']);
+const DIREITA = new Set(['d', 'arrowright']);
+const ATRAVESSAR = new Set(['w', 'arrowup']);
+const FICAR = new Set(['s', 'arrowdown']);
+
+/** O foco está num campo de texto: o teclado é dele, não do boneco. */
+function digitando(alvo: EventTarget | null): boolean {
+  const el = alvo as HTMLElement | null;
+  if (!el || !el.tagName) return false;
+  const tag = el.tagName.toLowerCase();
+  return tag === 'input' || tag === 'textarea' || tag === 'select' || el.isContentEditable;
+}
 
 export class CenaPhaser {
   private jogo?: Phaser.Game;
@@ -86,11 +127,18 @@ export class CenaPhaser {
   private abertura = 0;
   private flashes: FlashDesenho[] = [];
   private flood: (FloodDesenho & { aoPico?: () => void; fim?: () => void; pico?: boolean }) | null = null;
-  private luzAtual: string | null = null;
+  private zonaAtual: string | null = null;
+  private botao: BotaoPortaDesenho | null = null;
   private readonly fundos: FonteFundo = new FundoEmCodigo();
   private readonly chavesDeFundo = new Set<string>();
   private pronta: Promise<void>;
   private resolverPronta!: () => void;
+  /** A direção que o teclado está segurando (−1, 0, 1). */
+  private direcao: -1 | 0 | 1 = 0;
+  private primeiroQuadro = true;
+  private setorDesenhado: string | null = null;
+  private readonly aoApertar = (ev: KeyboardEvent) => this.tecla(ev, true);
+  private readonly aoSoltar = (ev: KeyboardEvent) => this.tecla(ev, false);
 
   constructor(
     private readonly Fase: typeof Phaser,
@@ -129,6 +177,10 @@ export class CenaPhaser {
       banner: false,
       scene: [CenaDoSetor],
     });
+    // Teclado na janela (e não no Phaser): nada é capturado, e o chat e os
+    // campos de resposta continuam recebendo as letras normalmente.
+    window.addEventListener('keydown', this.aoApertar);
+    window.addEventListener('keyup', this.aoSoltar);
   }
 
   /** Resolve quando a cena já existe (antes disso, atualizações só guardam a entrada). */
@@ -146,19 +198,13 @@ export class CenaPhaser {
     this.flashes.push({ x, t: 0, dur });
   }
 
-  /** Põe o meu boneco em `x` (chegada pela porta de origem) e o faz andar até `alvo`. */
+  /** Põe o meu boneco em `x` (chegada pela porta) e o faz andar até `alvo`. */
   posicionarMeuBoneco(x: number, alvo: number): void {
     if (!this.meuId) return;
     const a = this.andarilho(this.meuId);
     a.x = x;
     a.alvo = alvo;
-  }
-
-  /** Volta o meu boneco para o meio da cena (desistiu de sair). */
-  afastarMeuBoneco(): void {
-    if (!this.meuId) return;
-    const a = this.andarilho(this.meuId);
-    a.alvo = Math.max(30, Math.min(290, a.x < CENA.CENTRO ? a.x + 40 : a.x - 40));
+    this.direcao = 0;
   }
 
   /** Posiciona alguém que chegou (de outro setor) na porta, andando para dentro. */
@@ -184,16 +230,66 @@ export class CenaPhaser {
     return !!this.flood;
   }
 
-  /** O x atual do meu boneco (para a página decidir se está na luz de uma porta). */
+  /** O x atual do meu boneco. */
   meuX(): number | null {
     return this.meuId ? (this.andarilhos.get(this.meuId)?.x ?? null) : null;
   }
 
   destruir(): void {
+    window.removeEventListener('keydown', this.aoApertar);
+    window.removeEventListener('keyup', this.aoSoltar);
     this.jogo?.destroy(true);
     this.jogo = undefined;
     this.cena = undefined;
     this.andarilhos.clear();
+  }
+
+  // ---------------------------------------------------------------- teclado
+
+  /**
+   * A / D (ou setas) andam enquanto a tecla está apertada: apertar manda o
+   * destino na borda da cena, soltar manda parar onde está (036 #25). W
+   * atravessa a porta da zona, S fica no setor.
+   */
+  private tecla(ev: KeyboardEvent, apertou: boolean): void {
+    if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    // Esc tira o foco do chat (ou da resposta) e devolve o teclado ao boneco.
+    if (apertou && ev.key === 'Escape' && digitando(document.activeElement)) {
+      (document.activeElement as HTMLElement).blur();
+      return;
+    }
+    if (digitando(ev.target) || digitando(document.activeElement)) return;
+    if (!this.entrada || !this.meuId) return;
+    const k = ev.key.toLowerCase();
+    const lado = ESQUERDA.has(k) ? -1 : DIREITA.has(k) ? 1 : 0;
+    if (lado) {
+      ev.preventDefault();
+      if (apertou) {
+        if (ev.repeat || this.entrada.pausada || this.flood) return;
+        this.direcao = lado;
+        this.andarPara(lado < 0 ? BORDA : CENA.LARGURA - BORDA);
+      } else if (this.direcao === lado) {
+        this.direcao = 0;
+        const x = this.meuX();
+        if (x !== null) this.andarPara(x);
+      }
+      return;
+    }
+    if (!apertou || ev.repeat) return;
+    if (ATRAVESSAR.has(k)) {
+      ev.preventDefault();
+      if (this.zonaAtual && this.botao) this.saidas.atravessar(this.zonaAtual);
+    } else if (FICAR.has(k)) {
+      ev.preventDefault();
+      this.saidas.ficar();
+    }
+  }
+
+  /** O meu boneco anda na hora; o servidor recebe o destino. */
+  private andarPara(x: number): void {
+    const alvo = Math.max(BORDA, Math.min(CENA.LARGURA - BORDA, Math.round(x)));
+    if (this.meuId) this.andarilho(this.meuId).alvo = alvo;
+    this.saidas.tocarChao(alvo);
   }
 
   // ---------------------------------------------------------------- Phaser
@@ -232,16 +328,38 @@ export class CenaPhaser {
   private aoTocar(x: number, y: number): void {
     if (this.entrada.pausada || this.flood) return;
     const e = this.entrada;
+    // 1. o botão flutuante acima da porta (036 #19)
+    if (this.botao && this.zonaAtual) {
+      const c = caixaDoBotaoPorta(this.botao);
+      if (x >= c.x0 && x <= c.x1 && y >= c.y0 && y <= c.y1) {
+        this.saidas.atravessar(this.zonaAtual);
+        return;
+      }
+    }
+    const naAltura = (folga: number) =>
+      y >= CENA.CHAO - CAIXA_BONECO.alto - folga && y <= CENA.CHAO + CAIXA_BONECO.baixo + folga;
+    // 2. o boneco de outro habitante (a Ameaça marca a vítima com um toque) e
+    // o meu: com os dois sob o dedo, vale o mais perto do toque.
     const meu = this.meuX();
-    if (
-      meu !== null &&
-      Math.abs(x - meu) <= CAIXA_BONECO.meia &&
-      y >= CENA.CHAO - CAIXA_BONECO.alto &&
-      y <= CENA.CHAO + CAIXA_BONECO.baixo
-    ) {
+    const noMeu = meu !== null && Math.abs(x - meu) <= CAIXA_BONECO.meia && naAltura(0);
+    let perto: { id: string; d: number } | null = null;
+    for (const h of e.habitantes) {
+      if (h.eu) continue;
+      const a = this.andarilhos.get(h.id);
+      if (!a) continue;
+      const d = Math.abs(x - a.x);
+      if (d <= CAIXA_BONECO.meia + FOLGA_TOQUE && naAltura(FOLGA_TOQUE) && (!perto || d < perto.d)) {
+        perto = { id: h.id, d };
+      }
+    }
+    const outroAntes = perto && (!noMeu || perto.d < Math.abs(x - (meu ?? x)));
+    if (perto && outroAntes && this.saidas.tocarHabitante(perto.id)) return;
+    if (noMeu) {
       this.saidas.tocarMeuBoneco();
       return;
     }
+    if (perto && !outroAntes && this.saidas.tocarHabitante(perto.id)) return;
+    // 4. o objeto do centro
     if (
       e.objeto &&
       Math.abs(x - CENA.CENTRO) <= 16 &&
@@ -256,10 +374,9 @@ export class CenaPhaser {
       (p) => Math.abs(p.x - x) <= 9 && y >= CENA.CHAO - 28 && y <= CENA.CHAO + 2,
     );
     if (porta && this.abertura < 1) this.saidas.tocarPorta(porta.para, false);
-    // Andar até ali: o meu boneco vai na hora; o servidor recebe o destino.
-    const alvo = Math.max(8, Math.min(CENA.LARGURA - 8, Math.round(x)));
-    if (this.meuId) this.andarilho(this.meuId).alvo = alvo;
-    this.saidas.tocarChao(alvo);
+    // 5. andar até ali
+    this.direcao = 0;
+    this.andarPara(x);
   }
 
   private aoAtualizar(dt: number): void {
@@ -273,14 +390,33 @@ export class CenaPhaser {
       if (this.abertura > alvoAbertura) this.abertura = Math.max(0, this.abertura - dt / 0.6);
     }
 
-    // quem saiu do setor deixa de ser desenhado (a cena é só do meu setor)
+    // Trocou de setor (eu atravessei): ninguém da cena antiga continua.
+    const trocouDeSetor = this.setorDesenhado !== null && this.setorDesenhado !== e.setorId;
+    if (trocouDeSetor) {
+      for (const id of [...this.andarilhos.keys()]) if (id !== this.meuId) this.andarilhos.delete(id);
+    }
+    this.setorDesenhado = e.setorId;
+
+    // Quem saiu do setor deixa de ser desenhado; se saiu por uma porta, ela
+    // pisca (036 #8: as saídas são ao vivo).
     const ids = new Set(e.habitantes.map((h) => h.id));
-    for (const id of [...this.andarilhos.keys()]) if (!ids.has(id)) this.andarilhos.delete(id);
+    for (const [id, a] of [...this.andarilhos.entries()]) {
+      if (ids.has(id)) continue;
+      const porta = e.portas.find((p) => Math.abs(p.x - a.x) <= CENA.ZONA_PORTA + 6);
+      if (porta && !trocouDeSetor) this.piscar(porta.x);
+      this.andarilhos.delete(id);
+    }
 
     const habitantes: HabitanteDesenho[] = [];
     for (const h of e.habitantes) {
+      const novo = !this.andarilhos.has(h.id);
       const a = this.andarilho(h.id);
+      if (novo && !h.eu && !this.primeiroQuadro) a.chegandoDesde = this.tempo;
       if (!h.eu) this.seguirCanal(a, e.posicoes[h.id]);
+      if (a.chegandoDesde !== undefined) {
+        if (this.tempo - a.chegandoDesde < ESPERA_CHEGADA) continue;
+        a.chegandoDesde = undefined;
+      }
       const dx = a.alvo - a.x;
       const andando = Math.abs(dx) > 0.5;
       if (!parada && andando) a.x += Math.sign(dx) * Math.min(Math.abs(dx), VELOCIDADE * dt);
@@ -296,12 +432,13 @@ export class CenaPhaser {
         cores: coresDoHabitante(h.id),
         x: a.x,
         quadro: a.quadro,
-        saindo: h.saindo,
+        marcado: !!h.marcado,
         eu: h.eu,
         ocultarNome: e.ocultarMeuNome,
       });
     }
-    this.vigiarLuz(habitantes);
+    this.primeiroQuadro = false;
+    this.vigiarZona(habitantes);
 
     for (const f of this.flashes) f.t += dt * 1000;
     this.flashes = this.flashes.filter((f) => f.t < f.dur);
@@ -331,6 +468,7 @@ export class CenaPhaser {
       flood: this.flood ? { tipo: this.flood.tipo, t: this.flood.t } : null,
       cortina: e.cortina,
       rotuloDaPorta: e.rotuloDaPorta,
+      botaoPorta: this.botao,
       tempo: this.tempo,
       sorteio: Math.random,
     };
@@ -338,28 +476,54 @@ export class CenaPhaser {
     this.textura.refresh();
   }
 
-  /** O passo novo do canal vira uma caminhada (a partir da hora em que chegou). */
+  /**
+   * O passo novo do canal vira uma caminhada. Quem acabou de chegar ao setor
+   * aparece no batente da porta (o backend grava o x de chegada nela).
+   */
   private seguirCanal(a: Andarilho, passo: Passo | undefined): void {
     if (!passo || passo.t === a.visto) return;
     a.visto = passo.t;
     a.alvo = Math.max(0, Math.min(CENA.LARGURA, passo.alvoX));
+    if (a.chegandoDesde !== undefined) {
+      // O canal disse onde o recém-chegado está: aparece ali (na porta, com o
+      // clarão, se entrou por ela).
+      a.chegandoDesde = undefined;
+      a.x = passo.x;
+      const naPorta = this.entrada.portas.find((p) => Math.abs(p.x - passo.x) <= 1);
+      if (naPorta) this.piscar(naPorta.x);
+      return;
+    }
     // O x de saída vem do servidor; só corrige se estiver longe (evita saltos).
     if (Math.abs(a.x - passo.x) > 24) a.x = passo.x;
   }
 
-  /** O meu boneco entra na luz de uma porta = aviso de saída; sair dela = desistir. */
-  private vigiarLuz(habitantes: HabitanteDesenho[]): void {
+  /**
+   * O meu boneco na zona de uma porta aberta: aparece o botão flutuante
+   * "Entrar em {Setor}" acima dela (036 #19). Saiu da zona, o botão some.
+   */
+  private vigiarZona(habitantes: HabitanteDesenho[]): void {
     const e = this.entrada;
-    if (!e.portasAbertas) this.luzAtual = null;
     const eu = habitantes.find((h) => h.eu);
-    if (!eu || !e.portasAbertas || this.abertura < 1 || this.flood) return;
-    const a = this.andarilhos.get(eu.id);
-    if (!a || Math.abs(a.alvo - a.x) > 0.5) return;
-    const porta = e.portas.find((p) => Math.abs(p.x - a.x) <= MEIA_PORTA);
-    const para = porta?.para ?? null;
-    if (para !== this.luzAtual) {
-      this.luzAtual = para;
-      this.saidas.luzDaPorta(para);
+    let para: string | null = null;
+    let xPorta = 0;
+    if (eu && e.portasAbertas && this.abertura >= 1 && !this.flood) {
+      const porta = e.portas.find((p) => Math.abs(p.x - eu.x) <= CENA.ZONA_PORTA);
+      if (porta) {
+        para = porta.para;
+        xPorta = porta.x;
+      }
+    }
+    this.botao =
+      para && e.podeAtravessar
+        ? {
+            x: xPorta,
+            texto: `ENTRAR EM ${e.rotuloDaPorta(para)}`,
+            fundo: e.portas.find((p) => p.para === para)?.lado === 'fundo',
+          }
+        : null;
+    if (para !== this.zonaAtual) {
+      this.zonaAtual = para;
+      this.saidas.zonaDaPorta(para);
     }
   }
 }

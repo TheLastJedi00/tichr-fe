@@ -43,7 +43,7 @@ import { RegrasJogoView } from '../../ui/regras-jogo/regras-jogo';
         Moradores começaram a desaparecer no meio da noite. A ameaça já está
         dentro da vila, caminhando disfarçada entre os habitantes. Para
         sobreviver, a turma precisa <strong>defender os setores respondendo
-        às questões da sua aula</strong> e, no debate, descobrir quem é a Ameaça
+        às questões da sua aula</strong> e, no chat da vila, descobrir quem é a Ameaça
         antes que a população inteira seja levada.
       </p>
     </section>
@@ -110,7 +110,7 @@ import { RegrasJogoView } from '../../ui/regras-jogo/regras-jogo';
     >
       <p class="muted">
         Criar e rodar investigações ao vivo faz parte do plano
-        <strong>PhD</strong>. Faça upgrade para levar a dedução e o debate para
+        <strong>PhD</strong>. Faça upgrade para levar a dedução e a investigação para
         dentro da sua aula.
       </p>
       <div modal-actions>
