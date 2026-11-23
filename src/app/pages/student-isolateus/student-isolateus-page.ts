@@ -586,49 +586,13 @@ import { IsolateusChat } from '../../ui/isolateus-chat/isolateus-chat';
               @if (erro()) { <p class="aviso">{{ erro() }}</p> }
             }
 
+            <!--
+              036: o debate saiu (o chat da vila vale a partida inteira). Uma
+              partida antiga parada no debate segue para a votação pelo relógio.
+            -->
             @case ('QUARENTENA_DEBATE') {
-              <div class="qtag">Quarentena · Debate</div>
-              @if (p.quarentenaConvocadaPor; as c) {
-                <p class="muted center">Convocada por <b>{{ c.nome }}</b></p>
-              }
-              <div class="timer" [class.timer--fim]="restante() <= 10">{{ restante() }}s</div>
-              <div class="feed feed--alto">
-                @for (m of p.debate; track m.id) {
-                  <p class="rumor"><strong>{{ m.autorNome }}</strong> {{ m.texto }}</p>
-                }
-              </div>
-              @if (!foraDaVila()) {
-                <form class="composer" (submit)="debater($event)">
-                  <textarea
-                    class="tichr-input"
-                    rows="2"
-                    maxlength="240"
-                    [value]="debateTexto()"
-                    (input)="debateTexto.set($any($event.target).value)"
-                    placeholder="Acuse, defenda-se, diga onde você passou a noite…"
-                  ></textarea>
-                  @if (avisoDebate()) { <p class="aviso">{{ avisoDebate() }}</p> }
-                  <button class="btn-iso" type="submit" [disabled]="enviando() || !debateTexto().trim()">
-                    Falar
-                  </button>
-                </form>
-                @if (jaPulei()) {
-                  <p class="muted center">
-                    Você já está pronto. Aguardando os outros
-                    ({{ p.pulosRecebidos ?? 0 }} pularam).
-                  </p>
-                } @else {
-                  <button class="btn-pular" type="button" [disabled]="enviando()" (click)="pular()">
-                    Pular o debate
-                  </button>
-                  <p class="muted center">
-                    Se todos pularem, a votação começa na hora.
-                    {{ p.pulosRecebidos ?? 0 }} já pularam.
-                  </p>
-                }
-              } @else {
-                <p class="muted center">Quem saiu da vila não participa do debate.</p>
-              }
+              <div class="qtag">Quarentena</div>
+              <p class="muted center">A votação vai abrir. Use o chat da vila para acusar ou se defender.</p>
             }
 
             @case ('QUARENTENA_VOTO') {
@@ -1300,10 +1264,8 @@ export class StudentIsolateusPage {
   /** Voto otimista na questão (trava a UI na hora, como no Qlick). */
   protected readonly respostaIndex = signal<number | null>(null);
   protected readonly sinalTexto = signal('');
-  protected readonly debateTexto = signal('');
   /** O palavrão barrado (422): o aviso fica no campo, com o texto mantido. */
   protected readonly avisoSinal = signal('');
-  protected readonly avisoDebate = signal('');
 
   /**
    * A barra de energia alien (034 #57): "Energia alien 1/3 · faltam 2 acertos".
@@ -1355,8 +1317,6 @@ export class StudentIsolateusPage {
   protected readonly amanhecerParaAnimar = signal<MovimentosSetor | null>(null);
   private amanhecerDecidido: number | null = null;
   private proximoPulso = 0;
-  /** Pulei o debate desta Quarentena (otimista — o servidor é o juiz). */
-  protected readonly jaPulei = signal(false);
   protected readonly relogio = signal(Date.now());
 
   /** A Quarentena volta a cada noite, mas só cabe uma por rodada. */
@@ -2066,7 +2026,6 @@ export class StudentIsolateusPage {
       // próximo resultado não pode herdar a da noite anterior.
       this.amanhecerParaAnimar.set(null);
       this.abduzindoId.set(null);
-      this.jaPulei.set(false);
       this.convocacaoFeita.set(false);
       // E as duas decisões da noite voltam a ficar em aberto.
       this.posicaoFeita.set(false);
@@ -2258,38 +2217,6 @@ export class StudentIsolateusPage {
           motivoDaRecusa(e, 'QUARENTENA') ??
             'Não foi possível convocar a Quarentena.',
         );
-      },
-    });
-  }
-
-  protected debater(ev: Event): void {
-    ev.preventDefault();
-    const texto = this.debateTexto().trim();
-    if (!this.partidaId || !texto || this.enviando()) return;
-    this.enviando.set(true);
-    this.avisoDebate.set('');
-    this.api.debater(this.partidaId, texto).subscribe({
-      next: () => {
-        this.enviando.set(false);
-        this.debateTexto.set('');
-      },
-      error: (e: { error?: { code?: string; message?: string } }) => {
-        this.enviando.set(false);
-        this.avisoDebate.set(mensagemBloqueada(e) ?? '');
-      },
-    });
-  }
-
-  /** Abre mão do debate. Se eu for o último, a votação abre sozinha. */
-  protected pular(): void {
-    if (!this.partidaId || this.jaPulei() || this.enviando()) return;
-    this.enviando.set(true);
-    this.jaPulei.set(true);
-    this.api.pularDebate(this.partidaId).subscribe({
-      next: () => this.enviando.set(false),
-      error: () => {
-        this.enviando.set(false);
-        this.jaPulei.set(false);
       },
     });
   }

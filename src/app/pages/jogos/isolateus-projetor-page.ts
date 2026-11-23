@@ -349,20 +349,11 @@ const MIN_REAIS = 4;
                   }
                 }
 
+                <!-- 036: sem debate. Partida antiga parada aqui segue para o voto. -->
                 @case ('QUARENTENA_DEBATE') {
                   <div class="quarentena">
-                    <span class="px-titulo quarentena__tag">QUARENTENA · DEBATE</span>
-                    @if (p.quarentenaConvocadaPor; as c) {
-                      <p>Convocada por <b>{{ c.nome }}</b></p>
-                    }
-                    <div class="feed">
-                      @for (m of p.debate; track m.id) {
-                        <p class="rumor"><strong>{{ m.autorNome }}</strong> {{ m.texto }}</p>
-                      }
-                    </div>
-                    @if (p.pulosRecebidos) {
-                      <p>{{ p.pulosRecebidos }} já pularam o debate.</p>
-                    }
+                    <span class="px-titulo quarentena__tag">QUARENTENA</span>
+                    <p>A votação vai abrir. A conversa fica no chat da vila.</p>
                   </div>
                 }
 
@@ -1130,7 +1121,7 @@ export class IsolateusProjetorPage {
       case 'RESULTADO_RODADA':
         return null;
       case 'QUARENTENA_DEBATE':
-        return 'Pular debate';
+        return 'Abrir votação';
       case 'QUARENTENA_VOTO':
         return 'Encerrar votação';
       case 'RESGATE_VOTO':

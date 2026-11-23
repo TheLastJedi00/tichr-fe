@@ -296,22 +296,6 @@ const EVENTOS_DO_AMANHECER = new Set([
                         }
                       }
                     }
-                    @case ('DEBATE') {
-                      <h2 class="px-titulo tit">QUARENTENA · DEBATE</h2>
-                      @if (p.quarentenaConvocadaPor; as c) { <p class="dim">Convocada por <b>{{ c.nome }}</b></p> }
-                      <div class="debate">
-                        @for (m of p.debate; track m.id) { <p><b>{{ m.autorNome }}</b> {{ m.texto }}</p> }
-                      </div>
-                      @if (!foraDaVila()) {
-                        <form (submit)="debater($event)" class="col">
-                          <textarea class="entrada" rows="2" maxlength="240" [value]="debateTexto()" (input)="debateTexto.set($any($event.target).value)" placeholder="Acuse, defenda-se, diga onde você passou a noite…"></textarea>
-                          @if (avisoDebate()) { <p class="aviso">{{ avisoDebate() }}</p> }
-                          <button class="px-btn" type="submit" [disabled]="enviando() || !debateTexto().trim()">Falar</button>
-                        </form>
-                        @if (jaPulei()) { <p class="dim">Você já está pronto. Aguardando os outros ({{ p.pulosRecebidos ?? 0 }} pularam).</p> }
-                        @else { <button class="px-btn" type="button" [disabled]="enviando()" (click)="pular()">Pular o debate</button> }
-                      } @else { <p class="dim">{{ motivo('FORA_DA_VILA_VOTO') }}</p> }
-                    }
                     @case ('VOTO') {
                       <app-isolateus-votacao
                         tipo="QUARENTENA"
@@ -597,8 +581,8 @@ const EVENTOS_DO_AMANHECER = new Set([
     .aviso { color: var(--px-amber-lt); }
     .alerta { color: var(--px-amber-lt); border-left: var(--b) solid var(--px-amber); padding-left: calc(var(--u) * 1); }
     .sinal { font-size: calc(var(--u) * 1.4); color: var(--px-alien); }
-    .debate, .diario { max-height: 30cqh; overflow: auto; margin-bottom: calc(var(--u) * 1); }
-    .debate p, .diario p { margin: 0 0 calc(var(--u) * 0.6); font-size: calc(var(--u) * 1.45); }
+    .diario { max-height: 30cqh; overflow: auto; margin-bottom: calc(var(--u) * 1); }
+    .diario p { margin: 0 0 calc(var(--u) * 0.6); font-size: calc(var(--u) * 1.45); }
     .entrada { font: inherit; width: 100%; background: #0a1122; color: var(--px-txt); border: var(--b) solid var(--px-line-dim); padding: calc(var(--u) * 0.6); resize: none; }
     .centro { text-align: center; }
     .pausado { font-size: calc(var(--u) * 3.4); color: var(--px-amber-lt); text-align: center; }
@@ -752,7 +736,7 @@ export class StudentIsolateusJogoPage extends StudentIsolateusPage implements On
 
   /** O que está em primeiro plano: fases obrigatórias vencem o que o jogador abriu. */
   protected readonly sobreposicaoAtual = computed<
-    | 'LOBBY' | 'DESPERTAR' | 'RESULTADO' | 'QUESTAO' | 'DEBATE' | 'VOTO' | 'RESGATE'
+    | 'LOBBY' | 'DESPERTAR' | 'RESULTADO' | 'QUESTAO' | 'VOTO' | 'RESGATE'
     | 'FIM' | 'PERSONAGEM' | 'MAPA' | 'DIARIO' | 'CHAT' | null
   >(() => {
     const p = this.partida();
@@ -766,7 +750,6 @@ export class StudentIsolateusJogoPage extends StudentIsolateusPage implements On
     if (this.esperando() && (p.resumoRodada || p.vereditoQuarentena) && !this.resultadoLido()) return 'RESULTADO';
     switch (p.status) {
       case 'QUESTAO_ATIVA': return 'QUESTAO';
-      case 'QUARENTENA_DEBATE': return 'DEBATE';
       case 'QUARENTENA_VOTO': return 'VOTO';
       case 'RESGATE_VOTO': return 'RESGATE';
       default: return null;

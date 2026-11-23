@@ -45,7 +45,7 @@ import { GameLogo } from '../../ui/game-logo/game-logo';
         <h2 class="jogo__nome">Tichr Isolateus</h2>
         <p class="jogo__desc">
           Uma vila isolada, um infiltrado disfarçado. A turma responde para
-          defender os setores e debate para descobrir quem é a Ameaça.
+          defender os setores e conversa no chat da vila para descobrir quem é a Ameaça.
         </p>
         <span class="jogo__cta">Conhecer →</span>
       </a>

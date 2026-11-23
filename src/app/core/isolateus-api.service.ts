@@ -351,19 +351,6 @@ export class IsolateusApiService {
       { texto },
     );
   }
-  debater(id: string, texto: string): Observable<IsolateusMatch> {
-    return this.http.post<IsolateusMatch>(
-      `${this.base}/aluno/isolateus/${id}/debate`,
-      { texto },
-    );
-  }
-  /** Abre mão do debate: se todos pularem, a votação começa na hora. */
-  pularDebate(id: string): Observable<IsolateusMatch> {
-    return this.http.post<IsolateusMatch>(
-      `${this.base}/aluno/isolateus/${id}/pular-debate`,
-      {},
-    );
-  }
   votarSuspeito(
     id: string,
     suspeitoId: string,
