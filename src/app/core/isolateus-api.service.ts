@@ -80,16 +80,17 @@ export class IsolateusApiService {
   }
   /**
    * Lobby: liga (segundos) ou cancela (null) o cronômetro de entrada (035). O
-   * debate escolhido vai junto: o início pode sair da leitura de um aluno.
+   * tempo de movimentação vai junto (036): o início pode sair da leitura de um
+   * aluno.
    */
   cronometro(
     id: string,
     segundos: number | null,
-    debateHabilitado: boolean,
+    segundosNoite: number,
   ): Observable<IsolateusMatch> {
     return this.http.post<IsolateusMatch>(
       `${this.base}/isolateus/matches/${id}/cronometro`,
-      { segundos, debateHabilitado },
+      { segundos, segundosNoite },
     );
   }
   /** No zero do cronômetro: o servidor revalida o prazo e desperta a vila. */
@@ -108,11 +109,11 @@ export class IsolateusApiService {
   }
   /**
    * O Despertar: preenche a vila com NPCs e sorteia a Ameaça. As opções do
-   * lobby (debate antes da votação) ficam fixas a partir daqui.
+   * lobby (tempo de movimentação, 036) ficam fixas a partir daqui.
    */
   iniciar(
     id: string,
-    opcoes: { debateHabilitado: boolean },
+    opcoes: { segundosNoite: number },
   ): Observable<IsolateusMatch> {
     return this.http.post<IsolateusMatch>(
       `${this.base}/isolateus/matches/${id}/iniciar`,

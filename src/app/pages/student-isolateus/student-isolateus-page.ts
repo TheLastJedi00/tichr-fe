@@ -21,6 +21,7 @@ import {
 } from '../../core/isolateus-mapa';
 import { alienDoPlacar, ROTULO_PAPEL } from '../../core/isolateus-placar';
 import { RelogioDaFase, antecedenciaDaFase } from '../../core/isolateus-relogio';
+import { segundosDaNoite } from '../../core/isolateus-noite';
 import { motivoDaRecusa, textoDoMotivo } from '../../isolateus/isolateus-motivos';
 import {
   DeslocamentoNoite,
@@ -53,7 +54,6 @@ const REVELACAO_MS = 3000;
 /** Janelas cronometradas — espelham as constantes `ISOLATEUS` do backend. */
 const LIMITE_DEBATE_S = 90;
 const LIMITE_VOTO_S = 60;
-const LIMITE_DESLOCAMENTO_S = 15;
 const JANELA_DECISAO_S = 15;
 const RESGATE_VOTO_S = 60;
 /** De quanto em quanto tempo o celular rebusca o painel (papel, codinome, fileira). */
@@ -1411,7 +1411,7 @@ export class StudentIsolateusPage {
     const p = this.partida();
     if (!p) return 0;
     if (p.status === 'QUESTAO_ATIVA') return p.duracaoSegundos;
-    if (p.status === 'DESLOCAMENTO') return LIMITE_DESLOCAMENTO_S;
+    if (p.status === 'DESLOCAMENTO') return segundosDaNoite(p);
     if (p.status === 'RESULTADO_RODADA') return JANELA_DECISAO_S;
     if (p.status === 'QUARENTENA_DEBATE') return LIMITE_DEBATE_S;
     if (p.status === 'QUARENTENA_VOTO') return LIMITE_VOTO_S;

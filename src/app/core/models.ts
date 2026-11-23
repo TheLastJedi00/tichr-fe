@@ -1150,6 +1150,11 @@ export interface IsolateusMatch extends CamposOciosidade, CamposEntrada {
    * direto ao voto. Ausente = ligado (partidas anteriores à opção).
    */
   debateHabilitado?: boolean;
+  /**
+   * Duração da noite = tempo de movimentação (036), escolhida no lobby. Ausente
+   * = partida anterior à 036 (noite legada).
+   */
+  limiteNoiteMs?: number;
   vereditoQuarentena?: VereditoQuarentena | null;
   /** Quem convocou a Quarentena em curso (público: convocar à toa custa caro). */
   quarentenaConvocadaPor?: { habitanteId: string; nome: string } | null;
