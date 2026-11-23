@@ -435,6 +435,22 @@ export class TurmaApiService {
     );
   }
 
+  /** Professor, no lobby: liga (segundos) ou cancela (null) o cronômetro de entrada (035). */
+  cronometroQlick(partidaId: string, segundos: number | null): Observable<Partida> {
+    return this.http.post<Partida>(
+      `${this.base}/partidas/${partidaId}/cronometro`,
+      { segundos },
+    );
+  }
+
+  /** Professor: no zero do cronômetro, pede o início (o servidor revalida o prazo). */
+  iniciarAutomaticoQlick(partidaId: string): Observable<Partida> {
+    return this.http.post<Partida>(
+      `${this.base}/partidas/${partidaId}/iniciar-automatico`,
+      {},
+    );
+  }
+
   /** Professor, no lobby: a partida vale para o ranking da turma ou é casual. */
   definirValeRankingQlick(
     partidaId: string,

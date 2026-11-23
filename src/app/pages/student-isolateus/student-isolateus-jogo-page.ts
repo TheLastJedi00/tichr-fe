@@ -24,6 +24,7 @@ import { IsolateusMapaPixel } from '../../ui/isolateus-mapa-pixel/isolateus-mapa
 import { IsolateusVotacao, OpcaoDeVoto } from '../../ui/isolateus-votacao/isolateus-votacao';
 import { LogPontuacaoComponent } from '../../ui/log-pontuacao/log-pontuacao';
 import { Spinner } from '../../ui/spinner/spinner';
+import { AvisoEntradaComponent } from '../../ui/aviso-entrada/aviso-entrada';
 import { StudentIsolateusPage } from './student-isolateus-page';
 
 const dormir = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -61,6 +62,7 @@ const EVENTOS_DO_AMANHECER = new Set([
   selector: 'app-student-isolateus-jogo-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    AvisoEntradaComponent,
     RouterLink,
     Spinner,
     IconePixel,
@@ -101,6 +103,9 @@ const EVENTOS_DO_AMANHECER = new Set([
           }
 
           <div class="hud">
+            @if (foraDaPartida(p)) {
+              <app-aviso-entrada class="fora-partida" [pixel]="true" [fechado]="true" />
+            }
             @if (p.status !== 'LOBBY') {
               <div class="hud-esq">
                 <div class="px-box esperanca" title="Esperança da Vila">
@@ -202,6 +207,7 @@ const EVENTOS_DO_AMANHECER = new Set([
                   @switch (so) {
                     @case ('LOBBY') {
                       <h2 class="px-titulo tit">ARQUIVO: ISOLATEUS</h2>
+                      <app-aviso-entrada [pixel]="true" [encerraEm]="p.entradaEncerraEm" (zerou)="buscar()" />
                       @if (inscrito(p)) {
                         <p><b>Aguardando Comando Central.</b> Seu codinome será revelado quando a investigação começar.</p>
                         @if (p.valeRanking === false) { <p class="dim">Partida casual: não soma no ranking.</p> }
@@ -495,6 +501,7 @@ const EVENTOS_DO_AMANHECER = new Set([
     </div>
   `,
   styles: `
+    .fora-partida { position: absolute; left: 1rem; right: 1rem; top: 40%; z-index: 60; pointer-events: auto; }
     :host { display: block; }
     /* Tela cheia sobre o layout do aluno (cabeçalho e menu inferior). */
     .tela { position: fixed; inset: 0; z-index: 60; background: #000; display: flex; align-items: center; justify-content: center; }

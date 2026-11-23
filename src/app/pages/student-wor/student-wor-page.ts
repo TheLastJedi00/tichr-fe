@@ -38,6 +38,9 @@ import { LogPontuacaoComponent } from '../../ui/log-pontuacao/log-pontuacao';
 import { rankingDoLog } from '../../core/log-pontuacao';
 import { relogioDaPartida } from '../../core/pausa';
 import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausada';
+import { WorMapaComponent } from '../../ui/wor-mapa/wor-mapa';
+import { gravarModoSimplesWor, lerModoSimplesWor } from '../../wor/modo-wor';
+import { AvisoEntradaComponent } from '../../ui/aviso-entrada/aviso-entrada';
 
 const LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const LIMITE_RODADA_S = 60;
@@ -58,6 +61,7 @@ const FEED_MS = 4000;
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    AvisoEntradaComponent,
     Icon,
     Modal,
     LobbyLoader,
@@ -70,13 +74,16 @@ const FEED_MS = 4000;
     LogPontuacaoComponent,
     PartidaPausadaComponent,
     AlertaOciosidade,
+    WorMapaComponent,
   ],
   template: `
     @if (narrador.card(); as c) {
-      <app-action-card [card]="c" />
+      @if (modoSimples() || !animandoMapa()) {
+        <app-action-card [card]="c" />
+      }
     }
 
-    <div class="wrap" [class.dano]="piscar()">
+    <div class="wrap" [class.dano]="piscar()" [class.retro]="!modoSimples()">
       @if (resumoBanner(); as rr) {
         <div class="fim-rodada" aria-live="polite">
           <span class="fim-rodada__tit">Fim da rodada{{ rr.porTempo ? ' (tempo!)' : '' }}</span>
@@ -123,6 +130,12 @@ const FEED_MS = 4000;
           <p>Nenhuma batalha do Tichr Wor agora. Aguarde o professor iniciar.</p>
         </div>
       } @else if (root(); as m) {
+        <app-aviso-entrada
+          class="aviso-entrada"
+          [encerraEm]="m.status === 'LOBBY' ? m.entradaEncerraEm : null"
+          [fechado]="m.status !== 'LOBBY' && m.status !== 'ENCERRADO' && !inscrito()"
+          (zerou)="buscar()"
+        />
         @if (m.status === 'LOBBY') {
           <div class="lobby">
             <app-icon name="castle" [size]="48" />
@@ -142,9 +155,37 @@ const FEED_MS = 4000;
               <p class="aguarde">Você está dentro! Aguardando o professor formar as equipes…</p>
             }
           </div>
+        } @else if (m.status !== 'ENCERRADO' && !inscrito()) {
+          <!-- 035: a batalha começou sem o aluno; o aviso acima explica. -->
         } @else if (!team()) {
           <p class="aguarde">Entrando na sua equipe…</p>
         } @else if (team(); as t) {
+          @if (!modoSimples()) {
+            <!-- 035: o mapa de reinos no topo; tocar num castelo escolhe o alvo. -->
+            <app-wor-mapa
+              class="mapa"
+              [semente]="m.id"
+              [placar]="m.placar"
+              [ordemEquipes]="m.ordemEquipes"
+              [reinos]="m.reinos"
+              [minhaEquipe]="t.id"
+              [alvo]="alvoPreferido()"
+              [pausada]="!!m.pausadaEm"
+              [resumo]="m.resumoRodada"
+              [rodadaIniciadaEm]="m.rodadaIniciadaEm"
+              (animando)="animandoMapa.set($event)"
+              (tocarCastelo)="tocarCastelo($event)"
+            />
+          }
+          <button class="modo-link" type="button" (click)="alternarModo()">
+            {{ modoSimples() ? 'Ver mapa pixel art' : 'Modo simples' }}
+          </button>
+          @if (m.status === 'EM_ANDAMENTO' && proximaEm() > 0) {
+            <p class="proxima" role="status">
+              <svg width="12" height="14" viewBox="0 0 7 8" shape-rendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M2 0h3v1H2zM1 1h1v3H1zM5 1h1v3H5zM0 4h7v4H0z"/></svg>
+              A próxima rodada começa em {{ proximaEm() }}s.
+            </p>
+          }
           <header class="fort" [style.--cor]="t.cor">
             <span class="fort__nome">
               <app-icon [name]="t.isHorde ? 'sword' : 'castle'" [size]="18" /> {{ t.nome }}
@@ -315,7 +356,7 @@ const FEED_MS = 4000;
         </p>
         <div class="alvos">
           @for (r of rivais(); track r.id) {
-            <button class="alvo" type="button" [style.--cor]="r.cor" [disabled]="travado()" (click)="votarAtacar(r)">
+            <button class="alvo" type="button" [style.--cor]="r.cor" [class.alvo--on]="alvoPreferido() === r.id" [disabled]="travado()" (click)="votarAtacar(r)">
               <app-icon name="sword" [size]="16" /> Atacar {{ r.nome }} · {{ r.hp }} HP
             </button>
           }
@@ -440,7 +481,8 @@ const FEED_MS = 4000;
       </app-modal>
     }
 
-    @if (modalHorda()) {
+    <!-- 035: no mapa pixel, o aviso de Horda espera a animação da queda/Usurpação. -->
+    @if (modalHorda() && (modoSimples() || !animandoMapa())) {
       <app-modal [open]="true" title="Seu Castelo Caiu… Mas a Guerra Não Acabou!" (close)="modalHorda.set(false)">
         <p class="aviso">Sua equipe agora é uma <b>Horda Bárbara</b>.</p>
         <p class="aviso">Vocês não podem mais chutar letras nem comprar dicas. A cada rodada, a única jogada é a <b>Invasão</b>: adivinhar a palavra inteira.</p>
@@ -457,6 +499,7 @@ const FEED_MS = 4000;
     }
   `,
   styles: `
+    .aviso-entrada { margin: 0 0 1rem; }
     :host { display: block; }
     .loading { display: flex; justify-content: center; padding: 3rem 0; color: #b45309; }
     .wrap { display: flex; flex-direction: column; gap: 1.25rem; padding: 0.25rem; transition: background-color 0.2s ease; }
@@ -498,6 +541,11 @@ const FEED_MS = 4000;
     .hpbar { height: 12px; border-radius: 999px; background: var(--surface-alt); overflow: hidden; }
     .hpbar span { display: block; height: 100%; background: var(--cor); transition: width 0.4s ease; }
     .hp { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); }
+    .mapa { border: 3px solid #05070f; border-radius: 4px; overflow: hidden; }
+    .modo-link { align-self: flex-end; font: inherit; font-size: 0.8rem; background: none; border: 0; color: var(--text-muted); text-decoration: underline; cursor: pointer; padding: 0; }
+    .proxima { display: flex; align-items: center; justify-content: center; gap: 0.4rem; margin: 0; padding: 0.5rem 0.75rem; border: 2px solid #f59e0b; background: color-mix(in srgb, #f59e0b 12%, transparent); font-weight: 700; }
+    .retro .box { border-radius: 0; font-family: 'Press Start 2P', monospace; font-weight: 400; font-size: 1rem; }
+    .retro .timer { border-radius: 0; font-family: 'Pixelify Sans', system-ui, sans-serif; }
     .timer { align-self: center; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.3rem 0.8rem; border-radius: 999px; background: var(--surface-alt); font-weight: 800; font-size: 0.9rem; font-variant-numeric: tabular-nums; color: var(--text); }
     .timer--fim { color: #fff; background: var(--danger); }
     .palavra { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.35rem; }
@@ -691,7 +739,35 @@ export class StudentWorPage {
     return Math.max(0, Math.min(LIMITE_RODADA_S, s));
   });
   /** Inputs bloqueados: durante a chamada HTTP ou com um card interrompendo o jogo. */
-  protected readonly travado = computed(() => this.ocupado() || this.narrador.ativo());
+  protected readonly travado = computed(
+    () => this.ocupado() || this.narrador.ativo() || this.proximaEm() > 0,
+  );
+
+  /** 035: segundos até a rodada começar (a animação do fechamento roda antes). */
+  protected readonly proximaEm = computed(() => {
+    const m = this.root();
+    if (!m || m.status !== 'EM_ANDAMENTO' || !m.rodadaIniciadaEm) return 0;
+    const falta = Date.parse(m.rodadaIniciadaEm) - relogioDaPartida(this.relogio(), m);
+    return falta > 0 ? Math.ceil(falta / 1000) : 0;
+  });
+
+/** 035: o mapa está tocando a animação do fechamento (o card vira legenda nele). */
+  protected readonly animandoMapa = signal(false);
+
+  /** 035: o mapa pixel art ou a tela antiga (celular fraco). Lembrado por aparelho. */
+  protected readonly modoSimples = signal(lerModoSimplesWor());
+  protected alternarModo(): void {
+    this.modoSimples.update((v) => !v);
+    gravarModoSimplesWor(this.modoSimples());
+  }
+
+  /** 035: o castelo tocado no mapa vira o alvo sugerido no voto (e a mira). */
+  protected readonly alvoPreferido = signal<string | null>(null);
+  protected tocarCastelo(id: string): void {
+    const e = this.placar().find((x) => x.id === id);
+    if (!e || this.souEu(id) || e.isHorde) return;
+    this.alvoPreferido.set(this.alvoPreferido() === id ? null : id);
+  }
 
   // ===== Risco Heroico: Recuperar HP × Catapulta =====
   protected readonly curaMassiva = CURA_MASSIVA;
@@ -776,7 +852,8 @@ export class StudentWorPage {
     });
   }
 
-  private buscar(): void {
+  /** Também no zero do cronômetro: a leitura do aluno dispara o início (035). */
+  protected buscar(): void {
     this.api.partidaAtual().subscribe({
       next: (v) => {
         this.carregando.set(false);

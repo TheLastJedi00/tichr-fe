@@ -131,7 +131,7 @@ estilo app), autenticada por **PIN** e com token próprio. O aluno entra pela jo
 | Rota | Tela | Papel |
 |---|---|---|
 | `/entrar` · `/t/:turmaId` | **Login do aluno** *(pública)* | Jornada por `@username` + PIN da turma; `/t/:turmaId` é o atalho legado direto. |
-| `/aluno/dashboard` | **Início** | Card **"O que vem por aí"** com o **tópico da próxima aula**; **barra de nível** + **barra de evolução da turma**; o rótulo da pontuação segue o **nome definido na turma** (ex.: "Aura"). A **patente** (Bronze → Platina) é calculada com os **limiares da própria turma**, que chegam no login (`turma.niveis`) — sem eles a barra cairia nos defaults e mostraria um tier diferente do que o professor configurou. |
+| `/aluno/dashboard` | **Início** | Cards **"… de hoje"** dos jogos (`<app-card-jogo>`, cor sólida): com o cronômetro de entrada ligado mostram **"entrada fecha em m:ss"**; se a partida começou sem o aluno, o card fica **cinza, sem link, com "Tempo encerrado para entrar"** (o servidor diz quem participa, campo `participa`). A sonda continua enquanto a partida está no lobby. Card **"O que vem por aí"** com o **tópico da próxima aula**; **barra de nível** + **barra de evolução da turma**; o rótulo da pontuação segue o **nome definido na turma** (ex.: "Aura"). A **patente** (Bronze → Platina) é calculada com os **limiares da própria turma**, que chegam no login (`turma.niveis`) — sem eles a barra cairia nos defaults e mostraria um tier diferente do que o professor configurou. |
 | `/aluno/agenda` | **Agenda** | Dias letivos com status dinâmico (Concluída / Em andamento / Agendada) e o **tópico** de cada aula ("o que já vimos") — sincronizados do Plano de Aula quando o professor é PhD. |
 | `/aluno/ranking` | **Ranking** | Pódio (🥇🥈🥉) da turma, com o **card do próprio aluno destacado**. A aba **some** quando a turma desativa o ranking. |
 | `/aluno/qlick` | **Tichr Qlick** | Entra no quiz "de hoje": **lobby animado** (loader temático), alternativas **color-coded A/B/C/D** com feedback de clique (press/scale) e estado de espera, **revelação animada** (correta brilha, erradas em cinza, confete no acerto / shake no erro) e **pódio final** com os pontos somados ao XP. |
@@ -208,6 +208,14 @@ estilo app), autenticada por **PIN** e com token próprio. O aluno entra pela jo
   `pausadaEm`), o telão para de cobrar o `/tempo` e o pulso da noite, e o servidor recusa todo
   comando (409 `PARTIDA_PAUSADA`, sem o modal global de erro). Ao retomar, cada relógio volta com
   o tempo que faltava. Para encerrar, retoma-se antes.
+- **Cronômetro de entrada (spec 035):** no lobby dos três jogos, `<app-cronometro-entrada>`
+  (`ui/`, dumb) oferece **30s, 1, 2, 3 ou 5 min** (padrão 2 min). Ligado, a contagem aparece no
+  telão, no lobby do aluno (`<app-aviso-entrada>`) e no card do painel. No zero, o telão pede
+  `iniciar-automatico` e a partida começa sozinha com quem entrou (no Wor, as equipes são
+  distribuídas na hora; no Isolateus, vale o debate escolhido, que fica travado enquanto o
+  cronômetro corre). Se a aba do professor estiver fechada, a leitura do aluno também inicia. Com
+  gente de menos no zero, o cronômetro desliga e o lobby mostra o aviso. O início manual continua
+  e o professor pode cancelar a contagem. Utilitários em `core/entrada.ts`.
 
 ### Tichr Qlick: quiz ao vivo em tempo real (Plano PhD)
 
@@ -253,6 +261,28 @@ mesmo cronômetro de 1 minuto, como no Qlick. Turma grande não espera mais o ro
 - **Bônus pessoal:** quem acerta a palavra ao arriscar ganha **+1000** e cada letra certa vale
   **+300**, só para quem acertou e sem o corte da equipe não campeã. O celular mostra o bônus no
   fim da batalha.
+
+### Tichr Wor: mapa de reinos em pixel art (spec 035)
+
+O telão e o celular mostram um **mapa de reinos**, um por equipe, com o **castelo no centro**,
+desenhado em código (Phaser 3, carregado só nas telas do Wor) com a paleta comum de `pixel/`.
+
+- **Mapa determinístico:** o gerador (`wor/mapa/gerar-mapa.ts`) usa o id da partida como
+  semente, então telão e celulares desenham o mesmo mapa sem guardar nada. Quem é dono de qual
+  reino vem do campo `reinos` da partida (troca na Usurpação).
+- **Castelo por estado:** inteiro, rachado (até 600 HP), em ruínas (até 300) e Horda (pedra
+  escura, bandeira negra, criaturas em volta), com número da equipe e barra de HP.
+- **Animação do fim da rodada:** a fila sai do `resumoRodada` (`wor/mapa/fila-eventos.ts`),
+  na ordem da resolução: ataques na ordem de chegada (tropas marchando, crítico com tremida),
+  Catapulta em arco, cura, dano do arriscar errado, queda virando Horda e a **Horda tomando o
+  reino do líder**. Uma legenda retrô narra cada evento; os eventos grandes viram card. A próxima
+  rodada espera a animação (o servidor marca o início no futuro) e o telão mostra
+  "PRÓXIMA RODADA EM n"; no celular, os botões travam com cadeado. O placar do HUD acompanha a
+  animação. Quem abre a tela no meio vê o estado final, a pausa congela a animação e
+  `prefers-reduced-motion` tira marcha e tremida.
+- **Celular:** o mapa fica no topo, com o próprio reino piscando e o selo "VOCÊ"; tocar num
+  castelo escolhe o alvo do ataque (destacado no voto).
+- **Modo simples:** um botão nas duas telas volta à tela antiga (preferência do aparelho).
 
 ### Tichr Wor: narração ao vivo (Action Cards)
 

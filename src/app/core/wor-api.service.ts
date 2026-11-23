@@ -88,6 +88,20 @@ export class WorApiService {
       { valeRanking },
     );
   }
+  /** Lobby: liga (segundos) ou cancela (null) o cronômetro de entrada (035). */
+  cronometro(matchId: string, segundos: number | null): Observable<WorMatchView> {
+    return this.http.post<WorMatchView>(
+      `${this.base}/wor/matches/${matchId}/cronometro`,
+      { segundos },
+    );
+  }
+  /** No zero do cronômetro: o servidor revalida o prazo, distribui e inicia. */
+  iniciarAutomatico(matchId: string): Observable<WorMatchView> {
+    return this.http.post<WorMatchView>(
+      `${this.base}/wor/matches/${matchId}/iniciar-automatico`,
+      {},
+    );
+  }
   iniciar(matchId: string): Observable<WorMatchView> {
     return this.http.post<WorMatchView>(
       `${this.base}/wor/matches/${matchId}/iniciar`,

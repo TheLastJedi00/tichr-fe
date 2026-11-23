@@ -8,6 +8,7 @@ import { NarradorCards } from '../../core/action-card';
 import { Aluno, LIMITE_OCIOSIDADE_PADRAO, ResultadoRodadaWor, WorTeam } from '../../core/models';
 import { OciosidadeApiService } from '../../core/ociosidade-api.service';
 import { LimiteOciosidadeComponent } from '../../ui/limite-ociosidade/limite-ociosidade';
+import { CronometroEntradaComponent } from '../../ui/cronometro-entrada/cronometro-entrada';
 import { DescontoOciosidadeComponent } from '../../ui/desconto-ociosidade/desconto-ociosidade';
 import { ActionCard } from '../../ui/action-card/action-card';
 import { Icon } from '../../ui/icon/icon';
@@ -19,6 +20,8 @@ import { LogPontuacaoComponent } from '../../ui/log-pontuacao/log-pontuacao';
 import { rankingDoLog } from '../../core/log-pontuacao';
 import { relogioDaPartida } from '../../core/pausa';
 import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausada';
+import { WorMapaComponent } from '../../ui/wor-mapa/wor-mapa';
+import { lerModoSimplesWor, gravarModoSimplesWor } from '../../wor/modo-wor';
 
 /**
  * Tela do projetor (professor/orquestrador). Escuta a raiz + todas as equipes
@@ -31,6 +34,7 @@ import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausad
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     LimiteOciosidadeComponent,
+    CronometroEntradaComponent,
     DescontoOciosidadeComponent,
     RouterLink,
     Icon,
@@ -41,10 +45,13 @@ import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausad
     ValeRankingComponent,
     LogPontuacaoComponent,
     PartidaPausadaComponent,
+    WorMapaComponent,
   ],
   template: `
     @if (narrador.card(); as c) {
-      <app-action-card [card]="c" />
+      @if (modoSimples() || !animandoMapa()) {
+        <app-action-card [card]="c" />
+      }
     }
 
     <a class="voltar" routerLink="/jogos/wor">‹ Minhas batalhas</a>
@@ -116,6 +123,14 @@ import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausad
             [desabilitado]="salvandoLimite()"
             (mudou)="mudarLimite($event)"
           />
+          <app-cronometro-entrada
+            [encerraEm]="m.entradaEncerraEm"
+            [falhou]="m.entradaFalhou"
+            [desabilitado]="ocupado()"
+            (ligar)="mudarCronometro($event)"
+            (cancelar)="mudarCronometro(null)"
+            (zerou)="iniciarAutomatico()"
+          />
 
           @if (!teams().length) {
             <button
@@ -146,6 +161,53 @@ import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausad
       } @else {
         <!-- Em jogo -->
         <section class="jogo">
+          <button class="btn-outline modo-btn" type="button" (click)="alternarModo()">
+            {{ modoSimples() ? 'Ver mapa pixel art' : 'Modo simples' }}
+          </button>
+          @if (!modoSimples()) {
+            <!-- 035: o mapa de reinos com o HUD retrô por cima. -->
+            <div class="arena px-stage">
+              <app-wor-mapa
+                class="arena__mapa"
+                [semente]="m.id"
+                [placar]="m.placar"
+                [ordemEquipes]="m.ordemEquipes"
+                [reinos]="m.reinos"
+                [pausada]="!!m.pausadaEm"
+                [resumo]="m.resumoRodada"
+                [rodadaIniciadaEm]="m.rodadaIniciadaEm"
+                (animando)="animandoMapa.set($event)"
+                (placarAnimado)="placarAnimado.set($event)"
+              />
+              <div class="arena__palavra px-box">
+                @for (ch of m.mascara; track $index) {
+                  @if (ch === ' ') { <span class="apal__sp"></span> }
+                  @else { <span class="apal__box" [class.apal__box--on]="ch !== '_'">{{ ch === '_' ? '' : ch }}</span> }
+                }
+              </div>
+              @if (m.status === 'EM_ANDAMENTO') {
+                <div class="arena__timer px-box" [class.arena__timer--janela]="proximaEm() > 0">
+                  <span class="px-titulo arena__rot">ONDA {{ m.ondaIndex + 1 }}/{{ m.totalOndas }}</span>
+                  @if (proximaEm() > 0) {
+                    <span class="px-titulo arena__prox">PRÓXIMA RODADA EM {{ proximaEm() }}</span>
+                  } @else {
+                    <span class="px-titulo arena__seg" [class.arena__seg--fim]="restante() <= 10">0:{{ restante() < 10 ? '0' : '' }}{{ restante() }}</span>
+                  }
+                </div>
+              }
+              <div class="arena__placar px-box" [class.arena__placar--duas]="teams().length > 5">
+                @for (t of teams(); track t.id) {
+                  @let pa = placarAnimado()?.[t.id];
+                  @let horda = pa ? pa.horda : t.isHorde;
+                  <div class="aplac" [class.aplac--horda]="horda">
+                    <i [style.background]="horda ? '#111' : t.cor"></i>
+                    <span>{{ t.nome }}{{ horda ? ' · Horda' : '' }}@if (ordemDe(t.id)) { <b class="aplac__ok">✓</b> }</span>
+                    <b class="px-titulo">{{ pa ? pa.hp : t.hp }}</b>
+                  </div>
+                }
+              </div>
+            </div>
+          } @else {
           <div class="palavra">
             @for (ch of match()!.mascara; track $index) {
               @if (ch === ' ') { <span class="sp"></span> }
@@ -189,6 +251,7 @@ import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausad
               </div>
             }
           </div>
+          }
 
           @if (m.status === 'EM_ANDAMENTO') {
             <div class="rodada-info">
@@ -335,6 +398,25 @@ import { PartidaPausadaComponent } from '../../ui/partida-pausada/partida-pausad
     </app-modal>
   `,
   styles: `
+    .modo-btn { justify-self: end; font-size: 0.85rem; }
+    .arena { width: 100%; aspect-ratio: 16 / 9; container-type: inline-size; border-radius: 4px; }
+    .arena__mapa { position: absolute; inset: 0; }
+    .arena__palavra { position: absolute; top: 1.6cqw; left: 50%; transform: translateX(-50%); display: flex; gap: 0.5cqw; padding: 0.9cqw 1.2cqw; }
+    .apal__box { width: 3.2cqw; height: 3.8cqw; display: grid; place-items: center; background: var(--px-ink); border: 0.3cqw solid var(--px-line-dim); font-family: 'Press Start 2P', monospace; font-size: 1.8cqw; color: var(--px-amber-lt); }
+    .apal__box--on { border-color: var(--px-amber-lt); }
+    .apal__sp { width: 1.6cqw; }
+    .arena__timer { position: absolute; top: 1.6cqw; left: 1.6cqw; padding: 0.9cqw 1.2cqw; display: grid; gap: 0.5cqw; min-width: 16cqw; }
+    .arena__rot { font-size: 1cqw; color: var(--px-txt-dim); }
+    .arena__seg { font-size: 2.2cqw; color: var(--px-amber-lt); }
+    .arena__seg--fim { color: var(--px-red); }
+    .arena__prox { font-size: 1.1cqw; color: var(--px-alien); line-height: 1.6; }
+    .arena__placar { position: absolute; top: 1.6cqw; right: 1.6cqw; padding: 0.8cqw 1cqw; display: grid; gap: 0.35cqw; min-width: 19cqw; }
+    .arena__placar--duas { grid-template-columns: 1fr 1fr; column-gap: 1.4cqw; min-width: 30cqw; }
+    .aplac { display: grid; grid-template-columns: 1.2cqw 1fr auto; gap: 0.6cqw; align-items: center; font-size: 1.15cqw; }
+    .aplac i { width: 1.2cqw; height: 1.2cqw; display: block; border: 0.2cqw solid var(--px-ink); }
+    .aplac b.px-titulo { font-size: 0.9cqw; }
+    .aplac--horda { color: #a78bfa; }
+    .aplac__ok { color: var(--px-alien); margin-left: 0.4cqw; font-weight: 400; }
     :host { display: block; }
     .voltar { display: inline-block; margin-bottom: 0.75rem; color: var(--text-muted); text-decoration: none; font-weight: 600; }
     .title { margin: 0 0 1.25rem; font-size: 1.5rem; font-weight: 800; }
@@ -501,6 +583,26 @@ export class WorProjetorPage {
    * empurra o início enquanto o card está no ar): o teto de 60s segura o relógio
    * parado durante a narração, em vez de exibir 62s.
    */
+  /** 035: segundos até a rodada começar (a animação do fechamento roda antes). */
+  protected readonly proximaEm = computed(() => {
+    const m = this.match();
+    if (!m || m.status !== 'EM_ANDAMENTO' || !m.rodadaIniciadaEm) return 0;
+    const falta = Date.parse(m.rodadaIniciadaEm) - relogioDaPartida(this.relogio(), m);
+    return falta > 0 ? Math.ceil(falta / 1000) : 0;
+  });
+
+/** 035: o mapa está tocando a animação do fechamento (o card vira legenda nele). */
+  protected readonly animandoMapa = signal(false);
+  /** 035: durante a animação, o HUD acompanha o mapa (não adianta o resultado). */
+  protected readonly placarAnimado = signal<Record<string, { hp: number; horda: boolean }> | null>(null);
+
+  /** 035: o mapa pixel art ou a tela antiga (telão fraco). Lembrado por aparelho. */
+  protected readonly modoSimples = signal(lerModoSimplesWor());
+  protected alternarModo(): void {
+    this.modoSimples.update((v) => !v);
+    gravarModoSimplesWor(this.modoSimples());
+  }
+
   protected readonly restante = computed(() => {
     const m = this.match();
     if (!m || m.status !== 'EM_ANDAMENTO' || !m.rodadaIniciadaEm) return 60;
@@ -561,6 +663,14 @@ export class WorProjetorPage {
   }
   protected iniciar(): void {
     this.acao(this.api.iniciar(this.matchId));
+  }
+  /** Cronômetro de entrada (035): liga ou cancela. */
+  protected mudarCronometro(segundos: number | null): void {
+    this.acao(this.api.cronometro(this.matchId, segundos));
+  }
+  /** No zero: o servidor revalida o prazo, distribui as equipes e inicia. */
+  protected iniciarAutomatico(): void {
+    this.api.iniciarAutomatico(this.matchId).subscribe({ error: () => {} });
   }
 
   // --- Multiplicador de pontos (lobby, 1x a 10x) ---

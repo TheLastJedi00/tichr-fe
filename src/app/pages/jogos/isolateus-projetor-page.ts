@@ -16,6 +16,7 @@ import { RelogioDaFase, antecedenciaDaFase } from '../../core/isolateus-relogio'
 import { Aluno, IsolateusMatch, LIMITE_OCIOSIDADE_PADRAO } from '../../core/models';
 import { OciosidadeApiService } from '../../core/ociosidade-api.service';
 import { LimiteOciosidadeComponent } from '../../ui/limite-ociosidade/limite-ociosidade';
+import { CronometroEntradaComponent } from '../../ui/cronometro-entrada/cronometro-entrada';
 import { DescontoOciosidadeComponent } from '../../ui/desconto-ociosidade/desconto-ociosidade';
 import { RealtimeService } from '../../core/realtime.service';
 import { TurmaApiService } from '../../core/turma-api.service';
@@ -60,6 +61,7 @@ const MIN_REAIS = 4;
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     LimiteOciosidadeComponent,
+    CronometroEntradaComponent,
     DescontoOciosidadeComponent,
     RouterLink,
     Icon,
@@ -160,7 +162,8 @@ const MIN_REAIS = 4;
             <label class="px-box opcao">
               <input
                 type="checkbox"
-                [checked]="debateHabilitado()"
+                [checked]="p.entradaEncerraEm ? p.debateHabilitado !== false : debateHabilitado()"
+                [disabled]="!!p.entradaEncerraEm"
                 (change)="debateHabilitado.set($any($event.target).checked)"
               />
               <span>
@@ -184,6 +187,15 @@ const MIN_REAIS = 4;
                 [valor]="limiteOcioso()"
                 [desabilitado]="salvandoLimite()"
                 (mudou)="mudarLimite($event)"
+              />
+              <!-- O debate vai junto com o cronômetro: o início pode vir de um aluno. -->
+              <app-cronometro-entrada
+                [encerraEm]="p.entradaEncerraEm"
+                [falhou]="p.entradaFalhou"
+                [desabilitado]="ocupado()"
+                (ligar)="mudarCronometro($event)"
+                (cancelar)="mudarCronometro(null)"
+                (zerou)="iniciarAutomatico()"
               />
             </div>
 
@@ -1083,6 +1095,17 @@ export class IsolateusProjetorPage {
         this.erro.set('Não foi possível mudar se a partida vale para o ranking.');
       },
     });
+  }
+
+  /** Cronômetro de entrada (035): liga ou cancela, levando o debate escolhido. */
+  protected mudarCronometro(segundos: number | null): void {
+    this.acao(
+      this.api.cronometro(this.matchId, segundos, this.debateHabilitado()),
+    );
+  }
+  /** No zero: o servidor revalida o prazo e desperta a vila. */
+  protected iniciarAutomatico(): void {
+    this.api.iniciarAutomatico(this.matchId).subscribe({ error: () => {} });
   }
 
   protected iniciar(): void {
