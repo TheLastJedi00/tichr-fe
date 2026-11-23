@@ -1008,6 +1008,14 @@ export interface Rumor {
   tipo: 'SINAL' | 'RUMOR';
 }
 
+/** Uma fala do chat da vila (036): o nome é o do habitante, nunca o real. */
+export interface MensagemVila {
+  id: string;
+  autorNome: string;
+  texto: string;
+  em: string;
+}
+
 export interface MensagemDebate {
   id: string;
   autorNome: string;
@@ -1141,6 +1149,8 @@ export interface IsolateusMatch extends CamposOciosidade, CamposEntrada {
   acontecimentos: Acontecimento[];
   rumores: Rumor[];
   debate: MensagemDebate[];
+  /** O chat da vila (036): as últimas 80 falas, a partida inteira. */
+  chat?: MensagemVila[];
   resumoRodada?: ResumoRodadaIsolateus | null;
 
   /** Rodada da última Quarentena (null = nenhuma). Cabe uma por rodada. */

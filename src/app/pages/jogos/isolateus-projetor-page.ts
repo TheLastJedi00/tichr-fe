@@ -18,6 +18,7 @@ import { OciosidadeApiService } from '../../core/ociosidade-api.service';
 import { LimiteOciosidadeComponent } from '../../ui/limite-ociosidade/limite-ociosidade';
 import { CronometroEntradaComponent } from '../../ui/cronometro-entrada/cronometro-entrada';
 import { TempoMovimentacaoComponent } from '../../ui/tempo-movimentacao/tempo-movimentacao';
+import { IsolateusChat } from '../../ui/isolateus-chat/isolateus-chat';
 import { NOITE_PADRAO_S, segundosDaNoite } from '../../core/isolateus-noite';
 import { DescontoOciosidadeComponent } from '../../ui/desconto-ociosidade/desconto-ociosidade';
 import { RealtimeService } from '../../core/realtime.service';
@@ -64,6 +65,7 @@ const MIN_REAIS = 4;
     LimiteOciosidadeComponent,
     CronometroEntradaComponent,
     TempoMovimentacaoComponent,
+    IsolateusChat,
     DescontoOciosidadeComponent,
     RouterLink,
     Icon,
@@ -246,6 +248,12 @@ const MIN_REAIS = 4;
                 }
               </div>
               <p class="dim">{{ vivos(p).length }} habitante(s) na vila</p>
+
+              <!-- O chat da vila (036): a turma lê no telão o que se diz nos celulares. -->
+              <div class="px-box chat-telao">
+                <span class="px-titulo chat-telao__tit">CHAT DA VILA</span>
+                <app-isolateus-chat [pixel]="true" [telao]="true" [mensagens]="p.chat ?? []" />
+              </div>
             </div>
 
             <div class="px-box painel">
@@ -591,6 +599,9 @@ const MIN_REAIS = 4;
      * O telão herda as cores e a fonte do palco pixel (034), mas rola como uma
      * página: o tamanho vem da largura (inline-size), não de um 16:9 fixo.
      */
+    .chat-telao { margin-top: 12px; padding: 10px 12px; --u: 9px; --b: 2px; }
+    .chat-telao__tit { display: block; margin-bottom: 8px; font-size: 11px; color: var(--px-amber-lt); }
+    .chat-telao app-isolateus-chat { max-height: 34vh; overflow: auto; }
     .telao {
       container-type: inline-size;
       overflow: visible;

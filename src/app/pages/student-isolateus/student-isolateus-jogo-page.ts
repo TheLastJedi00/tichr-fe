@@ -20,6 +20,7 @@ import { mensagemDoTurno } from '../../isolateus/isolateus-mensagens';
 import { motivoDaRecusa, textoDoMotivo } from '../../isolateus/isolateus-motivos';
 import { IconePixel } from '../../ui/icone-pixel/icone-pixel';
 import { IsolateusCena } from '../../ui/isolateus-cena/isolateus-cena';
+import { IsolateusChat } from '../../ui/isolateus-chat/isolateus-chat';
 import { IsolateusMapaPixel } from '../../ui/isolateus-mapa-pixel/isolateus-mapa-pixel';
 import { IsolateusVotacao, OpcaoDeVoto } from '../../ui/isolateus-votacao/isolateus-votacao';
 import { LogPontuacaoComponent } from '../../ui/log-pontuacao/log-pontuacao';
@@ -29,7 +30,7 @@ import { StudentIsolateusPage } from './student-isolateus-page';
 
 const dormir = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-type Sobreposicao = 'PERSONAGEM' | 'MAPA' | 'DIARIO' | null;
+type Sobreposicao = 'PERSONAGEM' | 'MAPA' | 'DIARIO' | 'CHAT' | null;
 interface Aviso {
   texto: string;
   tipo: '' | 'alien' | 'warn';
@@ -70,6 +71,7 @@ const EVENTOS_DO_AMANHECER = new Set([
     IsolateusMapaPixel,
     IsolateusVotacao,
     LogPontuacaoComponent,
+    IsolateusChat,
   ],
   template: `
     <div class="tela">
@@ -181,6 +183,10 @@ const EVENTOS_DO_AMANHECER = new Set([
               </button>
 
               <div class="hud-ferr">
+                <button class="px-btn chat-btn" type="button" aria-label="Abrir o chat da vila" (click)="abrir('CHAT')">
+                  CHAT
+                  @if (naoLidas() > 0) { <span class="chat-btn__n">{{ naoLidas() > 9 ? '9+' : naoLidas() }}</span> }
+                </button>
                 <button class="px-btn" type="button" (click)="abrir('DIARIO')">DIÁRIO</button>
                 <button class="px-btn" type="button" (click)="telaCheia()">TELA CHEIA</button>
                 <a class="px-btn" routerLink="/aluno/isolateus/simples" (click)="guardarModo('simples')">MODO SIMPLES</a>
@@ -438,6 +444,19 @@ const EVENTOS_DO_AMANHECER = new Set([
                         <span><i style="background:#fcd34d"></i>Você está aqui</span>
                       </div>
                     }
+                    @case ('CHAT') {
+                      <h2 class="px-titulo tit">CHAT DA VILA</h2>
+                      <app-isolateus-chat
+                        [pixel]="true"
+                        [mensagens]="p.chat ?? []"
+                        [meuNome]="meuHabitante()?.nome ?? null"
+                        [motivo]="motivoChat()"
+                        [enviando]="chatEnviando()"
+                        [erro]="chatErro()"
+                        [enviadas]="chatEnviadas()"
+                        (enviar)="falarNoChat($event)"
+                      />
+                    }
                     @case ('DIARIO') {
                       <h2 class="px-titulo tit">DIÁRIO DA VILA</h2>
                       <div class="diario">
@@ -550,6 +569,8 @@ const EVENTOS_DO_AMANHECER = new Set([
     .mini__exp { position: absolute; right: calc(var(--u) * 0.6); bottom: calc(var(--u) * 0.4); font-family: 'Press Start 2P', monospace; font-size: calc(var(--u) * 0.9); color: var(--px-txt-dim); }
     .hud-ferr { position: absolute; right: calc(var(--u) * 1.6); bottom: calc(var(--u) * 1.4); display: flex; gap: calc(var(--u) * 0.8); }
     .hud-ferr .px-btn { font-size: calc(var(--u) * 1.1); padding: calc(var(--u) * 0.5) calc(var(--u) * 0.9); text-decoration: none; }
+    .chat-btn { position: relative; }
+    .chat-btn__n { position: absolute; top: calc(var(--u) * -0.9); right: calc(var(--u) * -0.9); min-width: calc(var(--u) * 1.8); padding: 0 calc(var(--u) * 0.3); background: var(--px-red); color: #fff; font-size: calc(var(--u) * 0.95); line-height: calc(var(--u) * 1.8); text-align: center; }
     .dica-teclado { position: absolute; left: 50%; bottom: calc(var(--u) * 1.4); transform: translateX(-50%); padding: calc(var(--u) * 0.5) calc(var(--u) * 1); font-size: calc(var(--u) * 1.2); color: var(--px-txt-dim); pointer-events: none !important; white-space: nowrap; }
     .dica-teclado b { color: var(--px-amber-lt); font-weight: 600; }
     .aviso-oc { position: absolute; left: calc(var(--u) * 1.6); bottom: calc(var(--u) * 1.4); padding: calc(var(--u) * 0.6) calc(var(--u) * 1); color: var(--px-amber-lt); font-size: calc(var(--u) * 1.3); max-width: 40cqw; }
@@ -732,7 +753,7 @@ export class StudentIsolateusJogoPage extends StudentIsolateusPage implements On
   /** O que está em primeiro plano: fases obrigatórias vencem o que o jogador abriu. */
   protected readonly sobreposicaoAtual = computed<
     | 'LOBBY' | 'DESPERTAR' | 'RESULTADO' | 'QUESTAO' | 'DEBATE' | 'VOTO' | 'RESGATE'
-    | 'FIM' | 'PERSONAGEM' | 'MAPA' | 'DIARIO' | null
+    | 'FIM' | 'PERSONAGEM' | 'MAPA' | 'DIARIO' | 'CHAT' | null
   >(() => {
     const p = this.partida();
     if (!p) return null;
@@ -752,9 +773,16 @@ export class StudentIsolateusJogoPage extends StudentIsolateusPage implements On
     }
   });
   protected readonly resultadoLido = signal(false);
+
+  /** Quantas falas do chat eu já vi (com ele aberto, todas). */
+  private readonly chatVisto = signal(0);
+  protected readonly naoLidas = computed(() => {
+    const total = this.partida()?.chat?.length ?? 0;
+    return this.sobreposicaoAtual() === 'CHAT' ? 0 : Math.max(0, total - this.chatVisto());
+  });
   protected readonly podeFechar = computed(() => {
     const so = this.sobreposicaoAtual();
-    return so === 'PERSONAGEM' || so === 'MAPA' || so === 'DIARIO' || so === 'RESULTADO';
+    return so === 'PERSONAGEM' || so === 'MAPA' || so === 'DIARIO' || so === 'CHAT' || so === 'RESULTADO';
   });
 
   protected readonly rotuloDaPorta = (para: string): string =>
@@ -793,6 +821,12 @@ export class StudentIsolateusJogoPage extends StudentIsolateusPage implements On
           if (p.status !== 'DESLOCAMENTO') this.vitimaMarcada.set(null);
         });
       }
+    });
+    // Com o chat aberto, tudo o que chega já foi lido. As últimas 80 ficam no
+    // doc: quando a lista roda, o que importa é o total visto, não o índice.
+    effect(() => {
+      const total = this.partida()?.chat?.length ?? 0;
+      if (this.sobreposicaoAtual() === 'CHAT') untracked(() => this.chatVisto.set(total));
     });
     // Ao voltar de `simples`, lembra a escolha.
     this.guardarModo('jogo');

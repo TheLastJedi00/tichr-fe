@@ -344,6 +344,13 @@ export class IsolateusApiService {
       {},
     );
   }
+  /** Uma fala no chat da vila (036): passa pelo filtro de linguagem. */
+  falarNoChat(id: string, texto: string): Observable<IsolateusMatch> {
+    return this.http.post<IsolateusMatch>(
+      `${this.base}/aluno/isolateus/${id}/chat`,
+      { texto },
+    );
+  }
   debater(id: string, texto: string): Observable<IsolateusMatch> {
     return this.http.post<IsolateusMatch>(
       `${this.base}/aluno/isolateus/${id}/debate`,

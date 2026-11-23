@@ -132,6 +132,7 @@ function mensagemBloqueada(e: {
  */
 import { AlertaOciosidade } from '../../ui/alerta-ociosidade/alerta-ociosidade';
 import { AvisoEntradaComponent } from '../../ui/aviso-entrada/aviso-entrada';
+import { IsolateusChat } from '../../ui/isolateus-chat/isolateus-chat';
 @Component({
   selector: 'app-student-isolateus-page',
   standalone: true,
@@ -152,6 +153,7 @@ import { AvisoEntradaComponent } from '../../ui/aviso-entrada/aviso-entrada';
     IsolateusBrilho,
     LogPontuacaoComponent,
     PartidaPausadaComponent,
+    IsolateusChat,
   ],
   template: `
     @if (carregando()) {
@@ -747,6 +749,22 @@ import { AvisoEntradaComponent } from '../../ui/aviso-entrada/aviso-entrada';
           }
 
 
+          <!-- O chat da vila (036): a partida inteira, em todas as fases. -->
+          @if (p.status !== 'ENCERRADO') {
+            <section class="chat-vila">
+              <h3 class="chat-vila__tit"><app-icon name="chat" [size]="16" /> Chat da vila</h3>
+              <app-isolateus-chat
+                [mensagens]="p.chat ?? []"
+                [meuNome]="meuHabitante()?.nome ?? null"
+                [motivo]="motivoChat()"
+                [enviando]="chatEnviando()"
+                [erro]="chatErro()"
+                [enviadas]="chatEnviadas()"
+                (enviar)="falarNoChat($event)"
+              />
+            </section>
+          }
+
           <!-- O Diário acompanha a partida inteira, em qualquer fase. -->
           @if (p.acontecimentos?.length) {
             <app-isolateus-diario class="diario" [acontecimentos]="p.acontecimentos" />
@@ -967,6 +985,8 @@ import { AvisoEntradaComponent } from '../../ui/aviso-entrada/aviso-entrada';
   `,
   styles: `
     .aviso-entrada { margin: 0 0 1rem; }
+    .chat-vila { margin: 1rem 0; padding: 0.9rem 1rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+    .chat-vila__tit { display: flex; align-items: center; gap: 0.4rem; margin: 0 0 0.6rem; font-size: 0.95rem; }
     .alerta-oc { display: block; margin: 0.5rem 0; }
     .modo-link { display: inline-block; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 700; color: var(--primary); }
     :host { display: block; }
@@ -1310,6 +1330,22 @@ export class StudentIsolateusPage {
   protected readonly resgateOrganizado = signal(false);
   /** Organizei um reparo nesta noite: a posição sustenta a ação, não muda mais. */
   protected readonly reparoOrganizado = signal(false);
+  // --- O chat da vila (036 #26–#33): a partida inteira, em todas as fases ---
+  protected readonly chatEnviando = signal(false);
+  protected readonly chatErro = signal<string | null>(null);
+  /** Conta os envios bem-sucedidos: o componente limpa o campo a cada um. */
+  protected readonly chatEnviadas = signal(0);
+  /** Por que eu não posso escrever no chat agora (`null` = posso). */
+  protected readonly motivoChat = computed<string | null>(() => {
+    const p = this.partida();
+    if (!p || p.status === 'LOBBY' || p.status === 'ENCERRADO') {
+      return 'O chat da vila abre quando a investigação começa.';
+    }
+    if (p.pausadaEm) return textoDoMotivo('PARTIDA_PAUSADA');
+    if (this.foraDaVila()) return 'Você está fora da vila: só pode ler o chat.';
+    return null;
+  });
+
   /** A Ameaça agiu nesta noite (sabotar, abduzir, superpoder): fica no setor (036 #12). */
   protected readonly travadaPorAcao = signal(false);
   protected readonly posicaoTravada = computed(
@@ -1907,6 +1943,25 @@ export class StudentIsolateusPage {
   private fecharDecisao(qual: 'posicao' | 'acao'): void {
     if (qual === 'acao') this.acaoFeita.set(true);
     else this.posicaoFeita.set(true);
+  }
+
+  /** Uma fala no chat da vila. O palavrão volta como aviso no próprio campo. */
+  protected falarNoChat(texto: string): void {
+    if (!this.partidaId || this.chatEnviando() || this.motivoChat()) return;
+    this.chatEnviando.set(true);
+    this.chatErro.set(null);
+    this.api.falarNoChat(this.partidaId, texto).subscribe({
+      next: () => {
+        this.chatEnviando.set(false);
+        this.chatEnviadas.update((n) => n + 1);
+      },
+      error: (e: { error?: { message?: string; code?: string } }) => {
+        this.chatEnviando.set(false);
+        this.chatErro.set(
+          mensagemBloqueada(e) ?? e.error?.message ?? 'Não foi possível enviar agora.',
+        );
+      },
+    });
   }
 
   /** Os Sinais de Rádio da questão (partidas antigas podem trazer rumores). */
