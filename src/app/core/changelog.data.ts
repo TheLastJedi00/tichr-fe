@@ -18,6 +18,16 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.42.1',
+    data: '2026-11-18',
+    titulo: 'Correções no Isolateus e no Wor',
+    itens: [
+      { categoria: 'Correção', texto: 'Tichr Isolateus: os pontos da partida entravam multiplicados no ranking da turma no fim do jogo. Agora cada aluno recebe exatamente o que fez na partida.' },
+      { categoria: 'Melhoria', texto: 'Tichr Isolateus: a noite ficou mais rápida — são 15 segundos para se deslocar, em vez de 60.' },
+      { categoria: 'Correção', texto: 'Tichr Wor: quem está na Horda e não sabe a palavra pode tocar em "Não arriscar nesta rodada". Conta como jogada, não gera alerta de ociosidade e a rodada não fica esperando.' },
+    ],
+  },
+  {
     versao: 'v0.42.0',
     data: '2026-11-18',
     titulo: 'Cronômetro de entrada e Wor em pixel art',

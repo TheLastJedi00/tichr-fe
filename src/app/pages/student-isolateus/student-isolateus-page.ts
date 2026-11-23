@@ -53,7 +53,7 @@ const REVELACAO_MS = 3000;
 /** Janelas cronometradas — espelham as constantes `ISOLATEUS` do backend. */
 const LIMITE_DEBATE_S = 90;
 const LIMITE_VOTO_S = 60;
-const LIMITE_DESLOCAMENTO_S = 60;
+const LIMITE_DESLOCAMENTO_S = 15;
 const JANELA_DECISAO_S = 15;
 const RESGATE_VOTO_S = 60;
 /** De quanto em quanto tempo o celular rebusca o painel (papel, codinome, fileira). */
