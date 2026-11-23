@@ -338,13 +338,10 @@ export class CenaPhaser {
     }
     const naAltura = (folga: number) =>
       y >= CENA.CHAO - CAIXA_BONECO.alto - folga && y <= CENA.CHAO + CAIXA_BONECO.baixo + folga;
-    // 2. o meu boneco
+    // 2. o boneco de outro habitante (a Ameaça marca a vítima com um toque) e
+    // o meu: com os dois sob o dedo, vale o mais perto do toque.
     const meu = this.meuX();
-    if (meu !== null && Math.abs(x - meu) <= CAIXA_BONECO.meia && naAltura(0)) {
-      this.saidas.tocarMeuBoneco();
-      return;
-    }
-    // 3. o boneco de outro habitante (a Ameaça marca a vítima com um toque)
+    const noMeu = meu !== null && Math.abs(x - meu) <= CAIXA_BONECO.meia && naAltura(0);
     let perto: { id: string; d: number } | null = null;
     for (const h of e.habitantes) {
       if (h.eu) continue;
@@ -355,7 +352,13 @@ export class CenaPhaser {
         perto = { id: h.id, d };
       }
     }
-    if (perto && this.saidas.tocarHabitante(perto.id)) return;
+    const outroAntes = perto && (!noMeu || perto.d < Math.abs(x - (meu ?? x)));
+    if (perto && outroAntes && this.saidas.tocarHabitante(perto.id)) return;
+    if (noMeu) {
+      this.saidas.tocarMeuBoneco();
+      return;
+    }
+    if (perto && !outroAntes && this.saidas.tocarHabitante(perto.id)) return;
     // 4. o objeto do centro
     if (
       e.objeto &&
