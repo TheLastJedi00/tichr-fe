@@ -18,6 +18,19 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.43.0',
+    data: '2026-11-23',
+    titulo: 'Isolateus: noite com movimentação livre e chat da vila',
+    itens: [
+      { categoria: 'Nova feature', texto: 'Tichr Isolateus: a noite virou o tempo de movimentação. O professor escolhe no lobby quanto ela dura (de 10 a 60 segundos; 20 por padrão), e vale o setor onde cada um estiver quando o tempo acabar.' },
+      { categoria: 'Nova feature', texto: 'Ande até uma porta e toque no botão "Entrar em…" que aparece acima dela para trocar de setor na hora, quantas vezes quiser. Quem está no setor vê você sair e chegar.' },
+      { categoria: 'Nova feature', texto: 'No computador, dá para jogar com o teclado: WASD ou setas para andar, W para atravessar a porta e S para ficar no setor.' },
+      { categoria: 'Nova feature', texto: 'Chat da vila durante a partida inteira, no celular, no modo simples e no telão. Quem foi abduzido ou preso só lê. Palavrão não é publicado e custa 1000 pontos a quem escreveu.' },
+      { categoria: 'Melhoria', texto: 'A Ameaça abduz tocando direto no boneco da vítima, sem abrir menu. Depois de agir, ela fica no setor até o amanhecer.' },
+      { categoria: 'Melhoria', texto: 'A Quarentena abre direto na votação: o debate saiu, e a conversa acontece no chat da vila.' },
+    ],
+  },
+  {
     versao: 'v0.42.1',
     data: '2026-11-18',
     titulo: 'Correções no Isolateus e no Wor',
