@@ -50,3 +50,21 @@ describe('isolateus-motivos (spec 034 #63–#69)', () => {
     }
   });
 });
+
+describe('motivos 036 — travessia e abdução por toque', () => {
+  it('a trava da noite diz o porquê', () => {
+    expect(
+      motivoDaRecusa({ error: { code: 'POSICAO_TRAVADA', motivo: 'ACAO' } }),
+    ).toBe(textoDoMotivo('POSICAO_TRAVADA_ACAO'));
+    expect(
+      motivoDaRecusa({ error: { code: 'POSICAO_TRAVADA', motivo: 'REPARO' } }),
+    ).toBe(textoDoMotivo('POSICAO_TRAVADA_REPARO'));
+  });
+
+  it('longe da porta e alvo que saiu têm texto próprio', () => {
+    expect(motivoDaRecusa({ error: { code: 'LONGE_DA_PORTA' } })).toBe(
+      'Chegue até a porta para atravessar.',
+    );
+    expect(motivoDaRecusa({ error: { code: 'ALVO_SAIU' } })).toBe('Ele saiu do setor.');
+  });
+});

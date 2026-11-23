@@ -17,8 +17,12 @@ export const CENA = {
   CHAO: 150,
   /** O meio da cena: é onde mora o objeto do centro (reparo, resgate, Quarentena). */
   CENTRO: 160,
-  /** Um passo por segundo por habitante. */
-  PASSO_INTERVALO_MS: 1_000,
+  /** Intervalo mínimo entre dois passos (036 #25: apertar e soltar a tecla). */
+  PASSO_INTERVALO_MS: 250,
+  /** Distância (px) do boneco à porta para o botão aparecer e o servidor aceitar. */
+  ZONA_PORTA: 28,
+  /** Ao chegar por uma porta, o boneco anda isto para dentro da cena. */
+  ENTRADA_PORTA: 44,
 } as const;
 
 export type LadoPorta = 'esquerda' | 'direita' | 'fundo';
@@ -52,6 +56,16 @@ export function portasDe(setorId: string): PortaCena[] {
 
 export function xDaPorta(de: string, para: string): number | undefined {
   return portasDe(de).find((p) => p.para === para)?.x;
+}
+
+/**
+ * A entrada por uma porta (036 #20): o boneco aparece no batente que liga de
+ * volta à origem e caminha um pouco para dentro. Espelho do backend.
+ */
+export function chegadaPelaPorta(de: string, para: string): { x: number; alvoX: number } {
+  const x = xDaPorta(para, de) ?? CENA.X_INICIAL;
+  const dentro = x < CENA.LARGURA / 2 ? 1 : -1;
+  return { x, alvoX: x + dentro * CENA.ENTRADA_PORTA };
 }
 
 export interface Passo {

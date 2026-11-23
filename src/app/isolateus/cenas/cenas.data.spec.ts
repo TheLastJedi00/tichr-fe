@@ -1,5 +1,5 @@
 import { MAPA } from '../../core/isolateus-mapa';
-import { CENA, objetoCentralDe, portasDe, posicaoEm, xDaPorta } from './cenas.data';
+import { CENA, chegadaPelaPorta, objetoCentralDe, portasDe, posicaoEm, xDaPorta } from './cenas.data';
 
 describe('cenas.data (espelho da geometria do backend)', () => {
   it('toda ligação da malha vira uma porta', () => {
@@ -37,5 +37,14 @@ describe('cenas.data (espelho da geometria do backend)', () => {
     expect(objetoCentralDe('energia', true)).toBeNull();
     // Em ruínas, o que dá para fazer é reparar (decisão #67).
     expect(objetoCentralDe('saude', false)).toBe('REPARO');
+  });
+
+  it('036: a zona da porta, o passo de 250 ms e a chegada casam com o backend', () => {
+    expect(CENA.ZONA_PORTA).toBe(28);
+    expect(CENA.PASSO_INTERVALO_MS).toBe(250);
+    // Da Segurança para a Energia: entra pela porta da Energia que volta à Segurança.
+    const c = chegadaPelaPorta('seguranca', 'energia');
+    expect(c.x).toBe(xDaPorta('energia', 'seguranca')!);
+    expect(Math.abs(c.alvoX - c.x)).toBeGreaterThan(CENA.ZONA_PORTA);
   });
 });

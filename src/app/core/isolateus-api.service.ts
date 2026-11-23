@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { API_BASE_URL } from './api.config';
+import { Passo } from '../isolateus/cenas/cenas.data';
 import {
   CriarIsolateusPayload,
   IsolateusJogo,
@@ -220,17 +221,27 @@ export class IsolateusApiService {
       {},
     );
   }
-  /** O deslocamento da noite: anda um setor pelas estradas do mapa. */
-  mover(id: string, setorId: string): Observable<IsolateusMatch> {
-    return this.http.post<IsolateusMatch>(
+  /**
+   * A travessia de uma porta (036): troca de setor na hora, para um vizinho do
+   * setor atual. A resposta traz o token do canal do setor novo.
+   */
+  mover(
+    id: string,
+    setorId: string,
+  ): Observable<IsolateusMatch & { tokenCanal?: string | null }> {
+    return this.http.post<IsolateusMatch & { tokenCanal?: string | null }>(
       `${this.base}/aluno/isolateus/${id}/mover`,
       { setorId },
     );
   }
 
-  /** Toque no chão: o destino da caminhada, só visual (1 por segundo). */
-  passo(id: string, alvoX: number): Observable<{ ok: true }> {
-    return this.http.post<{ ok: true }>(
+  /**
+   * Toque no chão (ou tecla): o destino da caminhada, só visual. A resposta
+   * traz a caminhada calculada pelo servidor (o modo simples usa para saber
+   * quando o boneco chega à porta).
+   */
+  passo(id: string, alvoX: number): Observable<{ ok: true } & Passo> {
+    return this.http.post<{ ok: true } & Passo>(
       `${this.base}/aluno/isolateus/${id}/passo`,
       { alvoX },
     );

@@ -17,14 +17,13 @@ import {
   SETOR_SAUDE,
   rotuloBrilho,
   setoresBrilhando,
-  vizinhosDe,
 } from '../../core/isolateus-mapa';
+import { CENA, xDaPorta } from '../../isolateus/cenas/cenas.data';
 import { alienDoPlacar, ROTULO_PAPEL } from '../../core/isolateus-placar';
 import { RelogioDaFase, antecedenciaDaFase } from '../../core/isolateus-relogio';
 import { segundosDaNoite } from '../../core/isolateus-noite';
 import { motivoDaRecusa, textoDoMotivo } from '../../isolateus/isolateus-motivos';
 import {
-  DeslocamentoNoite,
   IsolateusMatch,
   MovimentoAmanhecer,
   PainelIsolateus,
@@ -371,7 +370,6 @@ import { AvisoEntradaComponent } from '../../ui/aviso-entrada/aviso-entrada';
                       [podeAndar]="podeAndarNoite(p)"
                       [noite]="true"
                       [abduzindoId]="abduzindoNoMeuSetor(p)"
-                      [saidasNoite]="saidasDoMeuSetor()"
                       (andarPara)="mover($event)"
                     />
                   }
@@ -383,44 +381,19 @@ import { AvisoEntradaComponent } from '../../ui/aviso-entrada/aviso-entrada';
 
                   <p class="muted center">Toque no seu personagem para ver o seu papel e as suas ações.</p>
                   <!--
-                    Mudar de ideia (026 §2.2.1): depois de andar, a fileira já
-                    mostra o destino, e as estradas dele não servem (são vizinhas
-                    do destino). As opções são sempre os vizinhos da ORIGEM.
+                    036: a noite é o tempo de movimentação. Trocar de setor é
+                    andar até a porta e atravessar, quantas vezes quiser; vale
+                    onde você estiver quando o tempo acabar.
                   -->
-                  @if (meuDestino(p); as d) {
-                    @if (!posicaoTravada()) {
-                      <div class="mudar">
-                        <span class="mudar__txt">
-                          <app-icon name="arrow-right" [size]="14" />
-                          Indo para o <b>{{ nomeSetor(p, d) }}</b>
-                        </span>
-                        <button
-                          class="mudar__btn"
-                          type="button"
-                          [attr.aria-expanded]="mudandoDestino()"
-                          (click)="mudandoDestino.set(!mudandoDestino())"
-                        >
-                          {{ mudandoDestino() ? 'Cancelar' : 'Mudar' }}
-                        </button>
-                      </div>
-                      @if (mudandoDestino()) {
-                        <div class="mudar__opcoes">
-                          @for (v of outrosDestinos(d); track v.id) {
-                            <button class="btn-outline" type="button" [disabled]="enviando()" (click)="mover(v.id)">
-                              {{ v.curto }}
-                            </button>
-                          }
-                          <button class="btn-outline" type="button" [disabled]="enviando()" (click)="mover(origemDaNoite())">
-                            Voltar para o {{ nomeSetor(p, origemDaNoite()) }}
-                          </button>
-                        </div>
-                      }
-                    }
+                  @if (indoPara(); as destino) {
+                    <p class="muted center">
+                      <app-icon name="arrow-right" [size]="14" />
+                      Indo até a porta do <b>{{ nomeSetor(p, destino) }}</b>…
+                    </p>
                   }
                   @if (posicaoFeita()) {
                     <p class="muted center">
-                      Posição fechada. Aguardando a vila…
-                      ({{ p.movimentosRecebidos ?? 0 }} já decidiram)
+                      Ação da noite registrada. Vale onde você estiver quando o tempo acabar.
                     </p>
                   } @else {
                     <div class="acoes-noite">
@@ -434,7 +407,7 @@ import { AvisoEntradaComponent } from '../../ui/aviso-entrada/aviso-entrada';
                     Comunicação. O motivo de não poder aparece sempre que o
                     jogador está no rádio; fora dele, a regra já está no mapa.
                   -->
-                  @if (origemDaNoite() === 'comunicacao' && !esperando()) {
+                  @if (meuSetor(p) === 'comunicacao' && !esperando()) {
                     @if (impedimentoQuarentena(p); as motivo) {
                       <p class="muted center">{{ motivo }}</p>
                     } @else {
@@ -1286,8 +1259,11 @@ export class StudentIsolateusPage {
    */
   protected readonly posicaoFeita = signal(false);
   protected readonly acaoFeita = signal(false);
-  /** Para onde eu andei nesta noite (o doc público só muda no fechamento). */
-  protected readonly destinoNoite = signal<string | null>(null);
+  /**
+   * Indo até a porta de um vizinho (modo simples, 036 §2.4): sem cena, o
+   * boneco anda até a porta pelo canal e só então atravessa.
+   */
+  protected readonly indoPara = signal<string | null>(null);
   /** Habitante sendo levado agora — dispara a nave no setor onde ele está. */
   protected readonly abduzindoId = signal<string | null>(null);
 
@@ -1334,11 +1310,11 @@ export class StudentIsolateusPage {
   protected readonly resgateOrganizado = signal(false);
   /** Organizei um reparo nesta noite: a posição sustenta a ação, não muda mais. */
   protected readonly reparoOrganizado = signal(false);
+  /** A Ameaça agiu nesta noite (sabotar, abduzir, superpoder): fica no setor (036 #12). */
+  protected readonly travadaPorAcao = signal(false);
   protected readonly posicaoTravada = computed(
-    () => this.reparoOrganizado() || this.resgateOrganizado(),
+    () => this.reparoOrganizado() || this.resgateOrganizado() || this.travadaPorAcao(),
   );
-  /** A barra "Mudar" aberta, com os outros vizinhos da origem. */
-  protected readonly mudandoDestino = signal(false);
   /** Saídas e chegadas do amanhecer a animar no meu setor (uma vez por rodada). */
   protected readonly amanhecerParaAnimar = signal<MovimentosSetor | null>(null);
   private amanhecerDecidido: number | null = null;
@@ -1549,25 +1525,16 @@ export class StudentIsolateusPage {
   // --- A Noite ---
 
   /**
-   * Onde eu estou. Durante a noite, o destino que só eu (e o servidor) conheço:
-   * o doc público mantém a posição do anoitecer até a noite fechar — publicar
-   * na hora entregava quem é real, já que os NPCs só andam no fechamento.
-   * Vazio antes do Despertar (ou se já saí da vila).
+   * Onde eu estou: a posição pública (036 #9 — a travessia é ao vivo, e o doc
+   * público é a verdade). Vazio antes do Despertar (ou se já saí da vila).
    */
-  protected meuSetor(p: IsolateusMatch): string {
-    const publico = this.meuHabitante()?.setorId ?? '';
-    if (p.status !== 'DESLOCAMENTO') return publico;
-    return this.destinoNoite() ?? this.painel()?.setorId ?? publico;
+  protected meuSetor(_p?: IsolateusMatch): string {
+    return this.meuHabitante()?.setorId ?? this.painel()?.setorId ?? '';
   }
 
-  /**
-   * A vila vista do meu celular durante a noite: os outros onde estavam ao
-   * anoitecer, e eu onde decidi passar a noite.
-   */
+  /** A vila vista do meu celular durante a noite: todos onde estão agora. */
   protected habitantesDaNoite(p: IsolateusMatch) {
-    const eu = this.painel()?.habitanteId;
-    const aqui = this.meuSetor(p);
-    return p.habitantes.map((h) => (h.id === eu ? { ...h, setorId: aqui } : h));
+    return p.habitantes;
   }
 
   protected meuSetorObj(p: IsolateusMatch) {
@@ -1576,51 +1543,22 @@ export class StudentIsolateusPage {
 
   // --- Movimentação em tempo real (026) ---
 
-  /** Onde a noite começou para mim: a posição pública, que só muda no amanhecer. */
+  /** O setor onde eu estou agora (a posição pública; 036 a muda na hora). */
   protected origemDaNoite(): string {
     return this.meuHabitante()?.setorId ?? '';
   }
 
-  /** Para onde eu andei nesta noite (`null` = fiquei na origem). */
-  protected meuDestino(p: IsolateusMatch): string | null {
-    if (p.status !== 'DESLOCAMENTO') return null;
-    const aqui = this.meuSetor(p);
-    return aqui && aqui !== this.origemDaNoite() ? aqui : null;
-  }
-
   /**
-   * As estradas do setor que estou vendo só servem enquanto estou na origem:
-   * depois de andar, elas são vizinhas do destino, e a troca passa pela barra
-   * "Mudar". Quem organizou reparo ou resgate já fixou a posição.
+   * Posso atravessar portas: na noite, quantas vezes quiser, a menos que eu
+   * tenha organizado reparo/resgate ou (Ameaça) agido (036 #12).
    */
-  protected podeAndarNoite(p: IsolateusMatch): boolean {
-    return !this.meuDestino(p) && !this.posicaoTravada();
-  }
-
-  /** Os outros vizinhos da origem, para trocar de destino (026 §2.2.1). */
-  protected outrosDestinos(destino: string) {
-    return vizinhosDe(this.origemDaNoite()).filter((v) => v.id !== destino);
+  protected podeAndarNoite(_p?: IsolateusMatch): boolean {
+    return !this.posicaoTravada() && !this.indoPara();
   }
 
   protected nomeSetor(p: IsolateusMatch, setorId: string): string {
     return p.setores.find((s) => s.id === setorId)?.nome ?? setorId;
   }
-
-  /**
-   * Os avisos de saída do setor que estou vendo: quem começou a noite aqui e
-   * escolheu sair. Eu não entro: já estou na fileira do meu destino.
-   */
-  protected readonly saidasDoMeuSetor = computed<DeslocamentoNoite[]>(() => {
-    const p = this.partida();
-    if (!p || p.status !== 'DESLOCAMENTO') return [];
-    const aqui = this.meuSetor(p);
-    const eu = this.painel()?.habitanteId;
-    return (p.deslocamentosNoite ?? []).filter((d) => {
-      if (d.habitanteId === eu) return false;
-      const h = p.habitantes.find((x) => x.id === d.habitanteId);
-      return !!h && h.vivo && !h.preso && h.setorId === aqui;
-    });
-  });
 
   /**
    * Quem saiu do setor onde amanheci e quem chegou nele (sem mim: já estava
@@ -1828,17 +1766,55 @@ export class StudentIsolateusPage {
     });
   }
 
+  /**
+   * Ir para um vizinho no modo simples (036 §2.4): sem cena, o boneco anda até
+   * a porta pelo canal e, quando chega, atravessa. O servidor confere a porta
+   * do mesmo jeito que no jogo em pixel art — não há atalho.
+   */
   protected mover(setorId: string): void {
-    // Voltar à origem também é "mover": o servidor retira o aviso de saída.
+    const p = this.partida();
+    if (!p || !this.partidaId || this.enviando() || this.indoPara()) return;
+    const aqui = this.meuSetor(p);
+    if (setorId === aqui) {
+      this.ficar();
+      return;
+    }
+    const porta = xDaPorta(aqui, setorId);
+    if (porta === undefined) return;
+    this.indoPara.set(setorId);
+    this.erro.set('');
+    this.api.passo(this.partidaId, porta).subscribe({
+      next: (c) => {
+        const ms = (Math.abs(c.alvoX - c.x) / CENA.VELOCIDADE) * 1000 + 250;
+        setTimeout(() => this.atravessarPorta(setorId), ms);
+      },
+      error: (e: { error?: { code?: string } }) => {
+        // Sem canal de posição (RTDB não configurado), não há porta a conferir.
+        if (e.error?.code === 'CANAL_INDISPONIVEL') {
+          this.atravessarPorta(setorId);
+          return;
+        }
+        this.indoPara.set(null);
+        this.erro.set(motivoDaRecusa(e) ?? 'Não foi possível andar agora.');
+      },
+    });
+  }
+
+  /** A travessia em si (o `mover` do servidor), com o boneco já na porta. */
+  protected atravessarPorta(setorId: string): void {
+    this.indoPara.set(null);
     this.acaoDaNoite(
       (id) => this.api.mover(id, setorId),
       'posicao',
-      () => {
-        this.destinoNoite.set(setorId);
-        this.mudandoDestino.set(false);
-      },
+      (r) => this.aoAtravessar(setorId, r as IsolateusMatch & { tokenCanal?: string | null }),
     );
   }
+
+  /** Gancho para o jogo em pixel art animar a troca de cena (036 #20). */
+  protected aoAtravessar(
+    _setorId: string,
+    _r: IsolateusMatch & { tokenCanal?: string | null },
+  ): void {}
   protected ficar(): void {
     this.acaoDaNoite((id) => this.api.confirmarPosicao(id));
   }
@@ -1848,21 +1824,33 @@ export class StudentIsolateusPage {
     );
   }
   protected sabotar(): void {
-    this.acaoDaNoite((id) => this.api.acao(id, { tipo: 'SABOTAR' }), 'acao');
+    this.acaoDaNoite((id) => this.api.acao(id, { tipo: 'SABOTAR' }), 'acao', () =>
+      this.travadaPorAcao.set(true),
+    );
   }
   protected aguardar(): void {
     this.acaoDaNoite((id) => this.api.acao(id, { tipo: 'AGUARDAR' }), 'acao');
   }
-  protected abduzirAqui(alvoId: string): void {
+  protected abduzirAqui(
+    alvoId: string,
+    aoConcluir?: () => void,
+    aoFalhar?: (e: { error?: { message?: string; code?: string } }) => void,
+  ): void {
     this.acaoDaNoite(
       (id) => this.api.acao(id, { tipo: 'ABDUZIR', alvoId }),
       'acao',
+      () => {
+        this.travadaPorAcao.set(true);
+        aoConcluir?.();
+      },
+      aoFalhar,
     );
   }
   protected abduzirAsCegas(setorId: string): void {
     this.acaoDaNoite(
       (id) => this.api.acao(id, { tipo: 'ABDUZIR', setorId }),
       'acao',
+      () => this.travadaPorAcao.set(true),
     );
   }
 
@@ -1880,15 +1868,16 @@ export class StudentIsolateusPage {
   private acaoDaNoite(
     chamada: (partidaId: string) => Observable<IsolateusMatch>,
     qual: 'posicao' | 'acao' = 'posicao',
-    aoConcluir?: () => void,
+    aoConcluir?: (r: IsolateusMatch) => void,
+    aoFalhar?: (e: { error?: { message?: string; code?: string } }) => void,
   ): void {
     if (!this.partidaId || this.enviando()) return;
     this.enviando.set(true);
     this.erro.set('');
     chamada(this.partidaId).subscribe({
-      next: () => {
+      next: (r) => {
         this.enviando.set(false);
-        aoConcluir?.();
+        aoConcluir?.(r);
         this.fecharDecisao(qual);
         this.escolhendoSetor.set(false);
         this.verMapa.set(false);
@@ -1901,9 +1890,13 @@ export class StudentIsolateusPage {
           this.fecharDecisao(qual);
           return;
         }
-        // Trocas de destino em rajada (026 §2.2): o destino anterior continua
-        // valendo, e o botão já volta a responder. Nada a avisar.
+        // Travessias em rajada: a anterior continua valendo, e o botão já
+        // volta a responder. Nada a avisar.
         if (e.error?.code === 'MOVER_RAPIDO') return;
+        if (aoFalhar) {
+          aoFalhar(e);
+          return;
+        }
         this.erro.set(
           motivoDaRecusa(e, 'REPARO') ?? 'Não foi possível fazer isso agora.',
         );
@@ -2012,7 +2005,8 @@ export class StudentIsolateusPage {
       this.voteiResgate.set(false);
       this.resgateOrganizado.set(false);
       this.reparoOrganizado.set(false);
-      this.mudandoDestino.set(false);
+      this.travadaPorAcao.set(false);
+      this.indoPara.set(null);
       // A animação é do amanhecer da rodada: a instância do setor que nascer no
       // próximo resultado não pode herdar a da noite anterior.
       this.amanhecerParaAnimar.set(null);
@@ -2024,7 +2018,6 @@ export class StudentIsolateusPage {
       this.acaoFeita.set(false);
       this.escolhendoSetor.set(false);
       this.verMapa.set(false);
-      this.destinoNoite.set(null);
       // A posição e o papel vivem no painel: a noite nova rebusca para todos.
       this.carregarPainel(false);
     }
@@ -2304,6 +2297,8 @@ export class StudentIsolateusPage {
         this.enviando.set(false);
         this.escolhendoControle.set(false);
         this.painel.set(pnl);
+        // Escolher um superpoder também é agir (036 #12): fica no setor.
+        this.travadaPorAcao.set(true);
       },
       error: (e: { error?: { message?: string } }) => {
         this.enviando.set(false);

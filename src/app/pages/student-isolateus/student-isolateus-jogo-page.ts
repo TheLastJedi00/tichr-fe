@@ -14,7 +14,7 @@ import { Router, RouterLink } from '@angular/router';
 import { IsolateusCanalService } from '../../core/isolateus-canal.service';
 import { MAPA, rotuloBrilho, setoresBrilhando } from '../../core/isolateus-mapa';
 import { IsolateusMatch } from '../../core/models';
-import { CENA, objetoCentralDe, portasDe, xDaPorta } from '../../isolateus/cenas/cenas.data';
+import { chegadaPelaPorta, objetoCentralDe, portasDe } from '../../isolateus/cenas/cenas.data';
 import { HabitanteDaCena } from '../../isolateus/cenas/cena-phaser';
 import { mensagemDoTurno } from '../../isolateus/isolateus-mensagens';
 import { motivoDaRecusa, textoDoMotivo } from '../../isolateus/isolateus-motivos';
@@ -87,6 +87,8 @@ const EVENTOS_DO_AMANHECER = new Set([
                 [posicoes]="posicoes()"
                 [portas]="portas()"
                 [portasAbertas]="portasAbertas()"
+                [podeAtravessar]="podeAtravessar()"
+                [aoTocarHabitante]="aoTocarHabitante"
                 [objeto]="objeto()"
                 [objetoBloqueado]="!!motivoObjeto()"
                 [ocultarMeuNome]="ocultarNome()"
@@ -97,7 +99,9 @@ const EVENTOS_DO_AMANHECER = new Set([
                 (tocarMeuBoneco)="abrir('PERSONAGEM')"
                 (tocarObjeto)="aoTocarObjeto()"
                 (tocarPorta)="aoTocarPorta($event.para)"
-                (luzDaPorta)="aoLuzDaPorta($event)"
+                (zonaDaPorta)="zonaDaPorta.set($event)"
+                (atravessar)="aoAtravessarPorta($event)"
+                (ficar)="aoFicar()"
               />
             }
           }
@@ -153,10 +157,10 @@ const EVENTOS_DO_AMANHECER = new Set([
                     <p class="turno__extra">{{ extra }}</p>
                   }
                   @if (naNoite()) {
-                    @if (meuDestino(p); as d) {
-                      <p class="turno__ok turno__ok--sai">Saindo para o {{ nomeSetor(p, d) }}</p>
+                    @if (vitimaMarcada(); as v) {
+                      <p class="turno__ok turno__ok--alien">Abdução marcada: {{ v.nome }}</p>
                     } @else if (posicaoFeita()) {
-                      <p class="turno__ok">Você fica no {{ nomeSetor(p, setorPublico()) }} esta noite.</p>
+                      <p class="turno__ok">Você está no {{ nomeSetor(p, setorPublico()) }}. Vale onde estiver quando o tempo acabar.</p>
                     }
                     <div class="turno__acts">
                       <button class="px-btn" type="button" [disabled]="enviando()" (click)="aoFicar()">
@@ -532,7 +536,7 @@ const EVENTOS_DO_AMANHECER = new Set([
     .turno p { margin: 0; font-size: calc(var(--u) * 1.55); line-height: 1.25; }
     .turno__extra { margin-top: calc(var(--u) * 0.5) !important; color: var(--px-txt-dim); font-size: calc(var(--u) * 1.3) !important; }
     .turno__ok { color: var(--px-green); font-weight: 600; margin-top: calc(var(--u) * 0.5) !important; }
-    .turno__ok--sai { color: var(--px-amber-lt); }
+    .turno__ok--alien { color: var(--px-alien); }
     .turno__acts { margin-top: calc(var(--u) * 0.8); display: flex; gap: var(--u); justify-content: center; flex-wrap: wrap; }
     .turno__acts .px-btn { font-size: calc(var(--u) * 1.4); }
 
@@ -615,8 +619,12 @@ export class StudentIsolateusJogoPage extends StudentIsolateusPage implements On
   private fila: Aviso[] = [];
   private mostrando = false;
   private destruido = false;
-  /** O destino da última luz de porta em que eu entrei (evita repetir o `mover`). */
-  private luzEnviada: string | null = null;
+  /** A porta em cuja zona o meu boneco está (o botão flutuante aparece nela). */
+  protected readonly zonaDaPorta = signal<string | null>(null);
+  /** A vítima que eu (Ameaça) marquei com um toque nesta noite (036 #13a). */
+  protected readonly vitimaMarcada = signal<{ id: string; nome: string } | null>(null);
+  /** Uma travessia em andamento (a cortina da troca de cena). */
+  private atravessando = false;
 
   // ---------------------------------------------------------------- estado
 
@@ -635,18 +643,22 @@ export class StudentIsolateusJogoPage extends StudentIsolateusPage implements On
   protected readonly portasAbertas = computed(
     () => this.naNoite() && !this.esperando() && !this.partida()?.pausadaEm,
   );
+  /** O botão flutuante da porta só aparece para quem pode atravessar (036 #19). */
+  protected readonly podeAtravessar = computed(
+    () => this.portasAbertas() && !this.posicaoTravada(),
+  );
   protected readonly habitantesDaCena = computed<HabitanteDaCena[]>(() => {
     const v = this.visual();
     const eu = this.painel()?.habitanteId;
     if (!v) return [];
-    const saindo = new Set((v.deslocamentosNoite ?? []).map((d) => d.habitanteId));
+    const marcada = this.vitimaMarcada()?.id;
     return v.habitantes
       .filter((h) => h.vivo && !h.preso && h.setorId === this.setorPublico())
       .map((h) => ({
         id: h.id,
         nome: h.nome,
         eu: h.id === eu,
-        saindo: saindo.has(h.id) || (h.id === eu && this.meuDestino(v) !== null),
+        marcado: h.id === marcada,
       }));
   });
   protected readonly objeto = computed(() => {
@@ -756,10 +768,16 @@ export class StudentIsolateusJogoPage extends StudentIsolateusPage implements On
         if (this.partidaId) void this.canal.conectar(this.partidaId, setor);
       });
     });
-    // O card de resultado volta a aparecer a cada noite nova.
+    // O card de resultado volta a aparecer a cada noite nova; a vítima marcada
+    // é só desta noite.
     effect(() => {
       const p = this.partida();
-      if (p) untracked(() => this.resultadoLido.set(false));
+      if (p) {
+        untracked(() => {
+          this.resultadoLido.set(false);
+          if (p.status !== 'DESLOCAMENTO') this.vitimaMarcada.set(null);
+        });
+      }
     });
     // Ao voltar de `simples`, lembra a escolha.
     this.guardarModo('jogo');
@@ -782,56 +800,19 @@ export class StudentIsolateusJogoPage extends StudentIsolateusPage implements On
   }
 
   /**
-   * A ordem do amanhecer: portas (saídas e chegadas) → sabotagem → abdução →
-   * mensagens. Uma coisa de cada vez, para dar para entender. O Delírio
-   * suprime a animação de saída e chegada (#13).
+   * A ordem do amanhecer (036 #17): sabotagem → abdução → mensagens. As
+   * saídas e chegadas já aconteceram ao vivo, pelas portas.
    */
   private async amanhecer(antes: IsolateusMatch, depois: IsolateusMatch): Promise<void> {
     this.amanhecendo.set(true);
     this.aberta.set(null);
-    this.luzEnviada = null;
     const eu = this.painel()?.habitanteId;
-    const origem = antes.habitantes.find((h) => h.id === eu)?.setorId ?? this.setorPublico();
-    const u = depois.ultimosDeslocamentos;
-    const animar = !!u && u.rodada === depois.rodada;
+    const novoSetor = depois.habitantes.find((h) => h.id === eu)?.setorId ?? this.setorPublico();
     const cena = this.cena();
     try {
-      if (animar && cena) {
-        const mov = u.movimentos;
-        // 1. saídas pelas portas
-        const sairam = mov.filter((m) => m.de === origem && m.habitanteId !== eu);
-        const euSai = mov.find((m) => m.habitanteId === eu);
-        for (const m of sairam) {
-          const x = xDaPorta(origem, m.para);
-          if (x !== undefined) cena.piscar(x);
-        }
-        if (euSai) {
-          const x = xDaPorta(origem, euSai.para);
-          if (x !== undefined) cena.piscar(x);
-        }
-        await dormir(700);
-        // 2. a cortina e a troca de setor (eu e quem chegou entram pela porta de origem)
-        await this.mudarCortina(1);
-        const novoSetor = euSai?.para ?? origem;
+      if (cena) {
         this.visual.set(this.semEfeitos(antes, depois));
-        await dormir(80);
-        if (euSai) {
-          const volta = xDaPorta(novoSetor, origem) ?? CENA.X_INICIAL;
-          cena.posicionarMeuBoneco(volta, volta < CENA.CENTRO ? volta + 26 : volta - 26);
-        }
-        for (const m of mov.filter((x) => x.para === novoSetor && x.habitanteId !== eu)) {
-          const x = xDaPorta(novoSetor, m.de);
-          if (x !== undefined) cena.chegada(m.habitanteId, x);
-        }
-        await dormir(250);
-        await this.mudarCortina(0);
-        const chegaram = mov.filter((m) => m.para === novoSetor && m.habitanteId !== eu);
-        for (const m of chegaram.slice(0, 3)) {
-          const nome = depois.habitantes.find((h) => h.id === m.habitanteId)?.nome ?? '—';
-          this.avisar(`${nome} chegou do ${this.nomeSetor(depois, m.de)}.`);
-        }
-        await dormir(1400);
-        // 3. sabotagem (luz verde + tremida; o fundo troca quando a luz apaga)
+        // 1. sabotagem (luz verde + tremida; o fundo troca quando a luz apaga)
         const sabotados = depois.setores.filter(
           (s) => !s.intacto && antes.setores.find((a) => a.id === s.id)?.intacto,
         );
@@ -846,7 +827,7 @@ export class StudentIsolateusJogoPage extends StudentIsolateusPage implements On
           this.avisar(`O ${s.nome} foi sabotado e está em ruínas.`, 'alien');
           await dormir(1500);
         }
-        // 4. abdução (luz verde; a pessoa some quando ela apaga)
+        // 2. abdução (luz verde; a pessoa some quando ela apaga)
         const levados = depois.habitantes.filter(
           (h) => !h.vivo && antes.habitantes.find((a) => a.id === h.id)?.vivo,
         );
@@ -861,7 +842,7 @@ export class StudentIsolateusJogoPage extends StudentIsolateusPage implements On
           await dormir(300);
         }
       }
-      // 5. as mensagens do amanhecer
+      // 3. as mensagens do amanhecer
       const vistos = new Set(antes.acontecimentos.map((e) => e.id));
       for (const e of depois.acontecimentos.filter((x) => !vistos.has(x.id) && EVENTOS_DO_AMANHECER.has(x.tipo))) {
         this.avisar(e.texto, e.tipo === 'SABOTAGEM' || e.tipo === 'ABDUCAO' ? 'alien' : '');
@@ -910,42 +891,84 @@ export class StudentIsolateusJogoPage extends StudentIsolateusPage implements On
     this.avisar(this.motivoDasPortas(p) ?? textoDoMotivo('PORTAS_FECHADAS'), 'warn');
   }
 
-  /** O meu boneco entrou na luz de uma porta (aviso de saída) ou saiu dela. */
-  protected aoLuzDaPorta(para: string | null): void {
+  /**
+   * Toque no botão flutuante (ou W): atravessa a porta de fato (036 #20). O
+   * boneco já está na porta, então vai direto ao `mover`.
+   */
+  protected aoAtravessarPorta(para: string): void {
     const p = this.partida();
-    if (!p || !this.portasAbertas()) return;
-    if (para) {
-      if (this.luzEnviada === para) return;
-      this.luzEnviada = para;
-      this.mover(para);
-      this.avisar(
-        `Você está na porta do ${this.nomeSetor(p, para)}. Ao amanhecer, você sai. Saia da luz para desistir.`,
-        'warn',
-      );
-    } else if (this.luzEnviada) {
-      this.luzEnviada = null;
-      // Sair da luz cancela (mover para a origem retira o aviso de saída).
-      this.mover(this.origemDaNoite());
-      this.avisar('Você desistiu de sair. Continua neste setor.');
+    if (!p || this.atravessando || this.enviando()) return;
+    const motivo = this.motivoDasPortas(p);
+    if (motivo) {
+      this.avisar(motivo, 'warn');
+      return;
+    }
+    this.atravessarPorta(para);
+  }
+
+  /**
+   * A travessia deu certo: cortina, troca de cena (o snapshot muda o meu setor)
+   * e entrada pela porta de chegada. O token do canal novo veio na resposta.
+   */
+  protected override aoAtravessar(
+    setorId: string,
+    r: IsolateusMatch & { tokenCanal?: string | null },
+  ): void {
+    const origem = this.setorPublico();
+    if (this.partidaId) void this.canal.conectar(this.partidaId, setorId, r.tokenCanal);
+    void this.trocarDeCena(origem, setorId);
+  }
+
+  private async trocarDeCena(origem: string, destino: string): Promise<void> {
+    this.atravessando = true;
+    try {
+      await this.mudarCortina(1);
+      // O snapshot traz o meu setor novo (às vezes antes da resposta).
+      for (let i = 0; i < 20 && this.setorPublico() !== destino; i++) await dormir(75);
+      const { x, alvoX } = chegadaPelaPorta(origem, destino);
+      this.cena()?.posicionarMeuBoneco(x, alvoX);
+      await dormir(60);
+      await this.mudarCortina(0);
+    } finally {
+      this.cortina.set(0);
+      this.atravessando = false;
     }
   }
 
   protected aoFicar(): void {
     const p = this.partida();
-    if (!p) return;
+    if (!p || !this.naNoite()) return;
     const motivo = this.motivoDasPortas(p);
     if (motivo && this.esperando()) {
       this.avisar(motivo, 'warn');
       return;
     }
-    if (this.meuDestino(p)) {
-      this.cena()?.afastarMeuBoneco();
-      this.luzEnviada = null;
-      this.mover(this.origemDaNoite()); // desistir da saída
-    }
     this.ficar();
-    this.avisar(`Posição confirmada: ${this.nomeSetor(p, this.setorPublico())}.`);
+    this.avisar(`Você fica no ${this.nomeSetor(p, this.setorPublico())} por enquanto.`);
   }
+
+  /**
+   * Toque no boneco de outro habitante (036 #13a): a Ameaça com a jogada da
+   * noite disponível marca a vítima na hora, sem menu. Para todos os outros
+   * (ou fora de hora), o toque é só andar até ali — não revela nada.
+   */
+  protected readonly aoTocarHabitante = (id: string): boolean => {
+    const p = this.partida();
+    if (!p || !this.ehAmeaca() || !this.naNoite() || this.esperando() || p.pausadaEm) return false;
+    if (this.acaoFeita() || this.enviando()) return false;
+    const alvo = this.alvosPresenciais(p).find((h) => h.id === id);
+    if (!alvo) return false;
+    this.vitimaMarcada.set({ id: alvo.id, nome: alvo.nome });
+    this.abduzirAqui(
+      alvo.id,
+      () => this.avisar(`Abdução marcada: ${alvo.nome}.`, 'alien'),
+      (e) => {
+        this.vitimaMarcada.set(null);
+        this.avisar(motivoDaRecusa(e) ?? 'Não foi possível abduzir agora.', 'warn');
+      },
+    );
+    return true;
+  };
 
   protected aoTocarObjeto(): void {
     const tipo = this.objeto();
@@ -988,6 +1011,7 @@ export class StudentIsolateusJogoPage extends StudentIsolateusPage implements On
     if (this.esperando()) return textoDoMotivo('NOITE_NAO_COMECOU', { n: this.espera() });
     if (this.reparoOrganizado()) return textoDoMotivo('POSICAO_TRAVADA_REPARO');
     if (this.resgateOrganizado()) return textoDoMotivo('POSICAO_TRAVADA_RESGATE');
+    if (this.travadaPorAcao()) return textoDoMotivo('POSICAO_TRAVADA_ACAO');
     return null;
   }
 
