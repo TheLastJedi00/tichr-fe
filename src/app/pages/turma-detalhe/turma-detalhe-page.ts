@@ -31,6 +31,8 @@ import { TurmaApiService } from '../../core/turma-api.service';
 import { DenunciaApiService, EstadoJanelas } from '../../core/denuncia-api.service';
 import { formatarHora } from '../../core/date-format';
 import { TurmaDenuncias } from './turma-denuncias';
+import { EstadoJanelaPerguntas, PerguntaApiService } from '../../core/pergunta-api.service';
+import { TurmaPerguntas } from './turma-perguntas';
 import { AlunoCard } from '../../ui/aluno-card/aluno-card';
 import { Card } from '../../ui/card/card';
 import { EquipeColuna } from '../../ui/equipe-coluna/equipe-coluna';
@@ -42,7 +44,7 @@ import { RosterInput } from '../../ui/roster-input/roster-input';
 import { PreJogoAlunosModal } from '../../ui/pre-jogo-alunos-modal/pre-jogo-alunos-modal';
 import { Spinner } from '../../ui/spinner/spinner';
 
-type Aba = 'agenda' | 'alunos' | 'equipes' | 'jogos' | 'denuncias';
+type Aba = 'agenda' | 'alunos' | 'equipes' | 'jogos' | 'denuncias' | 'perguntas';
 type Ordenacao = 'nome' | 'pontuacao';
 
 /**
@@ -56,6 +58,7 @@ type Ordenacao = 'nome' | 'pontuacao';
   imports: [
     RouterLink,
     TurmaDenuncias,
+    TurmaPerguntas,
     Card,
     Icon,
     Spinner,
@@ -148,6 +151,28 @@ type Ordenacao = 'nome' | 'pontuacao';
         </div>
       }
 
+      @if (podePontuar() && janelaPerguntas(); as jp) {
+        <div class="janela" [class.janela--aberta]="jp.abertas">
+          <span class="janela__txt">
+            <app-icon [name]="jp.abertas ? 'chat' : 'lock'" [size]="16" />
+            @if (jp.abertas) {
+              Perguntas abertas
+              @if (jp.desde) { <span class="janela__desde">desde {{ horaDe(jp.desde) }}</span> }
+            } @else {
+              Perguntas fechadas
+            }
+          </span>
+          <button
+            type="button"
+            [class]="jp.abertas ? 'btn-outline' : 'btn-primary'"
+            [disabled]="alternandoPerguntas()"
+            (click)="alternarJanelaPerguntas()"
+          >
+            {{ jp.abertas ? 'Fechar perguntas' : 'Abrir perguntas' }}
+          </button>
+        </div>
+      }
+
       <nav class="tabs">
         <button
           class="tab"
@@ -191,6 +216,17 @@ type Ordenacao = 'nome' | 'pontuacao';
             Denúncias
             @if (pendentesDenuncia() > 0) {
               <span class="tab__badge" [attr.aria-label]="pendentesDenuncia() + ' pendentes'">{{ pendentesDenuncia() }}</span>
+            }
+          </button>
+          <button
+            class="tab"
+            [class.tab--active]="aba() === 'perguntas'"
+            type="button"
+            (click)="aba.set('perguntas')"
+          >
+            Perguntas
+            @if (pendentesPerguntas() > 0) {
+              <span class="tab__badge" [attr.aria-label]="pendentesPerguntas() + ' aguardando resposta'">{{ pendentesPerguntas() }}</span>
             }
           </button>
         }
@@ -453,6 +489,15 @@ type Ordenacao = 'nome' | 'pontuacao';
             [alternandoJanela]="alternandoJanela()"
             (alternarJanela)="alternarJanela()"
             (pendentesMudou)="pendentesDenuncia.set($event)"
+          />
+        }
+        @case ('perguntas') {
+          <app-turma-perguntas
+            [turmaId]="turmaId"
+            [janela]="janelaPerguntas()"
+            [alternandoJanela]="alternandoPerguntas()"
+            (alternarJanela)="alternarJanelaPerguntas()"
+            (pendentesMudou)="pendentesPerguntas.set($event)"
           />
         }
         @case ('jogos') {
@@ -1144,6 +1189,13 @@ export class TurmaDetalhePage {
     return atual ? formatarHora(atual.abertaEm) : null;
   });
   private readonly denunciaApi = inject(DenunciaApiService);
+  /** Perguntas esperando o professor nesta turma (badge, spec 037). */
+  protected readonly pendentesPerguntas = signal(0);
+  /** Janela de perguntas da turma (037): o aluno só pergunta com ela aberta. */
+  protected readonly janelaPerguntas = signal<EstadoJanelaPerguntas | null>(null);
+  protected readonly alternandoPerguntas = signal(false);
+  protected readonly horaDe = formatarHora;
+  private readonly perguntaApi = inject(PerguntaApiService);
   protected readonly carregando = signal(true);
   protected readonly turma = signal<Turma | null>(null);
   protected readonly alunos = signal<Aluno[]>([]);
@@ -1307,6 +1359,14 @@ export class TurmaDetalhePage {
           error: () => {},
         });
         this.carregarJanela();
+        this.perguntaApi.pendentes().subscribe({
+          next: (p) => this.pendentesPerguntas.set(p[this.turmaId] ?? 0),
+          error: () => {},
+        });
+        this.perguntaApi.estadoJanela(this.turmaId).subscribe({
+          next: (j) => this.janelaPerguntas.set(j),
+          error: () => {},
+        });
       }
     };
     if (this.profileService.profile()) {
@@ -1678,6 +1738,23 @@ export class TurmaDetalhePage {
     req.subscribe({
       next: () => this.carregarJanela(() => this.alternandoJanela.set(false)),
       error: () => this.alternandoJanela.set(false),
+    });
+  }
+
+  /** Abre ou fecha o recebimento de perguntas da turma (037). */
+  protected alternarJanelaPerguntas(): void {
+    const j = this.janelaPerguntas();
+    if (!j || this.alternandoPerguntas()) return;
+    this.alternandoPerguntas.set(true);
+    const req = j.abertas
+      ? this.perguntaApi.fecharJanela(this.turmaId)
+      : this.perguntaApi.abrirJanela(this.turmaId);
+    req.subscribe({
+      next: (novo) => {
+        this.janelaPerguntas.set(novo);
+        this.alternandoPerguntas.set(false);
+      },
+      error: () => this.alternandoPerguntas.set(false),
     });
   }
 

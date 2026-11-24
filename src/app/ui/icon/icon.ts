@@ -57,7 +57,10 @@ export type IconName =
   | 'pause'
   | 'play'
   // Perguntas embaralhadas por aluno (Qlick).
-  | 'shuffle';
+  | 'shuffle'
+  // Perguntas ao professor: anexo e download.
+  | 'paperclip'
+  | 'download';
 
 /**
  * Componente burro de icones. Centraliza os SVGs e herda a cor do texto
@@ -314,6 +317,14 @@ export type IconName =
           <path d="M2 18h2a4 4 0 0 0 3.3-1.7l5.4-7.6A4 4 0 0 1 16 7h6" />
           <path d="M2 6h2a4 4 0 0 1 3.6 2.2" />
           <path d="M22 18h-6a4 4 0 0 1-3.3-1.8l-.4-.5" />
+        }
+        @case ('paperclip') {
+          <path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5" />
+        }
+        @case ('download') {
+          <path d="M12 3v12" />
+          <path d="m7 10 5 5 5-5" />
+          <path d="M5 21h14" />
         }
       }
     </svg>

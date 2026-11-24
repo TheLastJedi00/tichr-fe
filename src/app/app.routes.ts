@@ -143,6 +143,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'perguntas',
+        loadComponent: () =>
+          import('./pages/student-perguntas/student-perguntas-page').then(
+            (m) => m.StudentPerguntasPage,
+          ),
+      },
+      {
         path: 'manual',
         loadComponent: () =>
           import('./pages/student-manual/student-manual-page').then(

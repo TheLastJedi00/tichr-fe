@@ -167,6 +167,25 @@ estilo app), autenticada por **PIN** e com token próprio. O aluno entra pela jo
   - Denúncias antigas com foto (anteriores a esta versão) mantêm o **Ver foto** até serem
     resolvidas; depois a foto é apagada.
 
+### Perguntas ao professor (Plano PhD, junto do portal)
+
+- **Portal do aluno → Perguntar ao professor** (`/aluno/perguntas`, atalho no painel ao lado de
+  "Denunciar"): o aluno escreve o assunto e a dúvida e pode **anexar um arquivo** (HTML, CSS, PDF
+  ou Word, até 4 MB; imagens não). A tela recusa o tipo/tamanho errado antes de enviar. Só ele e o
+  professor veem.
+- **Minhas perguntas:** cada uma com o selo **Aguardando o professor**, **Respondida** ou
+  **Encerrada**. Abrindo, a conversa aparece em ordem, com as mensagens do aluno à direita, o
+  campo de resposta (com anexo) e o botão **Minha dúvida foi resolvida**.
+- **Abrir e fechar perguntas:** faixa no detalhe da turma (e no topo da aba Perguntas) com
+  "abertas desde HH:mm" e o botão **Abrir/Fechar perguntas**. Toda turma começa fechada. Fechada,
+  o aluno só lê as respostas; o professor continua respondendo.
+- **Detalhe da turma → aba Perguntas**, com **badge** das que esperam resposta: filtro
+  **Abertas/Encerradas/Todas**, as que esperam o professor primeiro (borda amarela, "Aguardando
+  você"), nome do aluno, ícone de anexo e "há 5 min". Abrindo: a conversa, **Responder**,
+  **Encerrar** e **Reabrir**. Anexo vira um chip "nome.pdf · 1,2 MB · Baixar": o arquivo sempre
+  **baixa**, nunca abre na tela (HTML e CSS chegam como texto).
+- Sem tempo real: as telas se atualizam a cada 30 s enquanto estão abertas.
+
 ### Ociosidade nos jogos (Qlick, Wor e Isolateus)
 
 - **Lobby:** "Alerta de ociosidade" com − / + (1 a 10), ao lado de "Vale para o ranking". Padrão:

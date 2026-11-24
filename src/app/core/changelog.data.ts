@@ -18,6 +18,18 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.44.0',
+    data: '2026-11-24',
+    titulo: 'Perguntas ao professor',
+    itens: [
+      { categoria: 'Nova feature', texto: 'Portal do aluno: o novo atalho "Perguntar ao professor" abre uma conversa privada com o professor. Só o aluno e o professor veem a pergunta.' },
+      { categoria: 'Nova feature', texto: 'O aluno pode anexar um arquivo HTML, CSS, PDF ou Word (até 4 MB) à pergunta ou à resposta. Imagens não são aceitas.' },
+      { categoria: 'Nova feature', texto: 'Detalhe da turma: nova aba Perguntas, com o número das que esperam resposta. O professor responde, baixa os arquivos e encerra ou reabre cada pergunta.' },
+      { categoria: 'Nova feature', texto: 'O professor abre e fecha as perguntas da turma, como nas denúncias. Fechadas, o aluno só lê as respostas. Toda turma começa com as perguntas fechadas.' },
+      { categoria: 'Melhoria', texto: 'O aluno marca "Minha dúvida foi resolvida" para encerrar a pergunta.' },
+    ],
+  },
+  {
     versao: 'v0.43.0',
     data: '2026-11-23',
     titulo: 'Isolateus: noite com movimentação livre e chat da vila',
