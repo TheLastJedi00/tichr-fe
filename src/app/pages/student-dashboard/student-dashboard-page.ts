@@ -119,6 +119,10 @@ import { XpBar } from '../../ui/xp-bar/xp-bar';
           <app-icon name="flag" [size]="24" />
           <span>Denunciar</span>
         </a>
+        <a class="atalho" routerLink="/aluno/perguntas">
+          <app-icon name="chat" [size]="24" />
+          <span>Perguntar ao professor</span>
+        </a>
       </div>
       </div>
     }
