@@ -18,6 +18,14 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.45.1',
+    data: '2026-11-25',
+    titulo: 'Trabalhos valendo mais pontos',
+    itens: [
+      { categoria: 'Correção', texto: 'Um trabalho agora pode valer até 99.999 pontos no ranking (antes o limite era 1.000).' },
+    ],
+  },
+  {
     versao: 'v0.45.0',
     data: '2026-11-25',
     titulo: 'Envio de trabalhos',

@@ -97,7 +97,8 @@ export interface DadosAtividade {
 export const TRABALHO_REGRAS = {
   TITULO_MAX: 120,
   DESCRICAO_MAX: 2000,
-  VALOR_MAX: 1000,
+  /** Até 5 dígitos. */
+  VALOR_MAX: 99_999,
   VALOR_PADRAO: 100,
   TEXTO_MAX: 10_000,
   MAX_ARQUIVOS: 5,

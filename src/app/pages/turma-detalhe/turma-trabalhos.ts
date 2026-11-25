@@ -513,7 +513,7 @@ export class TurmaTrabalhos implements OnInit {
       return this.erroForm.set('O prazo precisa ser depois de agora.');
     }
     if (!Number.isInteger(valorPontos) || valorPontos < 0 || valorPontos > TRABALHO_REGRAS.VALOR_MAX) {
-      return this.erroForm.set(`O trabalho vale de 0 a ${TRABALHO_REGRAS.VALOR_MAX} pontos.`);
+      return this.erroForm.set(`O trabalho vale de 0 a ${TRABALHO_REGRAS.VALOR_MAX.toLocaleString('pt-BR')} pontos.`);
     }
     const dados = { titulo, descricao: f.descricao.trim() || null, prazo, valorPontos };
     const id = this.editandoId();
