@@ -517,6 +517,7 @@ type Ordenacao = 'nome' | 'pontuacao';
         @case ('trabalhos') {
           <app-turma-trabalhos
             [turmaId]="turmaId"
+            [pontuacaoAtiva]="cfg().pontuacaoAtiva"
             (pendentesMudou)="pendentesTrabalhos.set($event)"
           />
         }
