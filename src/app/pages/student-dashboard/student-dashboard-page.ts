@@ -25,6 +25,7 @@ import { CardJogoComponent } from '../../ui/card-jogo/card-jogo';
 import { Icon } from '../../ui/icon/icon';
 import { Spinner } from '../../ui/spinner/spinner';
 import { XpBar } from '../../ui/xp-bar/xp-bar';
+import { TrabalhoApiService } from '../../core/trabalho-api.service';
 
 /** Dashboard do aluno: saudação + barra de XP/nível + atalhos. */
 @Component({
@@ -123,6 +124,17 @@ import { XpBar } from '../../ui/xp-bar/xp-bar';
           <app-icon name="chat" [size]="24" />
           <span>Perguntar ao professor</span>
         </a>
+        @if (trabalhosDisponiveis()) {
+        <a class="atalho atalho--largo" routerLink="/aluno/trabalhos">
+          <app-icon name="book" [size]="24" />
+          <span>Trabalhos</span>
+          @if (trabalhosPendentes() > 0) {
+            <span class="atalho__badge" [attr.aria-label]="trabalhosPendentes() + ' para entregar'">
+              {{ trabalhosPendentes() }} para entregar
+            </span>
+          }
+        </a>
+        }
       </div>
       </div>
     }
@@ -150,6 +162,15 @@ import { XpBar } from '../../ui/xp-bar/xp-bar';
       text-align: center;
     }
     .atalho:hover { border-color: var(--primary); }
+    .atalho--largo { grid-column: 1 / -1; }
+    .atalho__badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.1rem 0.55rem;
+      border-radius: 999px;
+      background: var(--primary);
+      color: var(--primary-contrast, #fff);
+    }
     .evolucao__top { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 0.4rem; }
     .evolucao__tit { font-weight: 700; }
     .evolucao__pct { font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums; }
@@ -171,6 +192,9 @@ export class StudentDashboardPage {
   protected readonly formatarData = formatarData;
 
   protected readonly carregando = signal(true);
+  private readonly trabalhoApi = inject(TrabalhoApiService);
+  protected readonly trabalhosPendentes = signal(0);
+  protected readonly trabalhosDisponiveis = signal(false);
   protected readonly nome = signal(this.studentAuth.aluno()?.nome ?? '');
   protected readonly xp = signal(this.studentAuth.aluno()?.xpTotal ?? 0);
   protected readonly nomePontuacao = this.studentAuth.nomePontuacao;
@@ -213,6 +237,15 @@ export class StudentDashboardPage {
     this.api.getMinhaAgenda().subscribe({
       next: (s) => this.sessoes.set(s),
       error: () => {},
+    });
+    // Trabalhos ainda por entregar (spec 038): o contador do atalho.
+    this.trabalhoApi.meus().subscribe({
+      next: (l) => {
+        this.trabalhosDisponiveis.set(true);
+        this.trabalhosPendentes.set(l.filter((t) => t.estado === 'PENDENTE').length);
+      },
+      // 403 = professor fora do PhD: o atalho não aparece (sem modal, ver o interceptor).
+      error: () => this.trabalhosDisponiveis.set(false),
     });
     this.api.getMeuPlano().subscribe({
       next: (r) =>

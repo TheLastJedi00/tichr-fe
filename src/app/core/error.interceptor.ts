@@ -93,9 +93,16 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
     req.url.endsWith('/auth/logout') ||
     req.url.includes('/auth/verificacao') ||
     req.url.endsWith('/admin/ping');
+  // Trabalhos (038): o painel do aluno sonda a lista para o atalho; turma de
+  // professor fora do PhD responde 403 e o atalho só some, sem modal.
+  const isListaTrabalhos = req.method === 'GET' && req.url.endsWith('/aluno/trabalhos');
   return next(req).pipe(
     catchError((err: HttpErrorResponse) => {
-      if (err.status !== 401 && !isFormAuth && !isTratadoInline(err)) {
+      const trabalhosBloqueados =
+        isListaTrabalhos &&
+        err.status === 403 &&
+        (err.error as { code?: string } | null)?.code === 'GAMIFICACAO_LOCKED';
+      if (err.status !== 401 && !isFormAuth && !isTratadoInline(err) && !trabalhosBloqueados) {
         errorService.show(extrairMensagem(err));
       }
       return throwError(() => err);
