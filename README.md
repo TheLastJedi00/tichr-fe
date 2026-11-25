@@ -186,6 +186,25 @@ estilo app), autenticada por **PIN** e com token próprio. O aluno entra pela jo
   **baixa**, nunca abre na tela (HTML e CSS chegam como texto).
 - Sem tempo real: as telas se atualizam a cada 30 s enquanto estão abertas.
 
+### Envio de trabalhos (Plano PhD, junto do portal)
+
+- **Detalhe da turma → aba Trabalhos**, com **badge** das entregas para avaliar. **Novo trabalho**:
+  título, descrição, **prazo com data e hora limite** (obrigatórios) e quanto vale em pontos
+  (padrão 100). Cada trabalho mostra o prazo ("05/12/2026 às 23:59", **Recebendo** ou
+  **Encerrado**), "12/30 entregaram" e "3 para avaliar". **Editar** muda qualquer campo (mudar o
+  prazo encerra antes ou reabre); **Excluir** só sem entregas.
+- **Ver entregas:** todos os alunos da turma, **Para avaliar** primeiro, depois **Avaliada · 8,5**,
+  **Pendente** e **Não entregou**. Abrindo uma entrega: o texto do aluno, os arquivos para
+  **baixar** (nunca abrem na tela) e o campo de **nota de 0 a 10** (aceita vírgula) com comentário.
+  A tela mostra quanto a nota vale ("Vale +85 pontos") e, ao reavaliar, a diferença.
+- **Portal do aluno → Trabalhos** (`/aluno/trabalhos`, atalho no painel com "N para entregar"):
+  os trabalhos da turma com o prazo e quanto falta ("encerra hoje às 23:59"). Na entrega, o aluno
+  escreve ou cola o texto (**até 10.000 caracteres**, com contador e **Salvar texto**) e **anexa
+  até 5 arquivos** (HTML, CSS, PDF ou Word, até 4 MB cada; imagens não), um de cada vez com
+  barra de progresso. Dá para trocar o texto e remover arquivos **até o prazo ou a avaliação**;
+  depois fica só leitura, com a nota, os pontos e o comentário do professor.
+- Turma de professor fora do PhD: o atalho não aparece.
+
 ### Ociosidade nos jogos (Qlick, Wor e Isolateus)
 
 - **Lobby:** "Alerta de ociosidade" com − / + (1 a 10), ao lado de "Vale para o ranking". Padrão:
