@@ -64,7 +64,7 @@ const CODIGOS_DE_ESTADO = ['PRAZO_ENCERRADO', 'ENTREGA_AVALIADA', 'LIMITE_ARQUIV
           {{ selo(d.estado, d.entrega?.avaliacao?.nota ?? null).texto }}
         </span>
         <span><app-icon name="calendar" [size]="14" /> Até {{ prazo(d.atividade.prazo) }}</span>
-        @if (d.atividade.aberta && falta(d.atividade.prazo); as f) { <strong>· {{ f }}</strong> }
+        @if (d.atividade.aberta && d.estado !== 'AVALIADA' && falta(d.atividade.prazo); as f) { <strong>· {{ f }}</strong> }
       </p>
 
       @if (d.entrega?.avaliacao; as av) {
