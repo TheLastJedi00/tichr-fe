@@ -55,6 +55,16 @@ describe('errorInterceptor — modal global vs inline', () => {
     expect(errorService.show).toHaveBeenCalled();
   });
 
+  it('lista de trabalhos bloqueada pelo plano NÃO abre modal (o atalho só some)', () => {
+    consumir(rodar('https://api.tichr.com.br/aluno/trabalhos', 403, 'GAMIFICACAO_LOCKED'));
+    expect(errorService.show).not.toHaveBeenCalled();
+  });
+
+  it('lista de trabalhos com outro erro abre o modal', () => {
+    consumir(rodar('https://api.tichr.com.br/aluno/trabalhos', 500));
+    expect(errorService.show).toHaveBeenCalled();
+  });
+
   it('erro comum de outra rota segue abrindo o modal', () => {
     consumir(rodar('https://api.tichr.com.br/turmas'));
     expect(errorService.show).toHaveBeenCalled();

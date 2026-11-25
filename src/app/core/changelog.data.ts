@@ -18,6 +18,18 @@ export interface VersaoChangelog {
  */
 export const CHANGELOG: VersaoChangelog[] = [
   {
+    versao: 'v0.45.0',
+    data: '2026-11-25',
+    titulo: 'Envio de trabalhos',
+    itens: [
+      { categoria: 'Nova feature', texto: 'Detalhe da turma: nova aba Trabalhos. Crie um trabalho com título, descrição, prazo com data e hora limite e quanto ele vale em pontos.' },
+      { categoria: 'Nova feature', texto: 'Portal do aluno: novo atalho Trabalhos. O aluno escreve ou cola o texto do trabalho (até 10.000 caracteres) e anexa até 5 arquivos HTML, CSS, PDF ou Word, de até 4 MB cada.' },
+      { categoria: 'Nova feature', texto: 'O aluno pode alterar a entrega até o prazo acabar ou o professor avaliar. Só ele e o professor veem a entrega.' },
+      { categoria: 'Nova feature', texto: 'O professor vê quem entregou e quem falta, lê o texto, baixa os arquivos e dá uma nota de 0 a 10 com comentário. A nota vira pontos no ranking: nota 8 num trabalho de 100 pontos vale 80.' },
+      { categoria: 'Melhoria', texto: 'A aba Trabalhos mostra quantas entregas esperam nota, e o painel do aluno mostra quantos trabalhos faltam entregar.' },
+    ],
+  },
+  {
     versao: 'v0.44.0',
     data: '2026-11-24',
     titulo: 'Perguntas ao professor',

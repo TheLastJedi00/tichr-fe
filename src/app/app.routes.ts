@@ -150,6 +150,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'trabalhos',
+        loadComponent: () =>
+          import('./pages/student-trabalhos/student-trabalhos-page').then(
+            (m) => m.StudentTrabalhosPage,
+          ),
+      },
+      {
         path: 'manual',
         loadComponent: () =>
           import('./pages/student-manual/student-manual-page').then(
